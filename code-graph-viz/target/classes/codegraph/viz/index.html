@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>code-graph</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="graph"></div>
+
+<header id="topbar">
+  <span id="appname">code-graph</span>
+  <select id="project" title="Project"></select>
+  <span id="project-actions" class="hidden">
+    <button id="reindex-project" title="Re-index the active project"><span id="reindex-glyph">&#10227;</span><span id="reindex-label"> Reindex</span></button>
+    <button id="remove-project" title="Remove the active project from this server">&#10005; Remove</button>
+    <button id="add-project" title="Index a new directory as a project">&#65291; Add project</button>
+  </span>
+  <nav id="modes">
+    <button id="tab-overview" class="tab">Overview</button>
+    <button id="tab-galaxy" class="tab">Galaxy</button>
+  </nav>
+  <nav id="dims" title="Renderer">
+    <button id="dim-3d" class="tab active">3D</button>
+    <button id="dim-2d" class="tab">2D</button>
+  </nav>
+  <input id="search" type="search" placeholder="Search symbols&hellip;" autocomplete="off" spellcheck="false">
+  <button id="nav-up" title="Up one level (Esc or double-click background)" disabled>&#8593; Up</button>
+  <button id="release-pins" title="Unpin all dragged nodes">Release pins</button>
+  <button id="reset-view" title="Camera home + release pins">Reset view</button>
+  <button id="mcp-pill" class="pill hidden" title="MCP endpoint"></button>
+  <button id="help-toggle" title="Controls help">?</button>
+</header>
+
+<div id="crumbs"></div>
+
+<div id="controls">
+  <div id="ego-controls" class="ctrl hidden">
+    <label for="ego-depth">depth <span id="ego-depth-val">2</span></label>
+    <input id="ego-depth" type="range" min="1" max="4" step="1" value="2">
+  </div>
+  <div id="galaxy-controls" class="ctrl hidden">
+    <label for="galaxy-cap">cap <span id="galaxy-cap-val">1500</span></label>
+    <input id="galaxy-cap" type="range" min="100" max="5000" step="100" value="1500">
+    <label for="galaxy-conf">min conf <span id="galaxy-conf-val">0.00</span></label>
+    <input id="galaxy-conf" type="range" min="0" max="1" step="0.05" value="0">
+    <input id="galaxy-lang" type="text" placeholder="lang filter" spellcheck="false">
+  </div>
+</div>
+
+<aside id="results" class="hidden">
+  <div class="panel-title">Results</div>
+  <ul id="results-list"></ul>
+</aside>
+
+<aside id="details" class="hidden">
+  <button id="details-close" title="Close">&times;</button>
+  <div id="details-body"></div>
+</aside>
+
+<div id="zoombar">
+  <button id="zoom-in" title="Zoom in">+</button>
+  <button id="zoom-out" title="Zoom out">&minus;</button>
+  <button id="zoom-fit" title="Fit graph in view">Fit</button>
+</div>
+
+<div id="hint">drag rotate &middot; scroll zoom &middot; right-drag pan &middot; node drag to pin</div>
+
+<div id="browse-overlay" class="hidden">
+  <div id="browse-card">
+    <div class="panel-title">Add project &mdash; pick a directory</div>
+    <div id="browse-path" title="Current directory"></div>
+    <ul id="browse-list"></ul>
+    <div id="browse-actions">
+      <button id="browse-add">Add this folder</button>
+      <button id="browse-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="scan-overlay" class="hidden">
+  <div id="scan-card">
+    <div id="scan-spinner"></div>
+    <div class="panel-title" id="scan-title">Scanning project&hellip;</div>
+    <div id="scan-message"></div>
+    <div id="scan-timer">0.0s</div>
+    <div id="scan-actions">
+      <button id="scan-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="help-overlay" class="hidden">
+  <div id="help-card">
+    <div class="panel-title">Controls</div>
+    <dl id="help-list"><!-- rows built by app.js for the active renderer (3D / 2D) --></dl>
+    <button id="help-close">Close</button>
+  </div>
+</div>
+
+<footer id="statusbar">
+  <span id="status"></span>
+  <span id="truncated" class="hidden">&#9888; truncated</span>
+  <div id="legend"></div>
+</footer>
+
+<div id="node-tooltip" class="hidden"></div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="/vendor/3d-force-graph.min.js"></script>
+<script src="/vendor/force-graph.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

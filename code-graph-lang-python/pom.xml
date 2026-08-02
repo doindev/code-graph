@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.doindev</groupId>
+    <artifactId>code-graph</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <artifactId>code-graph-lang-python</artifactId>
+  <name>code-graph-lang-python</name>
+  <description>Python language analyzer for the code-graph extraction pipeline</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.doindev</groupId>
+      <artifactId>code-graph-parsers</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.bonede</groupId>
+      <artifactId>tree-sitter-python</artifactId>
+      <version>0.23.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

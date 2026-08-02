@@ -1,0 +1,17 @@
+io\doindev\codegraph\cli\Git$Exec.class
+io\doindev\codegraph\cli\IndexCommand.class
+io\doindev\codegraph\cli\CiReport$FileRow.class
+io\doindev\codegraph\cli\CheckCommand.class
+io\doindev\codegraph\cli\Git.class
+io\doindev\codegraph\cli\Args$UsageException.class
+io\doindev\codegraph\cli\GitlabPoster.class
+io\doindev\codegraph\cli\CiCommand.class
+io\doindev\codegraph\cli\Indexing.class
+io\doindev\codegraph\cli\Snapshots.class
+io\doindev\codegraph\cli\CiReport.class
+io\doindev\codegraph\cli\PrCommentPoster.class
+io\doindev\codegraph\cli\CiCommand$Options.class
+io\doindev\codegraph\cli\Args.class
+io\doindev\codegraph\cli\Indexing$Indexed.class
+io\doindev\codegraph\cli\GithubPoster.class
+io\doindev\codegraph\cli\Main.class

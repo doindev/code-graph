@@ -1,0 +1,4 @@
+io\doindev\codegraph\graph\EnginePerfTest.class
+io\doindev\codegraph\graph\InMemoryCodeGraphTest.class
+io\doindev\codegraph\snapshot\FileSnapshotStoreTest.class
+io\doindev\codegraph\model\NodeIdTest.class

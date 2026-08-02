@@ -1,0 +1,7 @@
+io\doindev\codegraph\cli\GithubPosterLiveTest.class
+io\doindev\codegraph\cli\ReportTest.class
+io\doindev\codegraph\cli\PosterTest.class
+io\doindev\codegraph\cli\ArgsTest.class
+io\doindev\codegraph\cli\CiGitTest.class
+io\doindev\codegraph\cli\PosterTest$Recorded.class
+io\doindev\codegraph\cli\CiEndToEndTest.class

@@ -1,0 +1,4 @@
+io\doindev\codegraph\analysis\DeadCodeAndScoreTest.class
+io\doindev\codegraph\analysis\BlastFormulaTest.class
+io\doindev\codegraph\analysis\DeadCodeHierarchyTest.class
+io\doindev\codegraph\analysis\TarjanTest.class

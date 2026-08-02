@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: io.doindev.codegraph.viz.VizServerTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.160 s -- in io.doindev.codegraph.viz.VizServerTest

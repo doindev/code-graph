@@ -1,0 +1,209 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.doindev</groupId>
+  <artifactId>code-graph</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>code-graph</name>
+  <description>Enterprise blast-radius and code-intelligence MCP server: tree-sitter code property graph, sub-5ms impact queries, risk gating, drift detection, headless CI reports</description>
+  <url>https://github.com/doindev/code-graph</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <organization>
+    <name>doindev</name>
+    <url>https://github.com/doindev</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>doindev</id>
+      <name>doindev</name>
+      <url>https://github.com/doindev</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/doindev/code-graph.git</connection>
+    <developerConnection>scm:git:git@github.com:doindev/code-graph.git</developerConnection>
+    <url>https://github.com/doindev/code-graph</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/doindev/code-graph/issues</url>
+  </issueManagement>
+
+  <modules>
+    <module>code-graph-bom</module>
+    <module>code-graph-core</module>
+    <module>code-graph-config</module>
+    <module>code-graph-parsers</module>
+    <module>code-graph-lang-java</module>
+    <module>code-graph-lang-javascript</module>
+    <module>code-graph-lang-python</module>
+    <module>code-graph-lang-go</module>
+    <module>code-graph-lang-rust</module>
+    <module>code-graph-lang-c</module>
+    <module>code-graph-lang-csharp</module>
+    <module>code-graph-lang-php</module>
+    <module>code-graph-lang-ruby</module>
+    <module>code-graph-lang-kotlin</module>
+    <module>code-graph-lang-scala</module>
+    <module>code-graph-lang-swift</module>
+    <module>code-graph-lang-dart</module>
+    <module>code-graph-lang-objc</module>
+    <module>code-graph-lang-sql</module>
+    <module>code-graph-index</module>
+    <module>code-graph-analysis</module>
+    <module>code-graph-rules</module>
+    <module>code-graph-smells</module>
+    <module>code-graph-tools</module>
+    <module>code-graph-mcp</module>
+    <module>code-graph-store-h2</module>
+    <module>code-graph-store-neo4j</module>
+    <module>code-graph-store-arangodb</module>
+    <module>code-graph-linker</module>
+    <module>code-graph-viz</module>
+    <module>code-graph-cli</module>
+    <module>code-graph-mcp-http</module>
+  </modules>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.11.4</junit.version>
+    <jackson.version>2.18.2</jackson.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
+    <tree-sitter.version>0.26.6</tree-sitter.version>
+    <mcp.version>2.0.0</mcp.version>
+    <h2.version>2.4.240</h2.version>
+    <neo4j-driver.version>6.2.0</neo4j-driver.version>
+    <arangodb-driver.version>7.26.0</arangodb-driver.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.2</version>
+          <configuration>
+            <!-- tree-sitter-ng loads native grammar libraries via System::load; future JDKs
+                 block restricted native access unless it is enabled explicitly -->
+            <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <!--
+      Release profile: `mvn -Prelease deploy`. Builds signed source + javadoc jars for every
+      published module and pushes to the Sonatype Central Portal. Credentials supplied via CI
+      secrets or ~/.m2/settings.xml, never committed. Modules that opt out set
+      <maven.deploy.skip>true</maven.deploy.skip> in their own POM.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals><goal>jar-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.11.2</version>
+            <configuration>
+              <quiet>true</quiet>
+              <doclint>none</doclint>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals><goal>jar</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.7</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.7.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>false</autoPublish>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

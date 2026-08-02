@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: io.doindev.codegraph.store.h2.H2GraphStoreTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.633 s -- in io.doindev.codegraph.store.h2.H2GraphStoreTest

@@ -1,0 +1,39 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.doindev</groupId>
+    <artifactId>code-graph</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <artifactId>code-graph-smells</artifactId>
+  <name>code-graph-smells</name>
+  <description>Code-smell detectors over graph + AST metrics: god class, long method, hubs, cycles (Wave A); advanced detectors (Wave B)</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.doindev</groupId>
+      <artifactId>code-graph-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.doindev</groupId>
+      <artifactId>code-graph-analysis</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.doindev</groupId>
+      <artifactId>code-graph-rules</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.doindev</groupId>
+      <artifactId>code-graph-lang-sql</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

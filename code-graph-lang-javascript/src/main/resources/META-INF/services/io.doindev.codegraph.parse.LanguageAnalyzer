@@ -1,0 +1,3 @@
+io.doindev.codegraph.lang.javascript.JavaScriptAnalyzer
+io.doindev.codegraph.lang.javascript.TypeScriptAnalyzer
+io.doindev.codegraph.lang.javascript.TsxAnalyzer
