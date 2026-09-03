@@ -18,6 +18,29 @@ Progress goes to stderr; stdout belongs to the protocol.
 
 ## Tool reference
 
+### Agent skill for Copilot, Claude Code, and Codex
+
+The portable [code-graph skill](../../skills/code-graph/SKILL.md) teaches agents
+to prefer the connected MCP server for symbol navigation, callers/dependencies,
+and change impact, while retaining file reads and text search for exact contents
+and unindexed files. It uses only standard `name`/`description` frontmatter and
+does not configure or start an MCP server.
+
+Copy the `skills/code-graph` folder into the target repository's skill directory:
+
+- GitHub Copilot: `.github/skills/code-graph/SKILL.md`.
+- Claude Code: `.claude/skills/code-graph/SKILL.md`.
+- Codex: `.agents/skills/code-graph/SKILL.md`.
+
+The distributed file is not automatically installed by cloning this repository.
+Connect the MCP server separately using the agent's normal configuration. Skill
+selection remains host-controlled; the file guides applicable tasks, not every
+shell operation. See the official [Copilot skill guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills),
+[Claude Code skill guide](https://code.claude.com/docs/en/skills), and
+[Codex skill guide](https://learn.chatgpt.com/docs/build-skills).
+
+### Available tools
+
 | Tool | Purpose |
 |---|---|
 | `search_symbols` | Find symbols by name — call this FIRST to obtain valid symbol IDs |
