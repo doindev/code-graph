@@ -27,7 +27,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   its metric evidence.
 - **MCP tools** (stdio for local agents, streamable HTTP for team deployment): `search_symbols`,
   `get_symbol`, `get_impact_radius`, `get_call_graph`, `get_blast_score`, `find_dead_code`,
-  `find_code_smells`, `compare_architectural_drift`, `index_status`, `reindex`.
+  `find_code_smells`, `compare_architectural_drift`, `index_status`, `reindex`,
+  `list_projects`, `add_project`, `remove_project`.
 - **Headless CI mode**: scan a PR, compute the blast radius of the diff, post a markdown risk
   report to GitHub/GitLab, and gate merges via exit codes.
 - **Local-first**: all parsing and graph traversal stays inside your perimeter; tools return
@@ -90,11 +91,52 @@ Known limitation: the Kotlin grammar (0.3.8.1) reports errors on expression-body
 | Transport | Module / entry point | Notes |
 |---|---|---|
 | stdio | `code-graph-mcp` — `io.doindev.codegraph.mcp.Main` | For local agent hosts (Claude Code, IDEs); stdout belongs to the protocol, logs go to stderr. `--viz` binds to localhost only, with viz admin actions (add/remove/reindex projects) **on** by default — pass `--viz-readonly` to disable. |
-| Streamable HTTP | `code-graph-mcp-http` — `io.doindev.codegraph.mcp.http.HttpMain` | Team deployment on embedded Jetty 12; MCP mounted at `/mcp`, binds `0.0.0.0`. Port from `--port` or `CODE_GRAPH_PORT` (default 3000), root from `--root` or `CODE_GRAPH_ROOT` (default `.`). Viz admin actions are **off** by default — pass `--viz-admin` to enable. |
+| Streamable HTTP | `code-graph-mcp-http` — `io.doindev.codegraph.mcp.http.HttpMain` | Team deployment on embedded Jetty 12; MCP mounted at `/mcp`, binds `0.0.0.0`. Port from `--port` or `CODE_GRAPH_PORT` (default 3000). The workspace starts empty unless roots are supplied with `--root`, `CODE_GRAPH_ROOT`, or `--workspace`. Viz admin actions are **off** by default — pass `--viz-admin` to enable. |
 | Custom (embedded) | `CodeGraphMcpServer.serve(...)` | Overloads accept any MCP SDK `McpServerTransportProvider` or `McpStreamableServerTransportProvider`, so the tool set can be embedded behind another transport programmatically. |
 
 Both entry points take the same workspace flags: repeated `--root DIR` or `--workspace FILE`,
 plus `--viz PORT` for the 3D UI.
+
+With no workspace flags or `CODE_GRAPH_ROOT`, the server starts with no projects. MCP agents
+can use `add_project` with a server-side directory path to index and watch a project, and
+`remove_project` to stop watching it. The admin UI offers the same operations. Projects remain
+session-local; MCP onboarding does not require a UI or `--viz-admin`.
+
+Onboarding rejects duplicate roots and child paths of existing or in-flight projects, using
+real filesystem paths so relative segments, symlinks and Windows case aliases cannot bypass
+the check. Siblings are allowed. The rule is directional: adding a parent of an existing
+project is allowed. `add_project` returns the assigned name and `state: "ready"` after the
+initial scan completes; allow sufficient MCP client timeout for large repositories.
+
+The HTTP MCP endpoint can onboard any directory accessible to the server account. Restrict
+access to trusted clients; disabling UI admin actions does not disable MCP project management.
+
+### Project idle timeout
+
+Every onboarded project expires after **one hour of inactivity** by default, including projects
+supplied at startup. Use `--project-ttl 30m` (both HTTP and stdio), or **Idle timeout** in the
+admin UI. Durations are positive whole numbers with `s`, `m`, `h`, or `d` units. For example:
+
+```powershell
+java --enable-native-access=ALL-UNNAMED `
+  -cp "code-graph-mcp-http\target\classes;code-graph-mcp-http\target\lib\*" `
+  io.doindev.codegraph.mcp.http.HttpMain --port 3000 --viz 8137 --viz-admin --project-ttl 1h
+```
+
+Project-specific MCP calls (including `index_status` and `reindex`), UI queries, job status
+requests, and active graph interaction renew only the relevant project's timer. `list_projects`,
+UI roster/countdown refreshes, directory browsing, settings, an idle browser tab, and automatic
+file-watcher work **do not** renew it. Initial onboarding starts the timer when ready; active
+requests and explicit reindex jobs are protected until they finish.
+
+An expiry check runs every five seconds. Expiry stops the watcher and drops the project's graph
+and routes; source files and disk caches are untouched. Memory becomes eligible for normal JVM
+garbage collection. Projects must be explicitly onboarded again after expiry.
+
+UI settings changes affect existing and future projects, recalculating deadlines from last
+activity. A shorter value can expire idle projects on the next check. Changes are session-local:
+restart uses the command-line value or the one-hour default. The setting remains available in
+admin mode even with no projects onboarded.
 
 ### Commands
 

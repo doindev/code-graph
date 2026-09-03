@@ -53,6 +53,26 @@ The UI consumes a small JSON API you can also script against:
 All payloads are capped and marked `truncated` when cut — the browser never receives an
 unbounded graph.
 
+## Idle timeout administration
+
+With UI administration enabled, **Idle timeout** edits the server-wide inactivity policy (one
+hour by default, also configurable via `--project-ttl`). The setting is available when the
+workspace is empty. Saving changes the policy for current and future projects for this server
+session only. Shorter values may cause immediate expiry on the next five-second check.
+
+The selected project's countdown shows remaining idle time; hover for its last activity.
+Queries and active interaction, including rotate/zoom/drag, renew its timer. Read-only UI
+users also count as active users. The UI sends throttled interaction signals, not an automatic
+keep-alive heartbeat. Passive roster refreshes and idle tabs cannot prevent expiry.
+
+After expiry the graph is cleared, the roster is refreshed, and project controls are disabled
+until a project is selected or onboarded. An expired project is never automatically reloaded.
+
+`GET /api/server` includes `projectTtlSeconds`. Admin-only `PUT /api/settings` accepts
+`{"projectTtl":"30m"}`. Project listings include passive lifetime metadata. A browser can send
+`POST /api/p/{name}/activity` for actual interaction; `X-Project-Instance` binds a request to the
+instance ID from the roster so stale requests cannot renew a re-added project with the same name.
+
 ## Security
 
 Read-only over the in-memory graphs; no source text is served (same SnippetPolicy invariant as

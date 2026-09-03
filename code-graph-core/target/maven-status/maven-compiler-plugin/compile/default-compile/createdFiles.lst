@@ -5,8 +5,10 @@ io\doindev\codegraph\store\GraphStore.class
 io\doindev\codegraph\model\Metrics.class
 io\doindev\codegraph\model\SymbolId.class
 io\doindev\codegraph\config\CodeGraphConfig$DeadCode.class
+io\doindev\codegraph\lifecycle\ProjectLifecycle$Entry.class
 io\doindev\codegraph\snapshot\SnapshotCodec$Writer.class
 io\doindev\codegraph\graph\InMemoryCodeGraph$State.class
+io\doindev\codegraph\lifecycle\ProjectLifecycle$Status.class
 io\doindev\codegraph\model\EdgeKind.class
 io\doindev\codegraph\config\CodeGraphConfig$Paths.class
 io\doindev\codegraph\snapshot\SnapshotCodec.class
@@ -15,11 +17,13 @@ io\doindev\codegraph\query\GraphQuery.class
 io\doindev\codegraph\model\NodeId.class
 io\doindev\codegraph\model\RepoId.class
 io\doindev\codegraph\config\CodeGraphConfig.class
+io\doindev\codegraph\lifecycle\ProjectLifecycle$Lease.class
 io\doindev\codegraph\snapshot\DeltaCodec.class
 io\doindev\codegraph\store\GraphDelta.class
 io\doindev\codegraph\query\ClosureHit.class
 io\doindev\codegraph\graph\InMemoryCodeGraph.class
 io\doindev\codegraph\model\Edge.class
+io\doindev\codegraph\lifecycle\ProjectLifecycle.class
 io\doindev\codegraph\config\CodeGraphConfig$Tests.class
 io\doindev\codegraph\store\GraphSink.class
 io\doindev\codegraph\snapshot\Varint.class

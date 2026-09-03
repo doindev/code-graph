@@ -7,7 +7,8 @@ import io.doindev.codegraph.mcp.Main;
 /**
  * HTTP entry point:
  * {@code java -cp ... io.doindev.codegraph.mcp.http.HttpMain [--root DIR]... [--workspace FILE] [--port N] [--viz PORT]}.
- * Defaults come from {@code CODE_GRAPH_ROOT} and {@code CODE_GRAPH_PORT} ("." and 3000).
+ * The workspace starts empty unless roots are supplied through {@code --root},
+ * {@code --workspace}, or {@code CODE_GRAPH_ROOT}. The HTTP port defaults to 3000.
  * Multiple {@code --root} flags (or a workspace file) serve as independent projects; agents
  * pick one via the tools' {@code project} parameter. {@code --viz} also serves the 3D
  * visualization UI. Runs until the process is killed.
@@ -18,6 +19,7 @@ public final class HttpMain {
     }
 
     public static void main(String[] args) throws Exception {
+        java.time.Duration projectTtl = Main.projectTtl(args);
         int port = Integer.parseInt(argValue(args, "--port",
                 System.getenv().getOrDefault("CODE_GRAPH_PORT", "3000")));
         String viz = argValue(args, "--viz", null);
@@ -26,9 +28,10 @@ public final class HttpMain {
         boolean vizAdmin = hasFlag(args, "--viz-admin");
         Analyzers analyzers = Analyzers.discover();
         Workspace workspace = Main.openWorkspace(args, analyzers);
-        HttpServer server = HttpServer.start(workspace, port, vizPort, vizAdmin);
-        System.err.println("code-graph-http: watching for changes; Ctrl-C to stop");
-        server.join();
+        try (HttpServer server = HttpServer.start(workspace, port, vizPort, vizAdmin, projectTtl)) {
+            System.err.println("code-graph-http: watching onboarded projects for changes; Ctrl-C to stop");
+            server.join();
+        }
     }
 
     private static boolean hasFlag(String[] args, String flag) {

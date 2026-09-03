@@ -145,6 +145,22 @@ class VizServerTest {
         assertEquals(400, missing.statusCode());
     }
 
+    @Test
+    void emptyWorkspaceStillServesUiAndRoster() throws Exception {
+        try (VizServer empty = VizServer.start(VizControl.readOnly(List.of(), "stdio"), 0)) {
+            String emptyBase = "http://127.0.0.1:" + empty.port();
+            HttpResponse<String> shell = client.send(
+                    HttpRequest.newBuilder(URI.create(emptyBase + "/")).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, shell.statusCode());
+            HttpResponse<String> projects = client.send(
+                    HttpRequest.newBuilder(URI.create(emptyBase + "/api/projects")).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, projects.statusCode());
+            assertEquals(0, JSON.readTree(projects.body()).size());
+        }
+    }
+
     private static String enc(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }

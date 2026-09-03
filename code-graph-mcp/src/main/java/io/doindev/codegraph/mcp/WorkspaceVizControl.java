@@ -1,10 +1,8 @@
 package io.doindev.codegraph.mcp;
 
-import io.doindev.codegraph.config.CodeGraphConfig;
-import io.doindev.codegraph.config.loader.ConfigLoader;
 import io.doindev.codegraph.index.Analyzers;
 import io.doindev.codegraph.index.Workspace;
-import io.doindev.codegraph.tools.CodeGraphTools;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 import io.doindev.codegraph.tools.WorkspaceTools;
 import io.doindev.codegraph.viz.VizControl;
 
@@ -15,7 +13,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 
 /**
@@ -31,7 +28,7 @@ public final class WorkspaceVizControl implements VizControl {
 
     private final Workspace workspace;
     private final WorkspaceTools registry;
-    private final Analyzers analyzers;
+    private final ProjectOnboarding onboarding;
     private final String mcpEndpoint;
     private final boolean mutable;
 
@@ -39,7 +36,7 @@ public final class WorkspaceVizControl implements VizControl {
                                String mcpEndpoint, boolean mutable) {
         this.workspace = workspace;
         this.registry = registry;
-        this.analyzers = analyzers;
+        this.onboarding = new ProjectOnboarding(workspace, registry, analyzers);
         this.mcpEndpoint = mcpEndpoint;
         this.mutable = mutable;
     }
@@ -47,8 +44,9 @@ public final class WorkspaceVizControl implements VizControl {
     @Override
     public List<VizProject> projects() {
         List<VizProject> out = new ArrayList<>();
-        for (Workspace.Project project : workspace.projects()) {
-            out.add(new VizProject(project.name(), project.graph(), project.config()));
+        for (String name : registry.projectNames()) {
+            Workspace.Project project = workspace.project(name);
+            if (project != null) out.add(new VizProject(project.name(), project.graph(), project.config()));
         }
         return out;
     }
@@ -58,6 +56,8 @@ public final class WorkspaceVizControl implements VizControl {
         return mcpEndpoint;
     }
 
+    @Override public ProjectLifecycle lifecycle() { return registry.lifecycle(); }
+
     @Override
     public boolean mutable() {
         return mutable;
@@ -65,33 +65,19 @@ public final class WorkspaceVizControl implements VizControl {
 
     @Override
     public boolean reindex(String projectName) {
-        Workspace.Project project = workspace.project(projectName);
-        if (project == null) {
-            return false;
-        }
-        // run off the request thread; the UI polls /status for the new generation
-        Thread.ofVirtual().name("code-graph-viz-reindex-" + projectName)
-                .start(() -> project.indexer().fullIndex());
-        return true;
+        return startReindex(projectName) != null;
     }
 
     @Override
     public boolean remove(String projectName) {
-        // remove from the tool registry first (stops routing), which the workspace mirrors
-        boolean removed = registry.removeProject(projectName);
-        if (removed) {
-            workspace.remove(projectName);
-        }
-        return removed;
+        // The registry's removal listener mirrors the change into the workspace and stops its watcher.
+        return registry.removeProject(projectName);
     }
 
     @Override
     public String add(String path) {
-        register(indexNewProject(path));
-        return lastAddedName;
+        return onboarding.add(path);
     }
-
-    private volatile String lastAddedName;
 
     /** In-flight and recently-finished add jobs, keyed by id. */
     private final java.util.concurrent.ConcurrentHashMap<String, Job> jobs =
@@ -108,6 +94,7 @@ public final class WorkspaceVizControl implements VizControl {
         volatile boolean cancelRequested;
         final long startNanos = System.nanoTime();
         volatile long finishedNanos;
+        volatile long instanceId;
 
         Job(String id, Kind kind, String name) {
             this.id = id;
@@ -127,6 +114,7 @@ public final class WorkspaceVizControl implements VizControl {
 
     @Override
     public AddJob startAdd(String path) {
+        pruneJobs();
         Path root = Path.of(path);
         if (!Files.isDirectory(root)) {
             throw new IllegalArgumentException("not a directory: " + path);
@@ -136,19 +124,26 @@ public final class WorkspaceVizControl implements VizControl {
         Job job = new Job(id, Kind.ADD, requested);
         jobs.put(id, job);
         Thread.ofVirtual().name("code-graph-viz-add-" + requested).start(() -> {
+            Workspace.Project project = null;
             try {
                 // the scan runs to completion here (it is not cooperatively interruptible)
-                Workspace.Project project = workspace.add(requested, root, analyzers, ConfigLoader::load);
+                project = onboarding.index(path);
                 job.name = project.name();
-                if (job.cancelRequested) {
-                    // cancelled during the scan: discard the result, don't expose the project
-                    workspace.remove(project.name());
-                    job.state = "cancelled";
-                } else {
-                    register(project);
-                    job.state = "ready";
+                // Serialize publication with cancellation: cancel must also work for the first
+                // project and cannot race between the cancellation check and registration.
+                synchronized (job) {
+                    if (job.cancelRequested) {
+                        workspace.remove(project.name());
+                        job.state = "cancelled";
+                    } else {
+                        job.instanceId = onboarding.register(project);
+                        job.state = "ready";
+                    }
                 }
             } catch (RuntimeException e) {
+                if (project != null && !registry.removeProject(project.name())) {
+                    workspace.remove(project.name());
+                }
                 job.error = e.getMessage() == null ? e.toString() : e.getMessage();
                 job.state = "error";
             } finally {
@@ -160,13 +155,19 @@ public final class WorkspaceVizControl implements VizControl {
 
     @Override
     public AddJob startReindex(String projectName) {
+        pruneJobs();
+        var use = lifecycle().use(projectName);
+        if (use == null) return null;
         Workspace.Project project = workspace.project(projectName);
         if (project == null) {
+            use.close();
             return null;
         }
         String id = java.util.UUID.randomUUID().toString();
         Job job = new Job(id, Kind.REINDEX, projectName);
+        job.instanceId = use.instanceId();
         jobs.put(id, job);
+        try {
         Thread.ofVirtual().name("code-graph-viz-reindex-" + projectName).start(() -> {
             try {
                 // not interruptible; on cancel we simply mark the job — the fresh graph still lands
@@ -177,15 +178,30 @@ public final class WorkspaceVizControl implements VizControl {
                 job.state = "error";
             } finally {
                 job.finishedNanos = System.nanoTime();
+                use.close();
             }
         });
+        } catch (RuntimeException | Error e) {
+            jobs.remove(id);
+            use.close();
+            throw e;
+        }
         return job.snapshot();
     }
 
     @Override
     public AddJob addStatus(String id) {
         Job job = jobs.get(id);
-        return job == null ? null : job.snapshot();
+        if (job == null) return null;
+        if (job.instanceId != 0) {
+            try (var use = lifecycle().use(job.name, job.instanceId)) {
+                if (use == null && (job.state.equals("cancelled") || job.state.equals("error"))) return job.snapshot();
+                if (use == null) return new AddJob(job.id, job.name, "error", job.elapsedMs(),
+                        "project expired or was removed; onboard it again");
+                return job.snapshot();
+            }
+        }
+        return job.snapshot();
     }
 
     @Override
@@ -194,45 +210,26 @@ public final class WorkspaceVizControl implements VizControl {
         if (job == null) {
             return false;
         }
-        job.cancelRequested = true;
-        // ADD only: if the scan already finished and registered the project, retract it.
-        // REINDEX: nothing to retract — the reindex refreshes the same live graph, which is fine.
-        if (job.kind == Kind.ADD && job.state.equals("ready")) {
-            remove(job.name);
-            job.state = "cancelled";
+        synchronized (job) {
+            job.cancelRequested = true;
+            if (job.kind == Kind.REINDEX && job.instanceId != 0) {
+                try (var use = lifecycle().use(job.name, job.instanceId)) { /* cancellation is project activity */ }
+            }
+            // ADD only: if the scan already finished and registered the project, retract it.
+            // REINDEX: nothing to retract — it refreshes the same live graph.
+            if (job.kind == Kind.ADD && job.state.equals("ready")) {
+                lifecycle().remove(job.name, job.instanceId);
+                job.state = "cancelled";
+            }
         }
         return true;
     }
 
-    /** Index a directory synchronously into a new workspace project (no registry/watcher wiring). */
-    private Workspace.Project indexNewProject(String path) {
-        Path root = Path.of(path);
-        if (!Files.isDirectory(root)) {
-            throw new IllegalArgumentException("not a directory: " + path);
-        }
-        String requested = root.getFileName() == null ? "project" : root.getFileName().toString();
-        Workspace.Project project = workspace.add(requested, root, analyzers, ConfigLoader::load);
-        lastAddedName = project.name();
-        return project;
-    }
-
-    /** Wire a scanned project's tools into the live registry so agents and the viz can query it. */
-    private void register(Workspace.Project project) {
-        Semaphore reindexing = new Semaphore(1);
-        registry.addProject(new CodeGraphTools.ProjectTools(project.name(), project.graph(),
-                project.config(), project.root(), scope -> {
-                    if (!reindexing.tryAcquire()) {
-                        throw new IllegalStateException(
-                                "a reindex of '" + project.name() + "' is already running");
-                    }
-                    Thread.ofVirtual().start(() -> {
-                        try {
-                            project.indexer().fullIndex();
-                        } finally {
-                            reindexing.release();
-                        }
-                    });
-                }));
+    /** Jobs hold metadata only; bound terminal history so repeated onboarding cannot leak it. */
+    private void pruneJobs() {
+        jobs.values().stream().filter(job -> job.finishedNanos != 0)
+                .sorted(Comparator.comparingLong(job -> -job.finishedNanos))
+                .skip(128).forEach(job -> jobs.remove(job.id, job));
     }
 
     @Override

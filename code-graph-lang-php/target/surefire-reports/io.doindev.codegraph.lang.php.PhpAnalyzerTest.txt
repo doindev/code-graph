@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.doindev.codegraph.lang.php.PhpAnalyzerTest
 -------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.223 s -- in io.doindev.codegraph.lang.php.PhpAnalyzerTest
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.304 s -- in io.doindev.codegraph.lang.php.PhpAnalyzerTest

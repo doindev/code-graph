@@ -75,6 +75,21 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 #project-actions { display: flex; gap: 4px; }
 #project-actions button { font-size: 12px; padding: 3px 8px; white-space: nowrap; }
 
+#empty-state {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--text-dim);
+}
+#empty-state.hidden { display: none; }
+.empty-title { color: var(--text); font-size: 22px; font-weight: 600; }
+.empty-message { margin-top: 8px; font-size: 14px; }
+
 #reindex-glyph { display: inline-block; }
 #reindex-glyph.spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -296,6 +311,17 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 
 /* ---- add-project browse modal ---- */
+
+#project-lifetime { position: fixed; left: 12px; bottom: 65px; z-index: 20; color: var(--text-dim); font-size: 11px; background: var(--panel); padding: 5px 9px; border-radius: 4px; }
+#ttl-overlay { position: fixed; inset: 0; z-index: 43; background: rgba(5,7,12,.75); display: flex; align-items: center; justify-content: center; }
+#ttl-form { width: min(440px, 92vw); padding: 24px; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 8px; }
+#ttl-form h2 { font-size: 18px; margin-bottom: 18px; }
+#ttl-form label { display: block; margin-bottom: 8px; }
+#ttl-value { width: 100%; padding: 8px; }
+#ttl-form p { color: var(--text-dim); font-size: 12px; line-height: 1.5; margin-top: 12px; }
+#ttl-form #ttl-error { color: #f87171; min-height: 18px; }
+.ttl-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+#ttl-save { border-color: var(--accent); color: var(--accent); }
 
 #browse-overlay {
   position: fixed;

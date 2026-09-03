@@ -8,8 +8,8 @@ import static io.doindev.codegraph.tools.ToolSupport.JSON;
 
 /**
  * {@code remove_project} — drops a project's in-memory graph and stops watching it. Source on
- * disk (and any snapshot caches or database mirrors) are untouched; re-adding means restarting
- * the server with the root included.
+ * disk (and any snapshot caches or database mirrors) are untouched; projects can be re-added
+ * through {@code add_project} or the admin UI.
  */
 final class RemoveProjectTool implements GraphTool {
 
@@ -23,7 +23,7 @@ final class RemoveProjectTool implements GraphTool {
     public ToolSpec spec() {
         return new ToolSpec("remove_project",
                 "Remove a project from this server: drops its in-memory graph and stops its "
-                        + "file watcher. Never touches source on disk. The last project cannot be removed.",
+                        + "file watcher. Never touches source on disk.",
                 """
                 { "type": "object",
                   "properties": {

@@ -6,6 +6,7 @@ import io.doindev.codegraph.config.loader.ConfigLoader;
 import io.doindev.codegraph.index.Analyzers;
 import io.doindev.codegraph.index.FullIndexer;
 import io.doindev.codegraph.index.Workspace;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 import io.doindev.codegraph.tools.CodeGraphTools;
 import io.doindev.codegraph.tools.GraphTool;
 import io.doindev.codegraph.tools.WorkspaceTools;
@@ -20,7 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
+import java.time.Duration;
 
 /**
  * stdio entry point.
@@ -40,6 +41,7 @@ public final class Main {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        Duration projectTtl = projectTtl(args);
         Analyzers analyzers = Analyzers.discover();
         if (analyzers.isEmpty()) {
             System.err.println("code-graph: no language analyzers on classpath");
@@ -56,14 +58,12 @@ public final class Main {
                 results.size(), (System.nanoTime() - start) / 1_000_000);
         workspace.watchAll();
 
-        List<CodeGraphTools.ProjectTools> projectTools = new ArrayList<>();
-        for (Workspace.Project project : workspace.projects()) {
-            projectTools.add(new CodeGraphTools.ProjectTools(project.name(), project.graph(),
-                    project.config(), project.root(), reindexer(project)));
-        }
         // the registry drives the routers; a viz-triggered removal must stop the watcher too
-        WorkspaceTools registry = CodeGraphTools.workspace(projectTools, workspace::remove);
-        List<GraphTool> tools = registry.tools();
+        WorkspaceTools registry = CodeGraphTools.workspace(List.of(), workspace::remove);
+        registry.lifecycle().setTtl(projectTtl);
+        ProjectOnboarding onboarding = new ProjectOnboarding(workspace, registry, analyzers);
+        workspace.projects().forEach(onboarding::register);
+        List<GraphTool> tools = registry.tools(onboarding::add);
 
         VizServer viz = null;
         int vizPort = intArg(args, "--viz", -1);
@@ -76,9 +76,11 @@ public final class Main {
                     + (admin ? " (actions enabled)" : " (read-only)"));
         }
 
-        try (workspace;
+        registry.lifecycle().start();
+        System.err.println("code-graph: project idle TTL " + projectTtl);
+        try (workspace; registry;
              CodeGraphMcpServer ignored = CodeGraphMcpServer.serveStdio("code-graph", "0.0.1", tools)) {
-            System.err.println("code-graph: watching for changes; serving MCP over stdio");
+            System.err.println("code-graph: watching onboarded projects for changes; serving MCP over stdio");
             Thread.currentThread().join();
         } finally {
             if (viz != null) {
@@ -110,7 +112,10 @@ public final class Main {
             }
         }
         if (roots.isEmpty()) {
-            roots.add(Path.of(System.getenv().getOrDefault("CODE_GRAPH_ROOT", ".")));
+            String envRoot = System.getenv("CODE_GRAPH_ROOT");
+            if (envRoot != null && !envRoot.isBlank()) {
+                roots.add(Path.of(envRoot));
+            }
         }
         return Workspace.open(roots, analyzers, ConfigLoader::load);
     }
@@ -120,8 +125,8 @@ public final class Main {
         try {
             JsonNode json = new ObjectMapper().readTree(Files.readString(file));
             JsonNode projects = json.get("projects");
-            if (projects == null || !projects.isArray() || projects.isEmpty()) {
-                throw new IllegalArgumentException("workspace file needs a non-empty 'projects' array");
+            if (projects == null || !projects.isArray()) {
+                throw new IllegalArgumentException("workspace file needs a 'projects' array");
             }
             Map<String, Path> named = new LinkedHashMap<>();
             for (JsonNode project : projects) {
@@ -142,20 +147,14 @@ public final class Main {
         }
     }
 
-    private static CodeGraphTools.Reindexer reindexer(Workspace.Project project) {
-        Semaphore reindexing = new Semaphore(1);
-        return scope -> {
-            if (!reindexing.tryAcquire()) {
-                throw new IllegalStateException("a reindex of '" + project.name() + "' is already running");
+    public static Duration projectTtl(String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--project-ttl")) {
+                if (i + 1 == args.length) throw new IllegalArgumentException("--project-ttl needs a duration");
+                return ProjectLifecycle.parseTtl(args[i + 1]);
             }
-            Thread.ofVirtual().name("code-graph-reindex-" + project.name()).start(() -> {
-                try {
-                    project.indexer().fullIndex();
-                } finally {
-                    reindexing.release();
-                }
-            });
-        };
+        }
+        return ProjectLifecycle.DEFAULT_TTL;
     }
 
     private static String argValue(String[] args, String flag, String fallback) {

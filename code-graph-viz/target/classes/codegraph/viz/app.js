@@ -55,6 +55,10 @@ const state = {
   galaxyLang: '',
   mcpEndpoint: null, // from /api/server
   mutable: false,    // from /api/server — gates the add/reindex/remove UI entirely
+  projectTtlSeconds: 3600,
+  projectInstance: null,
+  roster: [],
+  rosterAt: 0,
   reindexing: false, // a reindex-and-poll loop is in flight
   browsePath: null,  // directory currently shown in the add-project browse modal
   symbolsByProject: {}, // name -> symbol count (from /api/projects) for auto-tuning the galaxy cap
@@ -65,8 +69,14 @@ const state = {
   jobName: null,     // display name of the current job's project
   hoverNode: null,   // node currently under the cursor (drives the custom tooltip)
   mouseX: 0,         // latest cursor position (client coords) for tooltip placement
-  mouseY: 0
+  mouseY: 0,
+  projectEpoch: 0    // invalidates async responses when the active project changes/disappears
 };
+
+const PROJECT_REQUIRED_CONTROLS = [
+  'tab-overview', 'tab-galaxy', 'dim-3d', 'dim-2d', 'search',
+  'release-pins', 'reset-view', 'zoom-in', 'zoom-out', 'zoom-fit'
+];
 
 // small DOM helper: element with class + text (textContent only — never innerHTML for data)
 function el(tag, className, text) {
@@ -88,12 +98,72 @@ function setStatus(text) {
   $('status').textContent = text;
 }
 
+function updateProjectControls() {
+  const hasProject = !!state.project;
+  const busy = !!state.jobId || state.reindexing;
+  $('project').disabled = state.roster.length === 0;
+  for (const id of PROJECT_REQUIRED_CONTROLS) {
+    $(id).disabled = !hasProject;
+  }
+  $('nav-up').disabled = !hasProject || state.crumbs.length <= 1;
+  $('reindex-project').disabled = !hasProject || busy;
+  $('remove-project').disabled = !hasProject || busy;
+  $('add-project').disabled = busy;
+  $('empty-state').classList.toggle('hidden', hasProject);
+}
+
+function activateProject(name) {
+  const instance = state.roster.find(p => p.name === name)?.instanceId ?? null;
+  if (state.project !== name || state.projectInstance !== instance) state.projectEpoch++;
+  state.project = name;
+  state.projectInstance = instance;
+  lastActivitySignal = -Infinity;
+  $('project').value = name;
+  updateProjectControls();
+  renderLifetime();
+}
+
+function enterEmptyState(title = 'No projects onboarded', message = 'Add a project to begin.') {
+  if (state.project !== null) state.projectEpoch++;
+  clearTimeout(clickTimer);
+  clearTimeout(searchTimer);
+  lastClickNode = null;
+  state.project = null;
+  state.projectInstance = null;
+  state.view = null;
+  state.crumbs = [];
+  state.lastPayload = { nodes: [], links: [], truncated: false };
+  state.hoverNode = null;
+  $('search').value = '';
+  clearResults();
+  hideDetails();
+  hideTooltip();
+  renderCrumbs();
+  updateModeUi();
+  renderPayload();
+  $('empty-state').querySelector('.empty-title').textContent = title;
+  $('empty-state').querySelector('.empty-message').textContent = message;
+  setStatus(title + '. ' + message);
+  updateProjectControls();
+  renderLifetime();
+}
+
 // ---------------------------------------------------------------- api
 
-async function api(path, method) {
+async function api(path, method, bodyValue) {
+  const requestProject = state.project;
+  const requestEpoch = state.projectEpoch;
+  const activeBase = requestProject && '/api/p/' + encodeURIComponent(requestProject);
+  const isActiveProject = activeBase && (path === activeBase || path.startsWith(activeBase + '/'));
+  const options = { method: method || 'GET', headers: {} };
+  if (isActiveProject && state.projectInstance) options.headers['X-Project-Instance'] = String(state.projectInstance);
+  if (bodyValue !== undefined) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(bodyValue);
+  }
   let response;
   try {
-    response = await fetch(path, method ? { method } : undefined);
+    response = await fetch(path, options);
   } catch (e) {
     throw new Error('network error: ' + e.message);
   }
@@ -102,7 +172,19 @@ async function api(path, method) {
     body = await response.json();
   } catch (e) { /* non-JSON error body */ }
   if (!response.ok) {
+    if (response.status === 404 && isActiveProject && requestEpoch === state.projectEpoch) {
+      void refreshRoster();
+    }
     throw new Error((body && body.error) || ('HTTP ' + response.status + ' for ' + path));
+  }
+  if (isActiveProject && requestEpoch === state.projectEpoch) {
+    const entry = state.roster.find(p => p.name === requestProject);
+    if (entry) {
+      entry.remainingSeconds = state.projectTtlSeconds;
+      entry.lastActivityAt = new Date().toISOString();
+      entry.observedAt = performance.now();
+      renderLifetime();
+    }
   }
   return body;
 }
@@ -487,10 +569,13 @@ function setRenderMode(mode) {
 // ---------------------------------------------------------------- navigation
 
 async function loadView(view, crumbAction) {
+  if (!state.project) return;
+  const epoch = state.projectEpoch;
   hideTooltip();  // data is about to swap; drop any stale hover
   setStatus('loading…');
   try {
     const data = await api(urlFor(view));
+    if (epoch !== state.projectEpoch || !state.project) return;
     state.view = view;
     if (crumbAction === 'reset') {
       state.crumbs = [view];
@@ -518,16 +603,19 @@ async function loadView(view, crumbAction) {
       }
     }
   } catch (e) {
+    if (epoch !== state.projectEpoch || !state.project) return;
     toast(e.message);
     setStatus('load failed');
   }
 }
 
 function loadOverview() {
+  if (!state.project) return;
   loadView({ type: 'overview' }, 'reset');
 }
 
 function loadGalaxy() {
+  if (!state.project) return;
   maybeAutoTuneGalaxyCap();
   loadView({ type: 'galaxy' }, 'reset');
 }
@@ -581,7 +669,7 @@ function renderCrumbs() {
     crumb.addEventListener('click', () => navigateToCrumb(i));
     bar.appendChild(crumb);
   });
-  $('nav-up').disabled = state.crumbs.length <= 1;
+  $('nav-up').disabled = !state.project || state.crumbs.length <= 1;
 }
 
 function updateModeUi() {
@@ -596,6 +684,7 @@ function updateModeUi() {
 // ---------------------------------------------------------------- node interaction
 
 function onNodeSingleClick(node) {
+  if (!state.project) return;
   flyTo(node);
   if (node.kind === 'module') {
     showModuleDetails(node);
@@ -607,6 +696,7 @@ function onNodeSingleClick(node) {
 }
 
 function onNodeDoubleClick(node) {
+  if (!state.project) return;
   if (node.kind === 'module') {
     openModule(node.label);
   } else if (node.kind === 'file') {
@@ -709,9 +799,12 @@ function showFileDetails(node) {
 }
 
 async function showNodeDetails(id) {
+  if (!state.project) return;
+  const epoch = state.projectEpoch;
   let details;
   try {
     details = await api(projectBase() + '/node?id=' + encodeURIComponent(id));
+    if (epoch !== state.projectEpoch || !state.project) return;
   } catch (e) {
     toast(e.message);
     return;
@@ -790,9 +883,12 @@ async function runSearch(query) {
     clearResults();
     return;
   }
+  if (!state.project) return;
+  const epoch = state.projectEpoch;
   let results;
   try {
     results = await api(projectBase() + '/search?q=' + encodeURIComponent(query) + '&limit=20');
+    if (epoch !== state.projectEpoch || !state.project) return;
   } catch (e) {
     toast(e.message);
     return;
@@ -838,6 +934,7 @@ function renderLegend() {
 // ---------------------------------------------------------------- server info + admin actions
 
 function applyServerInfo(info) {
+  state.projectTtlSeconds = info.projectTtlSeconds ?? 3600;
   state.mcpEndpoint = info.mcpEndpoint;
   state.mutable = info.mutable === true;
   const pill = $('mcp-pill');
@@ -851,6 +948,7 @@ function applyServerInfo(info) {
   }
   // read-only server: none of the add/reindex/remove UI renders at all
   $('project-actions').classList.toggle('hidden', !state.mutable);
+  updateProjectControls();
 }
 
 async function copyMcpEndpoint() {
@@ -864,8 +962,16 @@ async function copyMcpEndpoint() {
 }
 
 function populateProjects(projects) {
+  state.roster = projects;
+  state.rosterAt = performance.now();
   const select = $('project');
   select.replaceChildren();
+  state.symbolsByProject = {};
+  if (!projects.length || !projects.some(p => p.name === state.project)) {
+    const option = el('option', null, projects.length ? 'Select a project' : 'No projects onboarded');
+    option.value = '';
+    select.appendChild(option);
+  }
   for (const project of projects) {
     state.symbolsByProject[project.name] = project.symbols || 0;
     const option = el('option', null, project.name + ' (' + project.symbols + ' symbols)');
@@ -875,6 +981,80 @@ function populateProjects(projects) {
   if (projects.some((p) => p.name === state.project)) {
     select.value = state.project;
   }
+  updateProjectControls();
+  renderLifetime();
+}
+
+// Passive roster/countdown updates deliberately never call a project-specific endpoint.
+let rosterInFlight = null;
+function refreshRoster() {
+  if (rosterInFlight) return rosterInFlight;
+  rosterInFlight = (async () => {
+    try {
+      const projects = await api('/api/projects');
+      const active = projects.find(p => p.name === state.project);
+      const disappeared = state.project && (!active || (state.projectInstance && active.instanceId !== state.projectInstance));
+      populateProjects(projects);
+      if (disappeared) {
+        enterEmptyState('Project expired or removed', projects.length
+          ? 'Select another project, or onboard the directory again.' : 'Onboard the directory again to continue.');
+        populateProjects(projects);
+      } else if (!state.project && projects.length) {
+        enterEmptyState('Select a project', 'Choose an onboarded project to begin.');
+      }
+    } catch (e) { /* transient roster failures do not disturb the current graph */ }
+    finally { rosterInFlight = null; }
+  })();
+  return rosterInFlight;
+}
+
+function renderLifetime() {
+  const row = state.roster.find(p => p.name === state.project);
+  const label = $('project-lifetime');
+  label.classList.toggle('hidden', !row || row.remainingSeconds === undefined);
+  if (!row || row.remainingSeconds === undefined) return;
+  const seconds = Math.max(0, Math.ceil(row.remainingSeconds - (performance.now() - (row.observedAt ?? state.rosterAt)) / 1000));
+  const left = seconds >= 60 ? Math.ceil(seconds / 60) + 'm' : seconds + 's';
+  label.textContent = row.activeOperations ? 'Project in use · timeout paused'
+    : 'Idle timeout: ' + left + ' remaining';
+  label.title = 'Last activity: ' + new Date(row.lastActivityAt).toLocaleString();
+}
+
+let lastActivitySignal = -Infinity;
+function signalProjectActivity(event) {
+  if (!event.isTrusted || !state.project || document.visibilityState !== 'visible') return;
+  const now = performance.now();
+  const interval = Math.max(100, Math.min(10000, state.projectTtlSeconds * 1000 / 3));
+  if (now - lastActivitySignal < interval) return;
+  lastActivitySignal = now;
+  // Leading-edge signals only: no background heartbeat or trailing signal after the user stops.
+  api(projectBase() + '/activity', 'POST').catch(() => {});
+}
+
+function openTtlSettings() {
+  const seconds = state.projectTtlSeconds;
+  $('ttl-value').value = seconds % 3600 === 0 ? seconds / 3600 + 'h' : seconds % 60 === 0 ? seconds / 60 + 'm' : seconds + 's';
+  $('ttl-error').textContent = '';
+  $('ttl-overlay').classList.remove('hidden');
+  $('ttl-value').focus();
+}
+
+function closeTtlSettings() {
+  $('ttl-overlay').classList.add('hidden');
+  $('ttl-settings').focus();
+}
+
+async function saveTtlSettings(event) {
+  event.preventDefault();
+  $('ttl-save').disabled = true;
+  try {
+    const info = await api('/api/settings', 'PUT', { projectTtl: $('ttl-value').value.trim() });
+    applyServerInfo(info);
+    closeTtlSettings();
+    await refreshRoster();
+    toast('Idle timeout updated for this server session');
+  } catch (e) { $('ttl-error').textContent = e.message; }
+  finally { $('ttl-save').disabled = false; }
 }
 
 async function refreshProjects() {
@@ -890,11 +1070,13 @@ async function refreshProjects() {
 
 function setReindexing(flag) {
   state.reindexing = flag;
-  $('reindex-project').disabled = flag;
-  $('remove-project').disabled = flag;
-  $('add-project').disabled = flag;
   $('reindex-glyph').classList.toggle('spinning', flag);
-  $('reindex-label').textContent = flag ? ' Reindexing…' : ' Reindex';
+  const button = $('reindex-project');
+  const description = flag ? 'Reindexing the active project…' : 'Reindex the active project';
+  button.title = description;
+  button.setAttribute('aria-label', description);
+  button.setAttribute('aria-busy', String(flag));
+  updateProjectControls();
 }
 
 async function reindexActive() {
@@ -928,12 +1110,12 @@ async function removeActive() {
   toast('removed ' + name);
   const projects = await refreshProjects();
   if (projects && projects.length) {
-    state.project = projects[0].name;
-    $('project').value = state.project;
+    activateProject(projects[0].name);
     loadOverview();
+  } else if (projects) {
+    enterEmptyState();
   } else {
-    state.project = null;
-    setStatus('no projects');
+    enterEmptyState('Projects unavailable', 'Reload the page to refresh the project roster.');
   }
 }
 
@@ -1040,6 +1222,7 @@ function startJob(kind, job, fallbackName) {
   state.jobKind = kind;
   state.jobId = job.job;
   state.jobName = job.name || fallbackName;
+  updateProjectControls();
   pollJob(job.job);
 }
 
@@ -1069,8 +1252,7 @@ function pollJob(jobId) {
     if (status.state === 'ready') {
       await refreshProjects();  // counts / new project name
       if (kind === 'add') {
-        state.project = finalName;
-        $('project').value = finalName;
+        activateProject(finalName);
         toast('added ' + finalName + ' in ' + secs + 's');
         loadOverview();
       } else {  // reindex: same project, refetch the current view against the rebuilt graph
@@ -1094,6 +1276,7 @@ function finishJob() {
   state.jobId = null;
   state.jobKind = null;
   hideTaskModal();
+  updateProjectControls();
 }
 
 function cancelJob() {
@@ -1105,6 +1288,7 @@ function cancelJob() {
   state.jobId = null;    // stop the poll loop immediately (its guard checks state.jobId)
   state.jobKind = null;
   hideTaskModal();       // close optimistically — don't wait for the cancel response
+  updateProjectControls();
   toast(kind === 'add'
       ? 'cancelling — ' + name + ' will not be added (a scan in progress may finish in the background)'
       : 'reindex of ' + name + ' continues in the background');
@@ -1127,8 +1311,23 @@ const refetchGalaxy = debounce(() => {
 }, 300);
 
 function wireControls() {
+  $('ttl-settings').addEventListener('click', openTtlSettings);
+  $('ttl-form').addEventListener('submit', saveTtlSettings);
+  $('ttl-cancel').addEventListener('click', closeTtlSettings);
+  $('ttl-overlay').addEventListener('click', e => { if (e.target === $('ttl-overlay')) closeTtlSettings(); });
+  for (const id of ['graph', 'zoombar', 'crumbs', 'results', 'details', 'controls']) {
+    for (const type of ['pointerdown', 'wheel', 'input', 'keydown']) {
+      $(id).addEventListener(type, signalProjectActivity, { passive: true });
+    }
+  }
+  $('graph').addEventListener('pointermove', e => { if (e.buttons) signalProjectActivity(e); }, { passive: true });
+  $('topbar').addEventListener('click', e => {
+    if (e.target.closest('#modes, #dims, #nav-up, #release-pins, #reset-view, #search')) signalProjectActivity(e);
+  });
+  $('search').addEventListener('input', signalProjectActivity);
   $('project').addEventListener('change', (e) => {
-    state.project = e.target.value;
+    if (!e.target.value) return;
+    activateProject(e.target.value);
     loadOverview();
   });
   $('tab-overview').addEventListener('click', loadOverview);
@@ -1164,6 +1363,7 @@ function wireControls() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (!$('ttl-overlay').classList.contains('hidden')) { closeTtlSettings(); return; }
     if (!$('scan-overlay').classList.contains('hidden')) {
       return;  // loading modal is non-dismissable — ignore Escape while indexing runs
     }
@@ -1225,6 +1425,10 @@ async function boot() {
   wireControls();
   makeRenderer(state.renderMode);
   $('hint').textContent = HINTS[state.renderMode];
+  enterEmptyState();
+  setInterval(refreshRoster, 15000);
+  setInterval(renderLifetime, 1000);
+  setInterval(() => api('/api/server').then(applyServerInfo).catch(() => {}), 15000);
 
   api('/api/server')
       .then(applyServerInfo)
@@ -1235,16 +1439,16 @@ async function boot() {
     projects = await api('/api/projects');
   } catch (e) {
     toast('failed to load projects: ' + e.message);
-    setStatus('no projects');
+    enterEmptyState('Projects unavailable', 'Reload the page to try again.');
     return;
   }
   if (!projects.length) {
-    toast('no projects available');
-    setStatus('no projects');
+    populateProjects(projects);
+    enterEmptyState();
     return;
   }
-  state.project = projects[0].name;
   populateProjects(projects);
+  activateProject(projects[0].name);
   loadOverview();
 }
 

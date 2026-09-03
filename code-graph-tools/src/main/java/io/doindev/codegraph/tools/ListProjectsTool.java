@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.doindev.codegraph.query.GraphQuery;
 import io.doindev.codegraph.query.IndexStatus;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,8 +17,11 @@ final class ListProjectsTool implements GraphTool {
 
     private final Map<String, GraphQuery> graphs; // live view owned by WorkspaceTools
     private final java.util.function.Supplier<String> defaultProject;
+    private final ProjectLifecycle lifecycle;
 
-    ListProjectsTool(Map<String, GraphQuery> graphs, java.util.function.Supplier<String> defaultProject) {
+    ListProjectsTool(Map<String, GraphQuery> graphs, java.util.function.Supplier<String> defaultProject,
+                     ProjectLifecycle lifecycle) {
+        this.lifecycle = lifecycle;
         this.graphs = graphs;
         this.defaultProject = defaultProject;
     }
@@ -39,6 +43,8 @@ final class ListProjectsTool implements GraphTool {
         }
         String defaultName = defaultProject.get();
         snapshot.forEach((name, graph) -> {
+            ProjectLifecycle.Status idle = lifecycle.status(name);
+            if (idle == null) return;
             IndexStatus status = graph.status();
             ObjectNode row = rows.addObject();
             row.put("name", name);
@@ -47,6 +53,11 @@ final class ListProjectsTool implements GraphTool {
             row.put("files", status.filesIndexed());
             row.put("symbols", status.symbolCount());
             row.put("edges", status.edgeCount());
+            row.put("instanceId", idle.instanceId());
+            row.put("lastActivityAt", idle.lastActivityAt().toString());
+            row.put("expiresAt", idle.expiresAt().toString());
+            row.put("remainingSeconds", idle.remainingSeconds());
+            row.put("activeOperations", idle.activeOperations());
         });
         return ToolResponse.ok(out.toString());
     }

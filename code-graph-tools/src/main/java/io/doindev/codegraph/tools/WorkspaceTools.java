@@ -1,12 +1,16 @@
 package io.doindev.codegraph.tools;
 
 import io.doindev.codegraph.query.GraphQuery;
+import io.doindev.codegraph.config.CodeGraphConfig;
+import io.doindev.codegraph.graph.InMemoryCodeGraph;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -15,7 +19,7 @@ import java.util.function.Supplier;
  * instances and graph reference and notifies the listener (which stops the watcher and updates
  * the viz layer); indexed source on disk is never touched.
  */
-public final class WorkspaceTools {
+public final class WorkspaceTools implements AutoCloseable {
 
     /** Notified after a project is removed from the registry. */
     @FunctionalInterface
@@ -29,28 +33,38 @@ public final class WorkspaceTools {
     private final RemovalListener listener;
     private volatile String defaultProject;
     private final List<GraphTool> tools;
+    private final ProjectLifecycle lifecycle;
 
     WorkspaceTools(List<CodeGraphTools.ProjectTools> projects, RemovalListener listener) {
-        if (projects.isEmpty()) {
-            throw new IllegalArgumentException("workspace needs at least one project");
-        }
+        this(projects, listener, System::nanoTime, java.time.Instant::now);
+    }
+
+    WorkspaceTools(List<CodeGraphTools.ProjectTools> projects, RemovalListener listener,
+                   java.util.function.LongSupplier ticker, Supplier<java.time.Instant> clock) {
         this.listener = listener;
-        this.defaultProject = projects.get(0).name();
+        this.lifecycle = new ProjectLifecycle(this::removeData, ticker, clock);
+        this.defaultProject = projects.isEmpty() ? null : projects.get(0).name();
+
+        // Build the stable router catalog even for an empty workspace. MCP clients can discover
+        // the full tool set once, then start using it as soon as a project is onboarded.
+        List<GraphTool> templates = projects.isEmpty()
+                ? CodeGraphTools.standard(new InMemoryCodeGraph(), CodeGraphConfig.defaults(),
+                        null, scope -> { })
+                : projectTools(projects.get(0));
+        for (GraphTool tool : templates) {
+            byToolThenProject.put(tool.spec().name(),
+                    Collections.synchronizedMap(new LinkedHashMap<>()));
+        }
         for (CodeGraphTools.ProjectTools project : projects) {
-            graphs.put(project.name(), project.graph());
-            for (GraphTool tool : CodeGraphTools.standard(project.graph(), project.config(),
-                    project.root(), project.reindexer())) {
-                byToolThenProject
-                        .computeIfAbsent(tool.spec().name(),
-                                k -> Collections.synchronizedMap(new LinkedHashMap<>()))
-                        .put(project.name(), tool);
-            }
+            addProject(project);
         }
         Supplier<String> defaultName = () -> defaultProject;
         List<GraphTool> built = new ArrayList<>();
-        byToolThenProject.values().forEach(perProject ->
-                built.add(new RouterTool(perProject, defaultName)));
-        built.add(new ListProjectsTool(graphs, defaultName));
+        for (GraphTool template : templates) {
+            built.add(new RouterTool(byToolThenProject.get(template.spec().name()),
+                    defaultName, template.spec(), lifecycle));
+        }
+        built.add(new ListProjectsTool(graphs, defaultName, lifecycle));
         built.add(new RemoveProjectTool(this));
         this.tools = List.copyOf(built);
     }
@@ -60,22 +74,38 @@ public final class WorkspaceTools {
         return tools;
     }
 
+    /** Full catalog including onboarding, wired by a serving layer with filesystem access. */
+    public List<GraphTool> tools(Function<String, String> onboard) {
+        List<GraphTool> withOnboarding = new ArrayList<>(tools);
+        withOnboarding.add(new AddProjectTool(onboard));
+        return List.copyOf(withOnboarding);
+    }
+
     /**
      * Register a project's tools into every router at runtime (after the workspace has indexed
      * it). Safe to call while the server is serving; subsequent tool calls can route to it.
      */
-    public void addProject(CodeGraphTools.ProjectTools project) {
-        synchronized (lock) {
-            graphs.put(project.name(), project.graph());
-            for (GraphTool tool : CodeGraphTools.standard(project.graph(), project.config(),
-                    project.root(), project.reindexer())) {
-                Map<String, GraphTool> perProject = byToolThenProject.get(tool.spec().name());
-                if (perProject != null) {
-                    perProject.put(project.name(), tool);
+    public long addProject(CodeGraphTools.ProjectTools project) {
+        List<GraphTool> additions = projectTools(project);
+        return lifecycle.register(project.name(), () -> {
+            synchronized (lock) {
+                graphs.put(project.name(), project.graph());
+                if (defaultProject == null) {
+                    defaultProject = project.name();
+                }
+                for (GraphTool tool : additions) {
+                    Map<String, GraphTool> perProject = byToolThenProject.get(tool.spec().name());
+                    if (perProject != null) {
+                        perProject.put(project.name(), tool);
+                    }
                 }
             }
-        }
+        });
     }
+
+    public ProjectLifecycle lifecycle() { return lifecycle; }
+
+    @Override public void close() { lifecycle.close(); }
 
     public List<String> projectNames() {
         synchronized (graphs) {
@@ -84,25 +114,31 @@ public final class WorkspaceTools {
     }
 
     /**
-     * Remove a project from every router. The last remaining project cannot be removed.
+     * Remove a project from every router.
      *
      * @return {@code false} when the name is unknown
      */
     public boolean removeProject(String name) {
+        return lifecycle.remove(name);
+    }
+
+    private void removeData(String name) {
         synchronized (lock) {
             if (!graphs.containsKey(name)) {
-                return false;
-            }
-            if (graphs.size() == 1) {
-                throw new IllegalStateException("cannot remove the last project: " + name);
+                return;
             }
             graphs.remove(name);
             byToolThenProject.values().forEach(perProject -> perProject.remove(name));
             if (name.equals(defaultProject)) {
-                defaultProject = projectNames().get(0);
+                List<String> remaining = projectNames();
+                defaultProject = remaining.isEmpty() ? null : remaining.get(0);
             }
         }
         listener.removed(name);
-        return true;
+    }
+
+    private static List<GraphTool> projectTools(CodeGraphTools.ProjectTools project) {
+        return CodeGraphTools.standard(project.graph(), project.config(), project.root(),
+                project.reindexer());
     }
 }

@@ -3,8 +3,9 @@ package io.doindev.codegraph.index;
 import io.doindev.codegraph.config.CodeGraphConfig;
 import io.doindev.codegraph.graph.InMemoryCodeGraph;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,9 @@ public final class Workspace implements AutoCloseable {
 
     private final Map<String, Project> projects;
     private final Map<String, Watcher> watchers = new LinkedHashMap<>();
+    private final Map<String, Path> reservedRoots = new LinkedHashMap<>();
+    private boolean watching;
+    private boolean closed;
 
     private Workspace(Map<String, Project> projects) {
         this.projects = new LinkedHashMap<>(projects);
@@ -42,7 +46,7 @@ public final class Workspace implements AutoCloseable {
                                  Function<Path, CodeGraphConfig> configLoader) {
         Map<String, Path> named = new LinkedHashMap<>();
         for (Path raw : roots) {
-            Path root = raw.toAbsolutePath().normalize();
+            Path root = canonicalRoot(raw);
             String base = root.getFileName() == null ? "root" : root.getFileName().toString();
             String name = base;
             int ordinal = 2;
@@ -57,12 +61,15 @@ public final class Workspace implements AutoCloseable {
     /** Open with explicit project names (workspace-file mode). Iteration order defines the default project. */
     public static Workspace openNamed(Map<String, Path> namedRoots, Analyzers analyzers,
                                       Function<Path, CodeGraphConfig> configLoader) {
-        if (namedRoots.isEmpty()) {
-            throw new IllegalArgumentException("workspace needs at least one project root");
-        }
-        Map<String, Project> projects = new LinkedHashMap<>();
+        Map<String, Path> roots = new LinkedHashMap<>();
         namedRoots.forEach((name, raw) -> {
-            Path root = raw.toAbsolutePath().normalize();
+            Path root = canonicalRoot(raw);
+            roots.forEach((existingName, existingRoot) ->
+                    checkNotCovered(root, existingName, existingRoot));
+            roots.put(name, root);
+        });
+        Map<String, Project> projects = new LinkedHashMap<>();
+        roots.forEach((name, root) -> {
             CodeGraphConfig config = configLoader.apply(root);
             InMemoryCodeGraph graph = new InMemoryCodeGraph();
             IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
@@ -87,6 +94,10 @@ public final class Workspace implements AutoCloseable {
 
     /** Start a filesystem watcher per project. */
     public synchronized void watchAll() {
+        if (closed) {
+            throw new IllegalStateException("workspace is closed");
+        }
+        watching = true;
         for (Project project : projects.values()) {
             watchers.computeIfAbsent(project.name(),
                     name -> new Watcher(project.root(), project.indexer()));
@@ -96,49 +107,93 @@ public final class Workspace implements AutoCloseable {
     /**
      * Add a project at runtime: index its root and (if the workspace is already watching) start
      * a watcher for it. The name is deduplicated against existing projects. Blocks until the
-     * initial index completes.
+     * initial index completes. Duplicate roots and children of existing or in-flight roots
+     * are rejected using real filesystem paths (including symlink resolution).
      *
      * @return the created project (its {@link Project#name()} is the deduplicated name)
      */
     public Project add(String requestedName, Path rawRoot, Analyzers analyzers,
                        java.util.function.Function<Path, CodeGraphConfig> configLoader) {
-        Path root = rawRoot.toAbsolutePath().normalize();
-        Project project;
+        Path root = canonicalRoot(rawRoot);
+        String name;
         synchronized (this) {
-            String name = requestedName;
+            if (closed) {
+                throw new IllegalStateException("workspace is closed");
+            }
+            projects.values().forEach(existing ->
+                    checkNotCovered(root, existing.name(), existing.root()));
+            reservedRoots.forEach((existingName, existingRoot) ->
+                    checkNotCovered(root, existingName, existingRoot));
+            name = requestedName;
             int ordinal = 2;
-            while (projects.containsKey(name)) {
+            while (projects.containsKey(name) || reservedRoots.containsKey(name)) {
                 name = requestedName + "-" + ordinal++;
             }
+            reservedRoots.put(name, root);
+        }
+
+        Project project;
+        try {
             CodeGraphConfig config = configLoader.apply(root);
             InMemoryCodeGraph graph = new InMemoryCodeGraph();
             IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
             project = new Project(name, root, config, graph, indexer);
-            projects.put(name, project);
+            project.indexer().fullIndex();
+        } catch (RuntimeException | Error e) {
+            synchronized (this) {
+                reservedRoots.remove(name);
+            }
+            throw e;
         }
-        project.indexer().fullIndex();
+
         synchronized (this) {
-            if (!watchers.isEmpty()) {
+            reservedRoots.remove(name);
+            if (closed) {
+                throw new IllegalStateException("workspace is closed");
+            }
+            if (watching) {
                 watchers.computeIfAbsent(project.name(),
                         n -> new Watcher(project.root(), project.indexer()));
             }
+            projects.put(name, project);
         }
         return project;
+    }
+
+    private static Path canonicalRoot(Path rawRoot) {
+        try {
+            Path root = rawRoot.toRealPath();
+            if (!Files.isDirectory(root)) {
+                throw new IllegalArgumentException("not a directory: " + rawRoot);
+            }
+            return root;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("cannot access project directory: " + rawRoot, e);
+        }
+    }
+
+    private static void checkNotCovered(Path root, String existingName, Path existingRoot) {
+        if (root.equals(existingRoot)) {
+            throw new IllegalArgumentException("directory is already onboarded or being onboarded "
+                    + "as project '" + existingName + "': " + existingRoot);
+        }
+        if (root.startsWith(existingRoot)) {
+            throw new IllegalArgumentException("cannot onboard '" + root + "': it is a child path "
+                    + "of project '" + existingName + "' (onboarded or being onboarded at "
+                    + existingRoot + ")");
+        }
     }
 
     /**
      * Remove a project from this workspace at runtime: its watcher stops and its in-memory
      * graph is dropped for collection. Source on disk is never touched (nor are CLI snapshot
-     * caches or database mirrors). The last remaining project cannot be removed.
+     * caches or database mirrors).
      *
      * @return {@code false} if the name is unknown
      */
     public synchronized boolean remove(String name) {
         if (!projects.containsKey(name)) {
             return false;
-        }
-        if (projects.size() == 1) {
-            throw new IllegalStateException("cannot remove the last project: " + name);
         }
         Watcher watcher = watchers.remove(name);
         if (watcher != null) {
@@ -153,9 +208,9 @@ public final class Workspace implements AutoCloseable {
         return projects.get(name);
     }
 
-    /** First-registered project — the default when tools omit the {@code project} parameter. */
+    /** First-registered project, or {@code null} when the workspace is empty. */
     public synchronized Project defaultProject() {
-        return projects.values().iterator().next();
+        return projects.values().stream().findFirst().orElse(null);
     }
 
     public synchronized List<Project> projects() {
@@ -166,9 +221,17 @@ public final class Workspace implements AutoCloseable {
         return List.copyOf(projects.keySet());
     }
 
+    /** Visible to package tests: watchers must follow empty/add/remove transitions. */
+    synchronized int activeWatcherCount() {
+        return watchers.size();
+    }
+
     @Override
     public synchronized void close() {
+        closed = true;
+        watching = false;
         watchers.values().forEach(Watcher::close);
         watchers.clear();
+        reservedRoots.clear();
     }
 }

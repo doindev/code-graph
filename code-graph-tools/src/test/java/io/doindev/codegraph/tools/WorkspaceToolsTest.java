@@ -51,10 +51,36 @@ class WorkspaceToolsTest {
     }
 
     @Test
+    void mcpActivityRenewsOnlyResolvedProjectAndListsDoNot() throws Exception {
+        var time = new java.util.concurrent.atomic.AtomicLong();
+        var removed = new java.util.ArrayList<String>();
+        try (WorkspaceTools registry = new WorkspaceTools(List.of(
+                new CodeGraphTools.ProjectTools("alpha", graphWith("A.java", "A.x"), CodeGraphConfig.defaults(), null, s -> {}),
+                new CodeGraphTools.ProjectTools("beta", graphWith("B.java", "B.x"), CodeGraphConfig.defaults(), null, s -> {})),
+                removed::add, time::get, () -> java.time.Instant.EPOCH.plusNanos(time.get()))) {
+            tools = registry.tools();
+            time.set(java.time.Duration.ofMinutes(30).toNanos());
+            tool("index_status").call(JSON.createObjectNode()); // implicit alpha
+            tool("search_symbols").call(JSON.createObjectNode().put("project", "missing").put("query", "x"));
+            time.set(java.time.Duration.ofHours(1).toNanos());
+            JsonNode roster = JSON.readTree(tool("list_projects").call(JSON.createObjectNode()).json());
+            assertEquals(0, roster.get("projects").get(1).get("remainingSeconds").asInt());
+            assertEquals(1, registry.lifecycle().expireIdle());
+            assertEquals(List.of("beta"), removed);
+            assertEquals(List.of("alpha"), registry.projectNames());
+            time.set(java.time.Duration.ofMinutes(90).toNanos());
+            assertEquals(1, registry.lifecycle().expireIdle());
+            assertTrue(registry.projectNames().isEmpty());
+            assertTrue(tool("index_status").call(JSON.createObjectNode()).error());
+        }
+    }
+
+    @Test
     void schemasAdvertiseTheProjectParameter() throws Exception {
         JsonNode schema = JSON.readTree(tool("search_symbols").spec().inputSchemaJson());
         assertTrue(schema.get("properties").has("project"));
-        assertTrue(schema.get("properties").get("project").get("description").asText().contains("alpha"));
+        assertTrue(schema.get("properties").get("project").get("description").asText()
+                .contains("list_projects"));
     }
 
     @Test
@@ -113,15 +139,38 @@ class WorkspaceToolsTest {
     }
 
     @Test
-    void lastProjectCannotBeRemoved() {
+    void lastProjectCanBeRemovedAndLeavesActionableEmptyRoutes() throws Exception {
         WorkspaceTools registry = CodeGraphTools.workspace(java.util.List.of(
                 new CodeGraphTools.ProjectTools("solo", graphWith("src/A.java", "A.x"),
                         CodeGraphConfig.defaults(), null, s -> { })), r -> { });
         GraphTool remove = registry.tools().stream()
                 .filter(t -> t.spec().name().equals("remove_project")).findFirst().orElseThrow();
         ToolResponse response = remove.call(JSON.createObjectNode().put("project", "solo"));
-        assertTrue(response.error());
-        assertTrue(response.json().contains("last project"));
+        assertFalse(response.error());
+        assertEquals(0, JSON.readTree(response.json()).get("remaining").size());
+
+        GraphTool search = registry.tools().stream()
+                .filter(t -> t.spec().name().equals("search_symbols")).findFirst().orElseThrow();
+        ToolResponse empty = search.call(JSON.createObjectNode().put("query", "x"));
+        assertTrue(empty.error());
+        assertTrue(empty.json().contains("no projects onboarded"));
+    }
+
+    @Test
+    void emptyWorkspaceKeepsStableToolsAndFirstAdditionBecomesDefault() throws Exception {
+        WorkspaceTools registry = CodeGraphTools.workspace(List.of(), r -> { });
+        assertTrue(registry.tools().stream().anyMatch(t -> t.spec().name().equals("search_symbols")));
+        GraphTool list = registry.tools().stream()
+                .filter(t -> t.spec().name().equals("list_projects")).findFirst().orElseThrow();
+        assertEquals(0, JSON.readTree(list.call(JSON.createObjectNode()).json()).get("projects").size());
+
+        registry.addProject(new CodeGraphTools.ProjectTools("first",
+                graphWith("src/F.java", "F.first"), CodeGraphConfig.defaults(), null, s -> { }));
+        GraphTool search = registry.tools().stream()
+                .filter(t -> t.spec().name().equals("search_symbols")).findFirst().orElseThrow();
+        JsonNode out = JSON.readTree(search.call(
+                JSON.createObjectNode().put("query", "first")).json());
+        assertTrue(out.get("symbols").get(0).get("id").asText().contains("F.java"));
     }
 
     @Test

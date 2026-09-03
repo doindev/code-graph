@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
@@ -36,7 +35,6 @@ public final class VizServer implements AutoCloseable {
 
     private final HttpServer server;
     private final VizControl control;
-    private final Map<String, VizApi> apis = new ConcurrentHashMap<>();
 
     private VizServer(HttpServer server, VizControl control) {
         this.server = server;
@@ -49,13 +47,9 @@ public final class VizServer implements AutoCloseable {
     }
 
     public static VizServer start(VizControl control, InetAddress bind, int port) {
-        if (control.projects().isEmpty()) {
-            throw new IllegalArgumentException("viz needs at least one project");
-        }
         try {
             HttpServer httpServer = HttpServer.create(new InetSocketAddress(bind, port), 0);
             VizServer viz = new VizServer(httpServer, control);
-            viz.refreshApis();
             httpServer.createContext("/", viz::handle);
             httpServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             httpServer.start();
@@ -74,17 +68,6 @@ public final class VizServer implements AutoCloseable {
         server.stop(0);
     }
 
-    private void refreshApis() {
-        Map<String, VizApi> current = new HashMap<>();
-        for (VizControl.VizProject project : control.projects()) {
-            VizApi existing = apis.get(project.name());
-            current.put(project.name(), existing != null && existing.isFor(project)
-                    ? existing : new VizApi(project));
-        }
-        apis.keySet().retainAll(current.keySet());
-        apis.putAll(current);
-    }
-
     // ---- routing ----
 
     private void handle(HttpExchange exchange) throws IOException {
@@ -100,8 +83,21 @@ public final class VizServer implements AutoCloseable {
                 return;
             }
             if (path.equals("/api/projects") && method.equals("GET")) {
-                refreshApis();
-                respondJson(exchange, 200, VizApi.projects(apis, control.projects()));
+                respondJson(exchange, 200, VizApi.projects(control.projects(), control.lifecycle()));
+                return;
+            }
+            if (path.equals("/api/settings") && method.equals("PUT")) {
+                requireMutable();
+                if (control.lifecycle() == null) throw new IllegalArgumentException("idle policy unavailable");
+                byte[] body = exchange.getRequestBody().readNBytes(1025);
+                if (body.length > 1024) throw new IllegalArgumentException("settings payload too large");
+                com.fasterxml.jackson.databind.JsonNode json;
+                try { json = JSON.readTree(body); }
+                catch (IOException e) { throw new IllegalArgumentException("invalid settings JSON"); }
+                var value = json == null ? null : json.get("projectTtl");
+                if (value == null || !value.isTextual()) throw new IllegalArgumentException("projectTtl is required");
+                control.lifecycle().setTtl(io.doindev.codegraph.lifecycle.ProjectLifecycle.parseTtl(value.asText()));
+                respondJson(exchange, 200, serverInfo());
                 return;
             }
             if (path.equals("/api/browse") && method.equals("GET")) {
@@ -127,9 +123,6 @@ public final class VizServer implements AutoCloseable {
                 if (job == null) {
                     respondJson(exchange, 404, "{\"error\":\"unknown job\"}");
                 } else {
-                    if (job.state().equals("ready")) {
-                        refreshApis(); // the new project's graph is now queryable
-                    }
                     respondJson(exchange, 200, addJobJson(job));
                 }
                 return;
@@ -138,7 +131,6 @@ public final class VizServer implements AutoCloseable {
                 requireMutable();
                 Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
                 boolean cancelled = control.cancelAdd(required(query, "job"));
-                refreshApis();
                 respondJson(exchange, cancelled ? 200 : 404,
                         cancelled ? "{\"cancelled\":true}" : "{\"error\":\"unknown job\"}");
                 return;
@@ -163,10 +155,35 @@ public final class VizServer implements AutoCloseable {
                 StandardCharsets.UTF_8);
         String action = slash < 0 ? "" : rest.substring(slash + 1);
 
+        if (method.equals("DELETE") || (method.equals("POST") && action.equals("reindex"))) {
+            requireMutable();
+        }
+        long expectedInstance = 0;
+        String instanceHeader = exchange.getRequestHeaders().getFirst("X-Project-Instance");
+        if (instanceHeader != null) {
+            expectedInstance = Long.parseLong(instanceHeader);
+            if (expectedInstance <= 0) throw new IllegalArgumentException("invalid project instance");
+        }
+        var lifecycle = control.lifecycle();
+        try (var use = lifecycle == null ? null : lifecycle.use(project, expectedInstance)) {
+            if (lifecycle != null && use == null) {
+                respondJson(exchange, 404, "{\"error\":\"unknown or expired project; onboard it again\"}");
+                return;
+            }
+            if (method.equals("POST") && action.equals("activity")) {
+                boolean known = lifecycle != null || control.projects().stream().anyMatch(p -> p.name().equals(project));
+                respondJson(exchange, known ? 200 : 404, known ? "{\"active\":true}" : "{\"error\":\"unknown project\"}");
+                return;
+            }
+            handleLiveProjectApi(exchange, method, project, action);
+        }
+    }
+
+    private void handleLiveProjectApi(HttpExchange exchange, String method, String project, String action)
+            throws IOException {
         if (method.equals("DELETE") && action.isEmpty()) {
             requireMutable();
             boolean removed = control.remove(project);
-            refreshApis();
             respondJson(exchange, removed ? 200 : 404,
                     removed ? "{\"removed\":" + quote(project) + "}"
                             : "{\"error\":\"unknown project: " + project + "\"}");
@@ -186,7 +203,9 @@ public final class VizServer implements AutoCloseable {
             respond(exchange, 405, "text/plain", "method not allowed".getBytes(StandardCharsets.UTF_8));
             return;
         }
-        VizApi api = apis.get(project);
+        // Never retain graphs between requests: expiration releases all server-owned references.
+        VizApi api = control.projects().stream().filter(p -> p.name().equals(project))
+                .findFirst().map(VizApi::new).orElse(null);
         if (api == null) {
             respondJson(exchange, 404, "{\"error\":\"unknown project: " + project + "\"}");
             return;
@@ -220,6 +239,9 @@ public final class VizServer implements AutoCloseable {
         out.put("mcpEndpoint", control.mcpEndpoint());
         out.put("mutable", control.mutable());
         out.put("vizPort", port());
+        if (control.lifecycle() != null) {
+            out.put("projectTtlSeconds", control.lifecycle().ttl().toSeconds());
+        }
         return out.toString();
     }
 

@@ -18,6 +18,7 @@ import io.doindev.codegraph.query.ClosureResult;
 import io.doindev.codegraph.query.GraphQuery;
 import io.doindev.codegraph.query.IndexStatus;
 import io.doindev.codegraph.rules.ModuleGraph;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -58,9 +59,11 @@ final class VizApi {
     // ---- endpoints ----
 
     /** Roster in workspace order (not map order), so the default project stays first. */
-    static String projects(Map<String, VizApi> apis, List<VizControl.VizProject> order) {
+    static String projects(List<VizControl.VizProject> order, ProjectLifecycle lifecycle) {
         ArrayNode out = JSON.createArrayNode();
         for (VizControl.VizProject project : order) {
+            var idle = lifecycle == null ? null : lifecycle.status(project.name());
+            if (lifecycle != null && idle == null) continue;
             IndexStatus status = project.graph().status();
             ObjectNode row = out.addObject();
             row.put("name", project.name());
@@ -69,6 +72,13 @@ final class VizApi {
             row.put("symbols", status.symbolCount());
             row.put("edges", status.edgeCount());
             row.put("generation", status.generation());
+            if (idle != null) {
+                row.put("instanceId", idle.instanceId());
+                row.put("lastActivityAt", idle.lastActivityAt().toString());
+                row.put("expiresAt", idle.expiresAt().toString());
+                row.put("remainingSeconds", idle.remainingSeconds());
+                row.put("activeOperations", idle.activeOperations());
+            }
         }
         return out.toString();
     }

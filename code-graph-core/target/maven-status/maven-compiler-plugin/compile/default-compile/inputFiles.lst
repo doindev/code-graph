@@ -1,5 +1,6 @@
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\config\CodeGraphConfig.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\graph\InMemoryCodeGraph.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\lifecycle\ProjectLifecycle.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\model\Direction.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\model\Edge.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-core\src\main\java\io\doindev\codegraph\model\EdgeKind.java

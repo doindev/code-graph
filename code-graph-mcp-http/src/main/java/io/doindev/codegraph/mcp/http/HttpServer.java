@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.doindev.codegraph.config.loader.ConfigLoader;
 import io.doindev.codegraph.index.Analyzers;
 import io.doindev.codegraph.index.Workspace;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 import io.doindev.codegraph.mcp.CodeGraphMcpServer;
+import io.doindev.codegraph.mcp.ProjectOnboarding;
 import io.doindev.codegraph.mcp.WorkspaceVizControl;
 import io.doindev.codegraph.tools.CodeGraphTools;
 import io.doindev.codegraph.tools.GraphTool;
@@ -21,7 +23,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.time.Duration;
 
 /**
  * Assembles the shared/team deployment: index a repo root, watch it for changes, and serve the
@@ -39,9 +41,11 @@ public final class HttpServer implements AutoCloseable {
     private final CodeGraphMcpServer mcp;
     private final Workspace workspace;
     private final VizServer viz;
+    private final WorkspaceTools registry;
 
     private HttpServer(Server jetty, ServerConnector connector, CodeGraphMcpServer mcp,
-                       Workspace workspace, VizServer viz) {
+                       Workspace workspace, VizServer viz, WorkspaceTools registry) {
+        this.registry = registry;
         this.jetty = jetty;
         this.connector = connector;
         this.mcp = mcp;
@@ -85,6 +89,12 @@ public final class HttpServer implements AutoCloseable {
      */
     public static HttpServer start(Workspace workspace, int port, int vizPort, boolean vizAdmin)
             throws Exception {
+        return start(workspace, port, vizPort, vizAdmin, ProjectLifecycle.DEFAULT_TTL);
+    }
+
+    public static HttpServer start(Workspace workspace, int port, int vizPort, boolean vizAdmin,
+                                   Duration projectTtl) throws Exception {
+        ProjectLifecycle.validateTtl(projectTtl);
         long start = System.nanoTime();
         workspace.fullIndexAll().forEach((name, result) -> System.err.printf(
                 "code-graph-http: [%s] indexed %d files, %d symbols, %d edges%n",
@@ -93,26 +103,11 @@ public final class HttpServer implements AutoCloseable {
                 workspace.projects().size(), (System.nanoTime() - start) / 1_000_000);
         workspace.watchAll();
 
-        List<CodeGraphTools.ProjectTools> projectTools = new java.util.ArrayList<>();
-        for (Workspace.Project project : workspace.projects()) {
-            Semaphore reindexing = new Semaphore(1);
-            projectTools.add(new CodeGraphTools.ProjectTools(project.name(), project.graph(),
-                    project.config(), project.root(), scope -> {
-                        if (!reindexing.tryAcquire()) {
-                            throw new IllegalStateException(
-                                    "a reindex of '" + project.name() + "' is already running");
-                        }
-                        Thread.ofVirtual().name("code-graph-reindex-" + project.name()).start(() -> {
-                            try {
-                                project.indexer().fullIndex();
-                            } finally {
-                                reindexing.release();
-                            }
-                        });
-                    }));
-        }
-        WorkspaceTools registry = CodeGraphTools.workspace(projectTools, workspace::remove);
-        List<GraphTool> tools = registry.tools();
+        WorkspaceTools registry = CodeGraphTools.workspace(List.of(), workspace::remove);
+        registry.lifecycle().setTtl(projectTtl);
+        ProjectOnboarding onboarding = new ProjectOnboarding(workspace, registry, Analyzers.discover());
+        workspace.projects().forEach(onboarding::register);
+        List<GraphTool> tools = registry.tools(onboarding::add);
 
         VizServer viz = null;
         CodeGraphMcpServer mcp = null;
@@ -153,7 +148,9 @@ public final class HttpServer implements AutoCloseable {
                 System.err.println("code-graph-http: viz on http://0.0.0.0:" + viz.port() + "/"
                         + (vizAdmin ? " (actions enabled)" : " (read-only)"));
             }
-            return new HttpServer(jetty, connector, mcp, workspace, viz);
+            registry.lifecycle().start();
+            System.err.println("code-graph-http: project idle TTL " + projectTtl);
+            return new HttpServer(jetty, connector, mcp, workspace, viz, registry);
         } catch (Exception e) {
             if (jetty != null) {
                 try {
@@ -168,6 +165,7 @@ public final class HttpServer implements AutoCloseable {
             if (viz != null) {
                 viz.close();
             }
+            registry.close();
             workspace.close();
             throw e;
         }
@@ -199,6 +197,7 @@ public final class HttpServer implements AutoCloseable {
         if (viz != null) {
             viz.close();
         }
+        registry.close();
         workspace.close();
     }
 }

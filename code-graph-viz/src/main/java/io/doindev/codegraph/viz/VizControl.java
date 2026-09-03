@@ -2,6 +2,7 @@ package io.doindev.codegraph.viz;
 
 import io.doindev.codegraph.config.CodeGraphConfig;
 import io.doindev.codegraph.query.GraphQuery;
+import io.doindev.codegraph.lifecycle.ProjectLifecycle;
 
 import java.util.List;
 
@@ -24,6 +25,9 @@ public interface VizControl {
     /** MCP endpoint description shown in the UI header, e.g. {@code "stdio"} or {@code "http://host:3000/mcp"}. */
     String mcpEndpoint();
 
+    /** Live project policy; absent only for fixed, read-only embeddings. */
+    default ProjectLifecycle lifecycle() { return null; }
+
     /** Whether the action endpoints (reindex/add/remove/browse) are enabled. */
     default boolean mutable() {
         return false;
@@ -44,7 +48,7 @@ public interface VizControl {
         throw new UnsupportedOperationException("this viz server is read-only");
     }
 
-    /** Remove a project; returns false if unknown. The last project cannot be removed. */
+    /** Remove a project; returns false if unknown. */
     default boolean remove(String project) {
         throw new UnsupportedOperationException("this viz server is read-only");
     }

@@ -1,3 +1,4 @@
+io\doindev\codegraph\lifecycle\ProjectLifecycleTest.class
 io\doindev\codegraph\graph\EnginePerfTest.class
 io\doindev\codegraph\graph\InMemoryCodeGraphTest.class
 io\doindev\codegraph\snapshot\FileSnapshotStoreTest.class
