@@ -100,10 +100,15 @@ public final class Main {
 
     /** Shared by the stdio and HTTP entry points: resolve --workspace / repeated --root flags. */
     public static Workspace openWorkspace(String[] args, Analyzers analyzers) {
+        String mode = argValue(args, "--graph-storage", "memory");
+        if (!mode.equals("memory") && !mode.equals("hybrid"))
+            throw new IllegalArgumentException("--graph-storage must be memory or hybrid");
+        long budget = io.doindev.codegraph.storage.GraphStorage.parseBudget(argValue(args, "--graph-memory", "1g"));
+        boolean hybrid = mode.equals("hybrid");
         String workspaceFile = argValue(args, "--workspace", null);
         if (workspaceFile != null) {
             return Workspace.openNamed(parseWorkspaceFile(Path.of(workspaceFile)), analyzers,
-                    ConfigLoader::load);
+                    ConfigLoader::load, hybrid, budget);
         }
         List<Path> roots = new ArrayList<>();
         for (int i = 0; i < args.length - 1; i++) {
@@ -117,7 +122,9 @@ public final class Main {
                 roots.add(Path.of(envRoot));
             }
         }
-        return Workspace.open(roots, analyzers, ConfigLoader::load);
+        Workspace workspace = Workspace.open(roots, analyzers, ConfigLoader::load, hybrid, budget);
+        System.err.println("code-graph: graph storage " + workspace.storageStatus());
+        return workspace;
     }
 
     /** Workspace file: {@code {"projects":[{"name":"api","root":"C:/repos/api"}, ...]}} (name optional). */
@@ -158,6 +165,8 @@ public final class Main {
     }
 
     private static String argValue(String[] args, String flag, String fallback) {
+        if (args.length > 0 && args[args.length - 1].equals(flag))
+            throw new IllegalArgumentException(flag + " needs a value");
         for (int i = 0; i < args.length - 1; i++) {
             if (args[i].equals(flag)) {
                 return args[i + 1];

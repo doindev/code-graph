@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.doindev.codegraph.smells.WaveBSmellsTest
 -------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.236 s -- in io.doindev.codegraph.smells.WaveBSmellsTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.915 s -- in io.doindev.codegraph.smells.WaveBSmellsTest

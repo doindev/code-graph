@@ -1,0 +1,358 @@
+{
+  "backend" : "mvstore",
+  "scenario" : "fit",
+  "startedAt" : "2026-09-03T19:23:10.549395900Z",
+  "budgetBytes" : 1073741824,
+  "nodesPerProject" : 1000,
+  "edgesPerProject" : 10000,
+  "projects" : 1,
+  "seed" : 42,
+  "java" : "25",
+  "os" : "Windows 11",
+  "processors" : 8,
+  "scratchDirectory" : "C:\\Users\\timhj\\AppData\\Local\\Temp\\code-graph-storage-bench-7063304360808358652",
+  "coldCacheDefinition" : "Fresh engine in a fresh JVM/directory; OS file cache is NOT flushed. First touch may hit OS cache.",
+  "status" : "completed",
+  "beforeLoadMemory" : {
+    "heapUsedBytes" : 6442544,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 1610612736,
+    "peakSampledHeapBytes" : 6442544,
+    "nonHeapUsedBytes" : 4966448,
+    "gcCount" : 0,
+    "gcTimeMs" : 0,
+    "bufferPoolsBytes" : {
+      "mapped" : 0,
+      "direct" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3066054KB, committed=349502KB\n       malloc: 29434KB #23556, peak=32550KB #23536\n       mmap:   reserved=3036620KB, committed=320068KB\n\n-                 Java Heap (reserved=1572864KB, committed=253952KB)\n                            (mmap: reserved=1572864KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048715KB, committed=651KB)\n                            (classes #2214)\n                            (  instance classes #1958, array classes #256)\n                            (malloc=139KB tag=Class #3031) (at peak)\n                            (mmap: reserved=1048576KB, committed=512KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=4608KB)\n                            (    used=4516KB)\n                            (    waste=92KB =1.99%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=512KB)\n                            (    used=406KB)\n                            (    waste=106KB =20.61%)\n\n-                    Thread (reserved=21564KB, committed=1112KB)\n                            (threads #21)\n                            (stack: reserved=21504KB, committed=1052KB, peak=1052KB)\n                            (malloc=40KB tag=Thread #125) (peak=49KB #129)\n                            (arena=20KB #34) (peak=180KB #34)\n\n-                      Code (reserved=248513KB, committed=8317KB)\n                            (malloc=768KB tag=Code #6208) (at peak)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=80916KB, committed=55156KB)\n                            (malloc=16980KB tag=GC #1759) (at peak)\n                            (mmap: reserved=63936KB, committed=38176KB, at peak)\n\n-                 GCCardSet (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=GCCardSet #4) (peak=1KB #5)\n\n-                  Compiler (reserved=7348KB, committed=7348KB)\n                            (malloc=29KB tag=Compiler #107) (peak=43KB #109)\n                            (arena=7319KB #32) (peak=9928KB #33)\n\n-                  Internal (reserved=257KB, committed=257KB)\n                            (malloc=189KB tag=Internal #2347) (peak=196KB #2294)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1474KB, committed=1474KB)\n                            (malloc=986KB tag=Symbol #5486) (at peak)\n                            (arena=488KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=436KB, committed=436KB)\n                            (malloc=22KB tag=Native Memory Tracking #387) (at peak)\n                            (tracking overhead=414KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=1644KB, committed=1644KB)\n                            (malloc=1644KB tag=Arena Chunk #339) (peak=13039KB #341)\n\n-                   Tracing (reserved=38KB, committed=38KB)\n                            (malloc=6KB tag=Tracing #31) (at peak)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=176KB, committed=176KB)\n                            (malloc=176KB tag=Module #2185) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=96KB, committed=96KB)\n                            (malloc=96KB tag=Synchronization #1493) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65551KB, committed=4623KB)\n                            (malloc=15KB tag=Metaspace #17) (at peak)\n                            (mmap: reserved=65536KB, committed=4608KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=Object Monitors #3) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate."
+  },
+  "loadMs" : 1059.8068,
+  "ingestion" : {
+    "maxSerializedFragmentBytes" : 0,
+    "rawReferences" : 0,
+    "declarations" : 0,
+    "maxInFlightFragments" : 8,
+    "pendingReferences" : 0,
+    "serializedFragmentBytes" : 0,
+    "maxResolverCandidates" : 0,
+    "files" : 0,
+    "extractionWorkers" : 2,
+    "memoryRetainedFragments" : 0
+  },
+  "afterLoadMemory" : {
+    "heapUsedBytes" : 91377200,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 1610612736,
+    "peakSampledHeapBytes" : 89280048,
+    "nonHeapUsedBytes" : 19717928,
+    "gcCount" : 1,
+    "gcTimeMs" : 8,
+    "bufferPoolsBytes" : {
+      "mapped" : 0,
+      "direct" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3088672KB, committed=376796KB\n       malloc: 47956KB #58092, peak=58511KB #51990\n       mmap:   reserved=3040716KB, committed=328840KB\n\n-                 Java Heap (reserved=1572864KB, committed=253952KB)\n                            (mmap: reserved=1572864KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048838KB, committed=1350KB)\n                            (classes #3279)\n                            (  instance classes #2916, array classes #363)\n                            (malloc=262KB tag=Class #6010) (at peak)\n                            (mmap: reserved=1048576KB, committed=1088KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=10688KB)\n                            (    used=10559KB)\n                            (    waste=129KB =1.21%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=1088KB)\n                            (    used=920KB)\n                            (    waste=168KB =15.43%)\n\n-                    Thread (reserved=25670KB, committed=1238KB)\n                            (threads #25)\n                            (stack: reserved=25600KB, committed=1168KB, peak=1168KB)\n                            (malloc=46KB tag=Thread #149) (peak=54KB #153)\n                            (arena=25KB #42) (peak=212KB #34)\n\n-                      Code (reserved=250312KB, committed=12116KB)\n                            (malloc=2567KB tag=Code #14113) (at peak)\n                            (mmap: reserved=247744KB, committed=9548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=81036KB, committed=55276KB)\n                            (malloc=17100KB tag=GC #3567) (peak=17113KB #3495)\n                            (mmap: reserved=63936KB, committed=38176KB, at peak)\n                            (arena=0KB #0) (peak=5KB #5)\n\n-                 GCCardSet (reserved=5KB, committed=5KB)\n                            (malloc=5KB tag=GCCardSet #49) (at peak)\n\n-                  Compiler (reserved=931KB, committed=931KB)\n                            (malloc=57KB tag=Compiler #275) (peak=71KB #280)\n                            (arena=874KB #15) (peak=29058KB #34)\n\n-                  Internal (reserved=305KB, committed=305KB)\n                            (malloc=237KB tag=Internal #4472) (at peak)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=3982KB, committed=3982KB)\n                            (malloc=3982KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=2588KB, committed=2588KB)\n                            (malloc=2036KB tag=Symbol #22339) (at peak)\n                            (arena=552KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=1051KB, committed=1051KB)\n                            (malloc=30KB tag=Native Memory Tracking #521) (at peak)\n                            (tracking overhead=1021KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=18628KB, committed=18628KB)\n                            (malloc=18628KB tag=Arena Chunk #689) (peak=33708KB #786)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #35) (at peak)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB tag=Module #2271) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=221KB, committed=221KB)\n                            (malloc=221KB tag=Synchronization #3504) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65597KB, committed=10749KB)\n                            (malloc=61KB tag=Metaspace #58) (at peak)\n                            (mmap: reserved=65536KB, committed=10688KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=Object Monitors #6) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate."
+  },
+  "afterLoadStore" : {
+    "cacheCapacityBytes" : 1073741824,
+    "cacheUsedBytesEstimate" : 23068672,
+    "unsavedBytesEstimate" : 2257,
+    "cacheHitRatioPercent" : 99,
+    "storeReadOperations" : 0,
+    "storeWriteOperations" : 8,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "maxSubmittedBatchBytes" : 1048525,
+    "submittedBytes" : 5981514
+  },
+  "timings" : {
+    "firstTouchPoint" : {
+      "samples" : 100,
+      "p95Us" : 95.8,
+      "p50Us" : 46.7,
+      "p99Us" : 208.0,
+      "operationsPerSecond" : 7286.186846975504,
+      "rawNanoseconds" : [ 8452600, 190500, 95800, 59500, 67200, 82500, 84200, 73600, 83200, 52900, 58800, 53300, 58400, 52300, 53600, 83000, 57600, 60700, 51800, 51800, 58900, 51300, 85600, 57900, 52800, 63200, 52200, 60800, 53000, 129500, 78600, 51000, 46700, 40000, 39100, 46300, 41500, 54000, 54300, 61800, 49900, 44400, 61600, 39700, 35900, 42600, 40600, 45000, 46500, 36700, 43400, 35900, 71900, 36100, 45700, 46500, 35400, 43400, 52000, 43800, 48900, 35800, 39600, 40100, 34600, 43200, 57100, 45600, 29300, 27000, 47800, 28900, 33700, 29800, 208000, 61900, 28800, 32600, 121200, 78800, 41000, 27700, 31700, 45100, 29200, 51000, 45500, 71600, 31000, 27100, 51700, 28100, 32700, 29600, 29100, 35900, 28900, 61800, 29000, 25400 ]
+    },
+    "hotPoint" : {
+      "samples" : 100,
+      "p95Us" : 108.6,
+      "p50Us" : 21.7,
+      "p99Us" : 172.0,
+      "operationsPerSecond" : 29776.970491022243,
+      "rawNanoseconds" : [ 24900, 22400, 22700, 20700, 18600, 23300, 22100, 20800, 18100, 38400, 108600, 37200, 24600, 22000, 20200, 23400, 18300, 103400, 36500, 20500, 24400, 22000, 22500, 20500, 24400, 53100, 36400, 24100, 24700, 21500, 95900, 39300, 26000, 21700, 20800, 23600, 20100, 22600, 55900, 41500, 142500, 57800, 28900, 20300, 19500, 21400, 18800, 20900, 19100, 17600, 22100, 18500, 20400, 24400, 181300, 24600, 17300, 46900, 18700, 17800, 23000, 19200, 24100, 21900, 19300, 21100, 18600, 20600, 18600, 18100, 21200, 18900, 20300, 145400, 172000, 36300, 24300, 91000, 18900, 19500, 20000, 20000, 22000, 140400, 24600, 22100, 16900, 19600, 16700, 43900, 22300, 19100, 21300, 18000, 17700, 19500, 17000, 20200, 19900, 18300 ]
+    },
+    "callers" : {
+      "samples" : 100,
+      "p95Us" : 19.4,
+      "p50Us" : 14.7,
+      "p99Us" : 39.3,
+      "operationsPerSecond" : 62597.809076682315,
+      "rawNanoseconds" : [ 43100, 16000, 15100, 15300, 14800, 14800, 18800, 15100, 14800, 14700, 14700, 15000, 16400, 16300, 14600, 14700, 14600, 14700, 14800, 14800, 14700, 14600, 19400, 14800, 14600, 39300, 16000, 14700, 14900, 20700, 15100, 14600, 14800, 14700, 14700, 14600, 16100, 14600, 14600, 14900, 14700, 14800, 14700, 14600, 14700, 14700, 14900, 14600, 14700, 14600, 14700, 15700, 14700, 15000, 14700, 14600, 14700, 14700, 33300, 16000, 14800, 14700, 14700, 14800, 14700, 14600, 14600, 14600, 14700, 14600, 14800, 14500, 15600, 14800, 17600, 15200, 14600, 14600, 15300, 14700, 14900, 14800, 14600, 14800, 14800, 14700, 14800, 14700, 14600, 14700, 14600, 33500, 16100, 15100, 14600, 14800, 15000, 17700, 15000, 14600 ]
+    },
+    "impact" : {
+      "samples" : 100,
+      "p95Us" : 4420.4,
+      "p50Us" : 3246.3,
+      "p99Us" : 9262.9,
+      "operationsPerSecond" : 292.29117111134366,
+      "rawNanoseconds" : [ 3605500, 3532500, 3464700, 3478100, 3743800, 3813300, 3660600, 3651000, 3387800, 3438900, 3246300, 3779200, 3424000, 3357300, 3558100, 4420400, 3124700, 3301200, 3190100, 3448800, 3228800, 2997000, 3999100, 3213600, 3846600, 3313700, 3558400, 3449000, 3368200, 3513100, 3284100, 9262900, 3160200, 3041400, 3143000, 3211200, 4163600, 3695100, 3836100, 2776800, 3256000, 2791300, 2465100, 3131000, 2488000, 2554400, 3433000, 2686400, 3168900, 2587000, 2629500, 3249700, 2636100, 5003300, 3926100, 3467700, 3509800, 3316800, 3378900, 3492000, 3119000, 4155600, 2989800, 2695500, 3159500, 3579800, 3488800, 2606400, 2890100, 4060900, 4550400, 3089800, 3035100, 4101800, 3017200, 3248600, 2825200, 3124900, 2866600, 2789600, 2979800, 9803300, 7223800, 4175200, 2785100, 2694900, 2776900, 2479700, 3689200, 2812000, 2486900, 3011900, 2841400, 2762000, 2661900, 2515000, 2712400, 3130800, 2488100, 2840500 ]
+    },
+    "symbolSearch" : {
+      "samples" : 10,
+      "p95Us" : 8138.7,
+      "p50Us" : 2847.3,
+      "p99Us" : 8138.7,
+      "operationsPerSecond" : 313.2429731770042,
+      "rawNanoseconds" : [ 8138700, 2908200, 2847300, 2977000, 2964000, 2921600, 2232100, 2187400, 2471500, 2276300 ]
+    }
+  },
+  "scanRecovery" : [ {
+    "beforeScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "scanMs" : 4.9529,
+    "afterScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "immediatelyAfterScan" : {
+      "samples" : 100,
+      "p95Us" : 21.7,
+      "p50Us" : 5.7,
+      "p99Us" : 133.0,
+      "operationsPerSecond" : 82236.84210526316,
+      "rawNanoseconds" : [ 133000, 21700, 6600, 6400, 21700, 9200, 5000, 5100, 4600, 4700, 312200, 106900, 41400, 6900, 6500, 6900, 6400, 7400, 6600, 7600, 7400, 6100, 7400, 7400, 7100, 6900, 7200, 6800, 8500, 6200, 7000, 7000, 6400, 5900, 5700, 6700, 5100, 6400, 6000, 5600, 5500, 6200, 6700, 5900, 5500, 5300, 5300, 5200, 5200, 5300, 6700, 5500, 5500, 5100, 6100, 5100, 5200, 4900, 5000, 29500, 5700, 4900, 5200, 5000, 6200, 5400, 5100, 5300, 5200, 4700, 6600, 5400, 5900, 5800, 5500, 5700, 5200, 5200, 4900, 5100, 6300, 5700, 5200, 5500, 5800, 5900, 5500, 5600, 5300, 5700, 6400, 5700, 5900, 5700, 5300, 5600, 5600, 5400, 5800, 5800 ]
+    },
+    "nextHotWindow" : {
+      "samples" : 100,
+      "p95Us" : 6.6,
+      "p50Us" : 4.9,
+      "p99Us" : 16.9,
+      "operationsPerSecond" : 184808.72297172426,
+      "rawNanoseconds" : [ 8600, 6700, 6100, 6600, 5300, 5700, 5200, 5600, 5100, 4800, 6100, 6300, 6100, 5700, 4800, 4800, 4600, 6000, 5000, 5000, 5100, 5100, 5900, 5400, 5300, 5400, 5900, 4800, 4800, 5000, 4700, 4700, 5100, 4900, 4700, 5000, 4600, 4800, 5500, 5200, 4500, 4900, 4800, 5200, 4700, 4600, 5500, 5100, 4500, 4900, 4500, 4500, 16900, 4900, 5000, 4800, 5000, 4500, 4800, 5000, 4600, 4900, 4800, 5200, 5100, 4800, 4700, 4800, 4700, 4800, 5700, 5300, 5700, 5000, 4800, 5100, 4300, 23500, 4500, 4400, 4900, 4300, 4600, 4500, 4300, 5900, 4400, 4700, 4600, 4500, 4800, 4600, 10000, 4500, 5000, 5400, 4800, 4600, 4800, 4600 ]
+    },
+    "recoveredStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    }
+  }, {
+    "beforeScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "scanMs" : 2.0758,
+    "afterScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "immediatelyAfterScan" : {
+      "samples" : 100,
+      "p95Us" : 6.0,
+      "p50Us" : 4.6,
+      "p99Us" : 7.7,
+      "operationsPerSecond" : 198530.87155052612,
+      "rawNanoseconds" : [ 31000, 6900, 6000, 4900, 4700, 4600, 4700, 4600, 4400, 4600, 5200, 5100, 5100, 4900, 5000, 4700, 4900, 5500, 5500, 5100, 4800, 4600, 5400, 4600, 6000, 4800, 5100, 5100, 5100, 4700, 4700, 4900, 5100, 4400, 5400, 7500, 4500, 5000, 4700, 4900, 4300, 4400, 4900, 4400, 5200, 4500, 4700, 4600, 4400, 4500, 4500, 4400, 4500, 4400, 4500, 4400, 4300, 4500, 4400, 4600, 4500, 4400, 4600, 4500, 4800, 4400, 4600, 4500, 4300, 4400, 4400, 4400, 4500, 4400, 4700, 5100, 4400, 4500, 4400, 4700, 4500, 4800, 4500, 4300, 7700, 4400, 4400, 4500, 4400, 5300, 4600, 4700, 4700, 4900, 4500, 4400, 4300, 4500, 4300, 4400 ]
+    },
+    "nextHotWindow" : {
+      "samples" : 100,
+      "p95Us" : 5.4,
+      "p50Us" : 4.5,
+      "p99Us" : 6.0,
+      "operationsPerSecond" : 213401.6218523261,
+      "rawNanoseconds" : [ 5700, 5300, 4700, 4400, 4500, 4500, 4300, 4500, 4400, 4500, 4600, 4400, 4600, 4300, 4500, 4400, 4400, 4900, 5800, 5200, 4700, 5400, 5300, 4500, 6000, 4800, 4500, 4400, 4600, 4600, 4500, 4300, 4800, 4400, 4600, 4600, 4400, 4500, 4700, 5900, 4400, 4500, 4600, 5400, 4700, 4700, 4500, 4600, 4700, 4500, 4500, 4500, 4600, 4400, 4500, 4400, 4400, 4500, 4400, 4500, 4700, 4400, 4500, 4400, 4500, 4300, 4400, 4400, 10500, 4600, 4400, 4400, 4600, 4500, 4400, 4500, 4400, 5400, 4300, 5300, 4400, 4300, 4500, 4400, 4700, 4700, 4500, 4700, 4500, 4600, 4600, 4700, 4500, 4500, 4600, 4500, 4700, 4600, 4400, 4600 ]
+    },
+    "recoveredStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    }
+  }, {
+    "beforeScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "scanMs" : 2.5065,
+    "afterScanStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "immediatelyAfterScan" : {
+      "samples" : 100,
+      "p95Us" : 9.0,
+      "p50Us" : 4.9,
+      "p99Us" : 46.5,
+      "operationsPerSecond" : 158127.7672359266,
+      "rawNanoseconds" : [ 46500, 9000, 6000, 5900, 5200, 4800, 5100, 4600, 4600, 4700, 5500, 22100, 6100, 4900, 5300, 5200, 4600, 6000, 5100, 5400, 5200, 5000, 6100, 5400, 6200, 4900, 5600, 5700, 6200, 4900, 5000, 5300, 5400, 5600, 5000, 5900, 5300, 5400, 56100, 10500, 4900, 5700, 6000, 5900, 5600, 4800, 5200, 4800, 4800, 4800, 4900, 4900, 4900, 4800, 5800, 4500, 4600, 4600, 4800, 4700, 4600, 4600, 4700, 4800, 4600, 5300, 4800, 4800, 4500, 4500, 4600, 4700, 4700, 4500, 4600, 4400, 4800, 4500, 4500, 4600, 4900, 4800, 4600, 4600, 4700, 4600, 5100, 4600, 4600, 4800, 5500, 4900, 15400, 4700, 4900, 4600, 4800, 4500, 5400, 5000 ]
+    },
+    "nextHotWindow" : {
+      "samples" : 100,
+      "p95Us" : 5.8,
+      "p50Us" : 4.8,
+      "p99Us" : 8.7,
+      "operationsPerSecond" : 200200.2002002002,
+      "rawNanoseconds" : [ 8700, 6500, 5500, 5400, 5000, 4900, 4700, 4500, 4600, 4700, 4900, 5400, 5200, 4600, 4600, 4600, 4500, 5300, 4900, 4900, 4600, 5100, 5100, 4900, 5200, 4800, 4800, 4800, 5000, 4800, 4700, 4700, 5800, 4800, 4700, 5500, 4800, 5300, 4900, 4900, 4400, 4800, 4600, 4900, 11300, 4500, 4800, 4500, 4600, 4900, 4800, 4700, 4900, 7500, 5700, 5200, 5600, 4600, 5200, 5300, 4500, 4600, 5900, 4600, 4800, 4500, 4600, 4700, 4500, 4600, 4700, 5000, 4700, 4500, 4700, 4700, 5100, 4400, 4500, 4900, 4600, 4800, 4700, 4500, 4500, 4700, 5100, 4600, 5200, 5000, 5200, 4700, 5400, 4700, 4500, 4600, 4700, 4700, 4700, 4700 ]
+    },
+    "recoveredStore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 23068672,
+      "unsavedBytesEstimate" : 2257,
+      "cacheHitRatioPercent" : 99,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 8,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    }
+  } ],
+  "beforeConcurrentStore" : {
+    "cacheCapacityBytes" : 1073741824,
+    "cacheUsedBytesEstimate" : 23068672,
+    "unsavedBytesEstimate" : 2257,
+    "cacheHitRatioPercent" : 99,
+    "storeReadOperations" : 0,
+    "storeWriteOperations" : 8,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "maxSubmittedBatchBytes" : 1048525,
+    "submittedBytes" : 5981514
+  },
+  "concurrentReadUpdateMs" : 44.4743,
+  "resize" : {
+    "afterReduction" : {
+      "cacheCapacityBytes" : 268435456,
+      "cacheUsedBytesEstimate" : 0,
+      "unsavedBytesEstimate" : 10570,
+      "cacheHitRatioPercent" : 0,
+      "storeReadOperations" : 0,
+      "storeWriteOperations" : 28,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 268435456,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "queries" : {
+      "samples" : 100,
+      "p95Us" : 465.3,
+      "p50Us" : 11.9,
+      "p99Us" : 602.5,
+      "operationsPerSecond" : 10994.689564940134,
+      "rawNanoseconds" : [ 1756100, 465300, 266900, 183800, 191100, 484200, 28200, 140100, 112600, 18700, 17400, 117800, 133900, 13700, 13800, 217800, 53900, 432500, 41900, 29700, 24900, 22100, 602500, 473000, 339000, 53400, 224700, 507800, 193300, 21600, 11600, 79300, 73600, 129900, 100000, 70000, 13500, 87000, 72700, 69000, 33300, 86500, 76900, 60500, 75500, 104000, 64000, 10500, 83400, 68400, 11900, 7500, 7700, 7000, 58900, 9200, 8800, 7600, 7100, 7400, 7200, 8100, 7900, 7000, 8200, 7200, 7100, 7800, 6900, 7400, 7800, 7200, 7900, 7100, 9100, 7300, 7200, 7600, 7100, 7400, 8400, 7300, 7500, 6900, 7600, 7100, 7200, 7500, 6900, 7600, 109600, 10100, 8200, 7200, 8400, 8600, 7600, 9500, 8500, 8700 ]
+    },
+    "afterRestore" : {
+      "cacheCapacityBytes" : 1073741824,
+      "cacheUsedBytesEstimate" : 0,
+      "unsavedBytesEstimate" : 10570,
+      "cacheHitRatioPercent" : 0,
+      "storeReadOperations" : 39,
+      "storeWriteOperations" : 28,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "maxSubmittedBatchBytes" : 1048525,
+      "submittedBytes" : 5981514
+    },
+    "status" : "passed"
+  },
+  "finalStore" : {
+    "cacheCapacityBytes" : 1073741824,
+    "cacheUsedBytesEstimate" : 0,
+    "unsavedBytesEstimate" : 10570,
+    "cacheHitRatioPercent" : 0,
+    "storeReadOperations" : 39,
+    "storeWriteOperations" : 28,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "maxSubmittedBatchBytes" : 1048525,
+    "submittedBytes" : 5981514
+  },
+  "finalMemory" : {
+    "heapUsedBytes" : 100478944,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 1610612736,
+    "peakSampledHeapBytes" : 155340336,
+    "nonHeapUsedBytes" : 22089080,
+    "gcCount" : 4,
+    "gcTimeMs" : 28,
+    "bufferPoolsBytes" : {
+      "mapped" : 0,
+      "direct" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3092373KB, committed=381229KB\n       malloc: 50633KB #64400, peak=60169KB #61694\n       mmap:   reserved=3041740KB, committed=330596KB\n\n-                 Java Heap (reserved=1572864KB, committed=253952KB)\n                            (mmap: reserved=1572864KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048888KB, committed=1464KB)\n                            (classes #3413)\n                            (  instance classes #3046, array classes #367)\n                            (malloc=312KB tag=Class #7079) (peak=312KB #7062)\n                            (mmap: reserved=1048576KB, committed=1152KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=11264KB)\n                            (    used=11117KB)\n                            (    waste=147KB =1.30%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=1152KB)\n                            (    used=984KB)\n                            (    waste=168KB =14.60%)\n\n-                    Thread (reserved=26697KB, committed=1261KB)\n                            (threads #26)\n                            (stack: reserved=26624KB, committed=1188KB, peak=1188KB)\n                            (malloc=47KB tag=Thread #156) (peak=60KB #172)\n                            (arena=26KB #44) (peak=212KB #34)\n\n-                      Code (reserved=251214KB, committed=14114KB)\n                            (malloc=3469KB tag=Code #16939) (at peak)\n                            (mmap: reserved=247744KB, committed=10644KB, at peak)\n                            (arena=1KB #1) (peak=35KB #3)\n\n-                        GC (reserved=81089KB, committed=55329KB)\n                            (malloc=17153KB tag=GC #4234) (peak=17249KB #5994)\n                            (mmap: reserved=63936KB, committed=38176KB, at peak)\n                            (arena=0KB #0) (peak=5KB #5)\n\n-                 GCCardSet (reserved=5KB, committed=5KB)\n                            (malloc=5KB tag=GCCardSet #9) (peak=7KB #50)\n\n-                  Compiler (reserved=5871KB, committed=5871KB)\n                            (malloc=56KB tag=Compiler #275) (peak=107KB #293)\n                            (arena=5815KB #32) (peak=29058KB #34)\n\n-                  Internal (reserved=330KB, committed=330KB)\n                            (malloc=262KB tag=Internal #5175) (peak=264KB #5159)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=3982KB, committed=3982KB)\n                            (malloc=3982KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=2615KB, committed=2615KB)\n                            (malloc=2063KB tag=Symbol #22839) (at peak)\n                            (arena=552KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=1163KB, committed=1163KB)\n                            (malloc=31KB tag=Native Memory Tracking #542) (peak=31KB #546)\n                            (tracking overhead=1132KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=15149KB, committed=15149KB)\n                            (malloc=15149KB tag=Arena Chunk #718) (peak=33708KB #786)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #36) (peak=7KB #38)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB tag=Module #2273) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=253KB, committed=253KB)\n                            (malloc=253KB tag=Synchronization #4009) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65609KB, committed=11337KB)\n                            (malloc=73KB tag=Metaspace #67) (at peak)\n                            (mmap: reserved=65536KB, committed=11264KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=3KB, committed=3KB)\n                            (malloc=3KB tag=Object Monitors #15) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate."
+  },
+  "diskBytes" : 15200256,
+  "removal" : "passed",
+  "cleanup" : "passed",
+  "finishedAt" : "2026-09-03T19:23:12.919413Z"
+}

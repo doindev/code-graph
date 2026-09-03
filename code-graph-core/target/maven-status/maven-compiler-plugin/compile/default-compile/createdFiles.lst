@@ -41,3 +41,4 @@ io\doindev\codegraph\config\CodeGraphConfig$Architecture.class
 io\doindev\codegraph\snapshot\SnapshotCodec$StringTable.class
 io\doindev\codegraph\model\FileId.class
 io\doindev\codegraph\query\ClosureResult.class
+io\doindev\codegraph\store\ManagedGraph.class

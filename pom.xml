@@ -63,6 +63,7 @@
     <module>code-graph-lang-dart</module>
     <module>code-graph-lang-objc</module>
     <module>code-graph-lang-sql</module>
+    <module>code-graph-storage</module>
     <module>code-graph-index</module>
     <module>code-graph-analysis</module>
     <module>code-graph-rules</module>
@@ -144,6 +145,10 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>storage-benchmark</id>
+      <modules><module>code-graph-storage-benchmark</module></modules>
+    </profile>
     <!--
       Release profile: `mvn -Prelease deploy`. Builds signed source + javadoc jars for every
       published module and pushes to the Sonatype Central Portal. Credentials supplied via CI

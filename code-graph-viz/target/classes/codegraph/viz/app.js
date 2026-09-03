@@ -934,6 +934,7 @@ function renderLegend() {
 // ---------------------------------------------------------------- server info + admin actions
 
 function applyServerInfo(info) {
+  state.graphStorage = info.graphStorage ?? { mode: 'memory' };
   state.projectTtlSeconds = info.projectTtlSeconds ?? 3600;
   state.mcpEndpoint = info.mcpEndpoint;
   state.mutable = info.mutable === true;
@@ -1029,6 +1030,38 @@ function signalProjectActivity(event) {
   lastActivitySignal = now;
   // Leading-edge signals only: no background heartbeat or trailing signal after the user stops.
   api(projectBase() + '/activity', 'POST').catch(() => {});
+}
+
+async function openMemorySettings() {
+  $('memory-error').textContent = '';
+  try { applyServerInfo(await api('/api/server')); }
+  catch (e) { $('memory-error').textContent = e.message; }
+  const storage = state.graphStorage;
+  const hybrid = storage.mode === 'hybrid';
+  const mib = bytes => Math.round((bytes ?? 0) / 1048576);
+  $('memory-status').textContent = hybrid
+    ? `Hybrid · cache ${mib(storage.cacheUsedBytesEstimate)} / ${mib(storage.cacheCapacityBytes)} MiB (estimated) · disk ${mib(storage.diskBytes)} MiB · hits ${storage.cacheHits ?? 0}, misses ${storage.cacheMisses ?? 0}`
+    : 'Pure in-memory mode. Restart with --graph-storage hybrid to enable disk paging.';
+  $('memory-value').value = mib(storage.budgetBytes ?? 1073741824) + 'm';
+  $('memory-value').disabled = !hybrid;
+  $('memory-save').disabled = !hybrid;
+  $('memory-overlay').classList.remove('hidden');
+  (hybrid ? $('memory-value') : $('memory-cancel')).focus();
+}
+
+function closeMemorySettings() {
+  $('memory-overlay').classList.add('hidden');
+  $('memory-settings').focus();
+}
+
+async function saveMemorySettings(event) {
+  event.preventDefault();
+  $('memory-save').disabled = true;
+  try {
+    applyServerInfo(await api('/api/settings', 'PUT', { graphMemory: $('memory-value').value.trim() }));
+    closeMemorySettings();
+  } catch (e) { $('memory-error').textContent = e.message; }
+  finally { $('memory-save').disabled = false; }
 }
 
 function openTtlSettings() {
@@ -1312,6 +1345,10 @@ const refetchGalaxy = debounce(() => {
 
 function wireControls() {
   $('ttl-settings').addEventListener('click', openTtlSettings);
+  $('memory-settings').addEventListener('click', openMemorySettings);
+  $('memory-form').addEventListener('submit', saveMemorySettings);
+  $('memory-cancel').addEventListener('click', closeMemorySettings);
+  $('memory-overlay').addEventListener('click', e => { if (e.target === $('memory-overlay')) closeMemorySettings(); });
   $('ttl-form').addEventListener('submit', saveTtlSettings);
   $('ttl-cancel').addEventListener('click', closeTtlSettings);
   $('ttl-overlay').addEventListener('click', e => { if (e.target === $('ttl-overlay')) closeTtlSettings(); });
@@ -1364,6 +1401,7 @@ function wireControls() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('ttl-overlay').classList.contains('hidden')) { closeTtlSettings(); return; }
+    if (!$('memory-overlay').classList.contains('hidden')) { closeMemorySettings(); return; }
     if (!$('scan-overlay').classList.contains('hidden')) {
       return;  // loading modal is non-dismissable — ignore Escape while indexing runs
     }

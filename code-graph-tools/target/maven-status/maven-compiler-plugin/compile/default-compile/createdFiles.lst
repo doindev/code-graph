@@ -22,4 +22,5 @@ io\doindev\codegraph\tools\ToolResponse.class
 io\doindev\codegraph\tools\FindCodeSmellsTool.class
 io\doindev\codegraph\tools\ToolSupport.class
 io\doindev\codegraph\tools\GetSymbolTool.class
+io\doindev\codegraph\tools\WorkspaceTools$1.class
 io\doindev\codegraph\tools\ToolSpec.class

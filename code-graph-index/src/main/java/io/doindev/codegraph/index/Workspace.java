@@ -2,6 +2,8 @@ package io.doindev.codegraph.index;
 
 import io.doindev.codegraph.config.CodeGraphConfig;
 import io.doindev.codegraph.graph.InMemoryCodeGraph;
+import io.doindev.codegraph.store.ManagedGraph;
+import io.doindev.codegraph.storage.GraphStorage;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +26,7 @@ public final class Workspace implements AutoCloseable {
 
     /** One indexed project. */
     public record Project(String name, Path root, CodeGraphConfig config,
-                          InMemoryCodeGraph graph, IncrementalIndexer indexer) {
+                          ManagedGraph graph, IncrementalIndexer indexer) {
     }
 
     private final Map<String, Project> projects;
@@ -32,9 +34,11 @@ public final class Workspace implements AutoCloseable {
     private final Map<String, Path> reservedRoots = new LinkedHashMap<>();
     private boolean watching;
     private boolean closed;
+    private final GraphStorage storage;
 
-    private Workspace(Map<String, Project> projects) {
+    private Workspace(Map<String, Project> projects, GraphStorage storage) {
         this.projects = new LinkedHashMap<>(projects);
+        this.storage = storage;
     }
 
     /**
@@ -44,6 +48,11 @@ public final class Workspace implements AutoCloseable {
      */
     public static Workspace open(List<Path> roots, Analyzers analyzers,
                                  Function<Path, CodeGraphConfig> configLoader) {
+        return open(roots, analyzers, configLoader, false, GraphStorage.DEFAULT_BUDGET);
+    }
+
+    public static Workspace open(List<Path> roots, Analyzers analyzers,
+                                 Function<Path, CodeGraphConfig> configLoader, boolean hybrid, long budget) {
         Map<String, Path> named = new LinkedHashMap<>();
         for (Path raw : roots) {
             Path root = canonicalRoot(raw);
@@ -55,12 +64,17 @@ public final class Workspace implements AutoCloseable {
             }
             named.put(name, root);
         }
-        return openNamed(named, analyzers, configLoader);
+        return openNamed(named, analyzers, configLoader, hybrid, budget);
     }
 
     /** Open with explicit project names (workspace-file mode). Iteration order defines the default project. */
     public static Workspace openNamed(Map<String, Path> namedRoots, Analyzers analyzers,
                                       Function<Path, CodeGraphConfig> configLoader) {
+        return openNamed(namedRoots, analyzers, configLoader, false, GraphStorage.DEFAULT_BUDGET);
+    }
+
+    public static Workspace openNamed(Map<String, Path> namedRoots, Analyzers analyzers,
+                                      Function<Path, CodeGraphConfig> configLoader, boolean hybrid, long budget) {
         Map<String, Path> roots = new LinkedHashMap<>();
         namedRoots.forEach((name, raw) -> {
             Path root = canonicalRoot(raw);
@@ -69,13 +83,20 @@ public final class Workspace implements AutoCloseable {
             roots.put(name, root);
         });
         Map<String, Project> projects = new LinkedHashMap<>();
-        roots.forEach((name, root) -> {
-            CodeGraphConfig config = configLoader.apply(root);
-            InMemoryCodeGraph graph = new InMemoryCodeGraph();
-            IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
-            projects.put(name, new Project(name, root, config, graph, indexer));
-        });
-        return new Workspace(projects);
+        GraphStorage storage = new GraphStorage(hybrid, budget);
+        try {
+            roots.forEach((name, root) -> {
+                storage.checkRoot(root);
+                CodeGraphConfig config = configLoader.apply(root);
+                ManagedGraph graph = storage.create();
+                IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
+                projects.put(name, new Project(name, root, config, graph, indexer));
+            });
+            return new Workspace(projects, storage);
+        } catch (RuntimeException | Error e) {
+            try { storage.close(); } catch (RuntimeException cleanup) { e.addSuppressed(cleanup); }
+            throw e;
+        }
     }
 
     /** Fully index every project, projects in parallel. Returns per-project results in order. */
@@ -115,6 +136,7 @@ public final class Workspace implements AutoCloseable {
     public Project add(String requestedName, Path rawRoot, Analyzers analyzers,
                        java.util.function.Function<Path, CodeGraphConfig> configLoader) {
         Path root = canonicalRoot(rawRoot);
+        storage.checkRoot(root);
         String name;
         synchronized (this) {
             if (closed) {
@@ -133,13 +155,18 @@ public final class Workspace implements AutoCloseable {
         }
 
         Project project;
+        ManagedGraph createdGraph = null;
         try {
             CodeGraphConfig config = configLoader.apply(root);
-            InMemoryCodeGraph graph = new InMemoryCodeGraph();
+            ManagedGraph graph = storage.create();
+            createdGraph = graph;
             IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
             project = new Project(name, root, config, graph, indexer);
             project.indexer().fullIndex();
         } catch (RuntimeException | Error e) {
+            if (createdGraph != null) {
+                try { createdGraph.close(); } catch (RuntimeException cleanup) { e.addSuppressed(cleanup); }
+            }
             synchronized (this) {
                 reservedRoots.remove(name);
             }
@@ -149,11 +176,16 @@ public final class Workspace implements AutoCloseable {
         synchronized (this) {
             reservedRoots.remove(name);
             if (closed) {
+                project.graph().close();
                 throw new IllegalStateException("workspace is closed");
             }
             if (watching) {
-                watchers.computeIfAbsent(project.name(),
-                        n -> new Watcher(project.root(), project.indexer()));
+                try {
+                    watchers.computeIfAbsent(project.name(), n -> new Watcher(project.root(), project.indexer()));
+                } catch (RuntimeException | Error e) {
+                    try { project.graph().close(); } catch (RuntimeException cleanup) { e.addSuppressed(cleanup); }
+                    throw e;
+                }
             }
             projects.put(name, project);
         }
@@ -199,7 +231,7 @@ public final class Workspace implements AutoCloseable {
         if (watcher != null) {
             watcher.close();
         }
-        projects.remove(name);
+        projects.remove(name).graph().close();
         return true;
     }
 
@@ -226,6 +258,9 @@ public final class Workspace implements AutoCloseable {
         return watchers.size();
     }
 
+    public Map<String, Object> storageStatus() { return storage.status(); }
+    public void graphMemory(long bytes) { storage.resize(bytes); }
+
     @Override
     public synchronized void close() {
         closed = true;
@@ -233,5 +268,7 @@ public final class Workspace implements AutoCloseable {
         watchers.values().forEach(Watcher::close);
         watchers.clear();
         reservedRoots.clear();
+        storage.close();
+        projects.clear();
     }
 }

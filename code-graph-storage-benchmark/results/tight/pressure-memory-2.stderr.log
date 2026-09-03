@@ -1,0 +1,11 @@
+java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.lang.StringConcatHelper$Concat1.concat(StringConcatHelper.java:111)
+	at java.base/java.lang.invoke.DirectMethodHandle$Holder.invokeSpecial(DirectMethodHandle$Holder)
+	at java.base/java.lang.invoke.LambdaForm$MH/0x000000008d045400.invoke(LambdaForm$MH)
+	at java.base/java.lang.invoke.Invokers$Holder.linkToTargetMethod(Invokers$Holder)
+	at io.doindev.codegraph.bench.Ingestion.syntheticNode(Ingestion.java:20)
+	at io.doindev.codegraph.bench.Ingestion.synthetic(Ingestion.java:25)
+	at io.doindev.codegraph.bench.BenchMain.lambda$main$1(BenchMain.java:42)
+	at io.doindev.codegraph.bench.BenchMain$$Lambda/0x000000008d048a58.accept(Unknown Source)
+	at io.doindev.codegraph.bench.Engine.load(Engine.java:64)
+	at io.doindev.codegraph.bench.BenchMain.main(BenchMain.java:42)

@@ -39,7 +39,8 @@ public final class IncrementalIndexer {
     private final Path root;
     private final Analyzers analyzers;
     private final CodeGraphConfig config;
-    private final InMemoryCodeGraph graph;
+    private final io.doindev.codegraph.store.ManagedGraph graph;
+    private final HybridIndexer hybrid;
     private final FullIndexer fullIndexer;
 
     private final Object lock = new Object();
@@ -52,21 +53,26 @@ public final class IncrementalIndexer {
     private final Set<String> withPending = new HashSet<>();
 
     public IncrementalIndexer(Path root, Analyzers analyzers, CodeGraphConfig config,
-                              InMemoryCodeGraph graph) {
+                              io.doindev.codegraph.store.ManagedGraph graph) {
         this.root = root.toAbsolutePath().normalize();
         this.analyzers = analyzers;
         this.config = config.withDefaults();
         this.graph = graph;
         this.fullIndexer = new FullIndexer(analyzers, config);
+        this.hybrid = graph instanceof io.doindev.codegraph.storage.PagedGraph paged
+                ? new HybridIndexer(this.root, analyzers, config, paged) : null;
     }
 
-    public InMemoryCodeGraph graph() {
+    public io.doindev.codegraph.store.ManagedGraph graph() {
         return graph;
     }
+
+    boolean boundedRebuild() { return hybrid != null; }
 
     /** Full (from-scratch) index; resets all bookkeeping. */
     public FullIndexer.Result fullIndex() {
         synchronized (lock) {
+            if (hybrid != null) return hybrid.index();
             fragments.clear();
             resolvedBySource.clear();
             resolvedInto.clear();
@@ -84,6 +90,10 @@ public final class IncrementalIndexer {
     /** Re-index a batch of changed repo-relative paths (modified, created or deleted). */
     public void applyChanges(Collection<String> relPaths) {
         synchronized (lock) {
+            if (hybrid != null) {
+                if (!relPaths.isEmpty()) hybrid.index();
+                return;
+            }
             applyBatch(List.copyOf(relPaths), false);
         }
     }

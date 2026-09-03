@@ -1,0 +1,261 @@
+{
+  "afterLoadMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 12,
+    "gcTimeMs" : 310,
+    "heapCommittedBytes" : 780140544,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 604090944,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3074791KB, committed=869571KB\n       malloc: 32027KB #30036, peak=44549KB #23036\n       mmap:   reserved=3042764KB, committed=837544KB\n\n-                 Java Heap (reserved=1572864KB, committed=761856KB)\n                            (mmap: reserved=1572864KB, committed=761856KB, at peak)\n\n-                     Class (reserved=1048741KB, committed=677KB)\n                            (classes #2217)\n                            (  instance classes #1950, array classes #267)\n                            (malloc=165KB tag=Class #3410) (at peak)\n                            (mmap: reserved=1048576KB, committed=512KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=4224KB)\n                            (    used=4136KB)\n                            (    waste=88KB =2.09%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=512KB)\n                            (    used=379KB)\n                            (    waste=133KB =25.96%)\n\n-                    Thread (reserved=27724KB, committed=1164KB)\n                            (threads #27)\n                            (stack: reserved=27648KB, committed=1088KB, peak=1088KB)\n                            (malloc=46KB tag=Thread #165) (peak=58KB #171)\n                            (arena=29KB #50) (peak=179KB #32)\n\n-                      Code (reserved=248843KB, committed=8647KB)\n                            (malloc=1099KB tag=Code #7603) (at peak)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=82483KB, committed=66643KB)\n                            (malloc=18547KB tag=GC #5076) (peak=18593KB #5164)\n                            (mmap: reserved=63936KB, committed=48096KB, at peak)\n                            (arena=0KB #0) (peak=8KB #8)\n\n-                 GCCardSet (reserved=36KB, committed=36KB)\n                            (malloc=36KB tag=GCCardSet #93) (peak=44KB #103)\n\n-                  Compiler (reserved=225KB, committed=225KB)\n                            (malloc=29KB tag=Compiler #108) (peak=45KB #119)\n                            (arena=196KB #6) (peak=20438KB #16)\n\n-                  Internal (reserved=328KB, committed=328KB)\n                            (malloc=260KB tag=Internal #3776) (peak=262KB #3741)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1417KB, committed=1417KB)\n                            (malloc=929KB tag=Symbol #3995) (at peak)\n                            (arena=488KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=578KB, committed=578KB)\n                            (malloc=50KB tag=Native Memory Tracking #897) (peak=51KB #901)\n                            (tracking overhead=528KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=9166KB, committed=9166KB)\n                            (malloc=9166KB tag=Arena Chunk #376) (peak=24447KB #415)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #37) (peak=7KB #38)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=175KB, committed=175KB)\n                            (malloc=175KB tag=Module #2167) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=143KB, committed=143KB)\n                            (malloc=143KB tag=Synchronization #2249) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65564KB, committed=4252KB)\n                            (malloc=28KB tag=Metaspace #33) (at peak)\n                            (mmap: reserved=65536KB, committed=4224KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=3KB, committed=3KB)\n                            (malloc=3KB tag=Object Monitors #17) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 8859816,
+    "peakSampledHeapBytes" : 624053808
+  },
+  "afterLoadStore" : {
+    "budgetEnforced" : false,
+    "maxSubmittedBatchBytes" : 0,
+    "requestedBudgetBytes" : 1073741824,
+    "submittedBytes" : 0
+  },
+  "backend" : "memory",
+  "beforeConcurrentStore" : {
+    "budgetEnforced" : false,
+    "maxSubmittedBatchBytes" : 0,
+    "requestedBudgetBytes" : 1073741824,
+    "submittedBytes" : 0
+  },
+  "beforeLoadMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 0,
+    "gcTimeMs" : 0,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 5393968,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3064808KB, committed=347220KB\n       malloc: 28188KB #20493, peak=31453KB #20476\n       mmap:   reserved=3036620KB, committed=319032KB\n\n-                 Java Heap (reserved=1572864KB, committed=253952KB)\n                            (mmap: reserved=1572864KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048709KB, committed=517KB)\n                            (classes #2090)\n                            (  instance classes #1839, array classes #251)\n                            (malloc=133KB tag=Class #2797) (at peak)\n                            (mmap: reserved=1048576KB, committed=384KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=3712KB)\n                            (    used=3642KB)\n                            (    waste=70KB =1.88%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=384KB)\n                            (    used=332KB)\n                            (    waste=52KB =13.53%)\n\n-                    Thread (reserved=21564KB, committed=1100KB)\n                            (threads #21)\n                            (stack: reserved=21504KB, committed=1040KB, peak=1040KB)\n                            (malloc=40KB tag=Thread #125) (peak=49KB #129)\n                            (arena=20KB #34) (peak=179KB #32)\n\n-                      Code (reserved=248468KB, committed=8272KB)\n                            (malloc=723KB tag=Code #5903) (peak=723KB #5904)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=80916KB, committed=55156KB)\n                            (malloc=16980KB tag=GC #1742) (at peak)\n                            (mmap: reserved=63936KB, committed=38176KB, at peak)\n\n-                 GCCardSet (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=GCCardSet #4) (peak=1KB #5)\n\n-                  Compiler (reserved=5099KB, committed=5099KB)\n                            (malloc=30KB tag=Compiler #113) (peak=45KB #118)\n                            (arena=5069KB #22) (peak=8384KB #23)\n\n-                  Internal (reserved=256KB, committed=256KB)\n                            (malloc=188KB tag=Internal #2269) (peak=195KB #2212)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1350KB, committed=1350KB)\n                            (malloc=894KB tag=Symbol #3187) (at peak)\n                            (arena=456KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=382KB, committed=382KB)\n                            (malloc=22KB tag=Native Memory Tracking #377) (peak=22KB #378)\n                            (tracking overhead=360KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=2881KB, committed=2881KB)\n                            (malloc=2881KB tag=Arena Chunk #311) (peak=12085KB #315)\n\n-                   Tracing (reserved=38KB, committed=38KB)\n                            (malloc=6KB tag=Tracing #31) (at peak)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=175KB, committed=175KB)\n                            (malloc=175KB tag=Module #2151) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=91KB, committed=91KB)\n                            (malloc=91KB tag=Synchronization #1415) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65551KB, committed=3727KB)\n                            (malloc=15KB tag=Metaspace #17) (at peak)\n                            (mmap: reserved=65536KB, committed=3712KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=3KB, committed=3KB)\n                            (malloc=3KB tag=Object Monitors #17) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 3584784,
+    "peakSampledHeapBytes" : 0
+  },
+  "budgetBytes" : 1073741824,
+  "cleanup" : "passed",
+  "coldCacheDefinition" : "Fresh engine in a fresh JVM/directory; OS file cache is NOT flushed. First touch may hit OS cache.",
+  "concurrentReadUpdateMs" : 3761.7101,
+  "diskBytes" : 0,
+  "edgesPerProject" : 1000000,
+  "finalGraphCounts" : {
+    "edges" : 1000000,
+    "files" : 100000,
+    "symbols" : 100000
+  },
+  "finalMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 16,
+    "gcTimeMs" : 343,
+    "heapCommittedBytes" : 1054867456,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 919601152,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3070557KB, committed=1139313KB\n       malloc: 27793KB #36832, peak=44549KB #23036\n       mmap:   reserved=3042764KB, committed=1111520KB\n\n-                 Java Heap (reserved=1572864KB, committed=1030144KB)\n                            (mmap: reserved=1572864KB, committed=1030144KB, at peak)\n\n-                     Class (reserved=1048763KB, committed=699KB)\n                            (classes #2310)\n                            (  instance classes #2040, array classes #270)\n                            (malloc=187KB tag=Class #3886) (peak=188KB #3888)\n                            (mmap: reserved=1048576KB, committed=512KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=4672KB)\n                            (    used=4571KB)\n                            (    waste=101KB =2.17%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=512KB)\n                            (    used=422KB)\n                            (    waste=90KB =17.50%)\n\n-                    Thread (reserved=27724KB, committed=1164KB)\n                            (threads #27)\n                            (stack: reserved=27648KB, committed=1088KB, peak=1136KB)\n                            (malloc=46KB tag=Thread #165) (peak=61KB #185)\n                            (arena=29KB #50) (peak=179KB #32)\n\n-                      Code (reserved=249193KB, committed=8997KB)\n                            (malloc=1448KB tag=Code #9320) (at peak)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=86006KB, committed=75406KB)\n                            (malloc=22070KB tag=GC #7364) (peak=22070KB #7366)\n                            (mmap: reserved=63936KB, committed=53336KB, at peak)\n                            (arena=0KB #0) (peak=8KB #8)\n\n-                 GCCardSet (reserved=95KB, committed=95KB)\n                            (malloc=95KB tag=GCCardSet #499) (at peak)\n\n-                  Compiler (reserved=226KB, committed=226KB)\n                            (malloc=30KB tag=Compiler #108) (peak=103KB #136)\n                            (arena=196KB #6) (peak=20438KB #16)\n\n-                  Internal (reserved=347KB, committed=347KB)\n                            (malloc=279KB tag=Internal #4582) (peak=282KB #4593)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1430KB, committed=1430KB)\n                            (malloc=942KB tag=Symbol #4273) (at peak)\n                            (arena=488KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=713KB, committed=713KB)\n                            (malloc=65KB tag=Native Memory Tracking #1172) (peak=66KB #1178)\n                            (tracking overhead=647KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=756KB, committed=756KB)\n                            (malloc=756KB tag=Arena Chunk #102) (peak=24447KB #415)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #37) (peak=8KB #40)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=175KB, committed=175KB)\n                            (malloc=175KB tag=Module #2167) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=193KB, committed=193KB)\n                            (malloc=193KB tag=Synchronization #3052) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65567KB, committed=4703KB)\n                            (malloc=31KB tag=Metaspace #44) (at peak)\n                            (mmap: reserved=65536KB, committed=4672KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=5KB, committed=5KB)\n                            (malloc=5KB tag=Object Monitors #27) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 10133208,
+    "peakSampledHeapBytes" : 919601152
+  },
+  "finalStore" : {
+    "budgetEnforced" : false,
+    "maxSubmittedBatchBytes" : 0,
+    "requestedBudgetBytes" : 1073741824,
+    "submittedBytes" : 0
+  },
+  "finishedAt" : "2026-09-03T19:29:18.697467900Z",
+  "ingestion" : {
+    "declarations" : 0,
+    "extractionWorkers" : 2,
+    "files" : 0,
+    "maxInFlightFragments" : 8,
+    "maxResolverCandidates" : 0,
+    "maxSerializedFragmentBytes" : 0,
+    "memoryRetainedFragments" : 0,
+    "pendingReferences" : 0,
+    "rawReferences" : 0,
+    "serializedFragmentBytes" : 0
+  },
+  "java" : "25",
+  "loadMs" : 2105.4215,
+  "nodesPerProject" : 100000,
+  "os" : "Windows 11",
+  "processors" : 8,
+  "projects" : 1,
+  "queryFingerprint" : "8fd286a50b17abd8365888bcf6a477e789c8854ddbf48a8218b919697110652f",
+  "removal" : "passed",
+  "resize" : {
+    "reason" : "in-memory baseline has no eviction",
+    "status" : "unsupported"
+  },
+  "scanRecovery" : [ {
+    "afterScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "beforeScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 752445.4477050414,
+      "p50Us" : 0.8,
+      "p95Us" : 1.8,
+      "p99Us" : 3.2,
+      "rawNanoseconds" : [ 47500, 1300, 1200, 900, 1000, 1000, 1000, 700, 1000, 900, 1300, 900, 700, 900, 700, 800, 800, 1000, 600, 800, 600, 800, 700, 800, 700, 800, 800, 800, 800, 800, 800, 800, 700, 800, 600, 600, 3200, 700, 800, 800, 1700, 1200, 1000, 700, 700, 1000, 800, 1800, 700, 700, 800, 800, 1800, 700, 700, 700, 700, 700, 800, 800, 900, 600, 700, 600, 800, 800, 800, 600, 900, 2000, 800, 700, 700, 700, 600, 700, 600, 1200, 800, 700, 800, 700, 700, 900, 700, 700, 800, 700, 600, 700, 800, 700, 600, 600, 700, 1800, 700, 700, 800, 800 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 2156101.76800345,
+      "p50Us" : 0.4,
+      "p95Us" : 0.5,
+      "p99Us" : 1.2,
+      "rawNanoseconds" : [ 1100, 500, 400, 500, 400, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 13200, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 500, 500, 400, 400, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 500, 500, 2400, 500, 400, 500, 400, 400, 400, 400, 500, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 2400, 500, 400, 500, 400, 900, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 6500, 500, 400, 500, 600, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 6500, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 1200, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 4200, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 4200, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 1600, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 2300, 400, 500, 400, 400, 400, 400, 400, 4100, 500, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "scanMs" : 27.7437
+  }, {
+    "afterScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "beforeScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 1160092.807424594,
+      "p50Us" : 0.7,
+      "p95Us" : 1.1,
+      "p99Us" : 3.1,
+      "rawNanoseconds" : [ 11800, 1000, 900, 1400, 800, 900, 700, 700, 700, 900, 1000, 1100, 600, 800, 600, 800, 900, 900, 600, 700, 600, 800, 700, 800, 700, 800, 800, 800, 600, 800, 1000, 700, 800, 800, 700, 600, 800, 600, 800, 700, 800, 800, 500, 600, 700, 700, 800, 600, 600, 700, 1200, 600, 700, 700, 600, 500, 700, 800, 800, 700, 1100, 800, 600, 600, 700, 600, 800, 600, 600, 700, 700, 800, 800, 600, 3100, 800, 600, 600, 600, 600, 600, 600, 700, 700, 600, 600, 600, 600, 700, 800, 700, 700, 700, 600, 700, 700, 600, 600, 700, 600 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 1908032.8181644725,
+      "p50Us" : 0.4,
+      "p95Us" : 0.6,
+      "p99Us" : 1.9,
+      "rawNanoseconds" : [ 800, 400, 400, 2900, 600, 500, 500, 500, 400, 400, 400, 1100, 2200, 400, 400, 500, 500, 1700, 500, 400, 500, 500, 1700, 500, 500, 500, 500, 1700, 400, 500, 500, 500, 500, 1900, 500, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 1700, 500, 500, 500, 400, 1700, 500, 500, 500, 500, 500, 1700, 500, 500, 500, 400, 600, 500, 500, 500, 500, 1800, 500, 400, 400, 400, 400, 1700, 500, 400, 400, 400, 600, 500, 400, 400, 400, 1700, 400, 500, 500, 500, 1900, 400, 400, 400, 400, 500, 500, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 1600, 400, 400, 400, 400, 500, 400, 1800, 500, 400, 400, 400, 500, 400, 400, 400, 16100, 500, 400, 500, 400, 400, 500, 400, 400, 400, 400, 500, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 500, 500, 500, 400, 500, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 500, 400, 1300, 600, 4200, 500, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 1800, 500, 400, 500, 400, 500, 500, 400, 400, 400, 400, 500, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 600, 400, 500, 400, 400, 1700, 500, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 500, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 500, 500, 500, 500, 500, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 11800, 600, 400, 500, 500, 400, 400, 400, 400, 400, 400, 500, 1500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 1700, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 1400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 1600, 500, 500, 500, 400, 400, 400, 400, 400, 500, 2000, 400, 2000, 500, 500, 500, 400, 400, 400, 400, 400, 500, 500, 400, 1400, 500, 500, 500, 500, 500, 400, 400, 400, 500, 400, 400, 1500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 1400, 700, 500, 400, 400, 400, 400, 400, 400, 500, 500, 1800, 1900, 600, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 1300, 400, 400, 400, 400, 400, 500, 500, 500, 500, 500, 400, 1500, 400, 500, 500, 500, 500, 500, 400, 400, 400, 400, 400, 1500, 500, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 1400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 1200, 500, 400, 400, 400, 400, 500, 500, 500, 500, 500, 400, 1300, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 4500, 500, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 1800, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 700, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 7500, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 4300, 500, 500, 500, 500, 500, 500, 400, 400, 400, 400, 500, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 500, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 1000, 400 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "scanMs" : 27.5918
+  }, {
+    "afterScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "beforeScanStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 899280.5755395683,
+      "p50Us" : 0.8,
+      "p95Us" : 1.0,
+      "p99Us" : 11.0,
+      "rawNanoseconds" : [ 11000, 1000, 800, 1000, 900, 900, 700, 900, 700, 800, 1000, 800, 800, 900, 600, 800, 800, 900, 700, 700, 600, 800, 800, 6000, 900, 900, 800, 800, 600, 800, 700, 700, 800, 800, 1200, 700, 800, 700, 1000, 700, 600, 800, 500, 600, 800, 800, 700, 600, 1000, 800, 700, 700, 900, 700, 700, 700, 700, 800, 800, 700, 1000, 800, 600, 600, 20800, 800, 800, 500, 900, 800, 900, 800, 800, 700, 600, 700, 800, 700, 800, 800, 700, 800, 700, 700, 700, 700, 700, 700, 700, 600, 800, 700, 600, 600, 700, 800, 600, 500, 700, 600 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 2105263.1578947366,
+      "p50Us" : 0.4,
+      "p95Us" : 0.5,
+      "p99Us" : 2.0,
+      "rawNanoseconds" : [ 700, 500, 400, 400, 400, 400, 400, 400, 400, 400, 2500, 600, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 500, 500, 600, 500, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 500, 400, 400, 400, 400, 500, 500, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 4400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 18200, 700, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 5000, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 2000, 500, 500, 500, 400, 400, 400, 400, 500, 500, 400, 500, 400, 500, 500, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 4600, 700, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 2000, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 500, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 4100, 500, 500, 500, 400, 400, 400, 400, 400, 3200, 600, 400, 500, 500, 500, 400, 400, 1700, 400, 400, 400, 400, 400, 400, 1700, 400, 400, 400, 400, 400, 500, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 500, 400, 400, 500, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 700, 400, 400, 400, 400, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 500, 400, 400, 400, 500, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 2000, 500, 400, 500, 400, 500, 400, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 1700, 500, 500, 500, 400, 400, 400, 3200, 600, 500, 400, 400, 400, 400, 400, 400, 400, 500, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 1300, 500, 400, 400, 400, 500, 400, 400, 500, 400, 400, 700, 400, 1700, 600, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 500 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "budgetEnforced" : false,
+      "maxSubmittedBatchBytes" : 0,
+      "requestedBudgetBytes" : 1073741824,
+      "submittedBytes" : 0
+    },
+    "scanMs" : 12.9227
+  } ],
+  "scenario" : "fit",
+  "scratchDirectory" : "C:\\Users\\timhj\\AppData\\Local\\Temp\\code-graph-storage-bench-16608094235367808707",
+  "seed" : 42,
+  "startedAt" : "2026-09-03T19:29:11.782062500Z",
+  "status" : "completed",
+  "timings" : {
+    "callers" : {
+      "operationsPerSecond" : 717875.0897343862,
+      "p50Us" : 1.2,
+      "p95Us" : 1.6,
+      "p99Us" : 5.5,
+      "rawNanoseconds" : [ 5500, 1700, 1400, 1300, 1300, 1200, 28300, 1500, 1300, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1400, 1400, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 5700, 1300, 1400, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1400, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 2800, 1500, 1400, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1700, 1200, 1200, 1300, 1200, 1500, 1400, 1600, 1300, 1400, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 2700, 1500, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1100, 1200, 1300, 1800, 1300, 1200, 1200, 1200, 1300, 2100, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1500, 1600, 1200, 1200, 1200, 1500, 1400, 1500, 1300, 1200, 1200, 1100, 1200, 1200, 1100, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1800, 1300, 6100, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 5800, 1300, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1300, 1400, 1300, 1800, 2000, 1400, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1700, 1300, 1200, 1200, 1700, 1300, 1300, 1400, 1200, 1200, 1200, 1300, 1200, 1300, 1200, 1200, 1200, 1300, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1900, 1200, 1200, 1400, 1400, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1600, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1400, 1200, 1300, 1200, 1200, 1200, 1200, 1100, 1400, 1400, 1200, 1200, 1200, 1200, 1400, 1200, 1400, 1200, 1200, 1200, 1100, 1300, 1200, 2700, 1200, 1100, 1500, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1500, 1600, 1400, 1100, 1200, 1200, 1200, 1400, 1200, 1400, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1500, 1800, 1200, 1200, 1200, 1200, 1200, 1100, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1800, 1600, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 4900, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1500, 1400, 1600, 2100, 1300, 1200, 1200, 1300, 1200, 1300, 1200, 1300, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1100, 1200, 1800, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1100, 1200, 1200, 1200, 1200, 1200, 1200, 20700, 1800, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1300, 1200, 1200 ],
+      "samples" : 500
+    },
+    "firstTouchPoint" : {
+      "operationsPerSecond" : 76167.26331022926,
+      "p50Us" : 4.0,
+      "p95Us" : 7.1,
+      "p99Us" : 23.2,
+      "rawNanoseconds" : [ 853900, 11500, 5600, 4600, 4600, 4200, 4200, 4000, 4200, 4100, 4500, 4400, 3900, 4100, 3700, 4500, 4200, 4300, 4000, 4100, 4000, 4000, 4000, 4400, 4500, 4200, 4500, 4100, 3900, 4200, 17300, 4600, 4300, 4300, 3900, 3900, 4100, 4000, 4100, 4600, 4000, 4200, 4000, 3900, 3900, 4000, 5300, 4100, 4400, 4000, 7100, 23200, 4400, 4000, 3900, 3900, 3900, 4000, 4000, 3800, 10600, 4500, 4100, 3900, 4200, 3900, 5000, 4500, 4100, 4000, 6400, 4500, 3900, 3800, 4000, 4000, 3800, 3800, 3800, 3900, 3900, 3800, 3900, 3900, 3800, 3800, 3700, 3900, 3800, 3800, 3900, 3800, 3800, 3700, 3900, 5500, 4100, 4000, 3900, 3800 ],
+      "samples" : 100
+    },
+    "hotPoint" : {
+      "operationsPerSecond" : 569378.8077207766,
+      "p50Us" : 1.2,
+      "p95Us" : 3.4,
+      "p99Us" : 7.9,
+      "rawNanoseconds" : [ 6700, 18700, 3700, 3600, 3500, 3400, 3300, 3400, 3400, 3500, 3500, 3400, 3400, 3400, 3400, 3300, 3300, 3400, 3400, 3300, 3400, 3400, 3400, 3500, 3400, 3400, 3400, 3300, 3400, 3300, 3300, 3300, 3400, 3300, 3400, 3500, 8400, 4700, 3700, 8400, 3700, 3300, 3400, 3300, 3400, 3400, 3300, 3300, 3600, 3400, 3400, 3400, 3500, 3400, 3400, 3400, 3400, 3400, 3400, 3400, 3500, 3500, 3500, 3500, 3500, 3400, 3300, 3300, 3400, 3400, 5100, 3600, 3400, 3400, 3500, 3300, 3300, 3400, 3400, 3300, 3300, 3500, 3400, 3300, 3300, 3400, 3300, 3300, 3300, 3300, 3300, 3400, 3400, 3400, 3300, 3400, 3400, 3300, 3400, 3500, 3400, 3400, 3400, 3400, 3400, 3300, 3300, 3400, 3300, 3300, 3400, 3400, 3400, 3400, 3400, 3400, 3400, 3400, 3300, 3400, 3400, 3400, 3400, 3500, 3400, 3400, 3300, 3400, 3300, 3400, 3400, 3300, 3300, 3300, 3300, 3400, 3300, 3400, 3400, 3300, 3300, 4500, 28100, 3600, 3200, 3100, 3100, 3100, 3000, 3100, 29400, 3300, 3000, 3200, 3000, 3000, 3100, 3100, 19400, 3300, 3000, 20700, 3400, 3000, 5500, 4000, 3100, 7900, 3400, 3000, 3000, 3100, 3000, 2900, 2900, 2900, 16200, 3400, 2900, 2800, 2800, 2900, 2800, 2700, 2800, 2800, 2800, 2700, 2800, 2800, 2900, 2800, 3000, 3000, 3000, 2000, 1300, 1300, 1300, 1200, 1300, 1200, 1400, 1600, 1600, 1600, 1500, 1400, 1200, 1200, 1200, 1300, 1500, 1600, 1600, 1500, 1600, 1200, 1200, 1200, 1300, 1300, 1300, 1400, 1300, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1300, 1300, 1300, 1300, 2000, 1400, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1500, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 7500, 4000, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1400, 1300, 1200, 1200, 1200, 1700, 1700, 1300, 3500, 1300, 1300, 1200, 1200, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1600, 1700, 1300, 3300, 1300, 1200, 1200, 1300, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 5100, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1300, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1600, 1600, 1300, 3300, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1200, 1300, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1300, 1300, 1300, 1200, 1200, 1200, 1300, 1300, 1300, 1300, 1300, 1200, 1200, 1200, 1200, 1900, 8700, 1500, 1200, 1100, 1200, 1000, 1100, 1100, 1000, 1100, 1100, 1100, 1000, 1100, 1100, 1100, 1100, 1000, 1100, 1100, 1000, 1100, 1100, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1100, 1100, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1500, 1100, 3100, 1200, 1100, 2200, 1300, 1300, 1100, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1100, 1100, 1100, 1000, 1000, 1000, 1100, 1100, 1000, 1100, 1100, 1000, 1100, 1200, 1100, 1100, 1100, 1100, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1000, 1000, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1100, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 3200, 1200, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1100, 1100, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1100, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1000, 1100, 1000, 1100, 1100, 1100, 1000, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1100, 1000, 1000, 1900, 1200, 1000, 1100, 1100, 1100, 1000, 1000, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1000, 1000, 1000, 1000, 1000, 1300, 1000, 1100, 1100, 1100, 1100, 1300, 1000, 2600, 1500, 1100, 3200, 12300, 1300, 900, 900, 900, 800, 900, 900, 900, 900, 900, 900, 800, 800, 800, 900, 900, 800, 800, 800, 800, 800, 800, 800, 900, 900, 900, 800, 800, 900, 900, 900, 900, 800, 900, 900, 900, 800, 800, 900, 900, 900, 900, 900, 900, 800, 900, 900, 900, 900, 900, 800, 800, 800, 900, 900, 800, 800, 800, 900, 800, 800, 900, 900 ],
+      "samples" : 1000
+    },
+    "impact" : {
+      "operationsPerSecond" : 3377.545402654075,
+      "p50Us" : 129.5,
+      "p95Us" : 669.5,
+      "p99Us" : 690.3,
+      "rawNanoseconds" : [ 760400, 668500, 650200, 676500, 690300, 649200, 662500, 643500, 635200, 649100, 644200, 636100, 669500, 649200, 655000, 684600, 654300, 642900, 678800, 664700, 661900, 684600, 643100, 657700, 655400, 644700, 650700, 672200, 651700, 647100, 691300, 652700, 667000, 648100, 638500, 628500, 638300, 628300, 631300, 636500, 682900, 653700, 683300, 634300, 646700, 663400, 640300, 643200, 644100, 632400, 668300, 654000, 635400, 637200, 640000, 642600, 648800, 665500, 647200, 651700, 572700, 654800, 644200, 438700, 253100, 157200, 138500, 137000, 154600, 136200, 148600, 137900, 129800, 129000, 127800, 162600, 135300, 128500, 138800, 154300, 130000, 134000, 128600, 125600, 124900, 125800, 124900, 124900, 124000, 130800, 123600, 126600, 125100, 125700, 124700, 133500, 131800, 149300, 126600, 125700, 123100, 122200, 124600, 123000, 131700, 125800, 123400, 124400, 125900, 125300, 123800, 134800, 142000, 124800, 162700, 128400, 124400, 123500, 123600, 123500, 133200, 129500, 125600, 124500, 129100, 126600, 123800, 125500, 130200, 123500, 122900, 122400, 123000, 121700, 128500, 124500, 127800, 123400, 129500, 124100, 123400, 125200, 123100, 124300, 131000, 121900, 123100, 129700, 125500, 124600, 125000, 123400, 128600, 123000, 128900, 123200, 122000, 123500, 123700, 123500, 141100, 124700, 125200, 125100, 124200, 123300, 124500, 128400, 123500, 122200, 129200, 123500, 126100, 132200, 124700, 132300, 123100, 123000, 122600, 121900, 121400, 122800, 121700, 121600, 127000, 132300, 165800, 135800, 124600, 122200, 122200, 130200, 126900, 124000, 124600, 126900, 126200, 124900, 124500, 136400 ],
+      "samples" : 200
+    },
+    "symbolSearch" : {
+      "operationsPerSecond" : 37.593179394276135,
+      "p50Us" : 21303.4,
+      "p95Us" : 48474.1,
+      "p99Us" : 48474.1,
+      "rawNanoseconds" : [ 48474100, 23482900, 20990500, 20706900, 46123600, 21570900, 21004400, 21022100, 21303400, 21326900 ],
+      "samples" : 10
+    }
+  }
+}

@@ -1,0 +1,12 @@
+java.lang.IllegalStateException: RocksDB operation failed
+	at io.doindev.codegraph.bench.RocksKv.fail(RocksKv.java:33)
+	at io.doindev.codegraph.bench.RocksKv.write(RocksKv.java:49)
+	at io.doindev.codegraph.bench.Engine.apply(Engine.java:157)
+	at io.doindev.codegraph.bench.Engine.apply(Engine.java:116)
+	at io.doindev.codegraph.bench.BenchMain.concurrent(BenchMain.java:127)
+	at io.doindev.codegraph.bench.BenchMain.main(BenchMain.java:75)
+Caused by: org.rocksdb.RocksDBException: Insert failed due to LRU cache being full.
+	at org.rocksdb.RocksDB.write0(Native Method)
+	at org.rocksdb.RocksDB.write(RocksDB.java:1849)
+	at io.doindev.codegraph.bench.RocksKv.write(RocksKv.java:48)
+	... 4 more

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.doindev.codegraph.index.WorkspaceTest
 -------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.131 s -- in io.doindev.codegraph.index.WorkspaceTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.112 s -- in io.doindev.codegraph.index.WorkspaceTest

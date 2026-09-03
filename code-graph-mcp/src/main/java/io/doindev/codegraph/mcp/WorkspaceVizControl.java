@@ -24,6 +24,11 @@ import java.util.stream.Stream;
  */
 public final class WorkspaceVizControl implements VizControl {
 
+    @Override public java.util.Map<String, Object> storageStatus() { return workspace.storageStatus(); }
+    @Override public void graphMemory(String value) {
+        workspace.graphMemory(io.doindev.codegraph.storage.GraphStorage.parseBudget(value));
+    }
+
     private static final int MAX_BROWSE_ENTRIES = 500;
 
     private final Workspace workspace;

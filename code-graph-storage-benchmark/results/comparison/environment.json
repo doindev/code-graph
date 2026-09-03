@@ -1,0 +1,1014 @@
+{
+  "capturedAt": "2026-09-03T14:40:25.3358516-05:00",
+  "os": "Microsoft Windows 11 Pro",
+  "osVersion": "10.0.26200",
+  "architecture": "64-bit",
+  "totalPhysicalBytes": 16495501312,
+  "freePhysicalBytes": 1746374656,
+  "cpu": {
+    "Name": "AMD Ryzen 7 4700U with Radeon Graphics         ",
+    "NumberOfCores": 8,
+    "NumberOfLogicalProcessors": 8
+  },
+  "disks": {
+    "Model": "Samsung SSD 990 PRO 1TB",
+    "MediaType": "Fixed hard disk media",
+    "Size": 1000202273280,
+    "InterfaceType": "SCSI"
+  },
+  "java": "openjdk version \"25\" 2025-09-16\r\nOpenJDK Runtime Environment (build 25+36-3489)\r\nOpenJDK 64-Bit Server VM (build 25+36-3489, mixed mode, sharing)\r\n",
+  "maven": "Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)\r\nMaven home: C:\\Program Files\\Apache\\Maven\\3.9.11\r\nJava version: 25, vendor: Oracle Corporation, runtime: C:\\Program Files\\OpenJDK\\jdk-25\r\nDefault locale: en_US, platform encoding: UTF-8\r\nOS name: \"windows 11\", version: \"10.0\", arch: \"amd64\", family: \"windows\"\r\n",
+  "sourceRevision": "f1f7e2232d92a331e6349bdb92f623f9424b1219",
+  "sources": [
+    {
+      "path": "code-graph-analysis\\pom.xml",
+      "sha256": "FDCEDF496CAA03F47C6F8CDCCEBBFA1F0F401B68BA58E8685EC6CA7DA035C125"
+    },
+    {
+      "path": "code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\BlastFormula.java",
+      "sha256": "4AA2DFC342FA5EA68E691F573D80F15CC9D216F7A48347714AC739047BD16E01"
+    },
+    {
+      "path": "code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\BlastScore.java",
+      "sha256": "76D8839FB40753515E08FACD8B816DAE98D1876C0B2D9FEC976D77D72EA7FE1F"
+    },
+    {
+      "path": "code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\DeadCode.java",
+      "sha256": "BB162AFDE44DE515F5334A517B611158F52D514DFC7177105D0FB300940B8026"
+    },
+    {
+      "path": "code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\Tarjan.java",
+      "sha256": "B326AD49A5421E12C8D0A1C94782D827094133963450C38923B3E04E7359B91B"
+    },
+    {
+      "path": "code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\BlastFormulaTest.java",
+      "sha256": "70FC47FADFF208B49E820F1CF61AFF3B1DB2D12649FD72301E3F4533DCDF21D6"
+    },
+    {
+      "path": "code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\DeadCodeAndScoreTest.java",
+      "sha256": "49A28BE63349F5DD4BB2F0AFCE90ABD85E75A55A77081E5582C7627EA7FD306F"
+    },
+    {
+      "path": "code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\DeadCodeHierarchyTest.java",
+      "sha256": "5CC7A04BFAEA7BF93B08FF187D9DECC0D7A2C4FE43A7F739CCF914DD6D10FFAE"
+    },
+    {
+      "path": "code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\TarjanTest.java",
+      "sha256": "A27CDBD555A525A6840FB7D8DB5ADB1BD1AF1E72823D51799BF0EAF89FFCFC62"
+    },
+    {
+      "path": "code-graph-bom\\pom.xml",
+      "sha256": "D9F6D225F8871E7EBCFE7E86193F99AC445C0D4FC86D708B94493433097005AA"
+    },
+    {
+      "path": "code-graph-cli\\pom.xml",
+      "sha256": "4EF44F1395B16640D65DD47C188373DEF3762987519E6A149C5CEB4A5B5EAC0B"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Args.java",
+      "sha256": "2AA9B12442E1F3E6E1B62C978769A7EE958B4F4A0DC7EC3852F3E3B594A20C6E"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CheckCommand.java",
+      "sha256": "1BE603837CEF03DC8190FE5E6965140B0E30E9D622094AE8CEF3C83137A8EB1E"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CiCommand.java",
+      "sha256": "405F6DBBC970C537FC005000E9A5F5B2C4983769444149969D71097BB75CE8DD"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CiReport.java",
+      "sha256": "5A04C2C10DDDE1E7970262CB6EC42955073A25BAA2EBA80D5DD5AC84E5295A8B"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Git.java",
+      "sha256": "BBEDACA7669EE45E6694E91D5100A97966CEFDEA2245714803D80D60D41145A3"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\GithubPoster.java",
+      "sha256": "30031E048541C961C9273CA0309A3C89BEB14AB9F684455387DA51899EAA9ABB"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\GitlabPoster.java",
+      "sha256": "C97E4849D1895159E06912C85F91DA2031A446B16CBDF17A9C00AB8810F52D1C"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\IndexCommand.java",
+      "sha256": "AF74AFA37D4E95DFB5F1294C941F12A404D5074AC46BFF24BC6D244723F04D35"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Indexing.java",
+      "sha256": "50D00DEB689E00745156080865D2C687D00A6426BA7F62485A918B35761BB70E"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Main.java",
+      "sha256": "0220ABF8B867890F61086AC9865429049E8C1AEC8F639F20588DD3391657CA0A"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\PrCommentPoster.java",
+      "sha256": "0F6055691822C0B0C0CE547115787588D3FE6257250354848290CE1B21C4DEB2"
+    },
+    {
+      "path": "code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Snapshots.java",
+      "sha256": "55E1252259D2D654B8F55F779CFBF993E5289DA87BEB4F898716821B773C0E4D"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\ArgsTest.java",
+      "sha256": "C74A80A75A80A5550E602F5556A1615DA62134F611313FB4E69273DD55F6FACF"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\CiEndToEndTest.java",
+      "sha256": "2E64D6A7291E9333F820BDB546699317FA82EF215A073C51DE84FED8365381A5"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\CiGitTest.java",
+      "sha256": "C4A67480368613B6700845A30664F8EEC75C6D0C711A06A00B122319E811FDA0"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\GithubPosterLiveTest.java",
+      "sha256": "898D7A83F60805184685B84C69B451892568254CE75098FE58E1E7A125EE9DBF"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\PosterTest.java",
+      "sha256": "9BF4C669C66EAF700DB47222A86DDACC2E0215BF56EDD3E4C4C72661D5CD5A98"
+    },
+    {
+      "path": "code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\ReportTest.java",
+      "sha256": "91E286F1D31FA4E1A076623D10473EE1916397C2BD6405A525E05FD92FBB5CD2"
+    },
+    {
+      "path": "code-graph-config\\pom.xml",
+      "sha256": "2EFB9D9A6BF62E4C115FEDC8BA04DD789495134A1A47176F691C3EDE7C953D1B"
+    },
+    {
+      "path": "code-graph-config\\src\\main\\java\\io\\doindev\\codegraph\\config\\loader\\ConfigLoader.java",
+      "sha256": "EB9E728D2382BEAAA3D1349BDE28A893736DFB654A4C7AE89B3EDB3BF2773C6C"
+    },
+    {
+      "path": "code-graph-config\\src\\test\\java\\io\\doindev\\codegraph\\config\\loader\\ConfigLoaderTest.java",
+      "sha256": "5CE24B4723630A67C0FA1CADC50BE77F8DA24B9991679889D67F5B72D3BB8540"
+    },
+    {
+      "path": "code-graph-core\\pom.xml",
+      "sha256": "1AABE214C79CB846E464628AEABFBC33C7F964FAD38BE8CC121578C11E43C81A"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\config\\CodeGraphConfig.java",
+      "sha256": "2990156608E1285C458A3CCAB95A0CFB4E274A17F471D88FD6F7EABA98AEA6B6"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\graph\\InMemoryCodeGraph.java",
+      "sha256": "555F761B4A73FD65C36459C1ADC540EDC7F56AD8BAEEACC1E2DA74E1759DA582"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\lifecycle\\ProjectLifecycle.java",
+      "sha256": "F42277F5105DD2D0811844AB99A0084E60664DE800AEF3B1ED815F3477EEFF3E"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Direction.java",
+      "sha256": "B96F80DF14B4493C4A04A63D6B3135C62AB78910E809FA8117A8EFDE4DE76E34"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Edge.java",
+      "sha256": "6EB39D9155D5CD500C1D7B7A8DED50F2AA75B5A36549BBF9B198B14D4D0736CC"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\EdgeKind.java",
+      "sha256": "995725777FEDBC1559391D78CA299A78DB493C69FE30B63C2C813479A6DF2083"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\FileId.java",
+      "sha256": "DB74F18148C33E01A3254F1712C2B2D0A35DB4583BDAA80DF254F2F80554778B"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Metrics.java",
+      "sha256": "A20C35C2C22E5BAACCE738FAFD49BF4E4650FBBE3FF2E8230A14F21637EDEFB8"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\ModuleId.java",
+      "sha256": "CE2580839AF2F7FE0005CF31DD98048808D2421FFFC01E4DBF018AD6EFB81651"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Node.java",
+      "sha256": "F8BE0A2014E8E7409A80BD669982A56CC2F2AADC4FD6506ADAB6EDD98AF58203"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\NodeId.java",
+      "sha256": "0FC103C47667EDCA982C10E4BAFAB0D23A1853112920D3567240F685D4C63D19"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\NodeKind.java",
+      "sha256": "9647244D59DC1AED85A3761A6F8C5C3EBDF20472B53F143FA1A890C716B8E1EB"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\RepoId.java",
+      "sha256": "9E5DDEFF9730F1E55E2CF8824A228004B7F2EADF1B5367D5DD41FCA85FB8616F"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\SourceSpan.java",
+      "sha256": "F5CD5FADA0259986AF7B3289AB2BDC2B2A038ECF9DB164F9A469F219481BC204"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\SymbolId.java",
+      "sha256": "7F315780D666B6008EA4BFB8D245AE1352A528738FC16658CBBB6A01CFE88DB0"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\ClosureHit.java",
+      "sha256": "55B6E0817A43ED7EE97816670B39406342939F8446F5E432580C71DF931D2A5E"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\ClosureResult.java",
+      "sha256": "AB81271C80BEFA8ED009527267017404D2B9B9A0343706322F26E4985A1FA565"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\GraphQuery.java",
+      "sha256": "313B04A1A7F5395E73099E9AFE1D2E4BFB85C85BA2CD169A95FF0570D8484FCC"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\IndexStatus.java",
+      "sha256": "5F00DB87BD9825966E2033FA7D2BF08753D693A9D7573FAB40414C54568423D3"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\DeltaCodec.java",
+      "sha256": "ACF42D607280AC530692A7D5E04B52E85FF5015B44A637023ABDF5E55961332E"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\FileSnapshotStore.java",
+      "sha256": "9AE56CE5BB1C9AFDAD6515737A95D27E0059EEF8CAF7BA9D8E6BC9A7DD009596"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\SnapshotCodec.java",
+      "sha256": "81BF86193B8BAF4BF6A1D81C6D6B7ACECBE7169BFCAA39DB61086DF2F18731B5"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\Varint.java",
+      "sha256": "92985B0A5B4E28C27E9EE3362707F4DB254410DD9CB6E9C91B633E2D43BF69DA"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphDelta.java",
+      "sha256": "9FAAFD24D2E2B6DF3D7B0623F166E2668CCB03C7AD9454A0512DB921DADC85BA"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphSink.java",
+      "sha256": "6E94126A84B899C3A7A7BBCD0C7C0179A366B6BD06B5EFC7CD7E47E8773A0E7B"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphStore.java",
+      "sha256": "35CFDAD702FEF1D3AE899EB926C4F8B8CE0B2D13B838911549F7852EC5F3AE9A"
+    },
+    {
+      "path": "code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\util\\Globs.java",
+      "sha256": "1AAA1AED0C9CD8B572B6527FFC0B3E5294EF9E4DE439E799FE7472EED0BACABA"
+    },
+    {
+      "path": "code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\graph\\EnginePerfTest.java",
+      "sha256": "F9BFBDFB87881546031A83FA060D5A3F66889971A44DA99E0F504805E6731075"
+    },
+    {
+      "path": "code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\graph\\InMemoryCodeGraphTest.java",
+      "sha256": "1D5DE8080897E05FA92811654AC9C7B89E3DB26D67B67E8B07E43C374E9B89B6"
+    },
+    {
+      "path": "code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\lifecycle\\ProjectLifecycleTest.java",
+      "sha256": "AB0C12C56C91315D40E9A354BDFE2A651A7B1046601159F83DD9C29349A77847"
+    },
+    {
+      "path": "code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\model\\NodeIdTest.java",
+      "sha256": "431F0F538A92167268E90574A0D0B9DCD7D4E219717FEF54EF99ACABCAE3F99C"
+    },
+    {
+      "path": "code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\snapshot\\FileSnapshotStoreTest.java",
+      "sha256": "A656E0D90E5242CE8C9201AEE3904DEBB30CE7F939AC6A01BC1B80A69F123854"
+    },
+    {
+      "path": "code-graph-index\\pom.xml",
+      "sha256": "66CC5D0FF3B8CB62787C083DE32671BB245B92CA313B11F1595A665942216E5F"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Analyzers.java",
+      "sha256": "087FD7AA3DC21C93B53AEB3F88FE1850B6209A5BFDFAC3E444C55715DB296BE2"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\FullIndexer.java",
+      "sha256": "368463F303174E1A03B9A39879F40EAA9525B818EDCE42155687380082546C1E"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\GitIgnore.java",
+      "sha256": "755F30D6BF194914AA31B73A27C967837974C80B30924F0D1007D2AF3311BE3D"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\IncrementalIndexer.java",
+      "sha256": "2971EDE3B453998D42DCF2CFAC948152B745C19AF17AA477556A1B138E2756AD"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Watcher.java",
+      "sha256": "2A6964A81B224AC665E61B280509D00F49DCC895362F87712F697E9E3EEAC2D9"
+    },
+    {
+      "path": "code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Workspace.java",
+      "sha256": "9303764C06D50DC0AF8A336D7C99D432CAE865258B6B470E591C14D4E69AD050"
+    },
+    {
+      "path": "code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\FullIndexerTest.java",
+      "sha256": "E1784513C3A57B567AC9F8D69D4FDC1DDFF90E3953BA043498BDC65E666BA933"
+    },
+    {
+      "path": "code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\IncrementalIndexerTest.java",
+      "sha256": "B64B97C349C10EAF20AD7FC7CDC96DA78C6DE7A5DF522E8DE9BC98A9C205C183"
+    },
+    {
+      "path": "code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\WatcherTest.java",
+      "sha256": "A2F72646055D5F6FA55B0A3B69AA027F287EC57EC5D0EFD477B6C5FD746652C5"
+    },
+    {
+      "path": "code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\WorkspaceTest.java",
+      "sha256": "D45673FD0874DD98A2F634A27002279A193549C36C20309229E1A892B4BF8708"
+    },
+    {
+      "path": "code-graph-lang-c\\pom.xml",
+      "sha256": "85FC26020BF49AF7F93E020BE8D05535A188E5D7D0094D3D397100E025AB822D"
+    },
+    {
+      "path": "code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CAnalyzer.java",
+      "sha256": "27298488510F9079F7C3C5300BE7BDF4968BBF6391F57F108878FA7BFA7EE2E4"
+    },
+    {
+      "path": "code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CFamilyAnalyzer.java",
+      "sha256": "0D78A92BA45FB61614AF2A778C52D41F9FE618914EBF6B4899395A4484784F3D"
+    },
+    {
+      "path": "code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CppAnalyzer.java",
+      "sha256": "73FAF7A8DB21DD2A011FA7CB09DA3F647098FA614F5E9A684A0B54AF733A8379"
+    },
+    {
+      "path": "code-graph-lang-c\\src\\test\\java\\io\\doindev\\codegraph\\lang\\c\\CAnalyzerTest.java",
+      "sha256": "FBD01E58F42D7190A00400ACD5144DBE1AA1F2AEA885764B716FCCD4019B4416"
+    },
+    {
+      "path": "code-graph-lang-c\\src\\test\\java\\io\\doindev\\codegraph\\lang\\c\\CppAnalyzerTest.java",
+      "sha256": "72D2B0F8484BD8867F7D5A72BB9ABA457C9414F3EDDBFCDE7C959BCB7243DD2A"
+    },
+    {
+      "path": "code-graph-lang-csharp\\pom.xml",
+      "sha256": "6ECFE9BC9CA51FFD4A99C749C8D4B79C4E5C029CD71C60D6A032DB00DE2F426C"
+    },
+    {
+      "path": "code-graph-lang-csharp\\src\\main\\java\\io\\doindev\\codegraph\\lang\\csharp\\CSharpAnalyzer.java",
+      "sha256": "5FBE05BD98CFE175C0F3CBA8599F68D576D558F71FCE4C5FA73E144AF0E44E62"
+    },
+    {
+      "path": "code-graph-lang-csharp\\src\\test\\java\\io\\doindev\\codegraph\\lang\\csharp\\CSharpAnalyzerTest.java",
+      "sha256": "07A604CC65CA06D51A4A8B3380575D6F36B506B1BD454F8A5E66817B7DA83876"
+    },
+    {
+      "path": "code-graph-lang-dart\\pom.xml",
+      "sha256": "41C06BC7D60FEBB10389B992C47648D4681ED4516FFD673B2A0A3C297523B027"
+    },
+    {
+      "path": "code-graph-lang-dart\\src\\main\\java\\io\\doindev\\codegraph\\lang\\dart\\DartAnalyzer.java",
+      "sha256": "98CA3A3B2CDA94DA46CEA34C1B5001D0F6D30E83BDACD4204B490DDF66F009FA"
+    },
+    {
+      "path": "code-graph-lang-dart\\src\\test\\java\\io\\doindev\\codegraph\\lang\\dart\\DartAnalyzerTest.java",
+      "sha256": "D3E945FEEE3B3A2827403631C0C929BA6F17402A970AF675CF24C4D990011CF8"
+    },
+    {
+      "path": "code-graph-lang-go\\pom.xml",
+      "sha256": "CC97D07E613EC32B97CE96D94B228AFDA5BBD713A493BA8A9EC4E450EBC3BEBF"
+    },
+    {
+      "path": "code-graph-lang-go\\src\\main\\java\\io\\doindev\\codegraph\\lang\\go\\GoAnalyzer.java",
+      "sha256": "05811B8902BC04E0F493BF84374B46167BF2A00E83ECCC1FF68449BF07580CF5"
+    },
+    {
+      "path": "code-graph-lang-go\\src\\test\\java\\io\\doindev\\codegraph\\lang\\go\\GoAnalyzerTest.java",
+      "sha256": "0EDCFECADC4B63EB3E12AF001749829C00395B773E04464B42A8E3CC7C73FE64"
+    },
+    {
+      "path": "code-graph-lang-java\\pom.xml",
+      "sha256": "4A8EE1BCCDA4B7DCE89BAC5757DB0E9238B255A0F987340FE6BFCC3A20825C36"
+    },
+    {
+      "path": "code-graph-lang-java\\src\\main\\java\\io\\doindev\\codegraph\\lang\\java\\JavaAnalyzer.java",
+      "sha256": "EE1AE715C29929F3B45B609A25348A188E3E6781E5142CA2C127F2B145E3BCEF"
+    },
+    {
+      "path": "code-graph-lang-javascript\\pom.xml",
+      "sha256": "71937E4C467ECF3BC5231F2AF04FA7A90293A36DC0E89D4267CF2B08E20A77A2"
+    },
+    {
+      "path": "code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\EcmaAnalyzer.java",
+      "sha256": "E78C62B22E05DA4AD5A78ED6F6F80F6F7608CD5E3D9626181B6D9C3013A2319F"
+    },
+    {
+      "path": "code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\JavaScriptAnalyzer.java",
+      "sha256": "65DEBF1040F53BBFC7A4CAF7351BFA409AB006096AC80293CE73C8C1DB98CEED"
+    },
+    {
+      "path": "code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\TsxAnalyzer.java",
+      "sha256": "9C398D0BB90D51B6B758BB80EEAFC448A5E389ECEE081CAF4E77B91AD1AEDE9B"
+    },
+    {
+      "path": "code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\TypeScriptAnalyzer.java",
+      "sha256": "B19351B9B3440E4CBAC9F036097F308826FE9CB4AE3221108F867CE90C7EFF0C"
+    },
+    {
+      "path": "code-graph-lang-kotlin\\pom.xml",
+      "sha256": "26DEEE3B7DFAC24CBD26495809D76C30FF06E8F2626E18EE682A3FA53B489972"
+    },
+    {
+      "path": "code-graph-lang-kotlin\\src\\main\\java\\io\\doindev\\codegraph\\lang\\kotlin\\KotlinAnalyzer.java",
+      "sha256": "D71DF2E04D7F3ED0619810E05D03553E562E6E42DF676E812BDCF09A086D04AF"
+    },
+    {
+      "path": "code-graph-lang-kotlin\\src\\test\\java\\io\\doindev\\codegraph\\lang\\kotlin\\KotlinAnalyzerTest.java",
+      "sha256": "A9EE10F98B6D33E37E1FBF584F567945842D01D1CE6D4CFDE2F9B2305E95482B"
+    },
+    {
+      "path": "code-graph-lang-objc\\pom.xml",
+      "sha256": "D6A22B8E851D503370DFDAA22249F1C74E18541C0462DC8E1C03F672B604AAA9"
+    },
+    {
+      "path": "code-graph-lang-objc\\src\\main\\java\\io\\doindev\\codegraph\\lang\\objc\\ObjcAnalyzer.java",
+      "sha256": "059D7B34BCC4338AF581CD74D2E484DC480CDFDD1B5BC953A7875F595B3747EC"
+    },
+    {
+      "path": "code-graph-lang-objc\\src\\test\\java\\io\\doindev\\codegraph\\lang\\objc\\ObjcAnalyzerTest.java",
+      "sha256": "AD8A84B88A8E1FD5A0C4F17F6D1D80E5DE5A1E8FB1B66A198BCE1DB361605DC5"
+    },
+    {
+      "path": "code-graph-lang-php\\pom.xml",
+      "sha256": "F5160282E5502951C7B116D65C5B68452DF2B1B744762B5266DA40830EDF322A"
+    },
+    {
+      "path": "code-graph-lang-php\\src\\main\\java\\io\\doindev\\codegraph\\lang\\php\\PhpAnalyzer.java",
+      "sha256": "FEF731ABE43377D7E0F9CA02446140CE83E14BE0885C562364BB50C5C470A5E3"
+    },
+    {
+      "path": "code-graph-lang-php\\src\\test\\java\\io\\doindev\\codegraph\\lang\\php\\PhpAnalyzerTest.java",
+      "sha256": "8B3FCEC23CD4C52C5EEBDD3027255870357E8E6842B39B20CF63AFC1DDB6F717"
+    },
+    {
+      "path": "code-graph-lang-python\\pom.xml",
+      "sha256": "7F3FB496E3F0E803FB8E9E5BE40A169303F175E430EFD729BC120A3617EC45E0"
+    },
+    {
+      "path": "code-graph-lang-python\\src\\main\\java\\io\\doindev\\codegraph\\lang\\python\\PythonAnalyzer.java",
+      "sha256": "CC87C29A554DC32F798A0A0574C3B9C9BB8E377D2E74612A6A1C95FD1EE78268"
+    },
+    {
+      "path": "code-graph-lang-ruby\\pom.xml",
+      "sha256": "24CA5F2482C74C1EA3C573503F4FBB6713D82B9616CDF5B6AA81D77F4BEAE14F"
+    },
+    {
+      "path": "code-graph-lang-ruby\\src\\main\\java\\io\\doindev\\codegraph\\lang\\ruby\\RubyAnalyzer.java",
+      "sha256": "5FB424AC25FC02AE3C0D1F42ADC2A2FD350BC49AD02E3D43C8AC2156B0E41B8E"
+    },
+    {
+      "path": "code-graph-lang-ruby\\src\\test\\java\\io\\doindev\\codegraph\\lang\\ruby\\RubyAnalyzerTest.java",
+      "sha256": "C343142312D347E45EC2C221EEBBFA86F60FC1D593EBD11ED49F67D09ADE67D7"
+    },
+    {
+      "path": "code-graph-lang-rust\\pom.xml",
+      "sha256": "8F64ED1734A887E49973591FA80EED1D55BE79EC35549DB3F7D22F681B689826"
+    },
+    {
+      "path": "code-graph-lang-rust\\src\\main\\java\\io\\doindev\\codegraph\\lang\\rust\\RustAnalyzer.java",
+      "sha256": "64ABDE2A23463670944E3C51D5C13992EBC36C6396F190E7C1CACFCDA5DF7091"
+    },
+    {
+      "path": "code-graph-lang-rust\\src\\test\\java\\io\\doindev\\codegraph\\lang\\rust\\RustAnalyzerTest.java",
+      "sha256": "85890DB8CAE5F00A830E6DA19FB63F801421364C38DB99294CC1FF4523952B19"
+    },
+    {
+      "path": "code-graph-lang-scala\\pom.xml",
+      "sha256": "032BA24A51C5723E4E9667A679A53F0510195A179A4E6AA8C51B3AA3B6ADC826"
+    },
+    {
+      "path": "code-graph-lang-scala\\src\\main\\java\\io\\doindev\\codegraph\\lang\\scala\\ScalaAnalyzer.java",
+      "sha256": "5F6686F9CD009946AFF42E5A5FA9FF37E3F15E6F6FA593AA373E3B8096064B85"
+    },
+    {
+      "path": "code-graph-lang-scala\\src\\test\\java\\io\\doindev\\codegraph\\lang\\scala\\ScalaAnalyzerTest.java",
+      "sha256": "D7807ED6A196E4594CAC73BE3E3B2C4F2ADE4CE71942960C6C4B9D839ABD1D8C"
+    },
+    {
+      "path": "code-graph-lang-sql\\pom.xml",
+      "sha256": "5486CFADB204405A6718A6E6823E36895D9B42F129EFC9802CCDCDD867E17258"
+    },
+    {
+      "path": "code-graph-lang-sql\\src\\main\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlAnalyzer.java",
+      "sha256": "D0A20D30A9047310B4208666E703C9FB01C8585C47B3F3B1DD86F36A49802D6B"
+    },
+    {
+      "path": "code-graph-lang-sql\\src\\main\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlQueries.java",
+      "sha256": "A05ED9314F4C11DF7CE709AF3B47DEA38155D3A3D1CBCB9F21B94BA2F9F5F180"
+    },
+    {
+      "path": "code-graph-lang-sql\\src\\test\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlAnalyzerTest.java",
+      "sha256": "8A6428C51391F2E22BA5B2F123BEA331793FFEBE3B3073F257A42A4D6A3B0A0C"
+    },
+    {
+      "path": "code-graph-lang-sql\\src\\test\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlQueriesTest.java",
+      "sha256": "9BE59B2C86C1344ABDA20C52F51366E8E43D2795F5C120B333370BE7AB66E46D"
+    },
+    {
+      "path": "code-graph-lang-swift\\pom.xml",
+      "sha256": "CD29EE022F999DAAED1C43EA1C63C05BD4C619BA07C1BAB26A2525CB4D574E51"
+    },
+    {
+      "path": "code-graph-lang-swift\\src\\main\\java\\io\\doindev\\codegraph\\lang\\swift\\SwiftAnalyzer.java",
+      "sha256": "0595063CA9E542BD56B35208581363B4E52387D8A36519B71DB803360FFFEBC0"
+    },
+    {
+      "path": "code-graph-lang-swift\\src\\test\\java\\io\\doindev\\codegraph\\lang\\swift\\SwiftAnalyzerTest.java",
+      "sha256": "E6D77D804F1F14BDCEE2CEBB30FE34ECEBB28247A1E4393A2B8AF08A5144D91E"
+    },
+    {
+      "path": "code-graph-linker\\pom.xml",
+      "sha256": "90D42690073ED8D5E02CAD80DEF7E66BCD9F9A5500B228C7114F92979664EC18"
+    },
+    {
+      "path": "code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\HttpRouteLinker.java",
+      "sha256": "19004F6E9B0BF929B2FDFCB8A810E70630CBE5249285C807B78A0AD1C634F9C8"
+    },
+    {
+      "path": "code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\Linker.java",
+      "sha256": "CF47106BF18FEAE237611B50D622B7DFA2A81F6F430D281FDDFF4248752A3FA7"
+    },
+    {
+      "path": "code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\RouteNormalizer.java",
+      "sha256": "323FD0153BE6FD4C3F2B8FEEA281ECF7F39717E7917E515EEE665D298A89F335"
+    },
+    {
+      "path": "code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\RouteScan.java",
+      "sha256": "63660211C5D9C78AFEDA6F091E0260308483993284CE29C07B02C8CBFFE49F8D"
+    },
+    {
+      "path": "code-graph-linker\\src\\test\\java\\io\\doindev\\codegraph\\linker\\HttpRouteLinkerTest.java",
+      "sha256": "79CE0B39876E604D1D4A0C49F73790FE3FF86A79D5F40E0D8287A7D5E0D97622"
+    },
+    {
+      "path": "code-graph-linker\\src\\test\\java\\io\\doindev\\codegraph\\linker\\RouteNormalizerTest.java",
+      "sha256": "BE875B02B0ACF6196CCC88D19315B40C9132F219AF093EE18E4C30DD776B77D7"
+    },
+    {
+      "path": "code-graph-mcp-http\\pom.xml",
+      "sha256": "81475BF9146EC98FFB7EC7BDD6F598958B17DA867AFADA524B687FA08EA095FE"
+    },
+    {
+      "path": "code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpMain.java",
+      "sha256": "ACA05C732B87A719247B05189DD21B712CEEAE55143C0C9D46A55516F09732BA"
+    },
+    {
+      "path": "code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpServer.java",
+      "sha256": "005E6A79E4E28ACEEEBB4FD11F03B888C7A64E9E5AE9C284068D1B7F1E5449D4"
+    },
+    {
+      "path": "code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpEndToEndTest.java",
+      "sha256": "4BF41D5146E3F4A878BDBA971698BA4CFA0F33CCED7AEBFB48E9725CCE16B8F2"
+    },
+    {
+      "path": "code-graph-mcp\\pom.xml",
+      "sha256": "B2F48C29DC405129220277F5DD6E056D663BE73B25C9655B9D82AA8C74B2CE9E"
+    },
+    {
+      "path": "code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\CodeGraphMcpServer.java",
+      "sha256": "F2BAC7767ADDF0A900FF7A60D1551AF54497F2C33A7945639E5D8CBA11823EF7"
+    },
+    {
+      "path": "code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\Main.java",
+      "sha256": "0133D690533962D984833B84BCF7A35F986A5434458F12CF4B1CCB057D03857F"
+    },
+    {
+      "path": "code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\ProjectOnboarding.java",
+      "sha256": "2347A9D9A12F14F6A27232FB67DFE3F45CA3F835AC5D8C10FBFC1454AD97D038"
+    },
+    {
+      "path": "code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\WorkspaceVizControl.java",
+      "sha256": "DB63C27B5AC8EB354E0FE10483335947E05CDBDBDAD7CF3D4AA50B6724B38394"
+    },
+    {
+      "path": "code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\CodeGraphMcpServerTest.java",
+      "sha256": "48BC9D781EA1B6A8F744EAE1AFC337B4FA9D054283F15D21F1CF225AB1AFF6D0"
+    },
+    {
+      "path": "code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\MainTest.java",
+      "sha256": "646C6C94DB09B5DA7E36401AB97F349D55F1D0B903E4272F34EB753B02EB39E0"
+    },
+    {
+      "path": "code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\WorkspaceVizControlTest.java",
+      "sha256": "910697C5F8904036A990EB9D1E451201918C31D77026415FD4005DCAD6DD2C6B"
+    },
+    {
+      "path": "code-graph-parsers\\pom.xml",
+      "sha256": "3F230B2D7AC648F2AF96472C94F358B662B5FADCF64A8464B91D542B037E91F6"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\FileFragment.java",
+      "sha256": "A83DFC0888CA935D40A23D5FD7D5DAF79A56418C0E9DD9D05D550F78B15A604C"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\LanguageAnalyzer.java",
+      "sha256": "D951614BD06EAEA25094AAF334FF389BED1BB9E4DC1A21BDF9460E5D19BFD8DA"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\NameResolver.java",
+      "sha256": "1DBE3A99A09E2B3EC6A73357D5E770086B0C56F2BCAF74F1ABD5322C22352F04"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\RawRef.java",
+      "sha256": "885179F49C990382C38CB7E030FE7FFDCE2ED530AB9F8550DC0182B468D5E551"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\RefKind.java",
+      "sha256": "54FCC567790B2671F2B367C9A790FF2323EC82D0DE39610EE26C3427540E4F4A"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SourceFile.java",
+      "sha256": "AB9C7F6298954217A9F37C34542343751E2A86250406E96326664D034CC1FB6D"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\Src.java",
+      "sha256": "E6401CC7E24DABD5E146D213ADBBD0E0706C4998A7F5BDA1C9737A6DC0B65B60"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SymbolTable.java",
+      "sha256": "119A8DBC59E2D7064290F202ECCE89EE5BC0AA6EF365A07780D663505C21D8AC"
+    },
+    {
+      "path": "code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\TreeWalkAnalyzer.java",
+      "sha256": "071A07915172F7FC64AE192F9048DF83A5EE91B8667CE6920332393200943C5C"
+    },
+    {
+      "path": "code-graph-parsers\\src\\test\\java\\io\\doindev\\codegraph\\parse\\GrammarAbiSmokeTest.java",
+      "sha256": "6C5FEAD1C9D50C37B0CC623D623990A74F4F54172B632138286AA6B63483EA07"
+    },
+    {
+      "path": "code-graph-rules\\pom.xml",
+      "sha256": "C81A5819784342610A30DDDEE507709EF699FC0EC1596E92710F33C29FC2BC4C"
+    },
+    {
+      "path": "code-graph-rules\\src\\main\\java\\io\\doindev\\codegraph\\rules\\Drift.java",
+      "sha256": "927E739EBA279DA19F7F7846E4A40F01DC164F2BFCEAB74DA6387AD664F9D999"
+    },
+    {
+      "path": "code-graph-rules\\src\\main\\java\\io\\doindev\\codegraph\\rules\\ModuleGraph.java",
+      "sha256": "F150FC73AB2A75D395C147237E1C5DD4A2AA9113806B5261C31AD179DEB7AEDD"
+    },
+    {
+      "path": "code-graph-rules\\src\\test\\java\\io\\doindev\\codegraph\\rules\\DriftTest.java",
+      "sha256": "865EEF0D2BB85ABBC9768644AAC7507C6DDD54FB7717FA51D7B4BA61FB7C35A8"
+    },
+    {
+      "path": "code-graph-smells\\pom.xml",
+      "sha256": "B55BAE3701F9AAF805B4885D28524B7D4F70EE40155C1A7D7C946584B21CFAF7"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\AdvancedSmells.java",
+      "sha256": "96C7D2F3E967605B0633D7406DD7329F197EA97C0F16BE2EF090AFE82B50B82E"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\EmbeddedSqlSmells.java",
+      "sha256": "500DBF7353C214444297034A87C19F06D0A71D8152D2143F5FDDD6476C8E7809"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\GraphSmells.java",
+      "sha256": "2682ABDECCFD3B22CA07AB386B5B20A23CE5901F1C2DA9825F020E95A9F36170"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\HistorySmells.java",
+      "sha256": "D3CDE715B3C2871A467F968EFBB1BE9F6F52B009B08B4DE0413C3E09C2692D5C"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\MetricSmells.java",
+      "sha256": "FDC5C8E65B00886F712270525911AD782805494592771E1583148301D4717DF2"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\SmellEngine.java",
+      "sha256": "4114180CBAD9C39D8B90551278462C4469560B0427D6A76E4A3965DE6C963F5D"
+    },
+    {
+      "path": "code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\SmellFinding.java",
+      "sha256": "F69606751E769F9D8AF795278D988CB9783BD3734E91C789D4145D766039B7EE"
+    },
+    {
+      "path": "code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\EmbeddedSqlSmellsTest.java",
+      "sha256": "30F75D9EC28A13E029F2E848D0E7BCB38587C56D0114335C5369018C8EB8BEF3"
+    },
+    {
+      "path": "code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\SmellEngineTest.java",
+      "sha256": "72AE44B7B788EDEB14B7D9FA11C6EE48F6794A62A3A345F5ACA6FD9974AB8E9D"
+    },
+    {
+      "path": "code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\WaveBSmellsTest.java",
+      "sha256": "1D278207E4618875D2EE7344068617B24F9DC9FE136B96E96151355EC890EE6C"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\pom.xml",
+      "sha256": "5AC7AF93D2316974E075FC88B0B08D2D975C6E942E739045194D146324318675"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\BenchMain.java",
+      "sha256": "55A4748AACC34E314804AAF7AA67B902EB8EE5964288A5185D7FEEA8E4BF0681"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Codec.java",
+      "sha256": "CE2492323ECBA099D55BABB6A74BA81C92ABACFB4991B6F2C4C7E2566B6ACB2E"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Engine.java",
+      "sha256": "8311C730511E84881A06979751EB668A7DFE53D455BB1E9E5FF6DE6FB0C8CA95"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Ingestion.java",
+      "sha256": "A33ACB4CD8BBC444349E096835C807B522279C7C9A2AB0DEA4DCF321FD6A92F1"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Kv.java",
+      "sha256": "EA69D773894AF2837AC54336BA0D19029E472E6ED39B27009510BA6ECA01DCEC"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\MvKv.java",
+      "sha256": "5520716BD0495FF68562E4A7F4FB7EC62A21365D0AD049203CA27FF6E7BE2A53"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\RocksKv.java",
+      "sha256": "29A30B6C3A809A06AC30E0EEDA6CBBBBD0343F46E64C118DE0E060F759CD5513"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Telemetry.java",
+      "sha256": "6C4AA2E2ED96E2BE5A9867ACA13F1C1A7A36516991AFD2056A7545370CFBAF17"
+    },
+    {
+      "path": "code-graph-storage-benchmark\\src\\test\\java\\io\\doindev\\codegraph\\bench\\EngineTest.java",
+      "sha256": "63238261E41026237ACA5CC87E5A48B5539FAFD603C9837097299894A9C6884A"
+    },
+    {
+      "path": "code-graph-store-arangodb\\pom.xml",
+      "sha256": "C3EE4DA101970E24D7DC8538D889A7D30FA34712088775989845F005E526856B"
+    },
+    {
+      "path": "code-graph-store-arangodb\\src\\main\\java\\io\\doindev\\codegraph\\store\\arango\\ArangoGraphStore.java",
+      "sha256": "370CDFA6C2C71298B59D9B49DCC2CA6E736E9274F681E3FB6CD8342684A0CC66"
+    },
+    {
+      "path": "code-graph-store-arangodb\\src\\main\\java\\io\\doindev\\codegraph\\store\\arango\\Codecs.java",
+      "sha256": "51A4CB34016A8603C7E1EB551D6F7B1065BCA774D991118F76C60226256BF7C9"
+    },
+    {
+      "path": "code-graph-store-arangodb\\src\\test\\java\\io\\doindev\\codegraph\\store\\arango\\ArangoGraphStoreLiveTest.java",
+      "sha256": "156D69159BCC4BF1CF208EC4D85F30088EA03D2B3D85FD82BDE7D04CA1F74FF9"
+    },
+    {
+      "path": "code-graph-store-h2\\pom.xml",
+      "sha256": "D4584712318F52DFEA4DE1F28F072ADD75311AAD8644AD6C18FF14F61FE9D809"
+    },
+    {
+      "path": "code-graph-store-h2\\src\\main\\java\\io\\doindev\\codegraph\\store\\h2\\Codecs.java",
+      "sha256": "4C4D9C670B90D5C1C998C52BD7F3B9552B61F02B9606B18264B6BAA4C422D831"
+    },
+    {
+      "path": "code-graph-store-h2\\src\\main\\java\\io\\doindev\\codegraph\\store\\h2\\H2GraphStore.java",
+      "sha256": "18A12F6B76E62BFC773342E800D3F0208CD579260D6DBFCE0441471F1595EDA8"
+    },
+    {
+      "path": "code-graph-store-h2\\src\\test\\java\\io\\doindev\\codegraph\\store\\h2\\H2GraphStoreTest.java",
+      "sha256": "F4A2FBB00D4F873354FD308DAEBACDF0C565735383A17626082C04BF32FB2969"
+    },
+    {
+      "path": "code-graph-store-neo4j\\pom.xml",
+      "sha256": "DD33D990610438AA0036D05E909D9642E1894D25DC0C01C3CF1D6C5D4D36845A"
+    },
+    {
+      "path": "code-graph-store-neo4j\\src\\main\\java\\io\\doindev\\codegraph\\store\\neo4j\\Codecs.java",
+      "sha256": "888B9DE9D4E247EA62F1E78C9B33D4ABEE02D1C47F12C646EFD18A10FA960C50"
+    },
+    {
+      "path": "code-graph-store-neo4j\\src\\main\\java\\io\\doindev\\codegraph\\store\\neo4j\\Neo4jGraphStore.java",
+      "sha256": "6DD14A4BBD47BC7677FFE8AB897B928ACDCCDE8A8C43BECC6529BE18E41A0DF1"
+    },
+    {
+      "path": "code-graph-store-neo4j\\src\\test\\java\\io\\doindev\\codegraph\\store\\neo4j\\Neo4jGraphStoreLiveTest.java",
+      "sha256": "5B2F8FB2BD0380C638DE41C853B7E45D2174EB2B0A4174E3FDB56985425821EC"
+    },
+    {
+      "path": "code-graph-tools\\pom.xml",
+      "sha256": "C2928374FB679A2B4FF79ECAE373082147F1DC165A28F56BEF92A6573C00E5ED"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\AddProjectTool.java",
+      "sha256": "A2280412CE952A03C5FA33AA650DFFE6B2D1B870DB1CCC595963BA5DA19F6531"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\CodeGraphTools.java",
+      "sha256": "A537B323A6AF9D734B57465FDF896C1AB799E154CE43790C803C4F6F7B55D08F"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\CompareDriftTool.java",
+      "sha256": "16E7A9E2B91BC0DEF4E2AC36364E6E40B05585EDAEECA1823D0C7B2E7D3F80DE"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\FindCodeSmellsTool.java",
+      "sha256": "BDDD21471FC829BA1EF4B77D35AEA20F4C03FAC3D1D8F9CFAE553AD6853CF5E7"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\FindDeadCodeTool.java",
+      "sha256": "5ACDC71896DC70C243106FA6B44ACDF1D7A00B950DBD7EDA4817DF2729834F81"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetBlastScoreTool.java",
+      "sha256": "2885BE39D280F624E0DE1670D1493820CBDC706032387C18D36BCF65A847F93E"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetCallGraphTool.java",
+      "sha256": "26174FC78C369E6A7A62226F7B5619350A317A2362C29BE26F70285D851ED667"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetImpactRadiusTool.java",
+      "sha256": "8EC463F859F14AB4A641E95D8B00B21A08A8BCC329B1E39DC9615DDEB43CC3DE"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetSymbolTool.java",
+      "sha256": "797852386467FEE04AF1C60C25C0C3CB8B5A202C53BD871CC20E4BB047EFCA35"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GraphTool.java",
+      "sha256": "1CC768666DFE162DF564BDDE572F6B74B13F74AD0B6E46C5A3B2D9FFE62844B4"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\IndexStatusTool.java",
+      "sha256": "CA40CEFF2B6F75B277EA14CB98496FBDCEA9622D6AE396E8E14F4ED0D60017FB"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ListProjectsTool.java",
+      "sha256": "88062DDE09C361659581839168633D3D3B6D0E70995108C7667B1D084712C43A"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ReindexTool.java",
+      "sha256": "148032472E9132D0BC160C28A9DF4E3C55D73FAE50F0EA885D7EAA29EAB0DAD2"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RemoveProjectTool.java",
+      "sha256": "4F1C2347E9FDE325BAEA4E6BBAA26FCB6F2BD940AAD5E58BF0FD4B3131CD8BFD"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RiskGate.java",
+      "sha256": "158F4EBBAC2C0BFF2D577961416158E88C0DF042188A8BD4DCFBCBB56F733B0B"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RouterTool.java",
+      "sha256": "801519916B3A204E27FAD8F33FB82AF757B1524F41AB373E81C4B29388249A47"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\SearchSymbolsTool.java",
+      "sha256": "27122E67EAF5A4F2F62BC50E1965653BC110592D63E800CB905013D09D412CAD"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolResponse.java",
+      "sha256": "1BEC22BF1BD46946F8B2AFADEF12F19710E681912A0E7303704114C663279B0B"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolSpec.java",
+      "sha256": "C4D6D40E48E036A2122B469DA02EDE4BF01355A783332348D816C4CB13EBB6E9"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolSupport.java",
+      "sha256": "1A75DF788DE0F2BE0EB8A86B79CBBF6F896E2A564E5A7912A8768FEE4C44326E"
+    },
+    {
+      "path": "code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\WorkspaceTools.java",
+      "sha256": "72AFAE4D5AE345E0E1979D2036B4899EC498F815D3757B057795BC9AE7334D04"
+    },
+    {
+      "path": "code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\AddProjectToolTest.java",
+      "sha256": "AA708894016BB5A32FB102BD66ADBB2104ED4D73FDFB6E40E6D500D21C460899"
+    },
+    {
+      "path": "code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\ImpactSeedExpansionTest.java",
+      "sha256": "E93CF8379CC0EF6B510A97E75518BF67C614B2CC08703B35BAAE5BAE4CD2F400"
+    },
+    {
+      "path": "code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\RiskGateAndScoreToolTest.java",
+      "sha256": "D76387755CC8266DAC467165A4533F5C4ED9864FB59461B8173317C48DCDC7FE"
+    },
+    {
+      "path": "code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\ToolsTest.java",
+      "sha256": "C6238FF2D6DE1C79156166AA2A6614C1EFFF9D344CDE9F29CDAFE5FF054230D2"
+    },
+    {
+      "path": "code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\WorkspaceToolsTest.java",
+      "sha256": "5A3CAF62785193998291B99484EBA5723EA50B0DA90F68346B06AFB33753A0DF"
+    },
+    {
+      "path": "code-graph-viz\\pom.xml",
+      "sha256": "48D5D0647D01FAF62E255635E5AD98C45B5CA7EEDDD015286299FC0F19CBF43C"
+    },
+    {
+      "path": "code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizApi.java",
+      "sha256": "C17D0E66CDD456BC5BCCCCDA4586EB3A2D02125B795827F72879402486472664"
+    },
+    {
+      "path": "code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizControl.java",
+      "sha256": "1903CF956623FA6AE822A230175612A019D0C7BCA95E9B19446FEB7F883F1AAF"
+    },
+    {
+      "path": "code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizServer.java",
+      "sha256": "E20A0CCC4E7F0E20EEC0F4771E1CA8C73C70ED523CAE9FDCC188612533B96705"
+    },
+    {
+      "path": "code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\StaticAssetsTest.java",
+      "sha256": "50A74B7788822B12E44CDCC978C23773E5A60BF239A30FBEF80A68BFF2326F87"
+    },
+    {
+      "path": "code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\VizIdleTest.java",
+      "sha256": "E7F96A2558ED896D3B611A413B9E71DF19611C75E8CAD480BC65FD0E41A8F27A"
+    },
+    {
+      "path": "code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\VizServerTest.java",
+      "sha256": "484765CA45748B817392D71C53F8760EC91F3812560A8BE8540AE9B20D198566"
+    },
+    {
+      "path": "pom.xml",
+      "sha256": "D32D2A4C6D82B40FC4FBD036008A8B84F95651EDBD2DD07BD3FA989FAEDBED43"
+    }
+  ],
+  "libraries": [
+    {
+      "name": "code-graph-core-0.0.1-SNAPSHOT.jar",
+      "bytes": 70959,
+      "sha256": "C04448E715BED93B24DFFE6D8419BC10F304534F1A40B061B9C04A0035A79317"
+    },
+    {
+      "name": "code-graph-index-0.0.1-SNAPSHOT.jar",
+      "bytes": 34507,
+      "sha256": "3B3E51A0B0078EBAB4E35A99894B1AE6E5A9DA6175356F4688B474DB9C33E3ED"
+    },
+    {
+      "name": "code-graph-lang-java-0.0.1-SNAPSHOT.jar",
+      "bytes": 5738,
+      "sha256": "19AE5A60B14A7C94E0C3016603745932724AB291ACF8A0AF71DE0C7CB0B53071"
+    },
+    {
+      "name": "code-graph-lang-javascript-0.0.1-SNAPSHOT.jar",
+      "bytes": 7329,
+      "sha256": "E2CB5045C0C4AD86D533FD14D7B7FD679E789F8EB3E1841A4AB0FF9EBB1A6F13"
+    },
+    {
+      "name": "code-graph-parsers-0.0.1-SNAPSHOT.jar",
+      "bytes": 26697,
+      "sha256": "5AB904A611895EC456EC27D67075716068F15F9B92F9845EE363C9E121D9EB71"
+    },
+    {
+      "name": "h2-2.4.240.jar",
+      "bytes": 2685418,
+      "sha256": "29B70E427CC1C40CDC376283ADBB0CC62853073797BB5FE5761F81FE73D57CE0"
+    },
+    {
+      "name": "jackson-annotations-2.18.2.jar",
+      "bytes": 78494,
+      "sha256": "581BD61000EF7648943F781CA05689E56D03F6052748365A8E2B3A9B5D3FA32F"
+    },
+    {
+      "name": "jackson-core-2.18.2.jar",
+      "bytes": 597807,
+      "sha256": "D8054AE7C0D1C2D2F55D28E46026EBE5892881F3FAB5F439233184381C3B4A1F"
+    },
+    {
+      "name": "jackson-databind-2.18.2.jar",
+      "bytes": 1658755,
+      "sha256": "4B364E6850DC89172FCF1D4DD26B8FF5488EDA44FF4657E22DD265203DD5AB3C"
+    },
+    {
+      "name": "rocksdbjni-9.8.4.jar",
+      "bytes": 71683718,
+      "sha256": "B60144A306BF7DD3DE2B6FEA947681FE940BA1510B9BC36ECE836484AF7BB7FA"
+    },
+    {
+      "name": "tree-sitter-0.26.6.jar",
+      "bytes": 852621,
+      "sha256": "81B113176C47C6ADEF9F6E3F7B8CA9F8141C4A8627F69D4423FC2E130A8BA74E"
+    },
+    {
+      "name": "tree-sitter-java-0.23.4.jar",
+      "bytes": 331694,
+      "sha256": "9DCFF81E5759CB115F9A1E0BFACD23D2166C2A336725A961EBCE638E7C3BC50B"
+    },
+    {
+      "name": "tree-sitter-javascript-0.23.1.jar",
+      "bytes": 312014,
+      "sha256": "A4FA85EF10247E9D931DF743A760AA0FCD9021DCAC7840B13BDA8CCFD86AF7BC"
+    },
+    {
+      "name": "tree-sitter-tsx-0.23.2.jar",
+      "bytes": 779214,
+      "sha256": "A5EB98DB7157E2693385F9E5AF8B668A91112122D8C5A879B616206A841824D4"
+    },
+    {
+      "name": "tree-sitter-typescript-0.23.2.jar",
+      "bytes": 768448,
+      "sha256": "5C3D1716441FBDA55293B8632F9E691733BD3035A582DA3936599D2309183BF0"
+    }
+  ],
+  "notes": "Shared developer workstation; no OS file-cache flush, CPU pinning, or exclusive machine isolation. Source hashes identify the workload beyond the base Git revision."
+}

@@ -91,6 +91,11 @@ public final class FullIndexer {
 
     List<Path> scan(Path root) {
         List<Path> files = new ArrayList<>();
+        scan(root, files::add);
+        return files;
+    }
+
+    void scan(Path root, java.util.function.Consumer<Path> visitor) {
         List<String> include = config.paths().include();
         List<String> exclude = config.paths().exclude();
         List<List<GitIgnore.Rule>> ruleStack = new ArrayList<>();
@@ -110,7 +115,8 @@ public final class FullIndexer {
                 }
 
                 @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    if (exc != null) throw exc;
                     ruleStack.remove(ruleStack.size() - 1);
                     return FileVisitResult.CONTINUE;
                 }
@@ -127,14 +133,13 @@ public final class FullIndexer {
                     if (Globs.matchesAny(exclude, relPath) || GitIgnore.ignored(relPath, ruleStack)) {
                         return FileVisitResult.CONTINUE;
                     }
-                    files.add(file);
+                    visitor.accept(file);
                     return FileVisitResult.CONTINUE;
                 }
             });
         } catch (IOException e) {
             throw new UncheckedIOException("failed to scan " + root, e);
         }
-        return files;
     }
 
     /** Extract one file — shared with the incremental indexer. */

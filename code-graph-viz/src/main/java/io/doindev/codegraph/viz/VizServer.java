@@ -88,15 +88,21 @@ public final class VizServer implements AutoCloseable {
             }
             if (path.equals("/api/settings") && method.equals("PUT")) {
                 requireMutable();
-                if (control.lifecycle() == null) throw new IllegalArgumentException("idle policy unavailable");
                 byte[] body = exchange.getRequestBody().readNBytes(1025);
                 if (body.length > 1024) throw new IllegalArgumentException("settings payload too large");
                 com.fasterxml.jackson.databind.JsonNode json;
                 try { json = JSON.readTree(body); }
                 catch (IOException e) { throw new IllegalArgumentException("invalid settings JSON"); }
                 var value = json == null ? null : json.get("projectTtl");
-                if (value == null || !value.isTextual()) throw new IllegalArgumentException("projectTtl is required");
-                control.lifecycle().setTtl(io.doindev.codegraph.lifecycle.ProjectLifecycle.parseTtl(value.asText()));
+                var memory = json == null ? null : json.get("graphMemory");
+                if ((value == null) == (memory == null)) throw new IllegalArgumentException("set exactly one of projectTtl or graphMemory");
+                if (memory != null) {
+                    if (!memory.isTextual()) throw new IllegalArgumentException("graphMemory must be text, e.g. 1g");
+                    control.graphMemory(memory.asText());
+                } else {
+                    if (!value.isTextual() || control.lifecycle() == null) throw new IllegalArgumentException("projectTtl is unavailable or invalid");
+                    control.lifecycle().setTtl(io.doindev.codegraph.lifecycle.ProjectLifecycle.parseTtl(value.asText()));
+                }
                 respondJson(exchange, 200, serverInfo());
                 return;
             }
@@ -211,7 +217,7 @@ public final class VizServer implements AutoCloseable {
             return;
         }
         Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
-        String json = switch (action) {
+        String json = api.read(() -> switch (action) {
             case "overview" -> api.overview();
             case "module" -> api.module(required(query, "name"));
             case "file" -> api.file(required(query, "path"));
@@ -224,7 +230,7 @@ public final class VizServer implements AutoCloseable {
             case "search" -> api.search(required(query, "q"), intParam(query, "limit", 20, 1, 100));
             case "status" -> api.status();
             default -> null;
-        };
+        });
         if (json == null) {
             respondJson(exchange, 404, "{\"error\":\"unknown action: " + action + "\"}");
         } else {
@@ -239,6 +245,7 @@ public final class VizServer implements AutoCloseable {
         out.put("mcpEndpoint", control.mcpEndpoint());
         out.put("mutable", control.mutable());
         out.put("vizPort", port());
+        out.set("graphStorage", JSON.valueToTree(control.storageStatus()));
         if (control.lifecycle() != null) {
             out.put("projectTtlSeconds", control.lifecycle().ttl().toSeconds());
         }

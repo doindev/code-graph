@@ -1,0 +1,406 @@
+{
+  "afterLoadMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 540,
+    "gcTimeMs" : 17034,
+    "heapCommittedBytes" : 1610612736,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 1064580432,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3087106KB, committed=1718378KB\n       malloc: 44342KB #74547, peak=75203KB #67700\n       mmap:   reserved=3042764KB, committed=1674036KB\n\n-                 Java Heap (reserved=1572864KB, committed=1572864KB)\n                            (mmap: reserved=1572864KB, committed=1572864KB, at peak)\n\n-                     Class (reserved=1048847KB, committed=1359KB)\n                            (classes #3268)\n                            (  instance classes #2905, array classes #363)\n                            (malloc=271KB tag=Class #6531) (peak=272KB #6563)\n                            (mmap: reserved=1048576KB, committed=1088KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=11008KB)\n                            (    used=10921KB)\n                            (    waste=87KB =0.79%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=1088KB)\n                            (    used=919KB)\n                            (    waste=169KB =15.57%)\n\n-                    Thread (reserved=27724KB, committed=1188KB)\n                            (threads #27)\n                            (stack: reserved=27648KB, committed=1112KB, peak=1112KB)\n                            (malloc=46KB tag=Thread #165) (peak=58KB #171)\n                            (arena=29KB #50) (peak=212KB #34)\n\n-                      Code (reserved=250922KB, committed=12986KB)\n                            (malloc=3177KB tag=Code #15598) (peak=3292KB #15786)\n                            (mmap: reserved=247744KB, committed=9808KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=85128KB, committed=85128KB)\n                            (malloc=21192KB tag=GC #12139) (peak=47979KB #12253)\n                            (mmap: reserved=63936KB, committed=63936KB, at peak)\n                            (arena=0KB #0) (peak=8KB #8)\n\n-                 GCCardSet (reserved=139KB, committed=139KB)\n                            (malloc=139KB tag=GCCardSet #49) (peak=6751KB #12606)\n\n-                  Compiler (reserved=1491KB, committed=1491KB)\n                            (malloc=87KB tag=Compiler #290) (peak=103KB #295)\n                            (arena=1403KB #14) (peak=36187KB #29)\n\n-                  Internal (reserved=403KB, committed=403KB)\n                            (malloc=335KB tag=Internal #7066) (peak=382KB #8405)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=12466KB, committed=12466KB)\n                            (malloc=12466KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=2581KB, committed=2581KB)\n                            (malloc=2030KB tag=Symbol #22338) (peak=2030KB #22343)\n                            (arena=552KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=1441KB, committed=1441KB)\n                            (malloc=131KB tag=Native Memory Tracking #2368) (peak=131KB #2371)\n                            (tracking overhead=1310KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=517KB, committed=517KB)\n                            (malloc=517KB tag=Arena Chunk #131) (peak=41308KB #988)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #37) (peak=7KB #38)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB tag=Module #2269) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=344KB, committed=344KB)\n                            (malloc=344KB tag=Synchronization #5473) (peak=418KB #6657)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65597KB, committed=11069KB)\n                            (malloc=61KB tag=Metaspace #57) (at peak)\n                            (mmap: reserved=65536KB, committed=11008KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Object Monitors #2) (peak=1KB #7)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 20881168,
+    "peakSampledHeapBytes" : 1605917792
+  },
+  "afterLoadStore" : {
+    "accountedEstimateOverBudgetBytes" : 0,
+    "accountedResidencyEstimateBytes" : 1072711666,
+    "accountingComplete" : false,
+    "cacheCapacityBytes" : 1073741824,
+    "cacheHitRatioPercent" : 64,
+    "cacheUsedBytesEstimate" : 1072693248,
+    "maxSubmittedBatchBytes" : 1048576,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "storeReadOperations" : 1097261,
+    "storeWriteOperations" : 2433,
+    "submittedBytes" : 651770008,
+    "unsavedBytesEstimate" : 18418
+  },
+  "backend" : "mvstore",
+  "beforeConcurrentStore" : {
+    "accountedEstimateOverBudgetBytes" : 0,
+    "accountedResidencyEstimateBytes" : 1072711666,
+    "accountingComplete" : false,
+    "cacheCapacityBytes" : 1073741824,
+    "cacheHitRatioPercent" : 70,
+    "cacheUsedBytesEstimate" : 1072693248,
+    "maxSubmittedBatchBytes" : 1048576,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "storeReadOperations" : 1101184,
+    "storeWriteOperations" : 2433,
+    "submittedBytes" : 651770008,
+    "unsavedBytesEstimate" : 18418
+  },
+  "beforeLoadMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 0,
+    "gcTimeMs" : 0,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 6442544,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3064849KB, committed=348289KB\n       malloc: 28229KB #23579, peak=31763KB #23428\n       mmap:   reserved=3036620KB, committed=320060KB\n\n-                 Java Heap (reserved=1572864KB, committed=253952KB)\n                            (mmap: reserved=1572864KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048716KB, committed=652KB)\n                            (classes #2218)\n                            (  instance classes #1961, array classes #257)\n                            (malloc=140KB tag=Class #3045) (at peak)\n                            (mmap: reserved=1048576KB, committed=512KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=4608KB)\n                            (    used=4524KB)\n                            (    waste=84KB =1.83%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=512KB)\n                            (    used=407KB)\n                            (    waste=105KB =20.50%)\n\n-                    Thread (reserved=21564KB, committed=1104KB)\n                            (threads #21)\n                            (stack: reserved=21504KB, committed=1044KB, peak=1044KB)\n                            (malloc=40KB tag=Thread #125) (peak=49KB #129)\n                            (arena=20KB #34) (peak=180KB #34)\n\n-                      Code (reserved=248517KB, committed=8321KB)\n                            (malloc=772KB tag=Code #6206) (at peak)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=80917KB, committed=55157KB)\n                            (malloc=16981KB tag=GC #1765) (peak=16981KB #1749)\n                            (mmap: reserved=63936KB, committed=38176KB, at peak)\n\n-                 GCCardSet (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=GCCardSet #4) (peak=1KB #5)\n\n-                  Compiler (reserved=3286KB, committed=3286KB)\n                            (malloc=29KB tag=Compiler #107) (peak=44KB #112)\n                            (arena=3257KB #32) (peak=9058KB #26)\n\n-                  Internal (reserved=257KB, committed=257KB)\n                            (malloc=189KB tag=Internal #2347) (peak=196KB #2293)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1475KB, committed=1475KB)\n                            (malloc=988KB tag=Symbol #5518) (at peak)\n                            (arena=488KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=437KB, committed=437KB)\n                            (malloc=22KB tag=Native Memory Tracking #389) (peak=22KB #390)\n                            (tracking overhead=414KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=4495KB, committed=4495KB)\n                            (malloc=4495KB tag=Arena Chunk #309) (peak=12258KB #318)\n\n-                   Tracing (reserved=38KB, committed=38KB)\n                            (malloc=6KB tag=Tracing #31) (at peak)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=176KB, committed=176KB)\n                            (malloc=176KB tag=Module #2185) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=96KB, committed=96KB)\n                            (malloc=96KB tag=Synchronization #1493) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65551KB, committed=4623KB)\n                            (malloc=15KB tag=Metaspace #17) (at peak)\n                            (mmap: reserved=65536KB, committed=4608KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=Object Monitors #4) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 4974600,
+    "peakSampledHeapBytes" : 6442544
+  },
+  "budgetBytes" : 1073741824,
+  "cleanup" : "passed",
+  "coldCacheDefinition" : "Fresh engine in a fresh JVM/directory; OS file cache is NOT flushed. First touch may hit OS cache.",
+  "concurrentReadUpdateMs" : 37.0773,
+  "diskBytes" : 9073008640,
+  "edgesPerProject" : 1000000,
+  "finalGraphCounts" : {
+    "edges" : 1000000,
+    "files" : 100000,
+    "symbols" : 100000
+  },
+  "finalMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 552,
+    "gcTimeMs" : 17474,
+    "heapCommittedBytes" : 1610612736,
+    "heapMaxBytes" : 1610612736,
+    "heapUsedBytes" : 769100416,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=3095879KB, committed=1727855KB\n       malloc: 53115KB #78312, peak=75203KB #67700\n       mmap:   reserved=3042764KB, committed=1674740KB\n\n-                 Java Heap (reserved=1572864KB, committed=1572864KB)\n                            (mmap: reserved=1572864KB, committed=1572864KB, at peak)\n\n-                     Class (reserved=1048884KB, committed=1396KB)\n                            (classes #3397)\n                            (  instance classes #3030, array classes #367)\n                            (malloc=308KB tag=Class #7048) (peak=309KB #7042)\n                            (mmap: reserved=1048576KB, committed=1088KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=11584KB)\n                            (    used=11424KB)\n                            (    waste=160KB =1.38%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=1088KB)\n                            (    used=982KB)\n                            (    waste=106KB =9.76%)\n\n-                    Thread (reserved=27724KB, committed=1188KB)\n                            (threads #27)\n                            (stack: reserved=27648KB, committed=1112KB, peak=1144KB)\n                            (malloc=46KB tag=Thread #165) (peak=59KB #181)\n                            (arena=29KB #50) (peak=212KB #34)\n\n-                      Code (reserved=251005KB, committed=13197KB)\n                            (malloc=3260KB tag=Code #16329) (peak=3655KB #17021)\n                            (mmap: reserved=247744KB, committed=9936KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=85997KB, committed=85997KB)\n                            (malloc=22061KB tag=GC #12298) (peak=48921KB #13311)\n                            (mmap: reserved=63936KB, committed=63936KB, at peak)\n                            (arena=0KB #0) (peak=8KB #8)\n\n-                 GCCardSet (reserved=37KB, committed=37KB)\n                            (malloc=37KB tag=GCCardSet #30) (peak=6751KB #12606)\n\n-                  Compiler (reserved=8710KB, committed=8710KB)\n                            (malloc=87KB tag=Compiler #290) (peak=147KB #310)\n                            (arena=8623KB #14) (peak=36187KB #29)\n\n-                  Internal (reserved=485KB, committed=485KB)\n                            (malloc=417KB tag=Internal #8481) (peak=477KB #10146)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=12466KB, committed=12466KB)\n                            (malloc=12466KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=2632KB, committed=2632KB)\n                            (malloc=2048KB tag=Symbol #22671) (at peak)\n                            (arena=584KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=1508KB, committed=1508KB)\n                            (malloc=132KB tag=Native Memory Tracking #2387) (peak=132KB #2391)\n                            (tracking overhead=1377KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=939KB, committed=939KB)\n                            (malloc=939KB tag=Arena Chunk #295) (peak=41308KB #988)\n\n-                   Tracing (reserved=39KB, committed=39KB)\n                            (malloc=7KB tag=Tracing #37) (peak=8KB #39)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB tag=Module #2271) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=370KB, committed=370KB)\n                            (malloc=370KB tag=Synchronization #5884) (peak=462KB #7354)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65611KB, committed=11659KB)\n                            (malloc=75KB tag=Metaspace #76) (at peak)\n                            (mmap: reserved=65536KB, committed=11584KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=3KB, committed=3KB)\n                            (malloc=3KB tag=Object Monitors #16) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 21722280,
+    "peakSampledHeapBytes" : 1605917792
+  },
+  "finalStore" : {
+    "accountedEstimateOverBudgetBytes" : 0,
+    "accountedResidencyEstimateBytes" : 22384,
+    "accountingComplete" : false,
+    "cacheCapacityBytes" : 1073741824,
+    "cacheHitRatioPercent" : 0,
+    "cacheUsedBytesEstimate" : 0,
+    "maxSubmittedBatchBytes" : 1048576,
+    "pinnedBytes" : null,
+    "requestedBudgetBytes" : 1073741824,
+    "storeReadOperations" : 1101356,
+    "storeWriteOperations" : 2453,
+    "submittedBytes" : 651770008,
+    "unsavedBytesEstimate" : 22384
+  },
+  "finishedAt" : "2026-09-03T19:32:14.839119700Z",
+  "ingestion" : {
+    "declarations" : 0,
+    "extractionWorkers" : 2,
+    "files" : 0,
+    "maxInFlightFragments" : 8,
+    "maxResolverCandidates" : 0,
+    "maxSerializedFragmentBytes" : 0,
+    "memoryRetainedFragments" : 0,
+    "pendingReferences" : 0,
+    "rawReferences" : 0,
+    "serializedFragmentBytes" : 0
+  },
+  "java" : "25",
+  "loadMs" : 148498.0211,
+  "nodesPerProject" : 100000,
+  "os" : "Windows 11",
+  "processors" : 8,
+  "projects" : 1,
+  "queryFingerprint" : "8fd286a50b17abd8365888bcf6a477e789c8854ddbf48a8218b919697110652f",
+  "removal" : "passed",
+  "resize" : {
+    "afterReduction" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 22384,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 268435456,
+      "cacheHitRatioPercent" : 0,
+      "cacheUsedBytesEstimate" : 0,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 268435456,
+      "storeReadOperations" : 1101191,
+      "storeWriteOperations" : 2453,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 22384
+    },
+    "afterRestore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 22384,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 0,
+      "cacheUsedBytesEstimate" : 0,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101356,
+      "storeWriteOperations" : 2453,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 22384
+    },
+    "queries" : {
+      "operationsPerSecond" : 26625.76948473811,
+      "p50Us" : 7.2,
+      "p95Us" : 268.1,
+      "p99Us" : 537.2,
+      "rawNanoseconds" : [ 265100, 721100, 587800, 659500, 720600, 433800, 205400, 203600, 168800, 154000, 273900, 354800, 344100, 371800, 361400, 507000, 445900, 646000, 548700, 523000, 406100, 375500, 402400, 361100, 365900, 461300, 591800, 430000, 578200, 483300, 283300, 320900, 273700, 266100, 364500, 305600, 323600, 273900, 245900, 266700, 144100, 247200, 290100, 354100, 346500, 502400, 487500, 515000, 707500, 537200, 517100, 206600, 410300, 679300, 331800, 171300, 187500, 147200, 168700, 153000, 268100, 145100, 188700, 252500, 113500, 156500, 124900, 139600, 142800, 136700, 127900, 132400, 146700, 147400, 127400, 141800, 275800, 149200, 130800, 140200, 125700, 137700, 142600, 141000, 330100, 469900, 501100, 393800, 260400, 186100, 159900, 394500, 249300, 172100, 254800, 136300, 140400, 148100, 140200, 133900, 12800, 9100, 10000, 10100, 9100, 8500, 8000, 8400, 7700, 8700, 8500, 8300, 8500, 8300, 11900, 8300, 8900, 8400, 8000, 18400, 8100, 7500, 8200, 7900, 8400, 7600, 9400, 8300, 7500, 8400, 8000, 7700, 8800, 8600, 8600, 8200, 9200, 8500, 7700, 8000, 7700, 7700, 8300, 8100, 8500, 8000, 7600, 8200, 8100, 8400, 8500, 8000, 9200, 8100, 8300, 7700, 7500, 7900, 7800, 8000, 8000, 7600, 8100, 8500, 8000, 7600, 7500, 8000, 7500, 8700, 7800, 7700, 8100, 7400, 8200, 7300, 8200, 8000, 7300, 7800, 7500, 7700, 8400, 7600, 8600, 7500, 7900, 9200, 7900, 8000, 9200, 7700, 8100, 7600, 8200, 7800, 7100, 7800, 7100, 7700, 7200, 7400, 7500, 7300, 8000, 8500, 7500, 7600, 7400, 7900, 7500, 7900, 7600, 7000, 7300, 7000, 7200, 7400, 6900, 7400, 7000, 7000, 7600, 7000, 8300, 7300, 7000, 7400, 7400, 7500, 7200, 7000, 7700, 7000, 7600, 7000, 7200, 7400, 6900, 7400, 7200, 7200, 8200, 7400, 7500, 6900, 7100, 7700, 6900, 7500, 7200, 6900, 7500, 19300, 8600, 6900, 7100, 7700, 6800, 7500, 7500, 7100, 7300, 7000, 7500, 7300, 7100, 7500, 6900, 7200, 6900, 7300, 7200, 7000, 7600, 6800, 8100, 7300, 7300, 7300, 7000, 6900, 7400, 6900, 7300, 6900, 6800, 7300, 6900, 25900, 8500, 7000, 7600, 6900, 7400, 6900, 6900, 8100, 7000, 7500, 6900, 7100, 7400, 7300, 7500, 7000, 6800, 7400, 8100, 7500, 7000, 7200, 7600, 19600, 9200, 7900, 7300, 7700, 8200, 7500, 6900, 7300, 7600, 7000, 40100, 8400, 7200, 7800, 7100, 7400, 7400, 7200, 7800, 7800, 7900, 7500, 7200, 7700, 7200, 7200, 7200, 7000, 7500, 7600, 8200, 7300, 7300, 7900, 7000, 7200, 6900, 7100, 8100, 7300, 7500, 8400, 7100, 7300, 7200, 7400, 7000, 6900, 7300, 6900, 7400, 7400, 7700, 7800, 6900, 7200, 8400, 7700, 7600, 7000, 7600, 6900, 6900, 7500, 7000, 7500, 6800, 6900, 8100, 7300, 7500, 6900, 12100, 7600, 7500, 7300, 7200, 7100, 7300, 7200, 7400, 7200, 6900, 7200, 6900, 7400, 7000, 7000, 7300, 7600, 7200, 6900, 7400, 7700, 7100, 7400, 7100, 7300, 7400, 7200, 7200, 6800, 7100, 7400, 7000, 7300, 6900, 6900, 7200, 7000, 7400, 7900, 7000, 7300, 6700, 7200, 7200, 7200, 8800, 7800, 8400, 7000, 7100, 7500, 6800, 7100, 7300, 6900, 7400, 7800, 7300, 6900, 7400, 7200, 6900, 7200, 6900, 6800, 7100, 6800, 7200, 6800, 6800, 7300, 7000, 7300, 6800, 7300, 7400, 7000, 7300, 6800, 7000, 7200, 7100, 7100, 7400, 7400, 7300, 6800, 7400, 6900, 6800, 7400, 6700, 7200, 7700, 7000, 7400, 6900, 7200, 7100, 6800, 7200, 7200, 7200, 6900, 6900, 7200, 6900, 7500, 6800, 8300, 7200, 7200, 7200, 6900, 7700, 7300, 6900, 7500, 6900, 6700, 7200, 6900, 7200, 7600, 7000, 7400, 6900, 7100, 6900, 7400, 7300, 6900, 7300, 14700, 7300, 8600, 7000, 7700, 7200, 6800, 7200, 6600, 8600, 7000, 6900, 7100, 6800, 7700, 6800, 7200, 7400, 7000, 7200, 7000, 6800, 8300, 7400, 7900, 6700, 6700, 7100, 7100, 7000, 6700, 6700, 7200, 7300, 7300, 7000, 6800, 7000, 6700, 7400, 6800, 6800, 7200, 8300, 9600, 7000, 6800, 7200, 6800, 8000, 7000, 7400, 7300, 7200, 8500, 6900, 6800, 7300, 7100, 21600, 7600, 7200, 7300, 7100, 7500, 6800, 6900, 7200, 7600, 8600, 7900, 6900, 7300, 6700, 7200, 6900, 6700, 7100, 6700, 7100, 7000, 7100, 7200, 7100, 41500, 7500, 6700, 7500, 7800, 7300, 6900, 7400, 7400, 6900, 7500, 7100, 7200, 7600, 6700, 7300, 6800, 6800, 7700, 6700, 7000, 6900, 7400, 7100, 6900, 7100, 7000, 6800, 7400, 7100, 7500, 7300, 8600, 7500, 7500, 7800, 7200, 7000, 7400, 7300, 8000, 7200, 6800, 7300, 7900, 7900, 6900, 6900, 7300, 7400, 9900, 7000, 7300, 7200, 7300, 7400, 7100, 6800, 8000, 7200, 7200, 6800, 7300, 7200, 7000, 7100, 6900, 7400, 7200, 6800, 7500, 6700, 6800, 7200, 6800, 7600, 7300, 7300, 7300, 7000, 7200, 6800, 7000, 7500, 6800, 7200, 6900, 6900, 7200, 6800, 7300, 6900, 6800, 7300, 6800, 7900, 6900, 6800, 8000, 8500, 8300, 8200, 6700, 7200, 6800, 7200, 7100, 6900, 7200, 6800, 7200, 6700, 6900, 7600, 6800, 7000, 6800, 21400, 7800, 6700, 7100, 6600, 7200, 7100, 6600, 7100, 6800, 8800, 7300, 6700, 7100, 6800, 7300, 7100, 6800, 7000, 6700, 6900, 7500, 6800, 7400, 6600, 6700, 7100, 6700, 7200, 6900, 6700, 7100, 6900, 7900, 6800, 6700, 7300, 6700, 7100, 6700, 7200, 7000, 6700, 7000, 6600, 7600, 7100, 6700, 16500, 7100, 6900, 7500, 6600, 7200, 6700, 6800, 7000, 6600, 7100, 6700, 6700, 7100, 6700, 7000, 6600, 6700, 14600, 7300, 7200, 7400, 6900, 7200, 6900, 7300, 6900, 6800, 7100, 6800, 7200, 7400, 6900, 7300, 6900, 7200, 6900, 6900, 7200, 6800, 7800, 7000, 6900, 7400, 6800, 7100, 6900, 7000, 7100, 6800, 7100, 6800, 7200, 7700, 6800, 7100, 6800, 6700, 7900, 6900, 7200, 7800, 6900, 7200, 6700, 7300, 7800, 6900, 7400, 8100, 7600, 7900, 7600, 8200, 7300, 7500, 19700, 8000, 7900, 6900, 7100, 7000, 6900, 7400, 7100, 7100, 6800, 6700, 7400, 6800, 7300, 6700, 7500, 7000, 6700, 7500, 6800, 6700, 8000, 7200, 7300, 6800, 7400, 7100, 6700, 7000, 6600, 7300, 7100, 7000, 6900, 6800, 6700, 7700, 6800, 7200, 6700, 6900, 7100, 6700, 7100, 6900, 6900, 7100, 6800, 7700, 6700, 6700, 7100, 6600, 7100, 7400, 7000, 7000, 6800, 7600, 6700, 6600, 7000, 6700, 6900, 6800, 7100, 7100, 6700, 7000, 6800, 7000, 7300, 7400, 7000, 6700, 11100, 7700, 6700, 7000, 6900, 6700, 7200, 7000, 7100, 6700, 6700, 7300, 7100, 7000, 6800, 7000, 7700, 6900, 7000, 6900, 7200, 7200, 7400, 7000, 6800, 6700, 7200, 6700, 7100, 6800, 6800, 7000, 6600, 7000, 7200, 6700, 7100, 7100, 7100, 6700, 6700, 7200, 6800, 7100, 6900, 6700, 7100, 7200, 7200, 6700, 6900, 7100, 7400, 7000, 6500, 6700, 7500, 8000, 7400, 7800, 7300, 8700, 6800, 7000, 6700, 6800, 7000, 6600, 7200, 6900, 6700, 7700, 6800, 7300, 6700, 6700, 6900, 6700, 7000 ],
+      "samples" : 1000
+    },
+    "status" : "passed"
+  },
+  "scanRecovery" : [ {
+    "afterScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 69,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "beforeScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 69,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 93967.29937981583,
+      "p50Us" : 7.8,
+      "p95Us" : 16.6,
+      "p99Us" : 67.5,
+      "rawNanoseconds" : [ 171700, 16600, 10700, 9000, 9200, 9800, 7700, 9100, 7900, 6800, 8800, 8800, 9600, 8000, 6800, 8200, 8300, 9300, 8700, 7400, 8000, 7800, 10900, 9100, 8600, 8800, 19300, 9500, 8700, 7700, 7100, 7800, 8100, 8500, 8100, 8600, 67500, 48800, 8500, 7900, 7800, 8000, 8200, 8900, 8300, 7500, 7900, 17900, 8000, 8100, 7800, 6700, 6800, 8400, 8700, 7800, 7500, 7200, 6700, 6800, 7700, 6300, 6000, 7900, 6500, 5900, 6200, 6700, 7600, 6200, 8000, 7100, 6900, 5600, 5600, 6500, 7400, 5900, 6100, 6400, 7700, 7100, 6900, 7500, 8000, 7300, 7300, 6800, 6300, 5800, 7300, 7400, 6900, 6500, 8800, 7900, 7200, 7100, 8200, 7000 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 178874.87702352204,
+      "p50Us" : 5.2,
+      "p95Us" : 6.9,
+      "p99Us" : 11.8,
+      "rawNanoseconds" : [ 8700, 8100, 7400, 7900, 6400, 6300, 6200, 5900, 5800, 6100, 7500, 6800, 6700, 7400, 6500, 6900, 7600, 7300, 6900, 6800, 15300, 6200, 6700, 6800, 6400, 7400, 6600, 6500, 6300, 6900, 6300, 7200, 6900, 6000, 6400, 6800, 6300, 6700, 6500, 5500, 5600, 7100, 6200, 6500, 6100, 6300, 6300, 6400, 6200, 6600, 7000, 7100, 6200, 6300, 6800, 6700, 6600, 5900, 5500, 5200, 6100, 6000, 5900, 6000, 6000, 5700, 5500, 5100, 5400, 5900, 5300, 6200, 5600, 6300, 6100, 5700, 6900, 5500, 13200, 5400, 6500, 5500, 5700, 8700, 6400, 6700, 6800, 7600, 8000, 5200, 6500, 7000, 6500, 6500, 6700, 8000, 7300, 7000, 6100, 6200, 6200, 6600, 6800, 6400, 6000, 6700, 6800, 6500, 5800, 5800, 7000, 6400, 6300, 6800, 6500, 7400, 7100, 7000, 7000, 7500, 7500, 6300, 6600, 6500, 5700, 6300, 5300, 6900, 6300, 6800, 6100, 5900, 6900, 6500, 6200, 6200, 7200, 6000, 5700, 6100, 5400, 5800, 6200, 6400, 7000, 6600, 5600, 37700, 6900, 5300, 6700, 5500, 5300, 5300, 5700, 6000, 5000, 5600, 5500, 5700, 5300, 5500, 5400, 6700, 5500, 5600, 5600, 5400, 5800, 5600, 5900, 5700, 5400, 5500, 5200, 6200, 5600, 5800, 5300, 5500, 6000, 5300, 5900, 6200, 5600, 5700, 5800, 6000, 5200, 5200, 5900, 5300, 6400, 5500, 5500, 6400, 6100, 5800, 5400, 5200, 5500, 5700, 6000, 5600, 5900, 5800, 5300, 5800, 5400, 5300, 5900, 24200, 6100, 5800, 5600, 8300, 6000, 5500, 6200, 5900, 5700, 6300, 5500, 5800, 5400, 6100, 5600, 6500, 5900, 5700, 5800, 5100, 6000, 5800, 5800, 5600, 6300, 5800, 5900, 5900, 5800, 6000, 7300, 6600, 5700, 6000, 6000, 5800, 5400, 5600, 5900, 5100, 5300, 5100, 5300, 5600, 4900, 5300, 5200, 5100, 5200, 5100, 5300, 5600, 5000, 5100, 5200, 5100, 5100, 5000, 5200, 5200, 5100, 5000, 5400, 5400, 5200, 5000, 5100, 4800, 5500, 5000, 5300, 5900, 6100, 4900, 4900, 5000, 4900, 5300, 5200, 5100, 5000, 4800, 5100, 5300, 5000, 5100, 4800, 4900, 5000, 5100, 5100, 5300, 5100, 5500, 5000, 5000, 4900, 5300, 5300, 5100, 5500, 5200, 5000, 5400, 5400, 5200, 5400, 4900, 5400, 5100, 5200, 5000, 4900, 5100, 4800, 5200, 4900, 5700, 5000, 5000, 5100, 5000, 5000, 5100, 5500, 5300, 4900, 4800, 5000, 5400, 4900, 5200, 8200, 5900, 4800, 5200, 4900, 5200, 5200, 4800, 5100, 5300, 5300, 5300, 4800, 5100, 4800, 4800, 5000, 4900, 4900, 5100, 5000, 5100, 5400, 5100, 5000, 5200, 5200, 4900, 5200, 4700, 5000, 5200, 5600, 5300, 5300, 4900, 5600, 5000, 5300, 5300, 5500, 5500, 5100, 5100, 5100, 4900, 5400, 5000, 5200, 4800, 5100, 5600, 5800, 5200, 4900, 4900, 5300, 5300, 6000, 5300, 5300, 5300, 5400, 5100, 5000, 5000, 5300, 5700, 5100, 5100, 5200, 5700, 6000, 5700, 5200, 5300, 5300, 5100, 5800, 4800, 5100, 6000, 4900, 5100, 5200, 5400, 5300, 4900, 5100, 5100, 5300, 5200, 5500, 5600, 5000, 5400, 5000, 5000, 5000, 4900, 4900, 5500, 5300, 5100, 5300, 5500, 5500, 5000, 5000, 5200, 5500, 5000, 5000, 5100, 4900, 5100, 5300, 5200, 5000, 4800, 5000, 5100, 5400, 4900, 5300, 5200, 5200, 4900, 5100, 4900, 4900, 5200, 4900, 5200, 17900, 5000, 5400, 5300, 5500, 5100, 4900, 5300, 4900, 5400, 4900, 4800, 5300, 4900, 5700, 4800, 4900, 5400, 5100, 5100, 4900, 5100, 5200, 5200, 5600, 5400, 5200, 5500, 5200, 27300, 5100, 5100, 5900, 5300, 5200, 5000, 5000, 5600, 5700, 5500, 5400, 5400, 5800, 5300, 5400, 5000, 5400, 5800, 4800, 5600, 5300, 5200, 5200, 5100, 21600, 5800, 5300, 5600, 5500, 5300, 5200, 5200, 5100, 5500, 5100, 5600, 5700, 5300, 5100, 5200, 5300, 5700, 5300, 5200, 5100, 5100, 5100, 4900, 4900, 5300, 4800, 4800, 5100, 4900, 5000, 5100, 5200, 5100, 5500, 5200, 5100, 5100, 5400, 5300, 5300, 4800, 5000, 5100, 5200, 5100, 5100, 4900, 5200, 4800, 5000, 5100, 5100, 5100, 5000, 5400, 5200, 4900, 5200, 5000, 5600, 5100, 4900, 5500, 5500, 5100, 5100, 5400, 11800, 6100, 6200, 5400, 5700, 5400, 5300, 5400, 4900, 5000, 5400, 5100, 11200, 5200, 4900, 5300, 6000, 5400, 5300, 5600, 5900, 5100, 5500, 4900, 5300, 5700, 5500, 5400, 4900, 5200, 5200, 4900, 5300, 5000, 5300, 5200, 5300, 5600, 4800, 5000, 5400, 5500, 5300, 4900, 5100, 5200, 5000, 4900, 5700, 5500, 5300, 5500, 6600, 5300, 5600, 5000, 5100, 4900, 4900, 5000, 5200, 4900, 4900, 5100, 4900, 5000, 5200, 4900, 5000, 4800, 5300, 5400, 5000, 4800, 5200, 5000, 4900, 5000, 5200, 4800, 5000, 4700, 4900, 5300, 5000, 5500, 5000, 5400, 5300, 4900, 5500, 4900, 5300, 5000, 5200, 5900, 5600, 6200, 5300, 5600, 5900, 6000, 6000, 5900, 5700, 6100, 5100, 5600, 5100, 5600, 6600, 5400, 5600, 6200, 5300, 5800, 6000, 5300, 5400, 5100, 5300, 5200, 5400, 5500, 5800, 5800, 5000, 5600, 5000, 5600, 5400, 5100, 5200, 5500, 5000, 5500, 5700, 5400, 4900, 5000, 5100, 5100, 5200, 5000, 5300, 14300, 5500, 5200, 5000, 5200, 5600, 5200, 5000, 5200, 5300, 5200, 4700, 5200, 5400, 5200, 5200, 5300, 5200, 5000, 5200, 5300, 5100, 5100, 5100, 5000, 5600, 5100, 5300, 4900, 4800, 5000, 4900, 5000, 4800, 4700, 5000, 4800, 5000, 4900, 4900, 5000, 4800, 4900, 4800, 4700, 5100, 4800, 4900, 4800, 4700, 5100, 5100, 4800, 4800, 4700, 4900, 4900, 5300, 4900, 4900, 5000, 4700, 5000, 4700, 4800, 5100, 5100, 5500, 5100, 5100, 5600, 5200, 5000, 5200, 4800, 5100, 4800, 5100, 4800, 5100, 6000, 5100, 5400, 5500, 5300, 5300, 5000, 5200, 5700, 6200, 5400, 5400, 5000, 4800, 4800, 5000, 4900, 4900, 4900, 5300, 5500, 5100, 5400, 5400, 5200, 5600, 5400, 5200, 5200, 5300, 5100, 4900, 5500, 5100, 12300, 5500, 5400, 5400, 5600, 5000, 5400, 5100, 5200, 4800, 5000, 5700, 4900, 5000, 5100, 25400, 5300, 4900, 4900, 5100, 7500, 5300, 4700, 5000, 5000, 5500, 5000, 4800, 5100, 4900, 4800, 5300, 4900, 4900, 5200, 5400, 5000, 4800, 5000, 5000, 4800, 5000, 5200, 5400, 5000, 4900, 5000, 4800, 4900, 4700, 4900, 5000, 4900, 5500, 4800, 4800, 5100, 5100, 5200, 5000, 4800, 5000, 4800, 5000, 5200, 4700, 5200, 4800, 5500, 4800, 4800, 4900, 4800, 5000, 4900, 5100, 5200, 4900, 4900, 5000, 4800, 5000, 4900, 4900, 4800, 4800, 5000, 5300, 4900, 4800, 5000, 5200, 4900, 4900, 4900, 5100, 5000, 4700, 4900, 4900, 4800, 5100, 4800, 5000, 4900, 4800, 4900, 4800, 4900, 4700, 4800, 4900, 4800, 5200, 5000, 4900, 5200, 4800, 5000, 4800, 4900, 5200, 5000, 4900, 4800, 4900, 4800, 4900, 4900, 4700, 4800, 5100, 4800, 5000, 4700, 4900, 5000, 4900, 4900, 4800, 4800 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 69,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "scanMs" : 273.8696
+  }, {
+    "afterScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 69,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "beforeScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 69,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 109553.02366345312,
+      "p50Us" : 7.6,
+      "p95Us" : 11.9,
+      "p99Us" : 56.0,
+      "rawNanoseconds" : [ 56000, 12200, 11900, 10100, 85400, 13100, 8800, 8700, 7900, 7100, 8800, 8000, 9200, 7500, 6500, 8100, 8300, 8100, 6100, 7500, 6700, 6700, 7600, 7800, 7000, 7600, 6900, 7900, 7800, 8300, 6900, 8500, 8100, 8000, 8500, 7200, 8600, 8600, 7400, 7400, 16800, 8700, 9800, 7300, 8400, 8500, 8800, 9200, 9500, 10200, 10300, 8000, 7100, 6700, 8000, 6900, 6900, 7000, 6700, 7100, 7100, 6300, 6200, 8500, 6000, 5100, 5700, 6000, 6300, 6100, 7600, 7900, 7800, 6800, 7700, 7300, 9900, 6600, 7000, 7600, 8000, 7000, 7600, 6500, 7200, 6600, 7400, 7800, 6200, 6400, 8100, 10100, 7200, 7400, 8300, 8300, 7500, 6800, 7300, 6900 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 155496.81231534755,
+      "p50Us" : 5.2,
+      "p95Us" : 7.9,
+      "p99Us" : 24.1,
+      "rawNanoseconds" : [ 10800, 9100, 7800, 19000, 7400, 7200, 7100, 24100, 8000, 6000, 8600, 9100, 7600, 6400, 6200, 6400, 7000, 6200, 5900, 6600, 7400, 6800, 6800, 6000, 5800, 5700, 6300, 5500, 5800, 6100, 6000, 5600, 6200, 5500, 6000, 6500, 6400, 6500, 5900, 6000, 5800, 6600, 6800, 6600, 6800, 5500, 6400, 6100, 6600, 6800, 6200, 6000, 6500, 7500, 7300, 5900, 6700, 5700, 5300, 5300, 6700, 6300, 6400, 6200, 7400, 5800, 6300, 5300, 6500, 6600, 6500, 6600, 7600, 7000, 6100, 5200, 6700, 5300, 5300, 5500, 6000, 5600, 5000, 5400, 5800, 5000, 6400, 5800, 5300, 4900, 5700, 5600, 5700, 6200, 6400, 5500, 5600, 5900, 5700, 5800, 4900, 5800, 6300, 5200, 5700, 5100, 45300, 21500, 6900, 7300, 7400, 7100, 7200, 6000, 6200, 6400, 7400, 7900, 6700, 6700, 6700, 6100, 6800, 6100, 6600, 6300, 5600, 6100, 5900, 6200, 5400, 5300, 6500, 5300, 6000, 5300, 5600, 24500, 11100, 5500, 5300, 5200, 6200, 6400, 8100, 6000, 5500, 5500, 6800, 6400, 22600, 6500, 6200, 6400, 7600, 5600, 6500, 5600, 5200, 5200, 5600, 6500, 5600, 6100, 6800, 6200, 5500, 5000, 5700, 5600, 5700, 6600, 6100, 5200, 5400, 5600, 5800, 5600, 4900, 5300, 5100, 5000, 4700, 4900, 5700, 4800, 5400, 5500, 5200, 5500, 5600, 5700, 5400, 4900, 6000, 5900, 5500, 5500, 5000, 5300, 5400, 6500, 6200, 6300, 5500, 5000, 6200, 4900, 5000, 5200, 5500, 5500, 7300, 5600, 5200, 5100, 6400, 6100, 5400, 5300, 5300, 5800, 5600, 5500, 6300, 5700, 5600, 6100, 5400, 5500, 5200, 4700, 6100, 4900, 5400, 5500, 6200, 6000, 4800, 5400, 4700, 5400, 5000, 5300, 5300, 5100, 5000, 5000, 5300, 5300, 4900, 4900, 4900, 5200, 5100, 4900, 5500, 4700, 4500, 4900, 5400, 5400, 5000, 4700, 5200, 4400, 4600, 4600, 5200, 4700, 9300, 6000, 6300, 5300, 5100, 5200, 5500, 5000, 4700, 5000, 4700, 4700, 4900, 5100, 5200, 4600, 4600, 5300, 4900, 4700, 4900, 5000, 4900, 4700, 4900, 4900, 5000, 4900, 4500, 5000, 5300, 5300, 5400, 5300, 5200, 4900, 4900, 4700, 4700, 5000, 5300, 5500, 5400, 4700, 5000, 5400, 5400, 5700, 5300, 6000, 4900, 6000, 5200, 5400, 5200, 4900, 5900, 5200, 5200, 5800, 172000, 23200, 8400, 7300, 7800, 7900, 73000, 13600, 7000, 6900, 7900, 23100, 8200, 8900, 7900, 7700, 6700, 7900, 7000, 35100, 12600, 8000, 7100, 7500, 7900, 6500, 21300, 7300, 5900, 278500, 20600, 8900, 8300, 9100, 7900, 6900, 6400, 6800, 8500, 7800, 8700, 7000, 7700, 6600, 7100, 7400, 8600, 5900, 5800, 6200, 6900, 6700, 6500, 6800, 8300, 6200, 6300, 5700, 5400, 6000, 7000, 6800, 5800, 5200, 7900, 5900, 5900, 5900, 6100, 5500, 5800, 8100, 8200, 9500, 41500, 6700, 6300, 5700, 5300, 6200, 7700, 7000, 6400, 6800, 5600, 6900, 7400, 7800, 7100, 6700, 7000, 7300, 6800, 6400, 7000, 7800, 6400, 7600, 6000, 6900, 6100, 7500, 6900, 6500, 6400, 6400, 6600, 7200, 6300, 5900, 5500, 6300, 7200, 7400, 8100, 7800, 7300, 6600, 6500, 7300, 7400, 7000, 5500, 5900, 6700, 5600, 5600, 6000, 5700, 6100, 5900, 6600, 5200, 6500, 5900, 5200, 4900, 5500, 5200, 5100, 5000, 5500, 5600, 5100, 5400, 5800, 6200, 6100, 5900, 5600, 5200, 5100, 5900, 5200, 5600, 5500, 5300, 5600, 5000, 5300, 5700, 5100, 5400, 4800, 5800, 5900, 6500, 5400, 5200, 5300, 5300, 5700, 5200, 5500, 25000, 6700, 5100, 4900, 4800, 5000, 5000, 4600, 5100, 4700, 4600, 4900, 5100, 6100, 5300, 5900, 5100, 5500, 6100, 16900, 5100, 5500, 5300, 5800, 5500, 5900, 5300, 5500, 6100, 4800, 6100, 6100, 5800, 6300, 11800, 5400, 5400, 5200, 5200, 5400, 5200, 5400, 5600, 5900, 6000, 5500, 5800, 4900, 4700, 4900, 5400, 4900, 4700, 5300, 4600, 4600, 4800, 4900, 4700, 4900, 5300, 4600, 4900, 4900, 4800, 5000, 5100, 4600, 5100, 4600, 5200, 4500, 5200, 4900, 4900, 4900, 5200, 5100, 4700, 4600, 4900, 4800, 4800, 4900, 4800, 5000, 4900, 5000, 5400, 4500, 5200, 5100, 5200, 4900, 5000, 5100, 4900, 5000, 5600, 5700, 5500, 5000, 5000, 4900, 4900, 4800, 4900, 5500, 5100, 4600, 5200, 5200, 5100, 5000, 5100, 5500, 4900, 5100, 5200, 5100, 5300, 5400, 4700, 4900, 5200, 5200, 4900, 5100, 5100, 4500, 5400, 5200, 5200, 5100, 5300, 4600, 4900, 4900, 4700, 5500, 5900, 4900, 4700, 5000, 5200, 5100, 4700, 4600, 5000, 4600, 5200, 4800, 4500, 4700, 4600, 4700, 4600, 4600, 4600, 4500, 4800, 4500, 4700, 4700, 4900, 4700, 4800, 14500, 5400, 4700, 4700, 4600, 4700, 4800, 4500, 4800, 4600, 4700, 4600, 4500, 4900, 4800, 5300, 4700, 4500, 5100, 4700, 4800, 5100, 4500, 4800, 4900, 4900, 4600, 4600, 5000, 4700, 4700, 4700, 4600, 4600, 4700, 4600, 4700, 4500, 4800, 4600, 4800, 4800, 4500, 4700, 4500, 4900, 5100, 4700, 4800, 4800, 4500, 5100, 4500, 4700, 4500, 4800, 5100, 4400, 4700, 4800, 4500, 4800, 4600, 4700, 4500, 4600, 4700, 4500, 4600, 4600, 4600, 4800, 4700, 5100, 4400, 4600, 4800, 4500, 4700, 4600, 4500, 4700, 4600, 4800, 4400, 4400, 4600, 4500, 4600, 4500, 4500, 4600, 4500, 4800, 4700, 4500, 4500, 4500, 4600, 4600, 4500, 4600, 4600, 4700, 4500, 4600, 4700, 4500, 4600, 4500, 4700, 4600, 9500, 4900, 4500, 4500, 4700, 4900, 4600, 4600, 4500, 4600, 4500, 4700, 4600, 4500, 4600, 29300, 46000, 7600, 5900, 5300, 5600, 6100, 10800, 5200, 5200, 5100, 4900, 5800, 5100, 5500, 5100, 5300, 5000, 5800, 7000, 5600, 5700, 6400, 5400, 6700, 5700, 5300, 5400, 4800, 5100, 5400, 5400, 4800, 4600, 5000, 4800, 4900, 4600, 5200, 5400, 5100, 5400, 4800, 5100, 5000, 5000, 5500, 5000, 5300, 4900, 5500, 5400, 5100, 5000, 5100, 5000, 5200, 5200, 4800, 4700, 4900, 5000, 5200, 5200, 5300, 6100, 5600, 4800, 5200, 5000, 5200, 4700, 5400, 5000, 5000, 4900, 5300, 5100, 5700, 5000, 4500, 4900, 5100, 4800, 4900, 4900, 6000, 5200, 4700, 4800, 4900, 5100, 4900, 5100, 5500, 4900, 6400, 5300, 5200, 5500, 5100, 4700, 4800, 4800, 4900, 4900, 5200, 4900, 4600, 4700, 4700, 4800, 4700, 4700, 5500, 4700, 4800, 4800, 5100, 4800, 4800, 5100, 4900, 5000, 4700, 4700, 4700, 4600, 4600, 4600, 4700, 4800, 4800, 4800, 4800, 4500, 4700, 4600, 4700, 4700, 19000, 5100, 4500, 4700, 4700, 4600, 5100, 4400, 4500, 4800, 4800, 4700, 4600, 4600, 4700, 4700, 4700, 4500, 4500, 5100, 4700, 4900, 4600, 4500, 4600, 4800, 14500, 4600, 4800, 4900, 4800, 4900, 4900, 5000, 4900, 4600, 5100, 5900, 5100, 5100, 4800, 5100, 5300, 4900, 5100, 4700, 5100, 5000, 5000, 5400, 5300, 4800, 5000, 4700, 5200, 4800, 5400, 6300, 5300, 5100, 5700, 4900 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 70,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "scanMs" : 207.5441
+  }, {
+    "afterScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 70,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "beforeScanStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 70,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "immediatelyAfterScan" : {
+      "operationsPerSecond" : 162153.39711366952,
+      "p50Us" : 5.8,
+      "p95Us" : 7.8,
+      "p99Us" : 11.1,
+      "rawNanoseconds" : [ 37000, 9400, 8600, 7800, 7100, 6900, 6100, 5700, 6000, 4900, 7100, 6500, 6200, 6200, 5000, 6000, 6600, 6200, 5900, 5800, 6100, 6600, 6300, 11100, 6200, 6800, 6900, 6700, 6200, 6000, 6500, 6600, 6800, 8500, 7700, 6400, 6900, 6500, 6200, 5900, 5000, 6100, 5700, 5600, 6600, 5800, 5900, 5900, 6000, 6700, 6500, 5400, 5100, 6100, 6100, 5300, 5200, 5000, 5200, 4700, 5800, 5100, 4600, 5500, 5200, 4700, 5200, 5800, 5700, 5200, 5400, 5700, 5500, 5200, 5300, 5800, 5900, 4700, 4700, 4900, 5300, 5000, 4700, 4900, 5600, 4900, 5500, 4800, 4600, 4900, 4800, 5100, 4300, 4100, 5700, 5300, 5200, 4900, 4800, 4600 ],
+      "samples" : 100
+    },
+    "nextHotWindow" : {
+      "operationsPerSecond" : 231160.4253351826,
+      "p50Us" : 4.2,
+      "p95Us" : 4.6,
+      "p99Us" : 6.6,
+      "rawNanoseconds" : [ 6700, 5000, 4700, 4700, 4500, 4700, 4500, 4300, 4200, 4400, 4600, 4700, 4300, 4300, 4400, 4300, 4500, 4300, 4200, 4400, 4300, 4400, 4200, 4200, 4500, 4400, 4300, 4300, 4300, 4400, 4200, 4400, 4100, 4100, 4400, 4300, 4300, 4200, 4200, 4400, 4300, 4500, 4200, 4300, 4400, 4200, 4300, 4300, 4200, 4600, 4500, 4400, 4200, 4200, 4400, 4200, 4400, 4200, 4200, 4300, 4200, 8500, 4600, 4300, 4500, 4400, 4600, 4300, 14600, 4700, 4300, 4400, 4100, 4100, 4400, 4300, 4700, 4400, 4200, 4400, 4100, 4400, 4200, 4200, 4500, 4100, 4300, 4000, 4200, 4400, 4700, 4300, 4300, 4100, 4400, 4200, 4400, 4200, 4200, 4200, 4200, 4500, 4200, 4400, 4400, 4200, 4400, 4200, 4100, 4300, 4300, 4500, 4200, 4200, 4400, 4300, 4600, 4200, 4200, 4300, 4200, 4300, 4200, 4200, 4300, 4200, 4200, 4200, 4200, 4300, 4200, 4300, 4200, 4200, 4400, 4200, 4300, 4200, 4200, 4900, 4100, 4400, 4300, 4200, 4400, 4500, 4300, 4200, 4300, 4400, 4300, 4300, 4200, 4200, 4400, 4200, 4300, 4200, 4100, 4200, 4100, 4300, 4200, 4200, 4300, 4200, 4300, 4100, 4400, 4300, 4100, 4300, 4200, 4100, 4300, 4300, 4400, 4100, 4300, 4400, 4200, 4300, 4200, 4200, 4400, 4000, 4400, 4100, 4100, 4200, 4200, 4300, 4200, 4400, 4500, 5200, 4400, 4100, 4200, 4200, 4200, 4500, 4200, 4200, 4300, 4100, 4300, 4100, 4100, 4300, 4200, 4700, 4200, 4500, 4300, 4200, 4500, 4100, 4100, 4200, 4200, 4400, 4400, 4200, 4300, 4200, 4200, 4400, 4100, 4300, 4200, 4300, 4100, 4100, 4500, 4300, 4400, 4200, 4100, 4200, 4200, 4500, 4400, 4300, 4400, 4200, 4200, 4200, 4100, 4300, 4200, 4300, 4400, 4300, 4300, 4100, 4200, 4100, 4100, 4300, 4200, 4300, 4300, 4100, 4400, 4000, 4300, 4200, 4200, 4300, 4100, 4300, 4100, 4200, 4400, 4200, 4400, 4300, 4600, 4200, 4200, 5300, 4700, 4200, 4300, 4100, 4300, 4100, 4100, 4300, 4200, 4200, 4100, 4000, 4300, 4100, 4300, 4100, 4100, 4300, 4100, 4400, 4100, 4200, 4500, 4200, 4400, 4400, 4100, 4300, 4300, 4600, 4200, 4100, 4200, 4300, 4300, 4200, 4000, 4300, 4100, 4300, 4200, 4200, 4200, 4100, 4300, 4000, 4200, 6600, 4200, 4300, 4100, 4300, 4400, 4200, 4300, 4100, 4000, 4200, 4200, 4300, 4200, 4200, 4300, 4000, 4200, 4100, 4100, 4300, 4200, 4200, 4100, 4100, 4500, 4400, 4200, 4100, 4100, 4400, 4100, 4400, 4100, 4200, 4300, 4100, 4300, 4000, 4100, 4300, 4200, 4300, 4100, 4100, 4300, 4200, 4300, 4400, 4100, 4300, 4200, 4300, 4100, 4100, 4300, 4100, 4300, 4100, 4100, 4200, 4100, 4500, 4100, 4100, 4400, 4200, 4300, 4100, 4100, 4200, 4100, 4300, 4300, 4200, 4400, 4400, 4400, 4300, 4100, 4500, 4200, 4300, 4300, 4100, 4100, 4100, 4300, 4100, 4200, 4300, 4200, 4300, 4200, 4000, 4200, 4100, 4200, 4000, 4100, 4200, 4100, 4200, 4000, 4100, 4400, 4200, 4200, 4100, 4000, 4100, 4100, 4200, 4400, 4100, 4300, 4100, 37400, 4500, 4200, 4300, 4200, 4200, 4100, 4100, 4500, 4000, 4200, 4100, 4100, 4200, 4000, 4100, 5000, 4900, 4700, 4600, 4300, 4200, 4100, 4300, 4400, 4300, 4100, 4200, 4300, 4200, 4400, 4100, 4100, 4300, 4200, 4300, 4300, 4100, 4400, 4200, 4300, 4100, 4100, 4200, 4500, 4400, 4200, 4600, 5400, 4300, 4300, 4100, 4100, 4200, 4100, 4300, 4300, 4200, 4300, 4100, 4500, 4100, 4100, 4200, 4200, 4400, 4200, 4100, 4200, 4200, 4800, 4000, 4100, 4300, 4200, 11300, 4400, 4200, 4300, 4200, 4400, 4200, 4100, 4300, 4100, 4400, 4100, 4200, 4300, 4100, 4300, 4100, 4100, 4400, 4100, 4400, 4300, 4100, 4300, 4200, 4300, 4100, 4200, 4400, 4300, 4500, 4100, 4100, 4300, 4100, 4200, 4100, 4100, 4200, 4100, 4200, 4300, 4100, 4200, 4100, 4200, 4000, 4200, 4300, 4200, 4300, 4000, 4000, 4300, 4100, 4300, 4100, 4100, 4400, 4100, 4400, 4100, 4100, 4300, 4300, 4600, 4000, 4100, 4300, 4100, 4300, 4100, 4100, 4300, 4100, 7500, 4100, 4100, 4400, 4200, 4300, 4200, 4300, 4400, 4200, 4200, 4100, 4000, 4200, 4200, 4500, 4300, 4100, 4200, 4100, 4300, 4100, 4100, 4400, 4100, 4400, 4200, 4100, 4200, 4100, 4200, 4300, 4200, 4300, 4100, 4200, 4100, 4100, 4300, 4100, 4300, 4300, 4100, 4200, 4100, 4300, 4200, 4200, 4300, 4100, 4200, 4100, 4100, 4300, 4100, 4300, 4000, 4100, 4500, 4100, 4200, 4100, 4100, 4300, 4100, 4300, 4100, 4100, 4200, 4100, 4200, 4100, 4200, 4300, 4400, 4400, 4400, 4100, 4200, 4200, 4300, 4100, 4100, 4300, 4100, 4300, 4100, 4100, 4300, 4100, 4300, 4200, 4200, 4300, 4100, 4300, 4100, 4100, 4300, 4400, 4300, 4100, 4100, 4200, 4200, 4300, 4100, 4200, 4200, 4100, 4200, 6800, 4200, 4200, 4300, 4400, 4500, 4200, 4300, 4200, 4400, 4100, 4200, 4300, 4300, 4300, 4400, 4200, 4200, 4100, 4300, 4100, 4100, 4900, 4200, 4200, 4100, 4100, 4300, 4200, 4300, 4200, 4100, 4300, 4100, 4400, 4500, 4200, 4200, 4100, 4200, 4200, 4200, 4300, 4200, 4300, 4200, 4300, 4400, 4100, 4200, 4100, 4100, 4200, 4200, 4300, 4100, 4100, 4300, 4000, 4200, 4100, 4000, 4200, 4500, 4300, 4000, 4100, 4300, 4100, 4200, 4100, 4100, 4300, 4100, 4200, 4100, 4100, 4300, 4100, 4200, 4000, 4100, 4200, 4100, 4200, 4000, 4100, 4400, 4000, 4200, 4100, 4100, 4200, 4200, 4400, 4200, 4200, 4200, 4100, 4200, 4100, 4000, 4300, 4200, 4400, 4100, 4300, 4200, 4100, 4300, 4200, 4300, 4300, 4100, 4200, 4100, 4200, 4200, 4200, 4300, 4300, 4100, 4300, 4300, 4300, 4300, 4200, 4400, 4100, 4300, 4400, 4100, 4200, 4300, 4300, 4100, 4100, 4300, 4400, 4200, 4100, 4100, 4300, 4100, 4200, 4100, 4300, 4300, 4100, 4100, 4100, 4000, 4200, 4200, 4200, 4100, 7100, 4600, 4000, 4300, 4100, 4000, 4200, 4100, 4200, 4000, 4100, 4200, 4100, 4300, 4100, 4100, 4200, 4100, 4300, 4200, 4000, 16600, 4300, 4500, 4000, 4200, 4400, 4100, 4200, 4000, 4000, 4100, 5000, 4200, 4000, 4000, 4700, 4500, 4400, 4000, 4300, 4300, 4000, 4200, 4100, 4000, 4200, 4100, 4300, 4100, 4200, 4200, 4800, 4600, 4100, 4000, 4200, 5600, 4300, 4300, 4100, 4200, 4000, 4200, 4200, 4100, 4200, 4100, 4200, 4100, 4100, 4100, 4000, 4200, 4400, 4100, 4100, 4100, 4200, 4100, 4100, 4200, 4100, 4200, 5400, 4400, 4200, 4100, 4200, 4500, 5000, 4400, 4000, 4100, 4600, 5000, 4100, 4100, 4200, 4100, 4100, 4100, 4000, 4100, 4000, 4100, 4100, 4000, 4200, 4100, 3900, 4300, 4000, 4200, 4000, 3900, 4100, 4100, 4100, 10300, 4200, 4200, 4000, 4200, 4100, 4000, 4100, 4200, 4200, 4000, 4100, 4300, 4000, 4300, 5900, 4100, 4300 ],
+      "samples" : 1000
+    },
+    "recoveredStore" : {
+      "accountedEstimateOverBudgetBytes" : 0,
+      "accountedResidencyEstimateBytes" : 1072711666,
+      "accountingComplete" : false,
+      "cacheCapacityBytes" : 1073741824,
+      "cacheHitRatioPercent" : 70,
+      "cacheUsedBytesEstimate" : 1072693248,
+      "maxSubmittedBatchBytes" : 1048576,
+      "pinnedBytes" : null,
+      "requestedBudgetBytes" : 1073741824,
+      "storeReadOperations" : 1101184,
+      "storeWriteOperations" : 2433,
+      "submittedBytes" : 651770008,
+      "unsavedBytesEstimate" : 18418
+    },
+    "scanMs" : 250.1325
+  } ],
+  "scenario" : "fit",
+  "scratchDirectory" : "C:\\Users\\timhj\\AppData\\Local\\Temp\\code-graph-storage-bench-12062638002980490153",
+  "seed" : 42,
+  "startedAt" : "2026-09-03T19:29:26.420376200Z",
+  "status" : "completed",
+  "timings" : {
+    "callers" : {
+      "operationsPerSecond" : 83433.45347750634,
+      "p50Us" : 10.6,
+      "p95Us" : 16.3,
+      "p99Us" : 40.2,
+      "rawNanoseconds" : [ 120200, 17500, 15400, 11200, 10700, 10500, 10600, 10500, 10500, 10400, 10400, 15500, 10600, 10600, 10700, 10500, 21900, 11100, 10600, 10700, 11900, 11400, 10500, 10500, 10600, 11200, 10500, 10500, 10600, 10700, 10500, 10300, 10400, 10600, 10300, 31500, 16000, 12200, 12400, 10300, 10300, 10700, 10500, 10400, 10400, 10600, 13600, 10800, 10500, 10500, 10500, 11200, 11400, 11100, 10600, 10600, 10700, 10700, 11000, 11200, 11700, 10600, 10500, 10500, 10800, 10600, 10400, 10500, 10500, 10500, 10900, 10700, 13100, 10500, 10600, 10400, 12000, 10500, 11100, 10500, 10400, 10500, 17700, 10900, 10600, 10500, 86400, 20200, 11200, 10900, 10700, 10600, 10500, 10400, 11100, 10400, 10300, 14600, 10500, 10500, 10900, 10600, 11800, 10400, 10800, 10400, 10500, 10700, 10400, 10700, 10400, 10400, 15600, 11000, 10900, 10600, 10600, 10500, 10600, 10600, 10800, 10600, 11300, 10800, 10700, 10800, 10700, 10900, 10700, 11400, 10800, 10900, 55800, 12000, 11200, 20700, 19100, 11000, 12000, 12000, 10900, 10700, 13900, 10800, 10500, 10700, 10400, 19700, 11700, 10500, 11500, 11100, 10700, 10600, 10700, 10700, 11000, 11100, 10600, 10600, 11000, 11000, 11100, 11100, 22200, 11300, 10700, 10700, 10600, 10400, 11400, 10500, 10600, 10400, 11100, 10600, 10700, 10900, 13500, 10800, 11000, 10800, 11000, 16300, 10900, 11500, 10700, 10600, 10600, 10600, 10600, 10400, 10600, 10900, 10700, 10700, 10500, 10800, 10600, 10600, 19400, 11400, 10800, 12400, 11300, 12200, 13800, 10800, 12000, 10800, 10900, 10600, 11200, 15600, 11200, 10900, 10600, 10700, 11000, 10800, 14800, 10800, 10600, 10600, 30200, 17700, 10900, 10700, 10600, 10500, 10700, 10600, 13000, 10500, 10700, 10500, 10900, 10900, 10500, 25700, 11000, 11100, 10600, 13600, 10500, 10500, 10600, 10400, 10500, 10300, 11000, 10800, 10400, 10400, 10300, 10600, 10400, 10500, 10500, 10500, 10600, 10500, 10600, 13300, 10800, 13700, 30700, 10500, 10500, 10600, 10900, 10700, 10700, 10600, 11500, 10600, 10200, 10100, 10300, 18200, 10700, 10300, 10700, 10900, 10500, 10500, 10900, 12200, 12200, 10400, 10500, 10500, 10700, 10500, 10300, 10700, 10700, 10500, 37500, 12000, 10100, 10200, 10000, 9900, 10200, 10000, 9900, 9900, 10000, 13900, 10200, 10500, 10100, 10100, 10000, 10100, 10200, 10100, 10400, 10100, 10400, 10100, 10100, 10200, 10800, 10300, 10300, 10100, 10300, 10200, 10800, 9900, 28400, 11800, 10200, 14700, 10300, 10200, 10000, 13700, 10200, 10500, 10000, 10000, 9800, 16400, 10100, 9900, 9900, 10300, 10000, 9900, 9900, 9900, 10100, 9900, 9900, 10200, 10200, 9900, 10700, 10100, 10100, 10000, 9800, 9900, 10000, 10000, 10200, 10200, 10100, 10000, 10200, 10500, 10100, 12400, 10300, 10100, 12000, 12200, 11200, 12100, 10200, 10100, 10200, 10300, 10200, 13100, 10400, 10100, 10500, 10200, 10300, 10100, 10400, 10400, 10200, 10200, 10100, 10200, 10100, 28300, 11100, 10300, 10200, 11000, 10400, 10400, 10200, 10100, 10300, 14800, 10600, 10200, 10100, 10200, 10200, 10300, 10300, 10200, 10300, 10200, 10100, 10100, 10100, 10400, 10200, 10300, 10200, 10100, 10100, 10200, 10200, 10100, 10100, 12400, 10500, 10300, 10200, 10100, 10100, 11700, 10100, 10100, 10500, 10300, 10000, 10300, 10200, 10200, 10100, 10000, 11100, 10600, 10100, 10100, 10100, 10200, 10300, 10000, 10200, 10600, 11100, 10100, 10200, 10600, 11000, 10100, 11800, 11800, 10300, 11200, 10200, 40800, 10600, 10000, 15700, 11700, 10200, 10100, 94800, 40200, 10300, 10000, 9900, 9900, 9900, 10000, 9900, 10000, 10600, 10200, 10100, 10100, 10000, 10200, 10000, 10100, 10200, 10200 ],
+      "samples" : 500
+    },
+    "firstTouchPoint" : {
+      "operationsPerSecond" : 2907.94887825872,
+      "p50Us" : 239.3,
+      "p95Us" : 485.9,
+      "p99Us" : 659.6,
+      "rawNanoseconds" : [ 8902100, 651400, 432900, 457600, 490200, 478100, 327400, 485900, 115600, 321800, 426600, 659600, 539900, 265100, 180300, 194700, 171800, 242200, 179700, 420000, 271200, 352100, 42800, 189800, 336700, 353700, 290300, 221300, 233100, 183500, 222700, 363200, 310600, 305900, 205700, 353800, 195700, 220900, 345900, 200000, 180700, 274800, 323500, 239400, 331000, 396300, 378500, 308700, 177100, 304200, 42800, 181800, 186600, 181000, 160100, 258800, 208600, 219500, 221500, 166400, 277700, 233800, 304200, 98900, 213600, 239300, 294900, 223100, 36400, 170200, 39700, 174100, 237500, 240400, 258600, 241500, 256500, 237300, 211000, 192800, 281800, 81800, 232700, 226200, 210500, 338600, 253800, 229500, 304300, 279000, 394700, 275600, 299600, 345100, 90800, 199900, 32600, 163900, 48900, 34600 ],
+      "samples" : 100
+    },
+    "hotPoint" : {
+      "operationsPerSecond" : 63340.04737835544,
+      "p50Us" : 12.1,
+      "p95Us" : 26.4,
+      "p99Us" : 85.7,
+      "rawNanoseconds" : [ 18200, 20100, 19000, 17500, 15800, 15600, 17100, 15500, 13900, 14200, 16600, 15100, 15200, 14800, 13600, 15800, 15200, 15800, 15700, 15300, 14800, 15000, 16000, 26400, 14900, 30300, 24700, 15600, 15300, 14500, 16100, 14300, 14600, 14500, 15200, 14900, 15000, 20400, 39900, 22800, 18700, 15600, 16300, 15200, 51500, 19600, 16500, 17300, 15000, 14800, 16500, 13200, 170000, 29800, 17500, 16200, 15300, 15700, 17700, 13800, 15300, 14700, 14500, 14700, 14100, 15900, 13400, 14400, 13900, 13600, 16500, 13900, 14700, 13900, 13900, 13800, 14200, 14200, 13500, 13900, 14500, 14000, 15200, 14700, 16300, 14200, 14100, 14500, 15300, 13400, 14700, 15000, 14000, 14000, 14700, 107300, 15800, 15800, 16400, 14300, 162200, 121600, 76000, 66100, 19300, 40100, 70900, 27100, 21000, 76700, 20000, 15000, 15000, 14100, 17600, 20500, 17300, 15800, 15000, 15600, 17700, 14400, 15000, 14100, 14000, 15200, 14900, 15600, 15200, 61800, 28200, 15000, 15000, 14700, 15900, 15900, 14900, 15100, 17200, 13600, 16500, 14500, 16000, 16000, 14700, 16300, 14900, 15100, 14300, 15200, 15900, 14200, 14500, 23500, 86700, 17800, 15000, 16100, 13300, 16800, 18100, 13900, 16000, 15500, 14000, 140000, 85700, 81100, 18700, 12500, 16000, 64800, 25500, 14400, 43800, 26300, 29300, 50700, 16500, 32200, 62200, 20300, 14400, 14600, 15600, 12400, 13000, 12400, 11700, 11600, 14200, 12900, 14500, 12300, 12800, 13200, 12100, 12000, 11900, 12000, 14300, 15000, 13700, 13900, 14100, 13500, 12000, 14100, 11800, 12400, 14100, 14900, 14200, 13800, 12100, 13000, 16200, 13200, 13500, 12300, 15000, 13300, 13300, 12600, 12900, 14100, 14600, 12800, 13100, 16900, 16500, 36500, 14300, 13100, 13900, 14200, 13500, 13800, 12900, 12300, 13000, 13300, 13500, 12900, 13200, 13900, 14900, 15400, 14300, 13000, 14400, 11800, 14100, 12700, 12300, 12400, 12400, 11900, 11500, 11100, 13000, 11300, 14700, 14000, 12400, 12700, 12400, 12200, 11600, 11800, 12900, 12100, 12000, 11600, 11800, 12100, 12400, 11600, 11500, 11500, 12800, 12500, 12100, 11700, 12700, 27200, 12700, 12800, 11600, 11400, 14300, 12500, 11500, 14200, 14900, 14600, 12100, 13300, 11900, 12100, 13700, 13300, 34800, 17500, 15300, 14300, 25100, 14100, 11800, 11900, 16100, 13500, 13800, 14400, 12800, 15100, 13500, 13200, 11700, 11600, 12800, 13000, 18300, 171700, 13800, 12700, 11400, 11900, 11400, 11800, 12100, 12000, 12100, 11500, 40600, 15000, 12500, 13000, 12500, 12300, 12700, 24300, 15700, 12700, 12400, 12400, 13100, 14600, 12600, 12600, 12600, 30300, 12800, 13100, 15000, 13300, 13400, 14500, 11700, 11500, 12100, 10900, 12900, 12300, 12900, 12800, 10900, 12200, 12200, 11100, 43300, 13200, 11800, 11200, 11500, 13800, 12500, 11800, 11300, 12200, 13000, 11500, 11400, 12600, 11800, 11500, 14100, 12100, 11100, 10900, 12000, 11700, 12300, 11200, 11700, 11900, 11500, 11600, 11600, 12100, 11600, 13500, 12900, 12500, 12900, 14200, 11100, 12600, 11700, 10900, 12900, 11800, 13500, 12300, 11100, 13000, 13400, 12600, 12300, 11400, 26700, 13500, 14000, 14600, 11600, 12800, 11700, 20300, 12800, 13000, 12600, 11500, 11900, 11100, 11500, 12100, 30000, 16100, 14100, 12500, 12400, 12200, 12100, 12200, 12200, 12600, 12300, 12500, 12300, 13300, 12300, 10700, 11500, 11400, 12100, 12500, 12500, 12000, 10800, 10500, 12500, 11900, 11700, 12500, 11200, 12000, 10800, 13500, 11500, 11400, 12300, 11300, 11800, 11300, 10900, 12100, 11500, 12000, 10700, 10700, 11900, 10800, 12300, 11400, 11600, 12900, 11400, 13000, 11100, 11600, 12000, 11600, 11400, 11100, 11000, 11800, 10900, 12000, 12500, 23800, 12100, 12500, 12300, 12000, 12400, 12600, 11100, 11300, 11600, 12400, 12000, 11800, 13300, 13200, 11400, 14900, 14700, 12400, 12400, 11200, 11900, 11500, 13300, 11600, 12100, 12200, 11200, 11800, 11100, 11300, 11800, 11500, 12700, 10900, 11800, 12300, 12100, 13400, 12700, 11500, 12800, 11900, 12000, 13200, 11500, 12900, 12200, 21400, 12100, 13100, 14900, 11600, 11400, 11700, 12000, 11600, 11100, 12800, 12100, 11000, 12500, 11500, 12100, 15500, 12100, 11700, 11000, 11300, 11000, 21400, 18000, 213600, 22900, 11600, 12000, 11700, 11700, 16100, 11500, 12000, 33900, 13500, 13600, 11400, 12000, 11700, 11600, 12500, 11300, 11700, 12200, 11100, 11300, 10700, 11600, 12800, 11000, 11500, 11200, 10900, 11900, 12900, 14800, 13400, 11300, 11800, 11200, 11900, 11500, 10800, 15300, 11600, 12600, 14300, 11000, 13300, 12200, 12500, 11900, 11000, 77000, 12400, 12200, 13000, 11000, 12200, 10500, 11400, 10900, 10700, 10700, 10600, 13100, 10800, 10800, 11500, 11200, 11500, 10900, 10900, 11800, 11800, 12800, 11000, 10300, 11000, 10700, 11500, 10400, 10700, 11900, 9900, 10500, 11100, 10600, 10700, 12300, 11900, 10500, 10200, 11200, 10500, 11300, 10500, 10400, 10800, 10000, 11100, 10600, 10000, 11800, 10200, 11500, 10000, 11000, 11900, 11900, 12600, 10400, 10200, 11400, 10300, 10900, 10500, 12300, 11200, 10900, 10600, 10000, 18800, 11700, 11500, 11200, 10000, 11400, 11100, 10400, 10800, 10400, 10200, 10800, 12300, 13100, 10600, 10300, 11900, 10400, 11200, 10400, 10200, 12000, 10600, 13600, 11400, 10200, 12200, 12100, 11500, 11600, 10800, 11600, 11200, 11100, 11800, 10800, 11800, 12200, 12000, 12300, 10700, 11500, 12100, 11300, 11200, 10500, 13200, 12000, 12500, 11800, 10000, 11400, 12600, 10900, 11200, 11300, 11500, 11100, 81100, 22200, 12700, 13400, 10600, 11500, 11200, 11400, 11300, 10800, 11600, 10500, 9900, 16500, 10200, 10900, 11300, 10900, 12000, 9900, 10900, 10500, 10900, 13200, 10000, 11000, 10500, 10900, 12800, 11700, 10700, 11100, 10600, 11800, 10100, 11000, 10400, 12800, 11900, 11300, 10800, 10500, 10100, 11200, 13100, 11600, 10400, 11100, 11100, 11200, 10600, 11000, 10300, 11100, 11900, 13500, 13000, 11400, 450600, 75700, 19600, 11700, 11400, 138300, 31800, 16100, 18700, 12900, 40200, 12700, 12000, 11000, 11800, 12600, 10700, 11600, 11400, 10800, 14000, 11300, 11700, 82200, 38400, 17200, 29700, 11000, 15000, 10800, 11400, 11000, 10700, 10200, 11200, 12800, 12200, 12300, 13400, 10900, 11300, 11000, 12900, 10700, 11600, 12300, 12900, 10600, 10700, 12100, 12100, 9700, 11300, 10700, 9700, 11100, 9300, 10000, 10800, 10400, 10300, 10700, 10600, 9900, 15000, 12400, 11400, 10900, 10300, 9800, 10500, 10300, 49200, 12400, 9800, 13200, 10100, 11700, 9800, 22500, 12100, 10900, 10800, 10900, 10200, 11700, 11500, 14200, 11500, 11300, 10900, 10300, 10600, 10900, 10400, 12300, 12500, 12100, 11700, 11900, 12900, 11500, 11200, 10300, 9700, 12600, 11400, 11500, 11300, 9700, 12100, 12600, 12900, 11100, 11000, 11300, 12000, 12200, 10600, 10800, 12500, 10700, 12800, 10200, 10200, 30200, 10700, 14200, 11900, 11900, 16800, 10700, 11100, 10500, 9500, 11500, 10700, 11000, 10700, 10200, 10800, 10900, 10900, 10200, 10400, 11400, 17200, 10500, 10700, 11000, 10800, 10000, 10800, 9700, 10100, 11400, 10900, 10300, 10100, 10300, 10500, 9400, 10100, 10400, 9800, 11000, 12100, 11200, 9800, 9600, 10100, 10100, 10500, 9800, 10800, 10600, 10600, 10700, 10100, 10600, 10500, 58200, 21200, 10200, 11500, 11400, 11100, 10400, 9800, 10300, 10600, 9100, 10500, 10500, 11400 ],
+      "samples" : 1000
+    },
+    "impact" : {
+      "operationsPerSecond" : 199.07168890032003,
+      "p50Us" : 3804.3,
+      "p95Us" : 8710.7,
+      "p99Us" : 29909.9,
+      "rawNanoseconds" : [ 3957500, 3797700, 3539300, 4224800, 3500000, 3484200, 3476600, 3655100, 3429000, 3423900, 3424600, 3260700, 4915800, 3655300, 3416000, 3303100, 3446200, 3239700, 3169000, 3610500, 3876200, 3834700, 3537700, 3311200, 3547400, 3540100, 3401800, 3404700, 3453400, 4369800, 3919500, 3772500, 3808800, 5261000, 3663200, 3822800, 3735900, 3599200, 3576600, 3587400, 3707300, 3565100, 3583100, 3600100, 3654000, 3769800, 3801100, 3673700, 3705000, 3530500, 4080200, 3771400, 4535000, 4041400, 4263100, 4279100, 4045800, 4292300, 4180100, 4272100, 3739800, 3757500, 3653900, 3467000, 3406400, 3319500, 3959000, 3300200, 3273100, 3426800, 3642700, 3430400, 3308400, 3407000, 3243000, 3399700, 3436900, 3188200, 3141400, 3261200, 3483300, 3373700, 3200900, 3066000, 3234300, 4239100, 4007100, 3237100, 3058900, 3057900, 3264300, 3150100, 2999200, 2976900, 2974100, 3123400, 2983700, 3031100, 3115600, 3097700, 63196400, 4702900, 13583600, 29909900, 28683100, 13523200, 8710700, 6578900, 5228800, 7909600, 9119400, 4844500, 5570900, 5331200, 5354600, 8832000, 7599400, 6962300, 7277200, 15165400, 6126500, 6461800, 7277300, 5119300, 5478600, 6139800, 10726300, 4928900, 31313900, 6747900, 5353300, 5954700, 5725200, 5339300, 5566900, 8703100, 7025400, 6844700, 3822500, 3855700, 4243200, 3878700, 4340100, 4206600, 3938600, 4066300, 4025600, 3804300, 3886000, 3772300, 4023600, 4119700, 4468900, 4132700, 4032600, 3746500, 4047100, 3840700, 3654700, 3836000, 4092600, 4687500, 3770400, 3784000, 3786100, 3588500, 3422500, 4875800, 3852100, 3456800, 3406800, 3995500, 4149900, 4133400, 4526300, 4459100, 5110800, 4751800, 4795600, 4981800, 4678100, 4754100, 4792400, 4758900, 4687900, 4555500, 4796000, 4520400, 3242300, 3070200, 3056000, 3079300, 3063200, 2979700, 3488600, 3852900, 3251600, 3071400, 3031100, 2907400 ],
+      "samples" : 200
+    },
+    "symbolSearch" : {
+      "operationsPerSecond" : 2.3299889758901595,
+      "p50Us" : 239736.6,
+      "p95Us" : 2021349.6,
+      "p99Us" : 2021349.6,
+      "rawNanoseconds" : [ 2021349600, 216387300, 194935800, 270388000, 217194300, 239736600, 194334500, 304287700, 281625700, 351626300 ],
+      "samples" : 10
+    }
+  }
+}

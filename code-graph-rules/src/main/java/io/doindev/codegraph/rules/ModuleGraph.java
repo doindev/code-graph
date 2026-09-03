@@ -36,6 +36,8 @@ public final class ModuleGraph {
     private final Map<String, Map<String, ModuleEdgeBuilder>> edges = new TreeMap<>();
     private final Map<String, String> moduleByPath = new HashMap<>();
     private int unassigned;
+    private int limit = Integer.MAX_VALUE;
+    private int edgePairs;
 
     private ModuleGraph() {
     }
@@ -44,10 +46,11 @@ public final class ModuleGraph {
         CodeGraphConfig effective = config.withDefaults();
         CodeGraphConfig.Architecture architecture = effective.architecture();
         ModuleGraph result = new ModuleGraph();
-        for (Node node : graph.allNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION, NodeKind.VARIABLE, NodeKind.FILE))) {
+        result.limit = graph.materializationLimit();
+        graph.scanNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION, NodeKind.VARIABLE, NodeKind.FILE), node -> {
             String fromPath = node.relPath();
             if (fromPath == null) {
-                continue;
+                return;
             }
             String fromModule = result.moduleOf(fromPath, architecture);
             for (Edge edge : graph.edges(node.id(), Direction.OUT, BlastScore.IMPACT_KINDS)) {
@@ -63,16 +66,20 @@ public final class ModuleGraph {
                     continue;
                 }
                 result.edges.computeIfAbsent(fromModule, k -> new TreeMap<>())
-                        .computeIfAbsent(toModule, k -> new ModuleEdgeBuilder())
+                        .computeIfAbsent(toModule, k -> {
+                            if (++result.edgePairs > result.limit) throw new IllegalArgumentException("module projection exceeds hybrid query bound");
+                            return new ModuleEdgeBuilder();
+                        })
                         .add(node.id().value() + " -> " + edge.to().value());
             }
-        }
+        });
         return result;
     }
 
     /** First-match-wins blueprint glob; falls back to the top-level directory. */
     public String moduleOf(String relPath, CodeGraphConfig.Architecture architecture) {
         return moduleByPath.computeIfAbsent(relPath, path -> {
+            if (moduleByPath.size() >= limit) throw new IllegalArgumentException("file projection exceeds hybrid query bound; use a scoped query");
             if (architecture != null) {
                 for (CodeGraphConfig.ArchModule module : architecture.modules()) {
                     if (Globs.matchesAny(module.paths(), path)) {

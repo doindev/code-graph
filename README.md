@@ -12,11 +12,11 @@ large text codebases into a queryable **code property graph** so AI agents can a
 - **Unified code property graph**: files, types, functions and variables connected by
   CONTAINS / IMPORTS / CALLS / REFERENCES / EXTENDS / IMPLEMENTS / READS / WRITES edges, every
   cross-file edge carrying a resolution **confidence** score.
-- **Sub-5ms queries**: the in-memory graph is the sole query engine (lock-free reads via
-  generation-swapped immutable state); H2, Neo4j and ArangoDB act as write-through mirrors for
-  durability and org-wide analytics.
+- **Fast in-memory queries by default**: lock-free reads via generation-swapped immutable state.
+  Opt-in [hybrid graph storage](docs/hybrid-graph-storage.md) pages graph records from session-only
+  disk storage using a shared bounded cache. H2 SQL, Neo4j and ArangoDB remain separate mirrors.
 - **Incremental background indexing**: a file watcher re-parses only changed files and patches
-  the graph atomically — agents never query stale maps.
+  the graph atomically. Hybrid mode uses bounded staged rebuilds instead of incremental deltas.
 - **Blast score + risk gating**: an auditable weighted formula (transitive reach, fan-in, module
   spread, cross-language reach, test coverage proxy); high-score targets get a mandatory risk
   report attached, and CI can fail the build on it.
@@ -44,6 +44,7 @@ large text codebases into a queryable **code property graph** so AI agents can a
 | `code-graph-parsers` | `LanguageAnalyzer` SPI + tree-sitter walk infrastructure (grammar ABI gate lives here) |
 | `code-graph-lang-*` | One analyzer per language: java, javascript (JS/TS/TSX), python, go, rust, c (C/C++), csharp, php, ruby, kotlin |
 | `code-graph-index` | Two-pass pipeline, confidence-laddered resolution, incremental indexer + file watcher |
+| `code-graph-storage` | Opt-in MVStore graph paging, shared record cache, session cleanup and memory telemetry |
 | `code-graph-analysis` | Blast-score formula, dead code, Tarjan SCC |
 | `code-graph-rules` | Golden-blueprint architecture rules, module graph, drift fingerprints |
 | `code-graph-smells` | Smell detectors (god class, long method, hubs, cycles, unstable dependencies) |
@@ -51,7 +52,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
 | `code-graph-mcp` | stdio MCP server (bundles all languages; the only module importing the MCP SDK) |
 | `code-graph-mcp-http` | Streamable-HTTP MCP server on embedded Jetty 12 (Docker-ready) |
 | `code-graph-viz` | Embedded 3D visualization: drill-down, ego networks, galaxy view (vendored WebGL, no CDN) |
-| `code-graph-store-h2` / `-neo4j` / `-arangodb` | Durable write-through mirrors of the graph |
+| `code-graph-store-h2` / `-neo4j` | Durable graph-mirror adapters for custom integrations |
+| `code-graph-store-arangodb` | ArangoDB dependency scaffolding; no standard-server configuration |
 | `code-graph-linker` | Cross-language HTTP-route linking (`INVOKES_REMOTE` edges) |
 | `code-graph-cli` | Headless CI runner: diff-scoped risk reports, GitHub/GitLab posting, gating exit codes |
 
@@ -59,11 +61,12 @@ large text codebases into a queryable **code property graph** so AI agents can a
 
 | Guide | Topic |
 |---|---|
+| [docs/hybrid-graph-storage.md](docs/hybrid-graph-storage.md) | Disk paging, shared cache budget, admin settings and memory limits |
 | [docs/guides/mcp-server.md](docs/guides/mcp-server.md) | Registering with Claude Code, tool reference, worked session |
 | [docs/guides/configuration.md](docs/guides/configuration.md) | Full `code-graph.json` / `.yaml` reference |
 | [docs/guides/blast-score.md](docs/guides/blast-score.md) | The risk formula, worked example, threshold gating |
 | [docs/guides/indexing.md](docs/guides/indexing.md) | Two-pass extraction, confidence ladder, incremental watching |
-| [docs/guides/smells.md](docs/guides/smells.md) | All 13 smell detectors, thresholds, honest limits |
+| [docs/guides/smells.md](docs/guides/smells.md) | Smell detector descriptions and limitations; current threshold catalog below |
 | [docs/guides/architecture-drift.md](docs/guides/architecture-drift.md) | Blueprint rules, cycle detection, baseline diffs |
 | [docs/guides/ci.md](docs/guides/ci.md) | The `ci` pipeline, exit codes, GitHub Actions / GitLab examples |
 | [docs/guides/visualization.md](docs/guides/visualization.md) | 3D graph UI and multi-project workspaces |
@@ -86,113 +89,512 @@ Known limitation: the Kotlin grammar (0.3.8.1) reports errors on expression-body
 
 ## Run
 
-### MCP transports
+Quick navigation: [server arguments](#server-startup-argument-reference),
+[workspace files](#workspace-file-and-project-onboarding),
+[configuration precedence](#configuration-scopes-and-precedence),
+[environment variables](#environment-variables), [TTL](#project-idle-timeout),
+[graph memory](#graph-memory-and-disk-storage), [disk location](#disk-location-and-cleanup),
+[admin settings](#admin-ui-and-settings-api), [project JSON/YAML](#per-project-jsonyaml-reference),
+[smell thresholds](#smell-detector-settings), [CLI](#headless-cli-configuration),
+[containers](#container-and-embedded-deployments).
 
-| Transport | Module / entry point | Notes |
-|---|---|---|
-| stdio | `code-graph-mcp` — `io.doindev.codegraph.mcp.Main` | For local agent hosts (Claude Code, IDEs); stdout belongs to the protocol, logs go to stderr. `--viz` binds to localhost only, with viz admin actions (add/remove/reindex projects) **on** by default — pass `--viz-readonly` to disable. |
-| Streamable HTTP | `code-graph-mcp-http` — `io.doindev.codegraph.mcp.http.HttpMain` | Team deployment on embedded Jetty 12; MCP mounted at `/mcp`, binds `0.0.0.0`. Port from `--port` or `CODE_GRAPH_PORT` (default 3000). The workspace starts empty unless roots are supplied with `--root`, `CODE_GRAPH_ROOT`, or `--workspace`. Viz admin actions are **off** by default — pass `--viz-admin` to enable. |
-| Custom (embedded) | `CodeGraphMcpServer.serve(...)` | Overloads accept any MCP SDK `McpServerTransportProvider` or `McpStreamableServerTransportProvider`, so the tool set can be embedded behind another transport programmatically. |
+Build the HTTP runtime (including its `target/lib` dependencies) from the repository root:
 
-Both entry points take the same workspace flags: repeated `--root DIR` or `--workspace FILE`,
-plus `--viz PORT` for the 3D UI.
+~~~powershell
+mvn -pl code-graph-mcp-http -am package
+~~~
 
-With no workspace flags or `CODE_GRAPH_ROOT`, the server starts with no projects. MCP agents
-can use `add_project` with a server-side directory path to index and watch a project, and
-`remove_project` to stop watching it. The admin UI offers the same operations. Projects remain
-session-local; MCP onboarding does not require a UI or `--viz-admin`.
+Stop a running server before rebuilding on Windows: Java can lock the runtime JARs.
+These examples use PowerShell backticks for line continuation and `;` as the Java classpath
+separator. On Linux/macOS use your shell's continuation syntax and `:` instead.
 
-Onboarding rejects duplicate roots and child paths of existing or in-flight projects, using
-real filesystem paths so relative segments, symlinks and Windows case aliases cannot bypass
-the check. Siblings are allowed. The rule is directional: adding a parent of an existing
-project is allowed. `add_project` returns the assigned name and `state: "ready"` after the
-initial scan completes; allow sufficient MCP client timeout for large repositories.
+### HTTP server with admin UI
 
-The HTTP MCP endpoint can onboard any directory accessible to the server account. Restrict
-access to trusted clients; disabling UI admin actions does not disable MCP project management.
-
-### Project idle timeout
-
-Every onboarded project expires after **one hour of inactivity** by default, including projects
-supplied at startup. Use `--project-ttl 30m` (both HTTP and stdio), or **Idle timeout** in the
-admin UI. Durations are positive whole numbers with `s`, `m`, `h`, or `d` units. For example:
-
-```powershell
-java --enable-native-access=ALL-UNNAMED `
+~~~powershell
+java -Xmx1g --enable-native-access=ALL-UNNAMED `
   -cp "code-graph-mcp-http\target\classes;code-graph-mcp-http\target\lib\*" `
-  io.doindev.codegraph.mcp.http.HttpMain --port 3000 --viz 8137 --viz-admin --project-ttl 1h
-```
+  io.doindev.codegraph.mcp.http.HttpMain `
+  --port 3000 --viz 8137 --viz-admin --project-ttl 1h
+~~~
 
-Project-specific MCP calls (including `index_status` and `reindex`), UI queries, job status
-requests, and active graph interaction renew only the relevant project's timer. `list_projects`,
-UI roster/countdown refreshes, directory browsing, settings, an idle browser tab, and automatic
-file-watcher work **do not** renew it. Initial onboarding starts the timer when ready; active
-requests and explicit reindex jobs are protected until they finish.
+UI: [http://localhost:8137/](http://localhost:8137/). MCP:
+[http://localhost:3000/mcp](http://localhost:3000/mcp).
 
-An expiry check runs every five seconds. Expiry stops the watcher and drops the project's graph
-and routes; source files and disk caches are untouched. Memory becomes eligible for normal JVM
-garbage collection. Projects must be explicitly onboarded again after expiry.
+This starts with **no onboarded projects**, provided `CODE_GRAPH_ROOT` is unset or blank.
+The current working directory is not automatically onboarded. Add projects through the admin
+UI or MCP `add_project`, or supply explicit startup roots.
 
-UI settings changes affect existing and future projects, recalculating deadlines from last
-activity. A shorter value can expire idle projects on the next check. Changes are session-local:
-restart uses the command-line value or the one-hour default. The setting remains available in
-admin mode even with no projects onboarded.
+For disk paging, append `--graph-storage hybrid --graph-memory 1g`. The
+[hybrid configuration](#graph-memory-and-disk-storage) below explains why this is distinct
+from `-Xmx1g`.
 
-### Commands
+### Local stdio server
 
-Neither server module builds a fat jar, so install the modules and generate a runtime
-classpath first:
+After the same HTTP-runtime build, its dependency directory also contains the stdio server:
 
-```
-mvn -DskipTests install
-mvn -pl code-graph-mcp-http dependency:build-classpath -Dmdep.outputFile=cp.txt
-```
+~~~powershell
+java -Xmx1g --enable-native-access=ALL-UNNAMED `
+  -cp "code-graph-mcp-http\target\lib\*" `
+  io.doindev.codegraph.mcp.Main --viz 8137 --viz-readonly
+~~~
 
-**Team server + 3D UI** (streamable-HTTP MCP on `--port`, visualization on `--viz`):
+Configure your MCP client to launch that command for stdio; stdout is reserved for the
+protocol and logs go to stderr. Omit `--viz-readonly` to enable stdio UI administration.
+Omit `--viz` entirely if a UI is not needed. Client-side request timeouts must allow enough
+time for initial onboarding and large queries.
 
-```
-# Windows (classpath separator is ';'; on Linux/macOS use ':')
-java --enable-native-access=ALL-UNNAMED ^
-    -cp "code-graph-mcp-http\target\code-graph-mcp-http-0.0.1-SNAPSHOT.jar;<contents of cp.txt>" ^
-    io.doindev.codegraph.mcp.http.HttpMain --root C:\repos\acme --port 8136 --viz 8137
-```
+### Server startup argument reference
 
-Then open <http://localhost:8137/> for the 3D visualization (MCP endpoint is
-`http://localhost:8136/mcp`). Repeat `--root` (or pass `--workspace FILE`) to serve several
-projects from one server.
+These are application arguments, placed **after the main class**. Use `--flag value`,
+not `--flag=value`, for these server entry points. Only `--root` is intended to repeat;
+scalar arguments use the first matching value. Unknown server arguments are not uniformly
+rejected, so verify startup logs and `/api/server` rather than relying on typo detection.
 
-**Local stdio server** (for a single agent, e.g. Claude Code — swap the module and main class;
-generate its classpath with `-pl code-graph-mcp`):
+| Argument | Applies to | Default | Meaning |
+|---|---|---|---|
+| `--root DIR` | HTTP, stdio | None | Onboard and watch a directory at startup. Repeat for multiple projects. Relative paths resolve from the process working directory. |
+| `--workspace FILE` | HTTP, stdio | None | Load named startup projects from a workspace JSON file. Takes precedence over all `--root` values and `CODE_GRAPH_ROOT`. |
+| `--port N` | HTTP only | `CODE_GRAPH_PORT`, otherwise `3000` | MCP HTTP listener port; endpoint is `/mcp`. |
+| `--viz N` | HTTP, stdio | Disabled | Enable the separate UI/API listener on this port. |
+| `--viz-admin` | HTTP only | Off | Enable UI onboarding, removal, reindexing, browsing, TTL and RAM settings. |
+| `--viz-readonly` | stdio only | Off | Disable UI admin actions; stdio UI administration is otherwise on. |
+| `--project-ttl DURATION` | HTTP, stdio | `1h` | Shared idle-expiry policy for every onboarded project; live admin changes are possible. |
+| `--graph-storage MODE` | HTTP, stdio | `memory` | `memory` keeps the graph in Java heap; `hybrid` stores records on disk with a shared cache. Selected for the whole server session. |
+| `--graph-memory SIZE` | HTTP, stdio | `1g` | Shared graph/cache allowance in hybrid mode, **not per project**. Accepted but does not bound the pure in-memory backend. |
 
-```
-claude mcp add code-graph -- java --enable-native-access=ALL-UNNAMED ^
-    -cp "code-graph-mcp\target\code-graph-mcp-0.0.1-SNAPSHOT.jar;<contents of cp.txt>" ^
-    io.doindev.codegraph.mcp.Main --root C:\repos\acme
-```
+For listener ports, use `1–65535`; `0` requests an OS-assigned port, reported in startup logs.
+MCP and UI need separate available ports. HTTP MCP and HTTP UI bind to `0.0.0.0`; the stdio
+UI binds to loopback. There is no server argument for a custom bind address, TLS certificate,
+authentication, or per-project access policy. The HTTP UI uses JDK `HttpServer`; the MCP HTTP
+transport uses embedded Jetty 12.
 
-The stdio server also accepts `--viz PORT` (bound to localhost). See
-[docs/guides/mcp-server.md](docs/guides/mcp-server.md) and
-[docs/guides/visualization.md](docs/guides/visualization.md) for details.
+**Security:** expose HTTP only to trusted clients or protect it with network controls and an
+authenticated reverse proxy. MCP `add_project` can access directories readable by the server
+account. Read-only UI mode does **not** disable MCP project management. Neither `--viz-admin`
+nor the absence of that flag is an authentication mechanism.
+
+### Workspace file and project onboarding
+
+A workspace file uses ordinary JSON (unlike `code-graph.json`, comments/trailing commas are
+not enabled):
+
+~~~json
+{
+  "projects": [
+    { "name": "api", "root": "C:/repos/api" },
+    { "name": "web", "root": "C:/repos/web" }
+  ]
+}
+~~~
+
+Run with `--workspace C:\config\workspace.json`. `projects` must be an array; each entry
+requires `root`. `name` is optional and defaults to the root's final path component.
+Workspace names must be unique. Relative roots resolve from the **process working
+directory**, not the workspace file's directory. `{"projects":[]}` explicitly starts empty,
+even if `CODE_GRAPH_ROOT` is set.
+
+With repeated `--root` or runtime onboarding, names default to directory names and receive
+numeric suffixes when needed. The first registered project is the default for MCP requests
+that omit `project`. Projects are isolated for queries and share server-wide TTL/storage policy.
+
+Roots must exist and be directories. Real-path validation rejects duplicate roots and child
+paths of existing or in-flight projects, including symlink aliases. Siblings are allowed.
+The rule is directional: adding a parent of an existing project is currently allowed.
+Hybrid mode additionally rejects project roots overlapping its session-storage directory.
+
+MCP `add_project` takes a **server-side** directory path and returns its assigned name after
+indexing completes. The UI provides a server-side directory browser and asynchronous progress.
+Removal stops monitoring and releases the graph, without deleting source files. There is no
+automatic restoration or persistence of the runtime project roster.
 
 ## Configuration
 
-One file at the repo root — `code-graph.json` (canonical; Java-style comments and trailing
-commas allowed) or `code-graph.yaml`. Having both is an error. Sections: `paths`, `tests`,
-`limits`, `scoring`, `gating`, `deadCode`, `smells`, `architecture`. Precedence:
-CLI flags > `CODE_GRAPH_*` env vars > file > built-in defaults.
+### Configuration scopes and precedence
 
-```jsonc
+| Scope | Where to configure | When it takes effect |
+|---|---|---|
+| Server listeners, startup roots, backend | Server arguments; root/HTTP-port environment fallbacks below | Startup; restart to change listeners or backend. |
+| Project idle expiry and hybrid allowance | Startup arguments; admin **TTL** / **RAM** controls | Admin changes apply immediately to existing and future projects, session-only. |
+| Parsing filters, scoring, analysis rules, response limits | Each project's `code-graph.json` or `code-graph.yaml`; three explicit environment overrides | Loaded when a project is opened/onboarded. Remove/re-add the project or restart to reload. Reindexing alone does not reload configuration. |
+| JVM heap and temporary directory | JVM arguments **before** `-cp` / `-jar` | JVM startup; independent of project configuration. |
+| CI report/gating/publication | Headless CLI arguments and CI environment variables | That CLI invocation only. |
+| Visualization filters/layout | UI controls | Browser-page state, not saved server configuration. |
+
+There is **not** a generic mapping from every JSON property to an environment variable or
+CLI flag. Precedence is specific:
+
+- Startup roots: `--workspace` > repeated `--root` > nonblank `CODE_GRAPH_ROOT` > empty workspace.
+- HTTP port: `--port` > `CODE_GRAPH_PORT` > `3000`.
+- Project settings: the three supported environment overrides > project file > defaults.
+  CLI `ci --threshold` and `ci --fail-on` override their respective loaded CI settings.
+- TTL/cache budget: latest successful admin update > startup argument > default, for this
+  session only. No corresponding project-file fields or dedicated environment variables exist.
+
+### Environment variables
+
+| Variable | Default / requirement | Effect |
+|---|---|---|
+| `CODE_GRAPH_ROOT` | Unset/blank means no startup root | One server-side root; used only without `--workspace` or `--root`. Not a list. The headless CLI instead defaults `--root` to `.`. |
+| `CODE_GRAPH_PORT` | `3000` | HTTP MCP port fallback. Not used by stdio or the UI port. |
+| `CODE_GRAPH_GATING_THRESHOLD` | Loaded `gating.threshold` | Integer `0–100`; overrides each project's risk threshold. |
+| `CODE_GRAPH_LIMITS_MAX_RESULTS` | Loaded `limits.maxResults` | Integer `>=1`; overrides the configured result cap. |
+| `CODE_GRAPH_LIMITS_MAX_RESPONSE_BYTES` | Loaded `limits.maxResponseBytes` | Integer `>=1024`; overrides the configured response-byte cap. |
+
+The three project-setting overrides ignore blank values and reject non-integers. They apply
+process-wide whenever project configuration is loaded. There is no built-in `.env` loader.
+
+### Project idle timeout
+
+`--project-ttl` accepts positive whole-number durations with lowercase `s`, `m`, `h` or `d`:
+`90s`, `10m`, `1h`, `2d`. Default: `1h`. Zero, fractional durations, unitless values,
+`never` and overflowing durations are not supported.
+
+Project-specific MCP calls (including `index_status` and `reindex`), UI queries, relevant job
+polling and active graph interaction renew the relevant project's timer. `list_projects`,
+UI roster/countdown refreshes, browsing, settings, an idle browser tab and automatic
+file-watcher indexing do **not** renew it. The timer starts when onboarding is ready; active
+requests and explicit reindex jobs are protected until completion.
+
+Expiry checks run every five seconds. Expiry stops monitoring, removes routing and releases
+the graph; hybrid mode also closes/deletes that project's owned disk store. Source files,
+CLI snapshots and independent database mirrors are not deleted. Onboard the project again
+to use it after expiry.
+
+Admin **TTL** changes recalculate deadlines from last activity for existing and future projects.
+Shortening the timeout may expire idle projects on the next sweep. It is available even with
+zero projects; changes are not written to disk and reset to the startup value on restart.
+
+### Graph memory and disk storage
+
+| Setting | Default | Valid values / behavior |
+|---|---|---|
+| `--graph-storage` | `memory` | `memory` or `hybrid`; server-wide, restart required to switch. |
+| `--graph-memory` / admin **RAM** | `1g` = 1 GiB | Positive whole MiB/GiB sizes such as `32m`, `256MiB`, `1g`, `2GiB`; suffixes are case-insensitive. Minimum 32 MiB. No bare bytes, fractional sizes, `MB` or `GB` suffixes. |
+| JVM `-Xmx` | JVM/environment-selected | Maximum Java heap, e.g. `-Xmx1g`. Not a graph-cache setting or a total-process RAM limit. |
+| JVM `-Djava.io.tmpdir=PATH` | JVM temporary directory | Writable existing parent directory for temporary session storage; affects the whole JVM, not just graphs. |
+
+Hybrid mode uses **MVStore directly**, without H2 SQL/JDBC, and stores graph records on disk
+from the outset. A single shared cache retains hot node, adjacency and repeated search results;
+it evicts older cached entries as needed. Streaming scans bypass that cache. Pure memory mode
+does not evict graphs to disk when heap fills.
+
+Effective cache capacity is:
+
+~~~text
+max(0, min(configured allowance, JVM maximum heap / 2)
+       - 16 MiB temporary reserve
+       - 1 MiB per active or staged store)
+~~~
+
+For example, `--graph-memory 1g -Xmx1g` with one active store gives a **495 MiB effective
+cache**, not 1 GiB of cache. Each staged rebuild temporarily reserves another store.
+New stores or budget reductions that cannot reserve metadata are rejected. **RAM** shows
+requested allowance, effective capacity, estimated use, disk bytes and cache hits/misses.
+Shrinking the budget evicts cache entries immediately without removing projects or changing
+their published generation. Increasing it allows on-demand cache growth.
+
+This is **not a hard limit on total application RAM**. Cache weights, dirty-memory accounting
+and reserves are estimates; parsing, decoded query results, engine metadata, JVM/native
+allocations and OS file cache need additional memory. Use an OS/container memory limit if a
+process-wide ceiling is required, with headroom for those allocations.
+
+Hybrid indexing is serialized across projects and stages file fragments/name indexes on disk
+rather than retaining a second complete Java graph. Changes currently trigger a bounded full
+rebuild, then an atomic generation swap; readers continue using the previous generation.
+Rebuilds may be slower and temporarily require space for two disk generations.
+
+Safety bounds are currently fixed in code, not configuration options: source files up to
+2 MiB in full/hybrid scans; serialized records up to 8 MiB; 32K-character storage keys;
+20,000 materialized results with additional byte bounds; resolver candidate sets up to
+10,000 / 8 MiB; up to four concurrent compound graph reads. Some whole-graph analyses still
+materialize nodes and can fail these bounds. Exceeding a bound reports an error rather than
+silently returning a complete-looking partial answer. `limits.maxResults` cannot raise these
+storage safety bounds. See [hybrid storage details and measurements](docs/hybrid-graph-storage.md).
+
+### Disk location and cleanup
+
+By default, hybrid storage creates:
+
+~~~text
+<JVM temporary directory>/code-graph-session-<unique-id>/<unique-id>.mv
+~~~
+
+On this Windows setup the parent is normally `%TEMP%` (for example,
+`C:\Users\<user>\AppData\Local\Temp`). To choose a disk, create a writable directory **outside
+the projects you will onboard**, then set `java.io.tmpdir`:
+
+~~~powershell
+New-Item -ItemType Directory -Force -Path "D:\CodeGraphTemp"
+java "-Djava.io.tmpdir=D:\CodeGraphTemp" -Xmx1g --enable-native-access=ALL-UNNAMED `
+  -cp "code-graph-mcp-http\target\classes;code-graph-mcp-http\target\lib\*" `
+  io.doindev.codegraph.mcp.http.HttpMain `
+  --port 3000 --viz 8137 --viz-admin `
+  --graph-storage hybrid --graph-memory 1g --project-ttl 1h
+~~~
+
+There is **no dedicated graph-storage-directory flag or UI setting**, no disk quota argument,
+and no automatic project restoration. Use JVM temporary-directory configuration at startup.
+Normal removal/expiry/workspace shutdown/JVM shutdown closes stores and removes owned files.
+Forced termination or power loss can leave orphan session directories; they are neither
+restored nor automatically swept. Cleanup does not recursively delete unknown files, sources,
+or existing caches. Do not remove a session directory while its server is running.
+
+### Admin UI and settings API
+
+Admin controls are enabled by `--viz-admin` for HTTP, or by default for stdio unless
+`--viz-readonly` is supplied. All controls have descriptive tooltips.
+
+| Control | Purpose / availability |
+|---|---|
+| `+` | Onboard a project through the server-side directory browser; works with an empty workspace. |
+| `⟳` | Reindex the selected project; disabled when no project is selected or a reindex is active. |
+| `×` | Remove the selected project from this server; does not delete source files. |
+| **TTL** | Set the shared idle timeout, including with zero projects. |
+| **RAM** | View storage telemetry; adjust the shared allowance only in hybrid mode. Saving is disabled in memory mode. |
+
+`GET /api/server` returns listener/admin information, `projectTtlSeconds` and `graphStorage`
+telemetry. `PUT /api/settings` is admin-only and accepts exactly **one** of these string fields
+per request (maximum request body 1,024 bytes):
+
+~~~json
+{ "projectTtl": "10m" }
+~~~
+
+~~~json
+{ "graphMemory": "256m" }
+~~~
+
+Successful updates return refreshed server information. Invalid settings return HTTP 400;
+read-only UI mutation attempts return HTTP 403. These settings affect the running session,
+not `code-graph.json`, the workspace file or future restarts.
+
+Visualization controls are separate from server policy: 3D/2D renderer (default 3D);
+ego depth 1–4 (default 2); galaxy node-cap slider 100–5,000 (initially 1,500, may auto-tune
+downward); minimum edge confidence 0–1 (default 0, step 0.05); optional language filter.
+Effective galaxy requests are additionally capped at 2,500 nodes in 3D and 4,000 in 2D.
+Node dragging/pins, release pins, reset view and camera controls affect rendering only.
+These page-local choices do not alter the index or persist as server settings.
+
+### Per-project JSON/YAML reference
+
+Place exactly one `code-graph.json` or `code-graph.yaml` in each onboarded project's root.
+No file means built-in defaults. JSON accepts Java-style comments and trailing commas; YAML
+uses the same structure. Both files together are an error. Unknown record properties are
+rejected. Free-form map keys (such as smell IDs and threshold names) are not validated against
+the detector catalog: misspelled keys can have no effect.
+
+**Important defaulting rule:** omitted *sections* receive defaults, but supplied sections are
+not deep-merged with those defaults. In a supplied section, omitted lists/maps generally become
+empty and omitted primitive numbers/booleans become `0`/`false`. For example,
+`"limits":{"maxResults":50}` fails validation because `maxResponseBytes` is missing;
+`"tests":{}` disables the default test globs; `"smells":{"god-class":{}}` disables that detector.
+Supply complete scalar settings for each section you customize.
+
+| Property | Default when its section is absent | Meaning / constraints |
+|---|---|---|
+| `paths.include` | `["**"]` | Repo-relative globs to index. An empty include list also means all supported files. |
+| `paths.exclude` | `[]` | Exclude matching paths; exclusions and ignored directories override includes. |
+| `tests.globs` | See exact list below | Identify tests for blast scoring and dead-code exclusion. |
+| `limits.maxResults` | `50` | Configured result cap where a tool consults it; integer `>=1`. Tool-specific defaults/caps still apply. |
+| `limits.maxResponseBytes` | `32768` | Configured UTF-8 payload cap in capped analysis responses; integer `>=1024`. Oversized payloads return an error requesting a narrower query. Not an HTTP-body or heap limit. |
+| `scoring.weights` | `reach:0.40, fanin:0.25, spread:0.20, lang:0.05, untested:0.10` | Blast factors. Missing individual weight keys use the corresponding built-in factor weight. Use nonnegative weights totaling 1; they are not automatically normalized. |
+| `scoring.reachRef` | `1000` | Positive normalization reference for transitive dependents. Supply explicitly when customizing `scoring`. |
+| `scoring.faninRef` | `100` | Positive normalization reference for direct callers/references. Supply explicitly when customizing `scoring`. |
+| `gating.threshold` | `70` | Integer `0–100`; scores at/above this value trigger configured risk gating. |
+| `gating.attachRiskReport` | `true` | Attach risk reports to supported target-oriented MCP responses at/above threshold. |
+| `gating.failCiOn` | `["blast","drift"]` | CI gate categories. Use `[]` to disable both CI gates; smell findings do not form a CI failure category. |
+| `deadCode.entryPoints` | `[]` | Path globs for entry points that must not be reported as dead code. |
+| `deadCode.exclude` | `[]` | Additional path globs to exclude from dead-code analysis. |
+| `smells` | `{}` | Per-detector overrides; absent detector entries use enabled/default severity/default thresholds. |
+| `smells.<id>.enabled` | Enabled when the detector entry is absent | Explicit boolean required when creating an enabled override entry. |
+| `smells.<id>.severity` | Detector default; `warning` if an override entry omits severity | Reported severity; use `info`, `warning` or `error`. Embedded SQL can promote `info` for higher-risk findings. |
+| `smells.<id>.thresholds` | Detector defaults per missing key | Numeric map using the exact names in the detector table below. |
+| `architecture.modules` | No blueprint | Array of `{"name":"...","paths":["..."]}`. Names must be nonblank; path matching is first-match-wins. |
+| `architecture.allowedDependencies` | No layer restrictions | Map from module name to allowed target names. An empty map skips layer enforcement. With a nonempty map, a declared source module absent from it may depend on no other module. Undeclared fallback modules are not layer-governed. |
+| `architecture.forbidCycles` | Cycle checking on when the whole section is absent | Set `true` explicitly in a supplied architecture section to check module cycles; omitted in that section means `false`. |
+| `architecture.unassigned` | `ignore` without a blueprint; `warn` in a supplied section | Policy label (`warn`, `ignore`, `violation`). Currently controls/report-labels unassigned-file metadata; `violation` does not itself create a drift violation or fail CI. |
+
+Default `tests.globs`:
+
+~~~json
+[
+  "**/src/test/**", "**/*.test.ts", "**/*.test.js", "**/*.spec.ts",
+  "**/test_*.py", "**/*_test.py", "**/*_test.go", "**/*Tests.cs", "**/*Test.java"
+]
+~~~
+
+Globs match full repo-relative paths using `/` separators: `**` crosses directories, `*`
+and `?` do not, and `**/` can match zero directories. Layered `.gitignore` rules also apply.
+Full/hybrid scans skip unsupported extensions and files larger than 2 MiB. These directories
+are always ignored regardless of includes:
+
+~~~text
+.git .hg .svn node_modules target build dist out __pycache__ .venv venv
+.idea .vscode .code-graph vendor bin obj
+~~~
+
+### Smell detector settings
+
+Set overrides under `smells.<id>`. Threshold values below are built-in fallbacks, not mandatory
+configuration. Detectors require the relevant language/graph evidence; enabling one does not
+guarantee findings for every language.
+
+| Detector ID | Default severity | Threshold names and defaults |
+|---|---|---|
+| `god-class` | `warning` | `methodCount:25`, `fieldCount:15`, `loc:500` |
+| `long-method` | `warning` | `loc:75`, `cyclomatic:15`, `nesting:5` |
+| `long-parameter-list` | `info` | `paramCount:6` |
+| `large-file` | `info` | `loc:1000` |
+| `high-fan-out` | `info` | `fanOut:25` |
+| `hub` | `warning` | `minFanEach:10`, `fanProduct:400` |
+| `cyclic-files` | `warning` | No configurable numeric threshold |
+| `unstable-dependency` | `info` | `instabilityGap:0.5` |
+| `feature-envy` | `info` | `minForeignCalls:3` |
+| `data-clumps` | `info` | `minGroupSize:3`, `minOccurrences:3` |
+| `refused-bequest` | `info` | `minParentMethods:5`, `maxUsageRatio:0.2` |
+| `temporal-coupling` | `info` | `minCoChanges:5`, `minConfidence:0.6` |
+| `duplicated-logic` | `warning` | `minSharedShingles:8` |
+| `embedded-sql` | `info` | No configurable numeric threshold |
+
+The last three require a repo root. Normal server wiring supplies it; temporal coupling also
+requires Git history. Headless `ci` currently constructs the graph-only smell engine, so these
+three detectors are not included in its report. Unknown IDs/threshold keys do not activate
+new detectors. [Detector behavior and limitations](docs/guides/smells.md).
+
+### Complete project configuration example
+
+This example explicitly supplies all section fields; its filters, threshold and blueprint
+are illustrative overrides, not the defaults:
+
+~~~json
 {
-  // fail CI when a changed file's blast score reaches 80
-  "gating": { "threshold": 80, "attachRiskReport": true, "failCiOn": ["blast", "drift"] },
+  "paths": {
+    "include": ["**"],
+    "exclude": ["**/generated/**"]
+  },
+  "tests": {
+    "globs": ["**/src/test/**", "**/*.test.ts", "**/*.test.js", "**/*.spec.ts",
+              "**/test_*.py", "**/*_test.py", "**/*_test.go", "**/*Tests.cs", "**/*Test.java"]
+  },
   "limits": { "maxResults": 50, "maxResponseBytes": 32768 },
+  "scoring": {
+    "weights": { "reach": 0.40, "fanin": 0.25, "spread": 0.20, "lang": 0.05, "untested": 0.10 },
+    "reachRef": 1000,
+    "faninRef": 100
+  },
+  "gating": { "threshold": 80, "attachRiskReport": true, "failCiOn": ["blast", "drift"] },
+  "deadCode": { "entryPoints": ["**/Main.java", "**/*Application.java"], "exclude": ["**/api/**"] },
+  "smells": {
+    "god-class": {
+      "enabled": true,
+      "severity": "warning",
+      "thresholds": { "methodCount": 25, "fieldCount": 15, "loc": 500 }
+    }
+  },
   "architecture": {
     "modules": [
-      { "name": "api",    "paths": ["src/main/java/com/acme/api/**"] },
+      { "name": "api", "paths": ["src/main/java/com/acme/api/**"] },
       { "name": "domain", "paths": ["src/main/java/com/acme/domain/**"] }
     ],
-    "allowedDependencies": { "api": ["domain"] },
-    "forbidCycles": true
+    "allowedDependencies": { "api": ["domain"], "domain": [] },
+    "forbidCycles": true,
+    "unassigned": "warn"
   }
 }
-```
+~~~
+
+## Headless CLI configuration
+
+The separate `code-graph-cli` module produces
+`code-graph-cli/target/code-graph.jar`. Build it with
+`mvn -pl code-graph-cli -am package`, then use:
+
+~~~powershell
+java --enable-native-access=ALL-UNNAMED -jar "code-graph-cli\target\code-graph.jar" index --root C:\repos\api
+~~~
+
+The headless CLI supports `--flag value` and `--flag=value`; unknown flags are rejected.
+It uses the in-memory indexing path, not server hybrid/TTL/listener arguments.
+
+| Command | Arguments and defaults |
+|---|---|
+| `index` | `--root DIR` (default `.`); `--snapshot-out FILE` (optional binary graph snapshot; no snapshot written if omitted). |
+| `check` | `--target SYMBOL_ID_OR_PATH` (required); `--root DIR` (default `.`). Prints target blast score and relevant drift findings. |
+| `ci` | `--base REF` (required); `--head REF` (default `HEAD`); `--root DIR` (default `.`); `--report FILE` (otherwise stdout); `--format md|json` (default `md`); `--threshold N` (`0–100`, otherwise loaded gating threshold); `--fail-on blast,drift` (otherwise loaded `gating.failCiOn`); `--github-comment` / `--gitlab-comment` (both off); `--pr N` (otherwise platform environment). |
+
+An empty `--fail-on` value falls back to configured categories; use `gating.failCiOn: []` in
+the project file to disable gating. `ci` resolves refs/diffs against Git but indexes the
+current working tree as its head graph: check out the intended head before invoking it.
+Baseline snapshots are cached at `<root>/.code-graph/snapshots/<merge-base-sha>.snap` and are
+independent of hybrid temporary files and project TTL. There is no snapshot-directory flag.
+Report and snapshot output paths resolve from the process working directory.
+
+CI exit codes: `0` pass; `1` execution error; `2` blast gate failure; `3` drift gate failure;
+`4` both; `64` usage error. Reports use Markdown for PR/MR comments even with `--format json`.
+
+### CI publication environment
+
+These variables are read only when the corresponding publication flag is enabled. Keep
+tokens in environment/secret storage, not project configuration.
+
+| Platform | Variable | Meaning / default |
+|---|---|---|
+| GitHub | `GITHUB_TOKEN` | Required token with permission to write the target PR's issue comments. |
+| GitHub | `GITHUB_REPOSITORY` | Required `owner/repository`. |
+| GitHub | `GITHUB_REF` | PR number fallback from `refs/pull/<n>/merge` (overridden by `--pr`). |
+| GitHub | `GITHUB_API_URL` | API base; default `https://api.github.com`. |
+| GitLab | `GITLAB_TOKEN` | Preferred token, sent as `PRIVATE-TOKEN`. |
+| GitLab | `CI_JOB_TOKEN` | Fallback when `GITLAB_TOKEN` is blank/unset; sent as `JOB-TOKEN`. |
+| GitLab | `CI_PROJECT_ID` | Required project identifier. |
+| GitLab | `CI_MERGE_REQUEST_IID` | Required MR IID unless `--pr` is supplied. |
+| GitLab | `CI_API_V4_URL` | API base; default `https://gitlab.com/api/v4`. |
+
+See [CI workflow examples](docs/guides/ci.md) for report/comment integration.
+
+## Container and embedded deployments
+
+The checked-in [Dockerfile](code-graph-mcp-http/Dockerfile) **explicitly supplies**
+`--root /workspace --port 3000`. Unlike a bare JVM launch, that image therefore onboards
+`/workspace` by default. Its baked-in `--port 3000` also takes precedence over
+`CODE_GRAPH_PORT` or an additional appended `--port`. Override the entrypoint when choosing
+a different root/port or starting empty.
+
+After building the HTTP module, build the image from the repository root:
+
+~~~text
+docker build -t code-graph-mcp-http -f code-graph-mcp-http/Dockerfile code-graph-mcp-http
+~~~
+
+Example empty hybrid server using an explicit entrypoint (PowerShell):
+
+~~~powershell
+docker run --rm -p 127.0.0.1:3000:3000 -p 127.0.0.1:8137:8137 `
+  --entrypoint java code-graph-mcp-http `
+  -Xmx1g --enable-native-access=ALL-UNNAMED -cp "/app/classes:/app/lib/*" `
+  io.doindev.codegraph.mcp.http.HttpMain `
+  --port 3000 --viz 8137 --viz-admin --graph-storage hybrid --graph-memory 1g
+~~~
+
+Mount source directories before onboarding them and use their **container-side** paths.
+The image runs as `codegraph`, so mounted sources must be readable and any chosen temporary
+storage mount writable by that account. JVM options still precede `-cp`; choose a disk-backed
+temporary mount rather than a memory-backed tmpfs if the goal is offloading RAM. Container
+limits and swap policies are deployment settings, not `--graph-memory`.
+
+Custom applications can supply MCP transports through `CodeGraphMcpServer.serve(...)` and
+provide workspace/control objects programmatically. H2 SQL and Neo4j `GraphStore` mirror
+adapters are separate library integrations (database path/JDBC URL or driver/URI/auth);
+they are not selectable through the server's `--graph-storage` flag. The ArangoDB module
+currently provides dependency scaffolding, not a configurable server backend. No database
+mirror URL/password settings exist in the standard server's JSON, environment or UI.
+
+## Development-only benchmark configuration
+
+The `storage-benchmark` Maven profile opts into the isolated
+`code-graph-storage-benchmark` module; its experimental dependencies are not included in the
+normal runtime. See its [README](code-graph-storage-benchmark/README.md) for workload/backend,
+budget, run-count and output-directory switches and reproducible commands. The production
+storage stress test is opt-in with `-Dhybrid.stress=true`; its test JVM defaults to
+`-Xmx256m` through `hybrid.test.heap` (the stress test asserts a maximum of 256 MiB).
+`-Dhybrid.repository=<absolute-path>` enables the real-repository indexing test. These are
+test/build properties, not production startup settings.

@@ -14,6 +14,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MainTest {
 
+    @Test void hybridArgumentsValidateBeforeOpeningStorage() {
+        var analyzers = Analyzers.of(List.of());
+        assertThrows(IllegalArgumentException.class, () -> Main.openWorkspace(new String[] {"--graph-storage", "invalid"}, analyzers));
+        assertThrows(IllegalArgumentException.class, () -> Main.openWorkspace(new String[] {"--graph-storage"}, analyzers));
+        assertThrows(IllegalArgumentException.class, () -> Main.openWorkspace(new String[] {"--graph-memory", "1m"}, analyzers));
+        try (var workspace = Main.openWorkspace(new String[] {"--graph-storage", "hybrid", "--graph-memory", "64m"}, analyzers)) {
+            assertEquals("hybrid", workspace.storageStatus().get("mode"));
+            assertEquals(64L << 20, workspace.storageStatus().get("budgetBytes"));
+        }
+    }
+
     @TempDir
     Path temp;
 

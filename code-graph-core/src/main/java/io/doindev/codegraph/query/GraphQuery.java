@@ -19,6 +19,17 @@ import java.util.Set;
  */
 public interface GraphQuery {
 
+    /** Compound read scope. Paging backends override this to pin a generation; never mutate inside it. */
+    default <T> T read(java.util.function.Supplier<T> query) { return query.get(); }
+
+    /** Upper bound for auxiliary materialized structures; paging implementations may restrict it. */
+    default int materializationLimit() { return Integer.MAX_VALUE; }
+
+    /** Streaming scan; visitors must not retain the complete graph. */
+    default void scanNodes(Set<NodeKind> kinds, java.util.function.Consumer<Node> visitor) {
+        allNodes(kinds).forEach(visitor);
+    }
+
     Optional<Node> node(NodeId id);
 
     /**

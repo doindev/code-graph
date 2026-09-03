@@ -1,0 +1,6 @@
+java.lang.OutOfMemoryError: Java heap space
+	at io.doindev.codegraph.bench.Ingestion.synthetic(Ingestion.java:25)
+	at io.doindev.codegraph.bench.BenchMain.lambda$main$1(BenchMain.java:42)
+	at io.doindev.codegraph.bench.BenchMain$$Lambda/0x0000000028048a58.accept(Unknown Source)
+	at io.doindev.codegraph.bench.Engine.load(Engine.java:64)
+	at io.doindev.codegraph.bench.BenchMain.main(BenchMain.java:42)

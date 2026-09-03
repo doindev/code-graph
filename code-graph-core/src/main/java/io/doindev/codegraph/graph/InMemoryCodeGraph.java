@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The in-memory code property graph — the sole query engine. Reads are lock-free: all state
+ * The default in-memory code property graph. Reads are lock-free: all state
  * lives in one immutable {@link State} published through a volatile reference; the single
  * writer builds a new state per {@link #apply(GraphDelta)} and swaps it, so readers never see
  * a half-patched graph.
@@ -38,7 +38,7 @@ import java.util.Set;
  * indexing should therefore batch many files into one delta; per-file deltas are meant for
  * incremental watching, where they are rare.
  */
-public final class InMemoryCodeGraph implements GraphQuery {
+public final class InMemoryCodeGraph implements io.doindev.codegraph.store.ManagedGraph {
 
     public static final String ENGINE_VERSION = "0.0.1";
 

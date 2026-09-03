@@ -1,0 +1,37 @@
+{
+  "backend" : "memory",
+  "beforeLoadMemory" : {
+    "bufferPoolsBytes" : {
+      "direct" : 0,
+      "mapped" : 0,
+      "mapped - 'non-volatile memory'" : 0
+    },
+    "gcCount" : 0,
+    "gcTimeMs" : 0,
+    "heapCommittedBytes" : 260046848,
+    "heapMaxBytes" : 268435456,
+    "heapUsedBytes" : 5393968,
+    "jdkNativeMemoryTracking" : "\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=1727234KB, committed=345970KB\n       malloc: 27254KB #20519, peak=31432KB #20440\n       mmap:   reserved=1699980KB, committed=318716KB\n\n-                 Java Heap (reserved=262144KB, committed=253952KB)\n                            (mmap: reserved=262144KB, committed=253952KB, at peak)\n\n-                     Class (reserved=1048710KB, committed=518KB)\n                            (classes #2090)\n                            (  instance classes #1839, array classes #251)\n                            (malloc=134KB tag=Class #2800) (at peak)\n                            (mmap: reserved=1048576KB, committed=384KB, at peak)\n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=3712KB)\n                            (    used=3644KB)\n                            (    waste=68KB =1.83%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=384KB)\n                            (    used=332KB)\n                            (    waste=52KB =13.53%)\n\n-                    Thread (reserved=21564KB, committed=1104KB)\n                            (threads #21)\n                            (stack: reserved=21504KB, committed=1044KB, peak=1044KB)\n                            (malloc=40KB tag=Thread #125) (peak=49KB #129)\n                            (arena=20KB #34) (peak=211KB #32)\n\n-                      Code (reserved=248477KB, committed=8281KB)\n                            (malloc=732KB tag=Code #5900) (at peak)\n                            (mmap: reserved=247744KB, committed=7548KB, at peak)\n                            (arena=1KB #1) (peak=34KB #2)\n\n-                        GC (reserved=54779KB, committed=54619KB)\n                            (malloc=16763KB tag=GC #1744) (at peak)\n                            (mmap: reserved=38016KB, committed=37856KB, at peak)\n\n-                 GCCardSet (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=GCCardSet #4) (peak=1KB #5)\n\n-                  Compiler (reserved=940KB, committed=940KB)\n                            (malloc=33KB tag=Compiler #132) (peak=48KB #137)\n                            (arena=907KB #16) (peak=8422KB #24)\n\n-                  Internal (reserved=256KB, committed=256KB)\n                            (malloc=188KB tag=Internal #2269) (peak=195KB #2212)\n                            (mmap: reserved=68KB, committed=68KB, at peak)\n\n-                     Other (reserved=38KB, committed=38KB)\n                            (malloc=38KB tag=Other #4) (at peak)\n\n-                    Symbol (reserved=1351KB, committed=1351KB)\n                            (malloc=895KB tag=Symbol #3208) (at peak)\n                            (arena=456KB #1) (at peak)\n\n-    Native Memory Tracking (reserved=383KB, committed=383KB)\n                            (malloc=22KB tag=Native Memory Tracking #379) (peak=22KB #380)\n                            (tracking overhead=361KB)\n\n-        Shared class space (reserved=16384KB, committed=14144KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=14144KB, peak=14400KB)\n\n-               Arena Chunk (reserved=6313KB, committed=6313KB)\n                            (malloc=6313KB tag=Arena Chunk #294) (peak=12282KB #316)\n\n-                   Tracing (reserved=38KB, committed=38KB)\n                            (malloc=6KB tag=Tracing #31) (at peak)\n                            (arena=32KB #1) (at peak)\n\n-                   Logging (reserved=0KB, committed=0KB)\n                            (malloc=0KB tag=Logging) (peak=1KB #1)\n\n-                    Module (reserved=175KB, committed=175KB)\n                            (malloc=175KB tag=Module #2151) (at peak)\n\n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak)\n\n-           Synchronization (reserved=91KB, committed=91KB)\n                            (malloc=91KB tag=Synchronization #1415) (at peak)\n\n-            Serviceability (reserved=30KB, committed=30KB)\n                            (malloc=30KB tag=Serviceability #14) (peak=30KB #16)\n\n-                 Metaspace (reserved=65551KB, committed=3727KB)\n                            (malloc=15KB tag=Metaspace #17) (at peak)\n                            (mmap: reserved=65536KB, committed=3712KB, at peak)\n\n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB tag=String Deduplication #8) (at peak)\n\n-           Object Monitors (reserved=3KB, committed=3KB)\n                            (malloc=3KB tag=Object Monitors #16) (at peak)\n\n",
+    "nativeMemoryNote" : "JDK NMT does not account for every third-party native allocation; RocksDB cache/memtable stats and external process samples are separate.",
+    "nonHeapUsedBytes" : 3577976,
+    "peakSampledHeapBytes" : 0
+  },
+  "budgetBytes" : 33554432,
+  "cleanup" : "passed",
+  "coldCacheDefinition" : "Fresh engine in a fresh JVM/directory; OS file cache is NOT flushed. First touch may hit OS cache.",
+  "edgesPerProject" : 1000000,
+  "error" : "Java heap space",
+  "errorType" : "java.lang.OutOfMemoryError",
+  "finishedAt" : "2026-09-03T20:02:15.088994500Z",
+  "java" : "25",
+  "nodesPerProject" : 100000,
+  "os" : "Windows 11",
+  "processors" : 8,
+  "projects" : 1,
+  "prototypeRevision" : "bounded-removal-warm-scan-v3",
+  "scenario" : "pressure",
+  "scratchDirectory" : "C:\\Users\\timhj\\AppData\\Local\\Temp\\code-graph-storage-bench-18368349771033223473",
+  "seed" : 42,
+  "startedAt" : "2026-09-03T20:02:13.560960200Z",
+  "status" : "failed"
+}

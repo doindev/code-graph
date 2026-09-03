@@ -1,0 +1,124 @@
+[
+  {
+    "scenario": "pressure",
+    "backend": "memory",
+    "trials": 3,
+    "completed": 0,
+    "equivalence": [
+      "unavailable"
+    ],
+    "budgetGate": [
+      "not-enforced"
+    ],
+    "resize": [],
+    "worstObservedOvershootMiB": null,
+    "loadMs": null,
+    "removalMs": null,
+    "hotP50Us": null,
+    "hotP95Us": null,
+    "hotP99Us": null,
+    "hotOpsSec": null,
+    "callerP99Us": null,
+    "impactP99Us": null,
+    "searchP50Us": null,
+    "scanMs": null,
+    "preScanP99Us": null,
+    "postScanP99Us": null,
+    "recoveryP99Us": null,
+    "peakProcessMiB": null,
+    "peakPrivateMiB": null,
+    "peakHeapMiB": null,
+    "retainedBeforeResizeMiB": null,
+    "retainedAfterResizeMiB": null,
+    "retainedAfterRemovalMiB": null,
+    "maxCheckpointAccountedMiB": null,
+    "maxCheckpointOvershootMiB": null,
+    "peakDirtyEstimateMiB": null,
+    "gcMs": null,
+    "diskMiB": null,
+    "concurrentReadUpdateMs": null
+  },
+  {
+    "scenario": "pressure",
+    "backend": "mvstore",
+    "trials": 3,
+    "completed": 3,
+    "equivalence": [
+      "matched"
+    ],
+    "budgetGate": [
+      "FAILED-observed-overshoot"
+    ],
+    "resize": [
+      "passed"
+    ],
+    "worstObservedOvershootMiB": 17.122,
+    "loadMs": 103546.017,
+    "removalMs": 3700.5288,
+    "hotP50Us": 10.2,
+    "hotP95Us": 14.3,
+    "hotP99Us": 33.4,
+    "hotOpsSec": 88499.49112792601,
+    "callerP99Us": 26.4,
+    "impactP99Us": 5013.3,
+    "searchP50Us": 190711.1,
+    "scanMs": 189.7332,
+    "preScanP99Us": 5.3,
+    "postScanP99Us": 22.6,
+    "recoveryP99Us": 7.8,
+    "peakProcessMiB": 371.684,
+    "peakPrivateMiB": 404.824,
+    "peakHeapMiB": 255.0,
+    "retainedBeforeResizeMiB": 56.219,
+    "retainedAfterResizeMiB": 35.436,
+    "retainedAfterRemovalMiB": 32.296,
+    "maxCheckpointAccountedMiB": 49.104,
+    "maxCheckpointOvershootMiB": 17.104,
+    "peakDirtyEstimateMiB": 15.952,
+    "gcMs": 15252.0,
+    "diskMiB": 10279.801,
+    "concurrentReadUpdateMs": 34.5529
+  },
+  {
+    "scenario": "pressure",
+    "backend": "rocksdb",
+    "trials": 3,
+    "completed": 2,
+    "equivalence": [
+      "matched",
+      "unavailable"
+    ],
+    "budgetGate": [
+      "unproven-incomplete-accounting"
+    ],
+    "resize": [
+      "unsupported"
+    ],
+    "worstObservedOvershootMiB": 0.0,
+    "loadMs": 23162.3906,
+    "removalMs": 0.50675,
+    "hotP50Us": 41.35,
+    "hotP95Us": 53.9,
+    "hotP99Us": 89.25,
+    "hotOpsSec": 22845.549243597063,
+    "callerP99Us": 142.8,
+    "impactP99Us": 18870.6,
+    "searchP50Us": 284802.4,
+    "scanMs": 282.7162,
+    "preScanP99Us": 10.85,
+    "postScanP99Us": 60.1,
+    "recoveryP99Us": 11.2,
+    "peakProcessMiB": 329.959,
+    "peakPrivateMiB": 461.27549999999997,
+    "peakHeapMiB": 150.1305,
+    "retainedBeforeResizeMiB": 4.342,
+    "retainedAfterResizeMiB": 4.515499999999999,
+    "retainedAfterRemovalMiB": 4.686,
+    "maxCheckpointAccountedMiB": 28.749000000000002,
+    "maxCheckpointOvershootMiB": 0.0,
+    "peakDirtyEstimateMiB": null,
+    "gcMs": 151.5,
+    "diskMiB": 107.63900000000001,
+    "concurrentReadUpdateMs": 29.8933
+  }
+]

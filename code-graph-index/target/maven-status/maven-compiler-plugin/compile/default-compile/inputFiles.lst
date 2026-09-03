@@ -1,6 +1,7 @@
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\Analyzers.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\FullIndexer.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\GitIgnore.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\HybridIndexer.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\IncrementalIndexer.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\Watcher.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\main\java\io\doindev\codegraph\index\Workspace.java

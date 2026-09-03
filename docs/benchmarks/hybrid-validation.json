@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-03",
+  "purpose": "Single-run production hybrid regression, not a comparative engine benchmark",
+  "environment": {"os": "Windows", "jdk": "OpenJDK 25", "maven": "3.9.11"},
+  "synthetic": {
+    "nodes": 100000,
+    "edges": 1000000,
+    "passed": true,
+    "indexingMs": 134438,
+    "hotQuerySamples": 300,
+    "hotQuery": "node(42) plus incoming CALLS adjacency",
+    "p50Ns": 42100,
+    "p95Ns": 130900,
+    "p99Ns": 785200,
+    "budgetBytes": 33554432,
+    "cacheCapacityBytes": 15728640,
+    "cacheUsedBytesEstimate": 2195,
+    "cacheHits": 599,
+    "cacheMisses": 2,
+    "enginePageCacheBytes": 0,
+    "peakUnsavedBytesEstimate": 1063191,
+    "heapMaxBytes": 268435456,
+    "heapUsedAtFinalSampleBytes": 35840208,
+    "diskBytes": 694771712,
+    "processRssPeak": null,
+    "osFileCacheFlushed": false
+  },
+  "repository": {
+    "files": 203,
+    "symbols": 2419,
+    "edges": 16263,
+    "indexingMs": 10152,
+    "diskBytes": 17399808,
+    "heapMaxBytes": 4125097984,
+    "constrainedHeapRun": false,
+    "analyzers": ["java", "javascript", "python"]
+  }
+}

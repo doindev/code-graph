@@ -1,4 +1,5 @@
 io\doindev\codegraph\index\FullIndexerTest.class
 io\doindev\codegraph\index\WorkspaceTest.class
+io\doindev\codegraph\index\HybridWorkspaceTest.class
 io\doindev\codegraph\index\IncrementalIndexerTest.class
 io\doindev\codegraph\index\WatcherTest.class

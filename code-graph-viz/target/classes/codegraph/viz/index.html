@@ -21,6 +21,7 @@
     <button id="remove-project" title="Remove the active project from this server" aria-label="Remove the active project from this server"><span aria-hidden="true">&#10005;</span></button>
     <button id="add-project" title="Add a project directory" aria-label="Add a project directory"><span aria-hidden="true">&#65291;</span></button>
     <button id="ttl-settings" title="Set the project idle timeout" aria-label="Set the project idle timeout">TTL</button>
+    <button id="memory-settings" title="View graph storage and adjust the shared cache budget" aria-label="Graph memory settings">RAM</button>
   </span>
   <nav id="modes">
     <button id="tab-overview" class="tab">Overview</button>
@@ -73,6 +74,18 @@
 <div id="hint">drag rotate &middot; scroll zoom &middot; right-drag pan &middot; node drag to pin</div>
 <div id="project-lifetime" class="hidden"></div>
 
+<div id="memory-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="memory-title">
+  <form id="memory-form">
+    <h2 id="memory-title">Graph memory</h2>
+    <p id="memory-status"></p>
+    <label for="memory-value">Shared graph/cache allowance</label>
+    <input id="memory-value" type="text" value="1g" required spellcheck="false" aria-describedby="memory-help">
+    <p id="memory-help">Use MiB or GiB: 256m, 1g. Minimum 32m. Shared across all projects; changes apply immediately. The effective cache leaves JVM heap headroom.</p>
+    <p>This is not a hard limit on total RAM. Parsing, query results, JVM/native memory and the OS file cache need additional memory. TTL removal is separate from paging.</p>
+    <p id="memory-error" role="alert"></p>
+    <div class="ttl-actions"><button type="button" id="memory-cancel">Close</button><button type="submit" id="memory-save">Save budget</button></div>
+  </form>
+</div>
 <div id="ttl-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="ttl-title">
   <form id="ttl-form">
     <h2 id="ttl-title">Project idle timeout</h2>

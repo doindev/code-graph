@@ -134,11 +134,22 @@ class HttpEndToEndTest {
     }
 
     private void exerciseMcpOnboarding(boolean readOnlyUi) throws Exception {
+        exerciseMcpOnboarding(readOnlyUi, false);
+    }
+
+    @Test @Timeout(120)
+    void hybridMcpOnboardingSearchWatchingAndRemoval() throws Exception {
+        exerciseMcpOnboarding(true, true);
+    }
+
+    private void exerciseMcpOnboarding(boolean readOnlyUi, boolean hybrid) throws Exception {
         Path parent = Files.createDirectory(repo.resolve("project"));
         Path child = Files.createDirectory(parent.resolve("child"));
         Path sibling = Files.createDirectory(repo.resolve("project-other"));
         Files.writeString(parent.resolve("Hello.java"), "public class Hello {}\n");
-        try (HttpServer server = HttpServer.start(List.of(), 0, readOnlyUi ? 0 : -1)) {
+        var workspace = io.doindev.codegraph.index.Workspace.open(List.of(), io.doindev.codegraph.index.Analyzers.discover(),
+                io.doindev.codegraph.config.loader.ConfigLoader::load, hybrid, 32L << 20);
+        try (HttpServer server = HttpServer.start(workspace, 0, readOnlyUi ? 0 : -1, false, java.time.Duration.ofHours(1))) {
             HttpClient client = HttpClient.newHttpClient();
             URI endpoint = URI.create("http://localhost:" + server.port() + HttpServer.MCP_ENDPOINT);
             HttpResponse<String> init = client.send(post(endpoint, null, """

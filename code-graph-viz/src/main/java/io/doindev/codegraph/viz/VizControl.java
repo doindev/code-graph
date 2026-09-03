@@ -28,6 +28,9 @@ public interface VizControl {
     /** Live project policy; absent only for fixed, read-only embeddings. */
     default ProjectLifecycle lifecycle() { return null; }
 
+    default java.util.Map<String, Object> storageStatus() { return java.util.Map.of("mode", "memory"); }
+    default void graphMemory(String value) { throw new IllegalArgumentException("graph memory settings unavailable"); }
+
     /** Whether the action endpoints (reindex/add/remove/browse) are enabled. */
     default boolean mutable() {
         return false;

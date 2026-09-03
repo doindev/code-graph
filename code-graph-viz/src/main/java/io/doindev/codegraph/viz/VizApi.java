@@ -84,6 +84,8 @@ final class VizApi {
     }
 
     /** Lightweight freshness poll used by the UI after a reindex. */
+    <T> T read(java.util.function.Supplier<T> query) { return project.graph().read(query); }
+
     String status() {
         IndexStatus status = project.graph().status();
         ObjectNode out = JSON.createObjectNode();
@@ -101,14 +103,14 @@ final class VizApi {
         GraphQuery graph = project.graph();
         ModuleGraph modules = ModuleGraph.of(graph, project.config());
         Map<String, int[]> stats = new TreeMap<>(); // [files, symbols]
-        for (Node file : graph.allNodes(Set.of(NodeKind.FILE))) {
+        graph.scanNodes(Set.of(NodeKind.FILE), file -> {
             String module = modules.moduleOf(file.relPath(), project.config().withDefaults().architecture());
             stats.computeIfAbsent(module, k -> new int[2])[0]++;
-        }
-        for (Node symbol : graph.allNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION))) {
+        });
+        graph.scanNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION), symbol -> {
             String module = modules.moduleOf(symbol.relPath(), project.config().withDefaults().architecture());
             stats.computeIfAbsent(module, k -> new int[2])[1]++;
-        }
+        });
         GraphPayload payload = new GraphPayload();
         stats.forEach((module, counts) -> payload.node("mod:" + module, module, "module", module,
                 Math.max(1, counts[0]), node -> {
@@ -128,7 +130,7 @@ final class VizApi {
         var architecture = project.config().withDefaults().architecture();
         GraphPayload payload = new GraphPayload();
         Set<String> memberFiles = new LinkedHashSet<>();
-        for (Node file : graph.allNodes(Set.of(NodeKind.FILE))) {
+        graph.scanNodes(Set.of(NodeKind.FILE), file -> {
             if (moduleName.equals(modules.moduleOf(file.relPath(), architecture))) {
                 memberFiles.add(file.relPath());
                 payload.node("file:" + file.relPath(), fileName(file.relPath()), "file", moduleName,
@@ -137,13 +139,13 @@ final class VizApi {
                             node.put("loc", file.metrics().loc());
                         });
             }
-        }
+        });
         // aggregate symbol edges to file level
         Map<String, int[]> fileEdges = new LinkedHashMap<>();
-        for (Node symbol : graph.allNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION, NodeKind.VARIABLE))) {
+        graph.scanNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION, NodeKind.VARIABLE), symbol -> {
             String fromFile = symbol.relPath();
             if (fromFile == null || !memberFiles.contains(fromFile)) {
-                continue;
+                return;
             }
             for (Edge edge : graph.edges(symbol.id(), Direction.OUT, BlastScore.IMPACT_KINDS)) {
                 if (edge.confidence() < CONFIDENT || !(edge.to() instanceof SymbolId target)) {
@@ -159,8 +161,9 @@ final class VizApi {
                     a[0]++;
                     return a;
                 });
+                if (fileEdges.size() > graph.materializationLimit()) throw new IllegalArgumentException("module view exceeds hybrid query bound");
             }
-        }
+        });
         fileEdges.forEach((key, count) -> {
             String[] parts = key.split("\\|", 2);
             if (parts[1].startsWith("mod:")) {
@@ -243,23 +246,22 @@ final class VizApi {
         GraphQuery graph = project.graph();
         ModuleGraph modules = module == null ? null : ModuleGraph.of(graph, project.config());
         var architecture = project.config().withDefaults().architecture();
-        List<Node> candidates = new ArrayList<>();
-        for (Node node : graph.allNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION))) {
+        record Ranked(Node node, int degree, long order) { }
+        Comparator<Ranked> rank = Comparator.comparingInt(Ranked::degree).reversed().thenComparingLong(Ranked::order);
+        var candidates = new java.util.PriorityQueue<Ranked>(rank.reversed());
+        long[] count = {0};
+        graph.scanNodes(Set.of(NodeKind.TYPE, NodeKind.FUNCTION), node -> {
             if (lang != null && !lang.equals(node.lang())) {
-                continue;
+                return;
             }
             if (modules != null && !module.equals(modules.moduleOf(node.relPath(), architecture))) {
-                continue;
+                return;
             }
-            candidates.add(node);
-        }
-        Map<NodeId, Integer> degree = new HashMap<>();
-        for (Node node : candidates) {
-            degree.put(node.id(), graph.edges(node.id(), Direction.BOTH, BlastScore.IMPACT_KINDS).size());
-        }
-        candidates.sort(Comparator.comparingInt((Node n) -> degree.get(n.id())).reversed());
-        boolean truncated = candidates.size() > cap;
-        List<Node> selected = truncated ? candidates.subList(0, cap) : candidates;
+            candidates.add(new Ranked(node, graph.edges(node.id(), Direction.BOTH, BlastScore.IMPACT_KINDS).size(), count[0]++));
+            if (candidates.size() > cap) candidates.poll();
+        });
+        boolean truncated = count[0] > cap;
+        List<Node> selected = candidates.stream().sorted(rank).map(Ranked::node).toList();
 
         GraphPayload payload = new GraphPayload();
         Set<NodeId> included = new LinkedHashSet<>();

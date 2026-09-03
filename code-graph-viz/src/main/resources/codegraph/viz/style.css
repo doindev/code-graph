@@ -322,6 +322,13 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 #ttl-form #ttl-error { color: #f87171; min-height: 18px; }
 .ttl-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 #ttl-save { border-color: var(--accent); color: var(--accent); }
+#memory-overlay { position: fixed; inset: 0; z-index: 43; background: rgba(5,7,12,.75); display: flex; align-items: center; justify-content: center; }
+#memory-form { width: min(480px, 92vw); padding: 24px; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 8px; }
+#memory-form h2 { font-size: 18px; margin-bottom: 18px; }
+#memory-form label { display: block; margin: 12px 0 8px; }
+#memory-value { width: 100%; padding: 8px; }
+#memory-form p { color: var(--text-dim); font-size: 12px; line-height: 1.5; margin-top: 12px; }
+#memory-form #memory-error { color: #f87171; min-height: 18px; }
 
 #browse-overlay {
   position: fixed;

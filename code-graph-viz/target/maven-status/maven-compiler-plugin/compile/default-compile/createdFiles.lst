@@ -5,6 +5,7 @@ io\doindev\codegraph\viz\VizControl$DirListing$Entry.class
 io\doindev\codegraph\viz\VizApi.class
 io\doindev\codegraph\viz\VizControl$VizProject.class
 io\doindev\codegraph\viz\VizControl$DirListing.class
+io\doindev\codegraph\viz\VizApi$1Ranked.class
 io\doindev\codegraph\viz\VizServer.class
 io\doindev\codegraph\viz\VizControl$1.class
 io\doindev\codegraph\viz\VizServer$Forbidden.class

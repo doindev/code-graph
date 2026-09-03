@@ -113,7 +113,9 @@ public final class Watcher implements AutoCloseable {
                     }
                 }
                 long now = System.nanoTime();
-                pending.compute(relPath, (k, window) -> window == null
+                // Hybrid indexing rebuilds the disk generation: coalesce all paths to one flag.
+                String pendingKey = indexer.boundedRebuild() ? "*" : relPath;
+                pending.compute(pendingKey, (k, window) -> window == null
                         ? new long[] {now, now} : new long[] {window[0], now});
             }
             key.reset();

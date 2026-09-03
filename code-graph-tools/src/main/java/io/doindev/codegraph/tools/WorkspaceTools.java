@@ -139,6 +139,14 @@ public final class WorkspaceTools implements AutoCloseable {
 
     private static List<GraphTool> projectTools(CodeGraphTools.ProjectTools project) {
         return CodeGraphTools.standard(project.graph(), project.config(), project.root(),
-                project.reindexer());
+                project.reindexer()).stream().map(tool -> (GraphTool) new GraphTool() {
+                    public ToolSpec spec() { return tool.spec(); }
+                    public ToolResponse call(com.fasterxml.jackson.databind.JsonNode args) {
+                        // Reindex mutates the graph and must not attempt a read-to-write lock upgrade.
+                        if (tool instanceof ReindexTool) return tool.call(args);
+                        try { return project.graph().read(() -> tool.call(args)); }
+                        catch (RuntimeException e) { return ToolResponse.fail(e.getMessage()); }
+                    }
+                }).toList();
     }
 }
