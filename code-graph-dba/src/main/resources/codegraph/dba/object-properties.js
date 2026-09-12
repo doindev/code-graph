@@ -6,17 +6,21 @@ const button=(text,icon,action)=>{const n=el('button',undefined,'designer-button
 
 /** Same draft, job ownership and disposal lifecycle as the Table Properties editor. */
 export class ObjectProperties extends TableProperties {
-  constructor(options){super(options);this.category='General';this.filter='';}
+  constructor(options){super(options);this.queryBuilder=options.queryBuilder??(()=>null);this.category='General';this.filter='';}
+  get dirty(){return super.dirty||!!this.queryBuilder()?.dirty;}
+  syncButtons(){super.syncButtons();this.queryBuilder()?.syncViewActions();}
+  async revert(){if(this.loading||this.unreconciled||this.committed)return;this.loading=true;this.update();try{this.draft=this.baseline();await this.queryBuilder()?.restoreView();this.message='Pending changes reverted.';}catch(error){this.message=error.message;}finally{this.loading=false;this.changed();this.render();this.queryBuilder()?.notice(this.message);}}
+  load(message='',queryAction=null){if(this.loadPromise)return this.loadPromise;this.loadPromise=this.loadNow(message,queryAction).finally(()=>this.loadPromise=null);return this.loadPromise;}
   baseline(){return {fields:copy(this.snapshot.fields),sqlMode:!this.snapshot.formSupported,sql:this.snapshot.template??'',splitSql:false};}
-  async load(message=''){
+  async loadNow(message='',queryAction=null){
     if(this.disposed)return;this.loading=true;this.render();
-    try{const {value}=await this.job('/object-properties/load',this.target());if(this.disposed)return;this.snapshot=value;this.draft=this.baseline();this.unreconciled=false;this.committed=false;this.message=message;this.cache.clear();}
+    try{const {value}=await this.job('/object-properties/load',this.target());if(this.disposed)return;this.snapshot=value;this.draft=this.baseline();this.unreconciled=false;this.committed=false;this.message=message;this.cache.clear();if(queryAction==='saved')this.queryBuilder()?.markViewSaved();else if(queryAction==='reload'&&this.queryBuilder())await this.queryBuilder().reloadView(value.fields.query);}
     catch(e){this.message=e.message;}finally{this.loading=false;this.changed();this.render();}
   }
   async refresh(){
     if(this.committed){await this.recover();return;}
     if((this.dirty||this.unreconciled)&&!await this.confirmDiscard('Reload the database properties and discard this object draft?'))return;
-    await this.load();
+    await this.load('', 'reload');
   }
   async canClose(){
     if(this.loading)return false;if(!this.dirty&&!this.unreconciled&&!this.committed)return true;
@@ -61,7 +65,7 @@ export class ObjectProperties extends TableProperties {
     const footer=el('footer',undefined,'designer-footer');
     const refresh=button('Refresh metadata','refresh-cw',()=>this.refresh());refresh.disabled=this.loading;
     this.saveButton=button('Save','save',()=>this.save());
-    this.revertButton=button('Revert','undo-2',()=>{this.draft=this.baseline();this.message='Draft reverted.';this.changed();this.render();});
+    this.revertButton=button('Revert','undo-2',()=>this.revert());
     footer.append(refresh,this.saveButton,this.revertButton);host.append(footer);
     if(this.loading||this.unreconciled||this.committed)for(const input of content.querySelectorAll('input,textarea,select,button'))input.disabled=true;
     this.syncButtons();
@@ -114,21 +118,28 @@ export class ObjectProperties extends TableProperties {
   }
   async save(){
     if(this.loading||this.unreconciled||this.committed||(!this.creation&&!this.dirty))return false;
-    this.loading=true;this.message='Preparing object changes…';this.render();let preview;
+    this.loading=true;this.message='Preparing object changes…';this.update();this.render();let preview,queryAction='reload';
     try{
+      const builder=this.queryBuilder();if(builder?.dirty){
+        if(builder.mode!=='visual')throw Error('This SQL cannot be represented by the canvas. Use the definition editor in Properties to save it.');
+        const query=await builder.currentQuery();if(query.bindings?.length)throw Error('A saved view cannot contain runtime parameters. Replace them with typed values before saving.');
+        if(this.draft.sqlMode)throw Error('Turn off native SQL mode in Properties before saving the Diagram query.');
+        if(!this.snapshot.controls.some(c=>c.id==='query'&&c.editable))throw Error('Updating this view definition is not available through the property editor for this database.');
+        this.draft.fields.query=query.sql;queryAction='saved';
+      }
       preview=await this.job('/object-properties/prepare',{...this.target(),fingerprint:this.snapshot.fingerprint,draft:this.draft},true);
-      if(this.disposed||!await this.reviewPlan(preview.value))return false;
+      if(this.disposed)return false;if(!await this.reviewPlan(preview.value)){this.message='Save canceled. Pending changes retained.';return false;}
       await this.beforeApply();this.message='Applying reviewed object changes…';this.render();
       const {value}=await this.job('/object-properties/apply',{planId:preview.id,confirmed:true});
       if(value.status!=='success'){this.unreconciled=['unknown','partial','partial_or_unknown'].includes(value.outcome);this.message=value.message+' Outcome: '+value.outcome+'.';return false;}
       this.committed=true;this.message='Saved. Resolving catalog identity…';await this.saved(value.fields,value);
       this.creation=false;this.snapshot=null;this.committed=false;this.message='Object changes saved.';return true;
     }catch(e){this.message=e.message;if(e.result)this.unreconciled=true;return false;}
-    finally{if(preview)await this.release(preview.id);this.loading=false;this.changed();this.render();if(!this.snapshot&&!this.disposed)await this.load(this.message);}
+    finally{if(preview)await this.release(preview.id);this.loading=false;if(!this.snapshot&&!this.disposed)await this.load(this.message,queryAction);this.changed();this.render();this.queryBuilder()?.notice(this.message);}
   }
   async recover(){
     if(this.loading)return;this.loading=true;this.render();
-    try{await this.saved(this.draft.fields,{sqlMode:this.draft.sqlMode,recover:true});this.creation=false;this.committed=false;this.unreconciled=false;await this.load('Reloaded the saved object.');}
+    try{await this.saved(this.draft.fields,{sqlMode:this.draft.sqlMode,recover:true});this.creation=false;this.committed=false;this.unreconciled=false;await this.load('Reloaded the saved object.','reload');}
     catch(e){this.message=e.message;}finally{this.loading=false;this.changed();this.render();}
   }
 }

@@ -4,7 +4,7 @@ The browser builder and editable object Diagram tabs share a version 2 structure
 
 ## Canvas and output
 
-Add tables/views from the tree or the searchable, paged schema/object picker. Every source column starts selected. Sources are disconnected until the user connects column handles or explicitly chooses Cross join. The compiler rejects disconnected components. There is no 16-source cap; SQL, output-column and model complexity limits still apply.
+Add tables/views from the tree or the searchable, paged schema/object picker. Every source column starts selected. Sources are disconnected until the user connects column handles or explicitly chooses Cross join. The compiler rejects disconnected components. Arrange Sources uses a 60 px horizontal gap between the 280 px source cards. There is no 16-source cap; SQL, output-column and model complexity limits still apply.
 
 Connections belong to an ordered binary join tree. A connection between components creates a join; another column pair between those operands adds an AND predicate to their shared join node. The anchored editor identifies that node, its operands and the rows preserved by an outer join. It supports INNER, LEFT/RIGHT/FULL OUTER, six comparisons, swapping operands, predicate removal and disconnection. Handles and line labels are keyboard operable. Source headings support dragging and arrow-key movement. Connections follow cards, column scrolling and zoom.
 
@@ -51,3 +51,11 @@ All endpoints retain browser authentication, origin/CSRF, connection ownership a
 `mvn -o -q -pl code-graph-dba test` runs compiler, import, resource, security, job and adapter tests. `test-postgres.ps1` runs disposable PostgreSQL integration including overloaded/optional functions and estimated JSON plans. `test-database-matrix.ps1` exercises selected disposable services. `MetadataEmbeddedTest` with `-Ddba.catalog.integration=true` exercises HSQLDB, SQLite and DuckDB.
 
 Set `DBA_BROWSER_SUITE=query-builder` for the builder UI and lifecycle suites, or `grid` for grid/column-menu/controller/Table Data regressions, and run `test-browser.ps1 -NodeModules <Playwright modules>`. The builder suite covers desktop/narrow layouts, 20 sources, explicit/composite joins, no execution on canvas edits, filtering/sorting, permanent tabs, parameter prompts, stale results, focus, cancellation, recovery and preserved imports. Disposable fixtures are isolated from saved user connections.
+
+## Editing a saved view
+
+Opening a view or materialized view on Diagram binds the canvas and its Data Grid to that database object. Canvas edits and structured grid filters/sorting enable Save and Revert in the grid footer and Properties. Save (also the toolbar's Save view and Ctrl+S) compiles the complete current query and opens the existing object-change review. Apply updates the view on its original connection/database, with catalog conflict detection and the engine's existing definition-replacement rules. PostgreSQL materialized views use the existing reviewed transactional replacement and preservation checks.
+
+Revert restores the last successful saved query, both output modes, canvas layout, filters and sorting without changing the database or fetching rows. Cancelled or failed saves retain the draft; successful saves establish the next revert baseline. Restored workspace drafts are compared with the current database definition. Runtime parameters must be replaced with typed values before saving a view. Unsupported definitions remain available in Properties/DDL.
+
+View and materialized-view Data and Diagram grids omit Edit, Add row and Delete controls. Save query as exports SQL without clearing pending database changes. Standalone query-file saves retain their existing behavior.

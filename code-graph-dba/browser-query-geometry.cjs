@@ -32,6 +32,8 @@ module.exports=async(browser,base)=>{
   }
   async function drag(header,dx,dy){const r=await header.boundingBox();await page.mouse.move(r.x+100,r.y+r.height/2);await page.mouse.down();await page.mouse.move(r.x+100+dx,r.y+r.height/2+dy,{steps:8});await page.mouse.up();}
   const output=page.locator('.qb-output-card .qb-source-head');
+  await page.getByRole('button',{name:'Arrange sources',exact:true}).click();
+  const sourceGap=await page.locator('.qb-source').evaluateAll(cards=>cards[1].getBoundingClientRect().left-cards[0].getBoundingClientRect().right);assert.equal(sourceGap,60,'Arrange sources doubles the horizontal gap to 60 px');
   const before=await aligned('Initial wide canvas');
   const gap=await page.locator('.qb-connections path').first().evaluate(path=>{
    const matrix=path.getScreenCTM(),length=path.getTotalLength(),points=Array.from({length:33},(_,i)=>{const p=path.getPointAtLength(length*i/32);return new DOMPoint(p.x,p.y).matrixTransform(matrix);});

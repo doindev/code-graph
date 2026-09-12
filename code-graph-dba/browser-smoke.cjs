@@ -6,6 +6,7 @@ const [base,jar,schema='']=process.argv.slice(2);
 (async()=>{
   const browser=await chromium.launch({channel:'msedge',headless:true});
   try {
+    if(process.env.DBA_BROWSER_SUITE==='view-query'){await require('./browser-view-query.cjs')(browser,base,jar,schema);return;}
     if(process.env.DBA_BROWSER_SUITE==='script-selection'){await require('./browser-script-selection.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid'){await require('./browser-grid-column-menu.cjs')(browser,base);await require('./browser-grid-refresh.cjs')(browser,base);await require('./browser-grid-controller.cjs')(browser,base);await require('./browser-table-tabs.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='object-designer'){await require('./browser-object-designer.cjs')(browser,base,jar);return;}
@@ -22,6 +23,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     await require('./browser-grid-controller.cjs')(browser,base);
     await require('./browser-table-tabs.cjs')(browser,base,jar);
     await require('./browser-table-designer.cjs')(browser,base,jar);
+    await require('./browser-view-query.cjs')(browser,base,jar,schema);
     await require('./browser-query-geometry.cjs')(browser,base);
     await require('./browser-query-builder.cjs')(browser,base,jar);
     await require('./browser-object-creation.cjs')(browser,base,jar);
