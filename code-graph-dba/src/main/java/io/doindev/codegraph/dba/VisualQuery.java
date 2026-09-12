@@ -3,6 +3,7 @@ package io.doindev.codegraph.dba;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.*;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Table;
@@ -24,7 +25,7 @@ final class VisualQuery {
         ObjectNode result = Profiles.JSON.createObjectNode().put("valid", false).put("sql", "");
         ArrayNode diagnostics = result.putArray("diagnostics");
         try {
-            Compiler compiler = new Compiler(request.path("model"), request.path("quote").asText("\""), request.path("engine").asText("jdbc"));
+            Compiler compiler = new Compiler(request.path("model"), request.path("quote").asText("\""), request.path("engine").asText("jdbc"), request.path("uniqueOutputNames").asBoolean());
             String sql = compiler.query();
             if (sql.length() > 16384) throw invalid("The generated query exceeds 16 KiB. Reduce its outputs or expressions.");
             ObjectNode validation = Profiles.JSON.createObjectNode().put("sql", sql).put("action", "refresh");
@@ -41,7 +42,11 @@ final class VisualQuery {
         for(JsonNode source:model.path("sources"))if(source.path("columns").size()>256)throw invalid("Builder sources are limited to 256 columns");
         for(String mode:List.of("detail","summary"))if(model.path(mode).path("outputs").size()>256)throw invalid("Select at most 256 output columns per mode");
         if(model.path("parameters").size()>128)throw invalid("A query supports at most 128 parameter definitions");
-        ObjectNode copy = model.deepCopy(); copy.retain("version", "mode", "distinct", "sources", "roots", "parameters", "where", "detail", "summary", "layout", "dialect");
+        ObjectNode copy = model.deepCopy(); copy.retain("version", "mode", "distinct", "sources", "roots", "parameters", "where", "detail", "summary", "layout", "dialect", "viewBaseline");
+        if (copy.has("viewBaseline")) {
+            JsonNode baseline = copy.path("viewBaseline");
+            copy.putObject("viewBaseline").put("fingerprint", text(baseline, "fingerprint", 128)).put("sql", text(baseline, "sql", 16384));
+        }
         for (JsonNode p : copy.path("parameters")) if (p.isObject()) ((ObjectNode)p).retain("id", "name", "type");
         return copy;
     }
@@ -49,13 +54,13 @@ final class VisualQuery {
     static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
 
     private static final class Compiler {
-        final JsonNode model, active; final String quote, engine;
+        final JsonNode model, active; final String quote, engine; final boolean uniqueOutputNames;
         final Map<String, JsonNode> sources = new LinkedHashMap<>(), outputs = new LinkedHashMap<>(), references = new LinkedHashMap<>(), parameters = new LinkedHashMap<>();
         final ArrayNode bindings = Profiles.JSON.createArrayNode(), descriptors = Profiles.JSON.createArrayNode();
         int inspectionDepth; final Set<String> inspectedOutputs = new HashSet<>();
         final Set<String> visited = new HashSet<>(), resolvingOutputs = new HashSet<>(); int nodes;
-        Compiler(JsonNode model, String quote, String engine) {
-            this.model = validateDraft(model); this.quote = quote; this.engine = engine;
+        Compiler(JsonNode model, String quote, String engine, boolean uniqueOutputNames) {
+            this.model = validateDraft(model); this.quote = quote; this.engine = engine; this.uniqueOutputNames = uniqueOutputNames;
             if (!Set.of("\"", "`", "[").contains(quote)) throw invalid("Unsupported identifier quoting");
             if (!Set.of("detail", "summary").contains(model.path("mode").asText())) throw invalid("Choose Detail or Summary");
             active = model.path(model.path("mode").asText());
@@ -79,14 +84,17 @@ final class VisualQuery {
             if (array(model, "roots").size() != 1) throw invalid("Connect all tables and views before running or explaining this query");
             boolean summary = model.path("mode").asText().equals("summary");
             Set<String> groups = new HashSet<>(); for (JsonNode g : active.path("groups")) groups.add(g.path("expression").toString());
+            Map<String, String> automaticAliases = uniqueOutputNames ? viewOutputAliases() : Map.of();
             List<String> selected = new ArrayList<>();
             for (JsonNode o : outputs.values()) {
                 JsonNode e = o.path("expression");
                 if (!summary && aggregate(e)) throw invalid("Use Summary mode for aggregate outputs");
                 if (summary) validateGrouping(e, groups);
                 String value = expr(e, 0, summary);
-                String alias = o.path("alias").asText(); selected.add(value + (alias.isBlank() ? "" : " AS " + identifier(alias)));
+                String automaticAlias = automaticAliases.getOrDefault(o.path("id").asText(), "");
+                String alias = automaticAlias.isEmpty() ? o.path("alias").asText() : automaticAlias; selected.add(value + (alias.isBlank() ? "" : " AS " + identifier(alias)));
                 ObjectNode descriptor = descriptors.addObject().put("id", o.path("id").asText()).put("label", alias.isBlank() ? value : alias).put("sourceExpression", value).put("aggregate", aggregate(e));
+                descriptor.put("automaticAlias", automaticAlias);
                 descriptor.put("jdbcType", jdbcType(e)); descriptor.put("type", e.path("type").asText(""));
             }
             String from = join(model.path("roots").get(0), 0);
@@ -106,6 +114,46 @@ final class VisualQuery {
             }
             if (!ordering.isEmpty()) sql.append("\nORDER BY ").append(String.join(", ", ordering));
             return sql.toString();
+        }
+        // Views need unique column names; ordinary SELECT imports retain their original labels.
+        Map<String, String> viewOutputAliases() {
+            Map<String, String> aliases = new LinkedHashMap<>();
+            Set<String> reserved = new HashSet<>(), used = new HashSet<>();
+            for (JsonNode output : outputs.values()) {
+                String alias = output.path("alias").asText(), name = outputName(output);
+                if (!alias.isBlank() && !used.add(outputNameKey(alias)))
+                    throw invalid("View output alias \"" + alias + "\" is repeated. Give each output a unique alias in Query Output.");
+                if (!name.isBlank()) reserved.add(outputNameKey(name));
+            }
+            for (JsonNode output : outputs.values()) {
+                if (!output.path("alias").asText().isBlank()) continue;
+                String name = outputName(output);
+                if (name.isBlank() || used.add(outputNameKey(name))) continue;
+                JsonNode expression = output.path("expression");
+                String prefix = expression.path("kind").asText().equals("column")
+                        ? sources.getOrDefault(expression.path("source").asText(), Profiles.JSON.createObjectNode()).path("alias").asText() + "_" + name : name;
+                String candidate = outputAlias(prefix, ""); int suffix = 2;
+                while (reserved.contains(outputNameKey(candidate)) || used.contains(outputNameKey(candidate))) candidate = outputAlias(prefix, "_" + suffix++);
+                used.add(outputNameKey(candidate)); aliases.put(output.path("id").asText(), candidate);
+            }
+            return aliases;
+        }
+        String outputName(JsonNode output) {
+            String alias = output.path("alias").asText(); if (!alias.isBlank()) return alias;
+            JsonNode expression = output.path("expression");
+            if (expression.path("kind").asText().equals("column")) return expression.path("name").asText();
+            if (expression.path("kind").asText().equals("function")) {
+                String name = expression.path("name").asText();
+                return expression.path("catalogFunction").asBoolean() ? name : engine.equals("postgresql") ? name.toLowerCase(Locale.ROOT) : name.toUpperCase(Locale.ROOT);
+            }
+            return "";
+        }
+        String outputNameKey(String name) { return engine.equals("postgresql") ? name : name.toLowerCase(Locale.ROOT); }
+        String outputAlias(String prefix, String suffix) {
+            // Bound generated names in bytes so PostgreSQL cannot truncate two aliases to the same name.
+            int limit = engine.equals("postgresql") ? 63 : 30;
+            while ((prefix + suffix).getBytes(StandardCharsets.UTF_8).length > limit) prefix = prefix.substring(0, prefix.offsetByCodePoints(prefix.length(), -1));
+            return prefix + suffix;
         }
         String join(JsonNode node, int depth) throws Exception {
             budget(depth);

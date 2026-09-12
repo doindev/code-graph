@@ -12,6 +12,40 @@ class VisualQueryTest {
  static ObjectNode col(String source){return VisualQuery.expression("column").put("source",source).put("name","ID");}
  static ObjectNode join(JsonNode left,JsonNode right,String type){ObjectNode j=VisualQuery.expression("join").put("id",UUID.randomUUID().toString()).put("type",type);j.set("left",left);j.set("right",right);ArrayNode pairs=j.putArray("pairs");if(!type.equals("CROSS")){ObjectNode p=pairs.addObject().put("op","=");p.set("left",col(VisualQuery.leafIds(left).iterator().next()));p.set("right",col(VisualQuery.leafIds(right).iterator().next()));}return j;}
  static ObjectNode compile(JsonNode model){ObjectNode request=Profiles.JSON.createObjectNode().put("quote","\"").put("engine","h2");request.set("model",model);return VisualQuery.compile(request);}
+ static ObjectNode compileView(JsonNode model){ObjectNode request=Profiles.JSON.createObjectNode().put("quote","\"").put("engine","postgresql").put("uniqueOutputNames",true);request.set("model",model);return VisualQuery.compile(request);}
+ static ObjectNode joinedOutputs(){var m=model(2);m.withArray("roots").removeAll().add(join(VisualQueryImport.source("s2"),VisualQueryImport.source("s1"),"INNER"));m.withObject("detail").withArray("outputs").addObject().put("id","o2").set("expression",col("s2"));return m;}
+ @Test void savedViewBaselineIsBoundedAndExcludesRuntimeValues(){
+  var m=model(1);m.putObject("viewBaseline").put("fingerprint","saved-definition").put("sql","SELECT ID FROM ITEM").put("values","secret");
+  var saved=VisualQuery.validateDraft(m);assertEquals("SELECT ID FROM ITEM",saved.path("viewBaseline").path("sql").asText());assertFalse(saved.toString().contains("secret"));
+  m.withObject("viewBaseline").put("sql","x".repeat(16385));assertThrows(IllegalArgumentException.class,()->VisualQuery.validateDraft(m));
+ }
+ @Test void viewJoinsKeepExistingNamesAndAliasRepeatedColumns(){
+  var m=joinedOutputs();String original=m.toString();var result=compileView(m);assertTrue(result.path("valid").asBoolean(),result.toString());
+  assertTrue(result.path("sql").asText().startsWith("SELECT \"t1\".\"ID\",\n       \"t2\".\"ID\" AS \"t2_ID\""),result.toString());
+  assertEquals("t2_ID",result.path("outputs").get(1).path("automaticAlias").asText());assertEquals(original,m.toString(),"Compilation cannot mutate saved drafts or undo history");
+  assertFalse(compile(m).path("sql").asText().contains("AS \"t2_ID\""),"Ordinary SELECT labels and imports are unchanged");
+ }
+ @Test void viewNamesReserveExplicitAliasesAndLaterColumnNames(){
+  var m=joinedOutputs();var out=m.withObject("detail").withArray("outputs");
+  out.addObject().put("id","o3").put("alias","t2_ID").set("expression",col("s1"));
+  ((ObjectNode)m.path("sources").get(0)).withArray("columns").addObject().put("name","t2_ID_2");out.addObject().put("id","o4").set("expression",col("s1").put("name","t2_ID_2"));
+  out.addObject().put("id","o5").set("expression",col("s2"));var result=compileView(m);assertTrue(result.path("valid").asBoolean(),result.toString());
+  assertEquals("t2_ID_3",result.path("outputs").get(1).path("automaticAlias").asText());assertEquals("t2_ID_4",result.path("outputs").get(4).path("automaticAlias").asText());
+  ((ObjectNode)out.get(1)).put("alias","Other ID");assertTrue(compileView(m).path("sql").asText().contains("AS \"Other ID\""));
+  ((ObjectNode)out.get(0)).put("alias","t2_ID");assertFalse(compileView(m).path("valid").asBoolean());assertTrue(compileView(m).path("diagnostics").toString().contains("unique alias in Query Output"));
+ }
+ @Test void generatedViewAliasesAreQuotedAndBoundedWithoutCollisions(){
+  var m=joinedOutputs();((ObjectNode)m.path("sources").get(1)).put("alias","quoted\"source");var result=compileView(m);assertTrue(result.path("sql").asText().contains("AS \"quoted\"\"source_ID\""),result.toString());
+  ((ObjectNode)m.path("sources").get(1)).put("alias","界".repeat(25));m.withObject("detail").withArray("outputs").addObject().put("id","o3").set("expression",col("s2"));result=compileView(m);assertTrue(result.path("valid").asBoolean(),result.toString());
+  String first=result.path("outputs").get(1).path("automaticAlias").asText(),second=result.path("outputs").get(2).path("automaticAlias").asText();assertNotEquals(first,second);
+  assertTrue(first.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=63);assertTrue(second.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=63);
+ }
+ @Test void repeatedSummaryAggregatesKeepBindingAndSortReferences(){
+  var m=model(1);m.put("mode","summary");var count=VisualQuery.expression("function").put("name","COUNT");count.putArray("args").add(VisualQuery.expression("star"));
+  for(String id:List.of("count1","count2"))m.withObject("summary").withArray("outputs").addObject().put("id",id).set("expression",count.deepCopy());
+  m.withObject("summary").withArray("order").addObject().put("direction","DESC").set("expression",VisualQuery.expression("output").put("output","count2"));
+  var result=compileView(m);assertTrue(result.path("valid").asBoolean(),result.toString());assertEquals("count_2",result.path("outputs").get(1).path("automaticAlias").asText());assertTrue(result.path("sql").asText().endsWith("ORDER BY COUNT(*) DESC"));
+ }
  @Test void disconnectedSourcesAndNestedOuterJoins(){var m=model(3);assertFalse(compile(m).path("valid").asBoolean());JsonNode a=m.path("roots").get(0),b=m.path("roots").get(1),c=m.path("roots").get(2);m.withArray("roots").removeAll().add(join(a,join(b,c,"INNER"),"LEFT"));var result=compile(m);assertTrue(result.path("valid").asBoolean(),result.toString());assertTrue(result.path("sql").asText().contains("LEFT JOIN (PUBLIC.ITEM AS \"t2\""));ObjectNode j=(ObjectNode)m.path("roots").get(0);j.withArray("pairs").addObject().put("op",">=").set("left",col("s1"));((ObjectNode)j.path("pairs").get(1)).set("right",col("s3"));assertTrue(compile(m).path("sql").asText().contains(" AND "));
  }
  @Test void exceedsSixteenSourcesWithinSqlAndExpressionLimits(){var m=model(20);JsonNode tree=m.path("roots").get(0);for(int i=1;i<20;i++)tree=join(tree,m.path("roots").get(i),"CROSS");m.withArray("roots").removeAll().add(tree);assertTrue(compile(m).path("valid").asBoolean(),compile(m).toString());}
