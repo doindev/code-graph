@@ -42,6 +42,7 @@ public final class HttpServer implements AutoCloseable {
     private final Workspace workspace;
     private final VizServer viz;
     private final WorkspaceTools registry;
+    private io.doindev.codegraph.dba.DbaRuntime dba;
 
     private HttpServer(Server jetty, ServerConnector connector, CodeGraphMcpServer mcp,
                        Workspace workspace, VizServer viz, WorkspaceTools registry) {
@@ -94,6 +95,12 @@ public final class HttpServer implements AutoCloseable {
 
     public static HttpServer start(Workspace workspace, int port, int vizPort, boolean vizAdmin,
                                    Duration projectTtl) throws Exception {
+        return start(workspace, port, vizPort, vizAdmin, projectTtl, null);
+    }
+
+    public static HttpServer start(Workspace workspace, int port, int vizPort, boolean vizAdmin,
+                                   Duration projectTtl, io.doindev.codegraph.dba.DbaConfig dbaConfig) throws Exception {
+        if (dbaConfig != null) workspace.protectDirectory(dbaConfig.directory());
         ProjectLifecycle.validateTtl(projectTtl);
         long start = System.nanoTime();
         workspace.fullIndexAll().forEach((name, result) -> System.err.printf(
@@ -107,16 +114,25 @@ public final class HttpServer implements AutoCloseable {
         registry.lifecycle().setTtl(projectTtl);
         ProjectOnboarding onboarding = new ProjectOnboarding(workspace, registry, Analyzers.discover());
         workspace.projects().forEach(onboarding::register);
-        List<GraphTool> tools = registry.tools(onboarding::add);
+        List<GraphTool> tools = new java.util.ArrayList<>(registry.tools(onboarding::add));
 
         VizServer viz = null;
         CodeGraphMcpServer mcp = null;
         Server jetty = null;
+        io.doindev.codegraph.dba.DbaRuntime dba = null;
         try {
+            if (dbaConfig != null) {
+                dba = new io.doindev.codegraph.dba.DbaRuntime(dbaConfig,vizPort>=0);
+                if(vizPort>=0)System.err.println("code-graph-http: DBA direct local browser access enabled");
+                tools.addAll(io.doindev.codegraph.mcp.DbaMcpTools.tools(dba,null));
+            }
             HttpServletStreamableServerTransportProvider transport =
                     HttpServletStreamableServerTransportProvider.builder()
                             .jsonMapper(new JacksonMcpJsonMapper(new ObjectMapper()))
                             .mcpEndpoint(MCP_ENDPOINT)
+                            .contextExtractor(request -> io.modelcontextprotocol.common.McpTransportContext.create(java.util.Map.of(
+                                    io.doindev.codegraph.mcp.DbaMcpTools.PRINCIPAL,
+                                    java.util.Objects.toString(request.getAttribute(io.doindev.codegraph.mcp.DbaMcpTools.PRINCIPAL),""))))
                             .build();
             mcp = CodeGraphMcpServer.serve("code-graph", "0.0.1", tools, transport);
 
@@ -133,6 +149,7 @@ public final class HttpServer implements AutoCloseable {
             ServletHolder holder = new ServletHolder("mcp", transport);
             holder.setAsyncSupported(true); // the transport streams SSE responses via startAsync()
             context.addServlet(holder, MCP_ENDPOINT);
+            if(dba!=null){var filter=new org.eclipse.jetty.ee10.servlet.FilterHolder(new DbaHttpAccess(dba));filter.setAsyncSupported(true);context.addFilter(filter,MCP_ENDPOINT,java.util.EnumSet.of(jakarta.servlet.DispatcherType.REQUEST));}
             jetty.setHandler(context);
             jetty.start();
 
@@ -144,14 +161,17 @@ public final class HttpServer implements AutoCloseable {
                 String endpoint = "http://<host>:" + boundPort + MCP_ENDPOINT;
                 io.doindev.codegraph.viz.VizControl control = new WorkspaceVizControl(
                         workspace, registry, Analyzers.discover(), endpoint, vizAdmin);
-                viz = VizServer.start(control, java.net.InetAddress.getByName("0.0.0.0"), vizPort);
+                viz = VizServer.start(control, java.net.InetAddress.getByName("0.0.0.0"), vizPort, dba);
                 System.err.println("code-graph-http: viz on http://0.0.0.0:" + viz.port() + "/"
                         + (vizAdmin ? " (actions enabled)" : " (read-only)"));
             }
             registry.lifecycle().start();
             System.err.println("code-graph-http: project idle TTL " + projectTtl);
-            return new HttpServer(jetty, connector, mcp, workspace, viz, registry);
+            HttpServer result = new HttpServer(jetty, connector, mcp, workspace, viz, registry);
+            result.dba = dba;
+            return result;
         } catch (Exception e) {
+            if (dba != null) dba.close();
             if (jetty != null) {
                 try {
                     jetty.stop();
@@ -188,6 +208,7 @@ public final class HttpServer implements AutoCloseable {
 
     @Override
     public void close() {
+        if (dba != null) dba.close();
         try {
             jetty.stop();
         } catch (Exception e) {

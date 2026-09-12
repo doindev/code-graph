@@ -11,6 +11,9 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>io.doindev</groupId><artifactId>code-graph-dba</artifactId><version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.doindev</groupId><artifactId>code-graph-storage</artifactId><version>${project.version}</version>
       </dependency>
       <dependency>

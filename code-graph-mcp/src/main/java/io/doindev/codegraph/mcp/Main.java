@@ -49,6 +49,7 @@ public final class Main {
         }
 
         Workspace workspace = openWorkspace(args, analyzers);
+        io.doindev.codegraph.dba.DbaRuntime dba = openDba(args, workspace);
         long start = System.nanoTime();
         Map<String, FullIndexer.Result> results = workspace.fullIndexAll();
         results.forEach((name, result) -> System.err.printf(
@@ -63,7 +64,8 @@ public final class Main {
         registry.lifecycle().setTtl(projectTtl);
         ProjectOnboarding onboarding = new ProjectOnboarding(workspace, registry, analyzers);
         workspace.projects().forEach(onboarding::register);
-        List<GraphTool> tools = registry.tools(onboarding::add);
+        List<GraphTool> tools = new ArrayList<>(registry.tools(onboarding::add));
+        if(dba!=null)tools.addAll(DbaMcpTools.tools(dba,()->dba.authenticateAgent(System.getenv("CODE_GRAPH_DBA_AGENT_TOKEN"))));
 
         VizServer viz = null;
         int vizPort = intArg(args, "--viz", -1);
@@ -71,7 +73,7 @@ public final class Main {
             // stdio viz binds to loopback, so actions (add/remove/reindex/browse) are safe on by default
             boolean admin = !hasFlag(args, "--viz-readonly");
             VizControl control = new WorkspaceVizControl(workspace, registry, analyzers, "stdio", admin);
-            viz = VizServer.start(control, vizPort);
+            viz = VizServer.start(control, java.net.InetAddress.getLoopbackAddress(), vizPort, dba);
             System.err.println("code-graph: viz at http://localhost:" + viz.port() + "/"
                     + (admin ? " (actions enabled)" : " (read-only)"));
         }
@@ -83,6 +85,7 @@ public final class Main {
             System.err.println("code-graph: watching onboarded projects for changes; serving MCP over stdio");
             Thread.currentThread().join();
         } finally {
+            if (dba != null) dba.close();
             if (viz != null) {
                 viz.close();
             }
@@ -96,6 +99,18 @@ public final class Main {
             }
         }
         return false;
+    }
+
+    public static io.doindev.codegraph.dba.DbaRuntime openDba(String[] args, Workspace workspace) {
+        var configuration = io.doindev.codegraph.dba.DbaConfig.parse(args);
+        if (configuration.isEmpty()) return null;
+        workspace.protectDirectory(configuration.get().directory());
+        try {
+            boolean ui=intArg(args,"--viz",-1)>=0;
+            var runtime = new io.doindev.codegraph.dba.DbaRuntime(configuration.get(),ui);
+            if(ui)System.err.println("code-graph: DBA direct local browser access enabled");
+            return runtime;
+        } catch (IOException e) { throw new UncheckedIOException("Cannot start DBA runtime", e); }
     }
 
     /** Shared by the stdio and HTTP entry points: resolve --workspace / repeated --root flags. */

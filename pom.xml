@@ -75,6 +75,7 @@
     <module>code-graph-store-arangodb</module>
     <module>code-graph-linker</module>
     <module>code-graph-viz</module>
+    <module>code-graph-dba</module>
     <module>code-graph-cli</module>
     <module>code-graph-mcp-http</module>
   </modules>

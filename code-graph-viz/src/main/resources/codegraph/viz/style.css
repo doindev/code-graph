@@ -67,7 +67,26 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   letter-spacing: 0.04em;
   color: #fff;
   font-family: var(--mono);
+  text-decoration: none;
 }
+
+#appname:hover { color: var(--accent); }
+
+.header-new-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  text-decoration: none;
+}
+.header-new-tab:hover { color: var(--accent); background: var(--panel-solid); border-color: var(--border); }
+.header-new-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.header-new-tab svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 #dims { display: flex; gap: 2px; padding-left: 10px; border-left: 1px solid var(--border); }
 #appname::before { content: "\25C8 "; color: var(--accent); }

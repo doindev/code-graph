@@ -35,6 +35,7 @@ public final class VizServer implements AutoCloseable {
 
     private final HttpServer server;
     private final VizControl control;
+    private io.doindev.codegraph.dba.DbaRuntime dba;
 
     private VizServer(HttpServer server, VizControl control) {
         this.server = server;
@@ -47,9 +48,15 @@ public final class VizServer implements AutoCloseable {
     }
 
     public static VizServer start(VizControl control, InetAddress bind, int port) {
+        return start(control, bind, port, null);
+    }
+
+    public static VizServer start(VizControl control, InetAddress bind, int port,
+                                 io.doindev.codegraph.dba.DbaRuntime dba) {
         try {
             HttpServer httpServer = HttpServer.create(new InetSocketAddress(bind, port), 0);
             VizServer viz = new VizServer(httpServer, control);
+            viz.dba = dba;
             httpServer.createContext("/", viz::handle);
             httpServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             httpServer.start();
@@ -74,6 +81,10 @@ public final class VizServer implements AutoCloseable {
         try {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
+            if (dba != null && io.doindev.codegraph.dba.DbaRuntime.matches(path)) {
+                dba.handle(exchange);
+                return;
+            }
             if (method.equals("GET") && isStatic(path)) {
                 serveStatic(exchange, path);
                 return;
@@ -245,6 +256,7 @@ public final class VizServer implements AutoCloseable {
         out.put("mcpEndpoint", control.mcpEndpoint());
         out.put("mutable", control.mutable());
         out.put("vizPort", port());
+        out.put("dbaEnabled", dba != null);
         out.set("graphStorage", JSON.valueToTree(control.storageStatus()));
         if (control.lifecycle() != null) {
             out.put("projectTtlSeconds", control.lifecycle().ttl().toSeconds());

@@ -6,6 +6,27 @@ large text codebases into a queryable **code property graph** so AI agents can a
 
 ## What it does
 
+- **DBA preview**: opt-in `/dba` connection management, capped SELECTs, PostgreSQL estimated
+  plans/definition inspection, and authenticated read-only MCP access with or without the UI.
+  Direct local browser access, an alphabetical database picker, embedded Maven driver bundles,
+  advanced JDBC settings, statement-aware human scripts, reusable/reorderable result grids,
+  savepoint-backed browser error decisions, unsaved connection tests with version-query results, and Snowflake
+  existing-file RSA key-pair authentication are described in [Connection setup](docs/dba-connections.md).
+  [Grid query editing and the expanded JDBC catalog](docs/dba-grid-and-drivers.md) covers
+  alias-aware sorting/filtering, editable Boolean filters, driver recipes and validation limits.
+  Double-click a table in the database tree to open a fixed-connection **Table** tab with a reusable
+  Data grid and session recovery. Tables expand into lazy, vendor-aware categories such as
+  Columns, Constraints and Foreign Keys; see [catalog navigation](docs/dba-catalog-tree.md#table-children).
+  A staged [Table Properties designer](docs/dba-table-designer.md) supports reviewed PostgreSQL/H2
+  schema edits; the capability matrix documents remaining vendor and advanced-editor gaps.
+  Supported PostgreSQL/H2 category menus offer [New with SQL review](docs/dba-catalog-tree.md#creating-objects-from-category-menus)
+  and explicit Apply; Tables → New reuses the Properties tab, with Data/Diagram disabled until creation succeeds.
+  The reusable [Visual Query Builder](docs/dba-query-builder.md) opens standalone, from selected
+  Script SQL, or in the Diagram view of tables/views/materialized views. It supports source and
+  column drag/drop, joins, query expressions, SQL files, undo/redo and bounded result grids.
+  Unsupported SQL is preserved in SQL mode; saving a query never changes a database view.
+  The full write-policy/MCP administration suite is not yet complete; see
+  [DBA status, configuration, and remaining gates](docs/dba.md).
 - **Tree-sitter AST parsing** for the top-10 languages: Java, JavaScript, TypeScript (+TSX),
   Python, C#, Go, Rust, C, C++, PHP — plus Ruby and Kotlin. New languages plug in behind a
   `LanguageAnalyzer` SPI.
@@ -52,6 +73,7 @@ large text codebases into a queryable **code property graph** so AI agents can a
 | `code-graph-mcp` | stdio MCP server (bundles all languages; the only module importing the MCP SDK) |
 | `code-graph-mcp-http` | Streamable-HTTP MCP server on embedded Jetty 12 (Docker-ready) |
 | `code-graph-viz` | Embedded 3D visualization: drill-down, ego networks, galaxy view (vendored WebGL, no CDN) |
+| `code-graph-dba` | Opt-in local JDBC administration preview; native vault adapters, isolated pools and bounded reads |
 | `code-graph-store-h2` / `-neo4j` | Durable graph-mirror adapters for custom integrations |
 | `code-graph-store-arangodb` | ArangoDB dependency scaffolding; no standard-server configuration |
 | `code-graph-linker` | Cross-language HTTP-route linking (`INVOKES_REMOTE` edges) |
@@ -61,6 +83,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
 
 | Guide | Topic |
 |---|---|
+| [docs/dba.md](docs/dba.md) | DBA preview startup/configuration, credential handling, limits, APIs and remaining implementation gates |
+| [docs/dba-catalog-tree.md](docs/dba-catalog-tree.md) | Vendor-specific database/schema object trees, refresh behavior, metadata bounds and validation commands |
 | [docs/hybrid-graph-storage.md](docs/hybrid-graph-storage.md) | Disk paging, shared cache budget, admin settings and memory limits |
 | [docs/guides/mcp-server.md](docs/guides/mcp-server.md) | Registering with Claude Code, tool reference, worked session |
 | [docs/guides/configuration.md](docs/guides/configuration.md) | Full `code-graph.json` / `.yaml` reference |
@@ -161,6 +185,7 @@ rejected, so verify startup logs and `/api/server` rather than relying on typo d
 | `--project-ttl DURATION` | HTTP, stdio | `1h` | Shared idle-expiry policy for every onboarded project; live admin changes are possible. |
 | `--graph-storage MODE` | HTTP, stdio | `memory` | `memory` keeps the graph in Java heap; `hybrid` stores records on disk with a shared cache. Selected for the whole server session. |
 | `--graph-memory SIZE` | HTTP, stdio | `1g` | Shared graph/cache allowance in hybrid mode, **not per project**. Accepted but does not bound the pure in-memory backend. |
+| `--dba-decision-timeout N` | HTTP, stdio with `--dba` | `60` | Seconds to wait for a human script-error decision; valid range 10–600. Other DBA flags are documented in [the DBA guide](docs/dba.md#start-explicit). |
 
 For listener ports, use `1–65535`; `0` requests an OS-assigned port, reported in startup logs.
 MCP and UI need separate available ports. HTTP MCP and HTTP UI bind to `0.0.0.0`; the stdio

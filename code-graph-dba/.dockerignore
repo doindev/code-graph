@@ -1,0 +1,4 @@
+target/*
+!target/test-lib/
+target/test-lib/*
+!target/test-lib/jna-5.18.1.jar

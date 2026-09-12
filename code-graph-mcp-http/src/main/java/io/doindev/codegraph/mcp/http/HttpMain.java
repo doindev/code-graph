@@ -28,7 +28,8 @@ public final class HttpMain {
         boolean vizAdmin = hasFlag(args, "--viz-admin");
         Analyzers analyzers = Analyzers.discover();
         Workspace workspace = Main.openWorkspace(args, analyzers);
-        try (HttpServer server = HttpServer.start(workspace, port, vizPort, vizAdmin, projectTtl)) {
+        try (HttpServer server = HttpServer.start(workspace, port, vizPort, vizAdmin, projectTtl,
+                io.doindev.codegraph.dba.DbaConfig.parse(args).orElse(null))) {
             System.err.println("code-graph-http: watching onboarded projects for changes; Ctrl-C to stop");
             server.join();
         }

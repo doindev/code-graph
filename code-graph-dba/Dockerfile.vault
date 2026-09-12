@@ -1,0 +1,10 @@
+FROM eclipse-temurin:25-jdk-jammy
+RUN apt-get update && apt-get install -y --no-install-recommends dbus dbus-x11 gnome-keyring libsecret-tools libglib2.0-bin && rm -rf /var/lib/apt/lists/*
+WORKDIR /qa
+COPY target/test-lib/jna-5.18.1.jar /qa/lib/jna.jar
+COPY src/main/java/io/doindev/codegraph/dba/Vault.java src/main/java/io/doindev/codegraph/dba/NativeVault.java /qa/src/io/doindev/codegraph/dba/
+COPY qa/LinuxVaultProbe.java /qa/src/io/doindev/codegraph/dba/
+RUN javac -cp /qa/lib/jna.jar -d /qa/classes /qa/src/io/doindev/codegraph/dba/*.java
+COPY qa/linux-vault.sh /qa/linux-vault.sh
+RUN sed -i 's/\r$//' /qa/linux-vault.sh && chmod +x /qa/linux-vault.sh
+ENTRYPOINT ["dbus-run-session", "--", "/qa/linux-vault.sh"]

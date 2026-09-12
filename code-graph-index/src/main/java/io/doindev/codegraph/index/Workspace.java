@@ -139,6 +139,7 @@ public final class Workspace implements AutoCloseable {
         storage.checkRoot(root);
         String name;
         synchronized (this) {
+            checkPrivateDirectories(root);
             if (closed) {
                 throw new IllegalStateException("workspace is closed");
             }
@@ -190,6 +191,33 @@ public final class Workspace implements AutoCloseable {
             projects.put(name, project);
         }
         return project;
+    }
+
+    private final java.util.Set<Path> privateDirectories = new java.util.HashSet<>();
+
+    /** Prevent graph indexing from reading application-owned credentials/configuration. */
+    public synchronized void protectDirectory(Path directory) {
+        Path real;
+        try {
+            Path existing = directory.toAbsolutePath().normalize();
+            java.util.ArrayDeque<Path> suffix = new java.util.ArrayDeque<>();
+            while (!Files.exists(existing)) { suffix.addFirst(existing.getFileName()); existing = existing.getParent(); }
+            real = existing.toRealPath();
+            for (Path part : suffix) real = real.resolve(part);
+        } catch (IOException e) { throw new IllegalArgumentException("Cannot resolve protected directory", e); }
+        for (Project project : projects.values())
+            if (real.startsWith(project.root()) || project.root().startsWith(real))
+                throw new IllegalArgumentException("Application data directory must not overlap an indexed root");
+        for (Path root : reservedRoots.values())
+            if (real.startsWith(root) || root.startsWith(real))
+                throw new IllegalArgumentException("Application data directory overlaps an onboarding root");
+        privateDirectories.add(real);
+    }
+
+    private void checkPrivateDirectories(Path root) {
+        for (Path directory : privateDirectories)
+            if (directory.startsWith(root) || root.startsWith(directory))
+                throw new IllegalArgumentException("Project root overlaps protected application data");
     }
 
     private static Path canonicalRoot(Path rawRoot) {

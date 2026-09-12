@@ -10,6 +10,7 @@
   <description>Embedded 3D graph visualization: local web UI (vendored WebGL, no CDN) with module drill-down, symbol ego networks and a capped galaxy view across workspace projects</description>
 
   <dependencies>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-dba</artifactId><version>${project.version}</version></dependency>
     <dependency>
       <groupId>io.doindev</groupId>
       <artifactId>code-graph-core</artifactId>

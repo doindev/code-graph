@@ -51,6 +51,14 @@ class StaticAssetsTest {
             assertTrue(index.body().contains("scan-cancel"), "index.html should have the scan cancel button");
             assertTrue(index.body().contains("node-tooltip"), "index.html should have the custom hover tooltip");
             assertTrue(index.body().contains("empty-state"), "index.html should have the empty-workspace state");
+            assertTrue(index.body().contains("<a id=\"appname\" href=\"/dba\""),
+                    "the code-graph brand should open DBA administration");
+            assertFalse(index.body().contains("id=\"dba-link\""),
+                    "the separate DBA header link should be removed");
+            assertTrue(index.body().contains("id=\"counterpart-new-tab\" class=\"header-new-tab\" href=\"/dba\" target=\"_blank\" rel=\"noopener\""),
+                    "the header icon should open DBA administration in a new tab");
+            assertTrue(index.body().contains("aria-label=\"Open database administration in a new tab\""),
+                    "the new-tab icon should have an accessible name");
             assertCompactButton(index.body(), "add-project", "&#65291;", "Add a project directory");
             assertCompactButton(index.body(), "remove-project", "&#10005;",
                     "Remove the active project from this server");
@@ -67,6 +75,7 @@ class StaticAssetsTest {
 
             HttpResponse<String> css = get(client, base + "/style.css");
             assertEquals(200, css.statusCode());
+            assertTrue(css.body().contains(".header-new-tab"));
 
             HttpResponse<String> vendor2d = get(client, base + "/vendor/force-graph.min.js");
             assertEquals(200, vendor2d.statusCode());
