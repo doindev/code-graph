@@ -3,7 +3,7 @@ module.exports=async(browser,base,jar,schema='')=>{
  const context=await browser.newContext({viewport:{width:1500,height:1100},acceptDownloads:true}),page=await context.newPage(),errors=[];let profile;
  page.on('pageerror',error=>errors.push(error.message));
  try{
-  await page.goto(base+'/dba');
+  await page.goto(base+'/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
   profile=await page.evaluate(async jar=>{
    const session=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
    const r=await fetch('/api/dba/connections',{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':session.csrf},body:JSON.stringify({name:'View query fixture',url:'jdbc:h2:mem:view_query_'+Date.now()+';DB_CLOSE_DELAY=-1',jar,driverClass:'org.h2.Driver',username:'sa',saveUntested:true})});if(!r.ok)throw Error(await r.text());return r.json();
@@ -51,8 +51,31 @@ module.exports=async(browser,base,jar,schema='')=>{
    await sql(pg.id,'CREATE TABLE '+schema+'.query_people(id int, name varchar(30)); INSERT INTO '+schema+".query_people VALUES(1,'Ada'),(2,'Grace'); CREATE VIEW "+schema+'.query_view AS SELECT id,name FROM '+schema+'.query_people; CREATE MATERIALIZED VIEW '+schema+'.query_materialized AS SELECT id,name FROM '+schema+'.query_people');
    await page.reload();const root=page.locator('[data-connection="'+pg.id+'"]');
    for(const name of ['Browser PostgreSQL','Databases','postgres','Schemas',schema])await root.getByRole('button',{name:'Expand '+name,exact:true}).click();
+   const createWithDiagram=async(group,name)=>{
+    await root.getByRole('button',{name:'Actions for '+group,exact:true}).click();await page.locator('.connection-menu').getByRole('menuitem',{name:'New',exact:true}).click();
+    const properties=page.locator('.object-properties');await properties.getByRole('button',{name:'Save',exact:true}).waitFor();
+    assert.equal(await page.getByRole('tab',{name:'Data',exact:true}).isDisabled(),true,group+' Data waits for creation');
+    assert.equal(await page.getByRole('tab',{name:'Diagram',exact:true}).isEnabled(),true,group+' Diagram is available during creation');
+    await properties.getByRole('textbox',{name:'Name',exact:true}).fill(name);
+    if(group==='Materialized Views'){await properties.getByRole('tab',{name:'Refresh',exact:true}).click();assert.match(await properties.locator('.schedule-summary').innerText(),/PostgreSQL with pg_cron/);if(await properties.getByText('Setup required',{exact:true}).count()){assert.ok(await properties.getByText(/Install the matching server package|Create and grant the extension/).count());assert.equal(await properties.getByRole('button',{name:'Recheck capabilities',exact:true}).count(),1);}}
+    await page.getByRole('tab',{name:'Properties',exact:true}).press('End');assert.equal(await page.getByRole('tab',{name:'Diagram',exact:true}).getAttribute('aria-selected'),'true');
+    await builder.locator('.qb-empty').waitFor();assert.match(await builder.locator('.qb-empty').innerText(),/Drag tables and views here/);
+    await builder.getByRole('button',{name:'Add source',exact:true}).click();const picker=page.getByRole('dialog',{name:'Add source',exact:true});
+    await picker.getByLabel('Schema',{exact:true}).selectOption(schema);await picker.getByRole('button',{name:'query_people',exact:true}).click();await picker.waitFor({state:'detached'});await ready();
+    const visualSql=await preview.inputValue();assert.match(visualSql,new RegExp('FROM "'+schema+'"\\."query_people"'));
+    await page.getByRole('tab',{name:'Properties',exact:true}).click();await properties.getByRole('tab',{name:'Definition',exact:true}).click();
+    const definition=properties.getByRole('textbox',{name:'SELECT query',exact:true}),compact=value=>value.replace(/\s+/g,' ').trim();assert.equal(compact(await definition.inputValue()),compact(visualSql),'Diagram SQL is the shared Definition draft');
+    await definition.fill('SELECT id FROM "'+schema+'"."query_people" WHERE id > 1');await page.getByRole('tab',{name:'Diagram',exact:true}).click();await ready();assert.match(await preview.inputValue(),/WHERE .*"t1"\."id" > 1/);
+    await save.click();await review.getByRole('textbox',{name:'Reviewed object SQL'}).waitFor();const reviewed=await review.getByRole('textbox',{name:'Reviewed object SQL'}).inputValue();assert.match(reviewed,new RegExp('CREATE '+(group==='Materialized Views'?'MATERIALIZED VIEW':'VIEW')+'[\\s\\S]*'+name+'[\\s\\S]*WHERE'));
+    await review.getByRole('checkbox').check();await review.getByRole('button',{name:'Apply',exact:true}).click();await review.waitFor({state:'detached'});await page.waitForFunction(()=>document.querySelector('.qb-status')?.textContent.includes('Object changes saved'));
+    assert.equal(await page.getByRole('tab',{name:'Data',exact:true}).isEnabled(),true);assert.equal((await sql(pg.id,'SELECT count(*) FROM '+schema+'.'+name)).results[0].rows[0][0],'1');
+    await page.locator('#tabs .tab.active .close').click();
+   };
+   await createWithDiagram('Views','created_visual_view');
+   await createWithDiagram('Materialized Views','created_visual_materialized');
    for(const [group,name]of [['Views','query_view'],['Materialized Views','query_materialized']]){
     await root.getByRole('button',{name:'Expand '+group,exact:true}).click();await root.locator('.metadata-node[data-name="'+name+'"] > .metadata-title > .metadata-name').dblclick();await page.waitForFunction(()=>document.querySelector('.object-properties')?.getAttribute('aria-busy')==='false');
+    if(group==='Materialized Views'){const properties=page.locator('.object-properties');await properties.getByRole('tab',{name:'Refresh',exact:true}).click();assert.match(await properties.locator('.schedule-summary').innerText(),/PostgreSQL with pg_cron/);assert.match(await properties.innerText(),/Manual Refresh remains a separate action/);}
     await page.getByRole('tab',{name:'Diagram',exact:true}).click();await ready();await noRowActions(footer);await builder.getByLabel('Distinct rows',{exact:true}).check();await ready();assert.equal(await save.isEnabled(),true);assert.equal(await revert.isEnabled(),true);
     await save.click();await review.getByRole('textbox',{name:'Reviewed object SQL'}).waitFor();assert.match(await review.getByRole('textbox',{name:'Reviewed object SQL'}).inputValue(),/SELECT DISTINCT/);await review.getByRole('checkbox').check();await review.getByRole('button',{name:'Apply',exact:true}).click();await review.waitFor({state:'detached'});await page.waitForFunction(()=>document.querySelector('.qb-status')?.textContent.includes('Object changes saved'));await ready();assert.equal(await save.isDisabled(),true);
     const definition=await sql(pg.id,"SELECT pg_get_viewdef('"+schema+'.'+name+"'::regclass, true)");assert.match(definition.results[0].rows[0][0],/SELECT DISTINCT/);

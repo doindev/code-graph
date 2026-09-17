@@ -5,10 +5,22 @@ const assert=require('node:assert/strict');
 const [base,jar,schema='']=process.argv.slice(2);
 (async()=>{
   const browser=await chromium.launch({channel:'msedge',headless:true});
+  // Closing an isolated test context should end its server session as well. Otherwise
+  // the full suite legitimately exhausts the application's eight-session allowance.
+  const newContext=browser.newContext.bind(browser);
+  browser.newContext=async(...args)=>{const context=await newContext(...args),close=context.close.bind(context);
+  context.close=async(...options)=>{
+    try{const r=await context.request.get(base+'/api/dba/session');if(r.ok()){const s=await r.json();await context.request.post(base+'/api/dba/logout',{headers:{Origin:base,'X-Dba-CSRF':s.csrf}});}}finally{await close(...options);}
+  };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='tree-context'){await require('./browser-tree-context.cjs')(browser,base);return;}
+    if(process.env.DBA_BROWSER_SUITE==='approval-review'){await require('./browser-approval-review.cjs')(browser,base,jar);return;}
+    if(process.env.DBA_BROWSER_SUITE==='approvals'){await require('./browser-approvals.cjs')(browser,base,jar);return;}
+    if(process.env.DBA_BROWSER_SUITE==='project-context'){await require('./browser-project-context.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='view-query'){await require('./browser-view-query.cjs')(browser,base,jar,schema);return;}
     if(process.env.DBA_BROWSER_SUITE==='script-selection'){await require('./browser-script-selection.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid'){await require('./browser-grid-column-menu.cjs')(browser,base);await require('./browser-grid-refresh.cjs')(browser,base);await require('./browser-grid-controller.cjs')(browser,base);await require('./browser-table-tabs.cjs')(browser,base,jar);return;}
+    if(process.env.DBA_BROWSER_SUITE==='grid-edit'){await require('./browser-grid-edit.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='object-designer'){await require('./browser-object-designer.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='workspace-toolbar'){await require('./browser-workspace-toolbar.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='object-creation'){await require('./browser-object-creation.cjs')(browser,base,jar);return;}
@@ -28,6 +40,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     await require('./browser-query-builder.cjs')(browser,base,jar);
     await require('./browser-object-creation.cjs')(browser,base,jar);
     await require('./browser-object-designer.cjs')(browser,base,jar);
+    await require('./browser-grid-edit.cjs')(browser,base,jar);
     }
     const page=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];
     await page.addInitScript(()=>{window.showOpenFilePicker=undefined;window.showSaveFilePicker=undefined;});
@@ -100,7 +113,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     await page.locator('.tab.active .close').click();await page.waitForFunction(()=>document.querySelector('#sql-gutter').dataset.lineCount==='120');
     if(!schema)assert.equal(await page.locator('#run').isDisabled(),true,'A script can exist without any connection');
     await page.locator('.tab.active .close').click();assert.equal(await page.locator('#file-save').isDisabled(),true);
-    if(!schema){await page.locator('#add').click();await page.locator('#connection-editor').waitFor({state:'visible'});
+    if(!schema){const initialConnectionCount=await page.locator('.connection-row').count();await page.locator('#add').click();await page.locator('#connection-editor').waitFor({state:'visible'});
     const databaseNames=await page.locator('.database-tile strong').allTextContents();assert.ok(databaseNames.length>40);assert.equal(databaseNames.pop(),'Custom');assert.deepEqual(databaseNames,[...databaseNames].sort((a,b)=>a.toLowerCase()<b.toLowerCase()?-1:a.toLowerCase()>b.toLowerCase()?1:0));
     await page.screenshot({path:'code-graph-dba/target/connection-picker.png'});
     await page.locator('#ce-search').fill('custom');assert.equal(await page.locator('.database-tile').count(),1);
@@ -114,7 +127,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     await page.waitForFunction(()=>!document.querySelector('#ce-test').disabled);
     await page.locator('#ce-test').click();await page.locator('#connection-test-result').waitFor({state:'visible'});
     const testResultBody=await page.locator('#test-result-body').innerText();assert.equal(await page.locator('#test-result-title').innerText(),'Connection successful',testResultBody);assert.match(testResultBody,/SELECT H2VERSION\(\)/);assert.equal(await page.locator('#test-result-body td').count(),1);
-    assert.equal(await page.locator('.connection-row').count(),0,'Test must not save a connection');
+    assert.equal(await page.locator('.connection-row').count(),initialConnectionCount,'Test must not save a connection');
     await page.screenshot({path:'code-graph-dba/target/connection-test-success.png'});
     await page.locator('#test-result-close').click();await page.locator('#ce-save').click();
     await page.locator('#connection-editor').waitFor({state:'hidden'});
@@ -156,7 +169,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     if(schema)assert.equal(await branch('relation','items').getAttribute('aria-expanded'),'true','Expanded descendants survive ancestor refresh');
     if(schema){
       assert.equal(await branch('database','postgres').locator(':scope > .metadata-title > svg[data-lucide=database]').count(),1);
-      const menuFor=async row=>{await row.locator(':scope > .metadata-title > .metadata-actions').scrollIntoViewIfNeeded();await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await row.locator(':scope > .metadata-title > .metadata-actions').click();await page.waitForFunction(()=>!document.querySelector('[role=menu] [title="Copy object name"]')?.disabled&&!!document.querySelector('[role=menu] [title="Copy object name"]')).catch(async e=>{throw new Error(e.message+' Menu: '+await page.locator('[role=menu]').evaluateAll(nodes=>nodes.map(n=>n.outerHTML).join(''))+' Notice: '+await page.locator('#toast').innerText());});const labels=await page.getByRole('menuitem').allTextContents();assert.deepEqual(labels.slice(0,2),['New','Delete']);assert.ok(labels.includes('Open object tab'));assert.deepEqual(labels.slice(-3),['Copy','Rename','Refresh metadata']);assert.equal(await page.locator('[role=menu] > button > svg[data-lucide]').count(),labels.length);assert.equal(await page.locator('[role=menu] > [role=separator]').count(),2);};
+      const menuFor=async row=>{await row.locator(':scope > .metadata-title > .metadata-actions').scrollIntoViewIfNeeded();await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await row.locator(':scope > .metadata-title > .metadata-actions').click();await page.waitForFunction(()=>!document.querySelector('[role=menu] [title="Copy object name"]')?.disabled&&!!document.querySelector('[role=menu] [title="Copy object name"]')).catch(async e=>{throw new Error(e.message+' Menu: '+await page.locator('[role=menu]').evaluateAll(nodes=>nodes.map(n=>n.outerHTML).join(''))+' Notice: '+await page.locator('#toast').innerText());});const menu=page.locator('[role=menu]:visible');const labels=await menu.getByRole('menuitem').allTextContents();assert.deepEqual(labels.slice(0,2),['New','Delete']);assert.ok(labels.includes('Open object tab'));assert.deepEqual(labels.slice(-3),['Copy','Rename','Refresh metadata']);assert.equal(await menu.locator(':scope > button > svg[data-lucide]').count(),labels.length);assert.equal(await menu.locator(':scope > [role=separator]').count(),2);};
       await menuFor(branch('database','postgres'));assert.equal(await page.getByRole('menuitem',{name:'Rename',exact:true}).isDisabled(),true,'Catalog databases are not renamed through the tree');await page.keyboard.press('Escape');
       const target=branch('relation','menu_target');await menuFor(target);
       await page.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:base});await page.getByRole('menuitem',{name:'Copy',exact:true}).click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'menu_target');
@@ -220,9 +233,9 @@ const [base,jar,schema='']=process.argv.slice(2);
       await page.locator('#refresh').click();const longOption=activeConnection.locator(`option[value="${second.id}"]`);await longOption.waitFor({state:'attached'});const refreshedConnectionWidth=await activeConnection.evaluate(e=>e.getBoundingClientRect().width);assert.ok(Math.abs(refreshedConnectionWidth-initialConnectionWidth)<1,'A longer menu option does not widen the hidden selector');const longOptionText=await longOption.textContent();assert.equal(Array.from(longOptionText).length,51);assert.ok(longOptionText.endsWith('…'),'Dropdown names show at most 50 characters before an ellipsis');await page.getByRole('button',{name:longConnectionName,exact:true}).click();assert.equal(await activeConnection.inputValue(),original,'Tree selection must not retarget current script');
       await page.locator('#new-tab').click();assert.equal(await activeConnection.inputValue(),second.id);await page.locator('#sql').fill("SELECT 'second' AS SOURCE");
       const connectionIds=()=>page.locator('.connection-row').evaluateAll(rows=>rows.map(row=>row.dataset.connection));const firstHeader=page.locator(`.connection-row[data-connection="${original}"] > .connection-title`),secondHeader=page.locator(`.connection-row[data-connection="${second.id}"] > .connection-title`);
-      await firstHeader.dragTo(secondHeader,{targetPosition:{x:5,y:28}});await page.waitForFunction(id=>document.querySelector('.connection-row')?.dataset.connection===id,second.id);assert.deepEqual(await connectionIds(),[second.id,original]);assert.equal(await activeConnection.inputValue(),second.id,'Reordering connections does not change Script targets');
-      const beforeRefresh=await firstHeader.elementHandle();await page.locator('#refresh').click();await page.waitForFunction(element=>!element.isConnected,beforeRefresh);await beforeRefresh.dispose();await page.waitForFunction(id=>document.querySelector('.connection-row')?.dataset.connection===id,second.id);assert.deepEqual(await connectionIds(),[second.id,original],'Connection order survives refresh');
-      await firstHeader.locator('.connection-select').focus();await page.keyboard.press('Alt+ArrowUp');await page.waitForFunction(id=>document.querySelector('.connection-row')?.dataset.connection===id,original);assert.deepEqual(await connectionIds(),[original,second.id]);assert.equal(await page.locator(`.connection-row[data-connection="${original}"]`).getAttribute('data-color'),'#2468ac','Color survives profile refresh and reordering');
+      await firstHeader.dragTo(secondHeader,{targetPosition:{x:5,y:28}});await page.waitForFunction(([originalId,secondId])=>{const ids=[...document.querySelectorAll('.connection-row')].map(row=>row.dataset.connection);return ids.indexOf(secondId)>=0&&ids.indexOf(secondId)<ids.indexOf(originalId);},[original,second.id]);let orderedIds=await connectionIds();assert.equal(orderedIds.indexOf(second.id),orderedIds.indexOf(original)-1);assert.equal(await activeConnection.inputValue(),second.id,'Reordering connections does not change Script targets');
+      const beforeRefresh=await firstHeader.elementHandle();await page.locator('#refresh').click();await page.waitForFunction(element=>!element.isConnected,beforeRefresh);await beforeRefresh.dispose();await page.waitForFunction(([originalId,secondId])=>{const ids=[...document.querySelectorAll('.connection-row')].map(row=>row.dataset.connection);return ids.indexOf(secondId)>=0&&ids.indexOf(secondId)<ids.indexOf(originalId);},[original,second.id]);orderedIds=await connectionIds();assert.equal(orderedIds.indexOf(second.id),orderedIds.indexOf(original)-1,'Connection order survives refresh');
+      await firstHeader.locator('.connection-select').focus();await page.keyboard.press('Alt+ArrowUp');await page.waitForFunction(([originalId,secondId])=>{const ids=[...document.querySelectorAll('.connection-row')].map(row=>row.dataset.connection);return ids.indexOf(originalId)>=0&&ids.indexOf(originalId)<ids.indexOf(secondId);},[original,second.id]);orderedIds=await connectionIds();assert.equal(orderedIds.indexOf(original),orderedIds.indexOf(second.id)-1);assert.equal(await page.locator(`.connection-row[data-connection="${original}"]`).getAttribute('data-color'),'#2468ac','Color survives profile refresh and reordering');
       await page.screenshot({path:'code-graph-dba/target/connection-colors-order.png'});
       const fileChooser=page.waitForEvent('filechooser');await page.locator('#file-open').click();await (await fileChooser).setFiles({name:'opened.sql',mimeType:'text/plain',buffer:Buffer.from('SELECT 7 AS VALUE')});await page.waitForFunction(()=>document.querySelector('#sql').value==='SELECT 7 AS VALUE');assert.equal(await activeConnection.inputValue(),second.id);
       await activeConnection.selectOption(original);assert.equal(await activeConnection.inputValue(),original);
@@ -286,6 +299,6 @@ const [base,jar,schema='']=process.argv.slice(2);
     await page.evaluate(()=>sessionStorage.setItem('codegraph.dba.sidebar-width','99999'));await page.reload();await page.waitForFunction(()=>document.querySelector('#connection-count').textContent.includes('connection'));assert.equal((await page.locator('#divider').boundingBox()).x,500,'Stored widths are clamped');
     await page.evaluate(()=>sessionStorage.setItem('codegraph.dba.sidebar-width','invalid'));await page.reload();await page.waitForFunction(()=>document.querySelector('#connection-count').textContent.includes('connection'));assert.ok(Number.isFinite((await page.locator('#divider').boundingBox()).x),'Invalid stored width does not break startup');
     assert.deepEqual(errors,[]);console.log('Sidebar browser storage checks passed: drag, keyboard, reload, bounds and malformed data.');
-    await require('./browser-grid-edit.cjs')(browser,base,jar);
+
   } finally {await browser.close();await fetch(base+'/__test/stop');}
 })().catch(e=>{console.error(e);process.exitCode=1;});

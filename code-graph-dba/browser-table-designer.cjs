@@ -3,7 +3,7 @@ module.exports=async(browser,base,jar)=>{
   const context=await browser.newContext({viewport:{width:1440,height:960}}),page=await context.newPage(),errors=[];let profile;
   page.on('pageerror',e=>errors.push(e.message));
   try{
-    await page.goto(base+'/dba');
+    await page.goto(base+'/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
     profile=await page.evaluate(async jar=>{
       const session=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
       const post=async(path,body)=>{const r=await fetch('/api/dba'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':session.csrf},body:JSON.stringify(body)});if(!r.ok)throw Error(await r.text());return r.json();};

@@ -7,7 +7,7 @@
   </parent>
   <artifactId>code-graph-mcp-http</artifactId>
   <name>code-graph-mcp-http</name>
-  <description>Streamable-HTTP MCP server on embedded Jetty 12 for shared/team deployment (Docker-ready)</description>
+  <description>Loopback-only Streamable-HTTP MCP server on embedded Jetty 12 for trusted local agents</description>
 
   <properties>
     <jetty.version>12.0.37</jetty.version>
@@ -49,7 +49,22 @@
   </dependencies>
 
   <build>
+    <finalName>code-graph-server</finalName>
     <plugins>
+      <!-- Runnable distribution JAR; keep native libraries/service descriptors in separate dependency JARs. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+        <configuration>
+          <archive><manifest>
+            <mainClass>io.doindev.codegraph.mcp.http.CgraphMain</mainClass>
+            <addClasspath>true</addClasspath>
+            <classpathPrefix>lib/</classpathPrefix>
+            <useUniqueVersions>false</useUniqueVersions>
+          </manifest></archive>
+        </configuration>
+      </plugin>
       <!-- lay out target/lib for the Dockerfile: COPY target/classes + target/lib, run from a classpath -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

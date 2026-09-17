@@ -2,8 +2,11 @@
 
 code-graph serves its code-intelligence tools over the Model Context Protocol so any MCP-capable
 agent (Claude Code, IDE assistants) can query blast radii instead of reading files. The stdio
-transport is the primary local mode; streamable HTTP (team deployment) ships in
-`code-graph-mcp-http`.
+transport and loopback-only streamable HTTP are both local modes; HTTP ships in
+`code-graph-mcp-http` and binds only to `127.0.0.1`. Local DBA clients need no token or agent
+registration. Token-free clients share the built-in local identity, but database reads and
+changes still require reviewed permissions/approvals. Optional named tokens remain available
+for separate identities. See [DBA access](../dba.md).
 
 ## Registering with Claude Code
 

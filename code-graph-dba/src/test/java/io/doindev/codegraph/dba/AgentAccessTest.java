@@ -10,6 +10,32 @@ import static org.junit.jupiter.api.Assertions.*;
 class AgentAccessTest {
     @TempDir Path directory;
     static ObjectNode grant(String connection){var n=Profiles.JSON.createObjectNode().put("name","test agent");n.putArray("grants").addObject().put("connectionId",connection).putArray("objects").addObject().put("schema","public").put("name","items");return n;}
+    @Test void builtInLocalIdentityPersistsWithoutSecretsOrAutomaticGrants()throws Exception{
+        var agents=new AgentAccess(directory);String local=agents.trustedLocal();
+        assertEquals(local,agents.trustedLocal());assertEquals(1,agents.list().size());assertTrue(agents.alive("agent:"+local));
+        assertTrue(agents.agent(local).path("trustedLocal").asBoolean());assertTrue(agents.agent(local).path("grants").isEmpty());
+        assertFalse(Files.readString(directory.resolve("agents.json")).contains("tokenHash"));
+        assertThrows(SecurityException.class,()->agents.authenticate(local));
+        assertThrows(IllegalArgumentException.class,()->agents.remove(local));
+        var target=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("projectId",UUID.randomUUID().toString()).put("environment","local");
+        assertDoesNotThrow(()->agents.requireContext(local,target,true));
+        assertThrows(SecurityException.class,()->agents.requireContext(local,target,false));
+        assertFalse(agents.permitsRead(local,"query",target));
+        String policy=agents.grantRead(local,"always_environment_read","query",target).path("id").asText();
+        var reloaded=new AgentAccess(directory);assertEquals(local,reloaded.trustedLocal());assertTrue(reloaded.permitsRead(local,"query",target));
+        reloaded.removePolicy(local,policy);assertFalse(reloaded.permitsRead(local,"query",target));
+    }
+    @Test void localTransportCanDiscoverProfilesButNotReadThemWithoutApproval()throws Exception{
+        var vault=new DbaTest.MemoryVault();String connection;
+        try(var profiles=new Profiles(directory,vault)){connection=profiles.put(null,new DbaTest().input()).path("id").asText();}
+        try(var runtime=new DbaRuntime(new DbaConfig(directory,64L<<20,2,100,100,5,60,"none"),vault,false)){
+            String local=runtime.trustedLocalAgent();var list=runtime.agentCall(local,"dba_list_connections",Profiles.JSON.createObjectNode());
+            assertEquals(connection,list.get(0).path("id").asText());assertFalse(list.toString().contains("jdbc:"));assertFalse(list.toString().contains("credential"));
+            assertTrue(runtime.agentCall(local,"dba_get_my_permissions",Profiles.JSON.createObjectNode()).path("sharedLocalIdentity").asBoolean());
+            assertThrows(SecurityException.class,()->runtime.agentCall(local,"dba_get_metadata",Profiles.JSON.createObjectNode().put("connectionId",connection).put("connectionName","test")));
+            assertThrows(IllegalStateException.class,()->runtime.agentCall(local,"dba_request_connection_delete",Profiles.JSON.createObjectNode().put("requestId","headless-delete").put("purpose","Must not execute").put("connectionId",connection).put("connectionName","test")));
+        }
+    }
     @Test void tokensAreHashedGrantsPersistAndRevocationDenies()throws Exception{
         var vault=new DbaTest.MemoryVault();String token,id,connection;
         try(var p=new Profiles(directory,vault)){

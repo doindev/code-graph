@@ -10,8 +10,8 @@ described below is retained for API compatibility; the tree now opens dedicated 
 Supported category menus show **New**, a separator, then **Refresh**, using the
 Lucide file-plus icon. Right-click and the menu button open the same actions.
 For Tables, New opens a [Table Properties draft tab](dba-table-designer.md#new-tables).
-Other supported categories open a connection/database/schema-bound draft dialog.
-Neither action executes SQL.
+Other supported categories open a connection/database/schema-bound dedicated object draft tab.
+Opening a draft does not execute SQL.
 Review SQL produces a five-minute, browser-session-owned, single-use plan. Only
 Apply executes that reviewed plan. Edit draft invalidates the review; Cancel/X
 discard it and request cancellation of outstanding work. Database permissions are
@@ -178,9 +178,10 @@ an object dropped and recreated with the same name between requests.
 No `CASCADE` or `FORCE` is added. The database can still remove internal dependencies
 (for example indexes of a dropped table), auto-commit DDL, or reject an operation due to
 external dependencies or privileges. The dialog warns that changes can be irreversible.
-These confirmations apply to tree-menu actions, not arbitrary SQL typed in the editor;
-no Truncate menu action is introduced here. A future destructive tree action must use the
-same confirmation workflow. Do not treat a timeout or connection failure as proof of rollback.
+These confirmations apply to tree-menu actions, not arbitrary SQL typed in the editor.
+Table Truncate and object Delete use the same explicit acknowledgement and exact reviewed SQL.
+Materialized-view Delete also displays recognized managed schedule/helper cleanup; external
+scheduler jobs remain untouched. Do not treat a timeout or connection failure as proof of rollback.
 
 PostgreSQL adapters resolve OIDs, overloaded routine identities, and undecorated column names.
 Common named-object Delete DDL is also mapped for H2/HSQLDB, SQLite, DuckDB, MySQL/MariaDB, Oracle,

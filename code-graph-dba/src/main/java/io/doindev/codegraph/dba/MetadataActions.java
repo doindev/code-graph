@@ -1,7 +1,7 @@
 package io.doindev.codegraph.dba;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.*;
@@ -10,9 +10,21 @@ import java.util.*;
 /** Browser-only object actions. Never execute a client-supplied identifier or SQL fragment. */
 final class MetadataActions {
     static final Set<String> OBJECT_PARENTS=Set.of("schemas","databases","tables","foreign_tables","views","materialized_views","external_tables","indexes","functions","procedures","sequences","types","aggregates","event_triggers","extensions","roles","tablespaces","foreign_servers","relation","domains","triggers","events","queues","packages","synonyms","schema_triggers","table_triggers","database_links","java","jobs","scheduler_jobs","scheduler_programs","scheduler_schedules","scheduler_chains","aliases","stages","file_formats","pipes","tasks","streams");
-    record Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint,String truncate,String refresh) {
-        Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint){this(name,type,target,drop,rename,reason,fingerprint,"","");}
-        ObjectNode json(){return Profiles.JSON.createObjectNode().put("name",name).put("type",type).put("target",target).put("canDelete",!drop.isEmpty()).put("canRename",!rename.isEmpty()).put("canTruncate",!truncate.isEmpty()).put("canRefresh",!refresh.isEmpty()).put("deleteSql",drop).put("truncateSql",truncate).put("refreshSql",refresh).put("reason",reason).put("fingerprint",fingerprint);}
+    record Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint,String truncate,String refresh,List<MaterializedViewSchedules.Command> deleteCleanup,List<String> deleteWarnings) {
+        Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint){this(name,type,target,drop,rename,reason,fingerprint,"","",List.of(),List.of());}
+        Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint,String truncate,String refresh){this(name,type,target,drop,rename,reason,fingerprint,truncate,refresh,List.of(),List.of());}
+        ObjectNode json(String database){
+            ObjectNode out=Profiles.JSON.createObjectNode().put("name",name).put("type",type).put("target",target).put("canDelete",!drop.isEmpty()).put("canRename",!rename.isEmpty()).put("canTruncate",!truncate.isEmpty()).put("canRefresh",!refresh.isEmpty()).put("truncateSql",truncate).put("refreshSql",refresh).put("reason",reason).put("fingerprint",fingerprint);
+            ArrayNode commands=out.putArray("deleteCommands"),details=out.putArray("deleteCommandDetails");List<String> preview=new ArrayList<>();
+            for(MaterializedViewSchedules.Command command:deleteCleanup){commands.add(command.sql());details.addObject().put("sql",command.sql()).put("database",command.database()).put("phase",command.phase()).put("purpose",command.purpose());preview.add("-- Database: "+command.database()+" | "+command.purpose()+"\n"+command.sql());}
+            if(!drop.isBlank()){commands.add(drop);details.addObject().put("sql",drop).put("database",database).put("phase","object").put("purpose","Delete the selected object");preview.add("-- Database: "+database+" | Delete the selected object\n"+drop);}
+            out.put("deleteSql",preview.isEmpty()?"":String.join(";\n\n",preview)+";");ArrayNode warnings=out.putArray("deleteWarnings");deleteWarnings.forEach(warnings::add);return out;
+        }
+    }
+    static Plan withDeleteCleanup(Plan plan,List<MaterializedViewSchedules.Command> cleanup,List<String> extraWarnings){
+        List<String> warnings=new ArrayList<>(plan.deleteWarnings());warnings.addAll(extraWarnings);
+        String fingerprint=HexFormat.of().formatHex(digest((plan.fingerprint()+"\n"+cleanup+"\n"+warnings).getBytes(StandardCharsets.UTF_8)));
+        return new Plan(plan.name(),plan.type(),plan.target(),plan.drop(),plan.rename(),plan.reason(),fingerprint,plan.truncate(),plan.refresh(),List.copyOf(cleanup),List.copyOf(warnings));
     }
     static ObjectNode request(JsonNode input){
         if(!input.path("parent").isObject())throw new IllegalArgumentException("Object parent is required");
@@ -87,12 +99,12 @@ final class MetadataActions {
                     case "mysql","mariadb" -> Set.of("TABLE","VIEW","TRIGGER","EVENT","COLUMN");
                     case "oracle" -> Set.of("TABLE","VIEW","MATERIALIZED VIEW","INDEX","SEQUENCE","TYPE","PACKAGE","SYNONYM","TRIGGER","COLUMN");
                     case "sqlserver" -> Set.of("SCHEMA","TABLE","VIEW","SEQUENCE","TYPE","SYNONYM","TRIGGER","COLUMN");
-                    case "db2" -> Set.of("SCHEMA","TABLE","VIEW","INDEX","SEQUENCE","TYPE","TRIGGER","COLUMN");
+                    case "db2" -> Set.of("SCHEMA","TABLE","VIEW","MATERIALIZED VIEW","INDEX","SEQUENCE","TYPE","TRIGGER","COLUMN");
                     case "snowflake" -> Set.of("SCHEMA","TABLE","VIEW","MATERIALIZED VIEW","EXTERNAL TABLE","SEQUENCE","STAGE","FILE FORMAT","PIPE","TASK","STREAM","COLUMN");
                     default -> Set.of();
                 };
                 if(supported.contains(type)){
-                    drop=type.equals("COLUMN")?"ALTER TABLE "+columnTable+" DROP COLUMN "+quote(engine,name):"DROP "+type+" "+target;
+                    drop=type.equals("COLUMN")?"ALTER TABLE "+columnTable+" DROP COLUMN "+quote(engine,name):engine.equals("db2")&&type.equals("MATERIALIZED VIEW")?"DROP TABLE "+target:"DROP "+type+" "+target;
                     if(type.equals("SCHEMA")||Set.of("h2","hsqldb","duckdb","snowflake").contains(engine)&&Set.of("TABLE","VIEW","DOMAIN").contains(type))drop+=" RESTRICT";
                     if(type.equals("TABLE"))rename=engine.equals("db2")?"RENAME TABLE "+target+" TO ":"ALTER TABLE "+target+" RENAME TO ";
                     if(engine.equals("h2")&&Set.of("SCHEMA","VIEW","INDEX","DOMAIN").contains(type))rename="ALTER "+type+" "+target+" RENAME TO ";
@@ -113,10 +125,13 @@ final class MetadataActions {
         }
         if(!drop.isEmpty()||!rename.isEmpty())reason="The database may reject this action due to permissions or dependencies. No CASCADE or FORCE is added. DDL may commit immediately and affect dependent objects.";
         if(group.equals("databases"))reason="Catalog database Rename is unavailable. Rename the root connection to change its display name without renaming the database.";
-        String fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((selection+"\n"+c.getCatalog()+"\n"+engine+"\n"+name+"\n"+drop+"\n"+rename).getBytes(StandardCharsets.UTF_8)));
+        List<MaterializedViewSchedules.Command> cleanup=group.equals("materialized_views")?MaterializedViewSchedules.deleteCleanup(job,c,engine,Objects.toString(c.getCatalog(),""),schema,name):List.of();
+        if(pg&&group.equals("materialized_views")&&!cleanup.isEmpty()){rename="";reason="Rename this materialized view in its Properties tab so the managed pg_cron target is updated in the same reviewed plan.";}
+        List<String> deleteWarnings=group.equals("materialized_views")?List.of("Recognized code-graph-managed schedule jobs and helper procedures are removed before the view. Other scheduler jobs are read-only here and remain unchanged."):List.of();
+        String fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((selection+"\n"+c.getCatalog()+"\n"+engine+"\n"+name+"\n"+drop+"\n"+rename+"\n"+cleanup).getBytes(StandardCharsets.UTF_8)));
         String truncate=group.equals("tables")&&Set.of("postgresql","h2","hsqldb","duckdb","mysql","mariadb","oracle","sqlserver","db2","snowflake").contains(engine)?"TRUNCATE TABLE "+target+(pg?" CONTINUE IDENTITY RESTRICT":engine.equals("h2")?" CONTINUE IDENTITY":""):"";
         String refresh=group.equals("materialized_views")?switch(engine){case "postgresql"->"REFRESH MATERIALIZED VIEW "+target;case "oracle"->"BEGIN DBMS_MVIEW.REFRESH("+TableDesigner.literal(target)+"); END;";case "db2"->"REFRESH TABLE "+target;default->"";}:"";
-        return new Plan(name,type,target,drop,rename,reason,fingerprint,truncate,refresh);
+        return new Plan(name,type,target,drop,rename,reason,fingerprint,truncate,refresh,cleanup,deleteWarnings);
     }
     static String command(Plan plan,String engine,String action,JsonNode input){
         if(!input.path("fingerprint").asText().equals(plan.fingerprint()))throw new IllegalArgumentException("Object changed since the dialog opened; refresh and review the action again");
@@ -133,6 +148,7 @@ final class MetadataActions {
     }
     private static String type(String group){return switch(group){case "schemas"->"SCHEMA";case "databases"->"DATABASE";case "tables"->"TABLE";case "foreign_tables"->"FOREIGN TABLE";case "views"->"VIEW";case "materialized_views"->"MATERIALIZED VIEW";case "external_tables"->"EXTERNAL TABLE";case "indexes"->"INDEX";case "sequences"->"SEQUENCE";case "functions"->"FUNCTION";case "procedures"->"PROCEDURE";case "aggregates"->"AGGREGATE";case "types"->"TYPE";case "domains"->"DOMAIN";case "extensions"->"EXTENSION";case "event_triggers"->"EVENT TRIGGER";case "roles"->"ROLE";case "tablespaces"->"TABLESPACE";case "foreign_servers"->"SERVER";case "relation"->"COLUMN";case "triggers","schema_triggers","table_triggers"->"TRIGGER";case "events"->"EVENT";case "packages"->"PACKAGE";case "synonyms"->"SYNONYM";case "stages"->"STAGE";case "file_formats"->"FILE FORMAT";case "pipes"->"PIPE";case "tasks"->"TASK";case "streams"->"STREAM";default->"";};}
     static String quote(String engine,String name){if(name==null||name.isEmpty()||name.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid object identifier");String q=Set.of("mysql","mariadb").contains(engine)?"`":"\"";return q+name.replace(q,q+q)+q;}
+    private static byte[] digest(byte[] value){try{return MessageDigest.getInstance("SHA-256").digest(value);}catch(Exception impossible){throw new IllegalStateException(impossible);}}
     private static String qualified(String engine,String schema,String name){return schema.isEmpty()?quote(engine,name):quote(engine,schema)+"."+quote(engine,name);}
     private static String[] lookup(QueryJobs.Job job,Connection c,String sql,int timeout,String... values)throws Exception{
         try(PreparedStatement st=c.prepareStatement(sql)){job.statement=st;st.setQueryTimeout(timeout);for(int i=0;i<values.length;i++)st.setString(i+1,values[i]);try(ResultSet rs=st.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Object no longer exists; refresh its parent");String[] row=new String[rs.getMetaData().getColumnCount()];for(int i=0;i<row.length;i++)row[i]=rs.getString(i+1);return row;}}finally{job.statement=null;}

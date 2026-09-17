@@ -167,3 +167,34 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .object-mode-control{display:flex;align-items:center;gap:8px;flex:none}.object-mode-control input{width:18px;height:18px}
 .object-properties [hidden]{display:none!important}
 @media(max-width:800px){.object-property-row,.object-catalog-property{grid-template-columns:1fr;gap:4px}.object-property-heading{align-items:stretch;flex-direction:column}.object-property-heading input{max-width:none}}
+
+.schedule-summary,.schedule-expression,.schedule-guidance,.schedule-details{border:1px solid var(--designer-line,#34445a);border-radius:6px;padding:11px;background:#182432;flex:none}
+.schedule-summary p,.schedule-expression p,.schedule-guidance p{margin:6px 0 0}.schedule-warning,.schedule-error{color:#ffbd71}.schedule-hint{color:#aebdd0;font-size:12px}
+.schedule-expression pre,.schedule-guidance pre,.schedule-details pre,.review-combined pre{margin:8px 0 0;padding:9px;background:#101821;border-radius:4px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 monospace}
+.schedule-guidance{display:flex;flex-direction:column;gap:10px}.schedule-guidance h4{margin:0}.schedule-guidance article{padding:9px;border-left:3px solid #4d7597;background:#15202c}.schedule-guidance article .designer-button{margin-top:8px}
+.schedule-details summary{cursor:pointer;font-weight:600}.review-command-group{display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--designer-line);padding-top:10px}.review-command-group h4{margin:0}.review-command-group ul{margin:0;padding-left:22px;color:#bfccda}
+.review-command-group .designer-review-sql{height:150px}.review-combined summary{cursor:pointer}
+
+/* Related database contexts and exact-request human SQL approval. */
+.project-context-dialog,.agent-approval-dialog{width:min(1040px,92vw);max-height:88vh;overflow:auto;padding:24px}
+.project-context-dialog form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.project-context-dialog label{display:flex;flex-direction:column;gap:5px}.project-context-dialog input,.project-context-dialog select{min-width:0}
+.context-binding,.approval-request{border:1px solid var(--border,#384254);border-radius:8px;padding:16px;margin:12px 0;background:var(--panel,#17202d)}
+.context-binding button,.approval-request button{margin:6px 8px 0 0}.context-error{color:#ffadad}
+.approval-request textarea{display:block;width:100%;min-height:180px;font:14px/1.5 monospace;white-space:pre;resize:vertical}
+.approval-request label{display:flex;align-items:center;gap:10px}.approval-request pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.approval-request h3{display:flex;align-items:center;gap:8px}.approval-request h3 svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#agent-approvals{white-space:nowrap;margin:0 8px}#context-agent-form textarea{grid-column:1/-1}
+@media(max-width:650px){.project-context-dialog form{grid-template-columns:1fr}.project-context-dialog,.agent-approval-dialog{padding:14px}}
+
+.agent-approval-dialog .approval-request label{display:flex;align-items:center;gap:.65rem;text-align:left;margin:1rem 0}.agent-approval-dialog input[type=checkbox]{width:auto;margin:0}.agent-approval-dialog textarea{background:#0c1520;color:#e2e8f0;border:1px solid #344253;padding:.75rem}.agent-approval-dialog{padding-bottom:2rem}
+
+
+/* Dedicated detailed approval review uses the same editor and accessible dialogs. */
+.approval-review-page { display: block; overflow: auto; }
+.approval-review-landing { max-width: 48rem; margin: 8vh auto; padding: 2rem; }
+.approval-review-landing form { display: flex; gap: 1rem; align-items: end; }
+.agent-approval-dialog { max-height: 88vh; overflow: auto; }
+.agent-approval-dialog .approval-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.agent-approval-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-approval-dialog label { display: block; margin-block: 1rem; }

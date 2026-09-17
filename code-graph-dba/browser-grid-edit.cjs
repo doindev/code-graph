@@ -1,16 +1,20 @@
 const assert=require('node:assert/strict');
+const {request}=require('playwright');
 module.exports=async function(browser,base,jar){
   const context=await browser.newContext(),page=await context.newPage(),errors=[],executions=[],gridEdits=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=>{if(r.url().endsWith('/query/execute'))executions.push(r.postDataJSON());});
   page.on('request',r=>{if(r.url().endsWith('/query/grid-edit'))gridEdits.push(r.postDataJSON());});
   try{
-    await page.goto(base+'/dba');
-    const profile=await page.evaluate(async jar=>{
-      const session=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
-      const response=await fetch('/api/dba/connections',{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':session.csrf},body:JSON.stringify({name:'Grid edit fixture',url:'jdbc:h2:mem:grid_browser;DB_CLOSE_DELAY=-1',jar,driverClass:'org.h2.Driver',username:'sa',saveUntested:true})});
-      if(!response.ok)throw Error(await response.text());return response.json();
+    await page.goto(base+'/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
+    await page.waitForFunction(()=>document.querySelector('#connection-count')?.textContent.includes('connection'));
+    const created=await page.evaluate(async jar=>{
+      const sessionResponse=await fetch('/api/dba/session');
+      if(!sessionResponse.ok)return {ok:false,error:await sessionResponse.text()};
+      const session=await sessionResponse.json(),response=await fetch('/api/dba/connections',{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':session.csrf},body:JSON.stringify({name:'Grid edit fixture',url:'jdbc:h2:mem:grid_browser;DB_CLOSE_DELAY=-1',jar,driverClass:'org.h2.Driver',username:'sa',saveUntested:true})});
+      return response.ok?{ok:true,profile:await response.json()}:{ok:false,error:await response.text()};
     },jar);
+    if(!created.ok)throw Error(created.error);const profile=created.profile;
     await page.reload();await page.locator(`.connection-row[data-connection="${profile.id}"] .connection-select`).click();await page.locator('#new-tab').click();
     const sql='CREATE TABLE grid_items(id INT, price DECIMAL(8,2)); INSERT INTO grid_items VALUES(1,10.25),(2,20.50),(3,30.75); SELECT a.id, b.id, a.price FROM grid_items a JOIN grid_items b ON a.id=b.id WHERE a.price > 0 AND a.price < 100 ORDER BY a.id;';
     await page.locator('#sql').fill(sql);await page.locator('#run').click();await page.locator('.grid-source-preview').waitFor();
@@ -82,5 +86,8 @@ module.exports=async function(browser,base,jar){
     await scheduleRefresh(60);await page.locator('.grid-filter-input').fill('price > 0');assert.equal(await page.locator('.grid-refresh-status').isVisible(),false,'Editing filter text clears the schedule immediately');await page.getByRole('button',{name:'Apply SQL filter expression',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false');assert.equal(await page.locator('.grid-refresh-status').isVisible(),false);
     await scheduleRefresh(60);const beforeUnchangedPlay=await page.locator('.grid-source-preview').inputValue();await page.getByRole('button',{name:'Apply SQL filter expression',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false');assert.equal(await page.locator('.grid-refresh-status').isVisible(),false,'Play clears the interval even with an unchanged expression');assert.equal(await page.locator('.grid-source-preview').inputValue(),beforeUnchangedPlay);
     assert.deepEqual(errors,[]);console.log('Grid SQL browser checks passed: query edits, custom-dialog close, independent Script controls/editor, cancellation, Script replacement, filter/Play schedule clearing and result cleanup.');
-  }finally{await context.close();}
+  }finally{
+    await page.evaluate(async()=>{const response=await fetch('/api/dba/session');if(response.ok){const session=await response.json();await fetch('/api/dba/logout',{method:'POST',headers:{'X-Dba-CSRF':session.csrf}});}}).catch(()=>{});
+    await context.close();
+  }
 };

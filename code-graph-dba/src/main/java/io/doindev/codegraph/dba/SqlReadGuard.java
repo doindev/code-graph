@@ -26,7 +26,7 @@ final class SqlReadGuard {
             var statements=CCJSqlParserUtil.parseStatements(sql,p->p.withTimeOut(500));
             if(statements.size()!=1)throw new IllegalArgumentException("Exactly one statement is required");
             Statement statement=statements.get(0);
-            if(!(statement instanceof PlainSelect))throw new IllegalArgumentException("Only a single SELECT is enabled in this milestone");
+            if(!(statement instanceof PlainSelect)&&!(statement instanceof Values))throw new IllegalArgumentException("Only a single structurally restricted SELECT or VALUES statement is enabled");
             inspect(statement,Collections.newSetFromMap(new IdentityHashMap<>()),0,browser);
             new TablesNamesFinder<Void>() {
                 @Override public <S> Void visit(PlainSelect select,S context) {
@@ -58,7 +58,7 @@ final class SqlReadGuard {
     // TablesNamesFinder deliberately skips some clauses. Inspect every domain AST field as
     // a positive grammar gate, excluding only the parser's token/back-reference base class.
     // New parser constructs must be reviewed and tested before being added here.
-    private static final Set<String> READ_NODES=Set.of("PlainSelect","SelectItem","ParenthesedSelect",
+    private static final Set<String> READ_NODES=Set.of("PlainSelect","Values","SelectItem","ParenthesedSelect",
             "Table","Column","Database","Alias","LongValue","DoubleValue","StringValue","NullValue",
             "JdbcParameter","AllColumns","AllTableColumns","Join","OrderByElement","Limit","Offset","Distinct",
             "EqualsTo","NotEqualsTo","GreaterThan","GreaterThanEquals","MinorThan","MinorThanEquals",

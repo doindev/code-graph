@@ -26,7 +26,7 @@ import java.util.concurrent.Executors;
 import java.time.Duration;
 
 /**
- * Assembles the shared/team deployment: index a repo root, watch it for changes, and serve the
+ * Assembles the local deployment: index a repo root, watch it for changes, and serve the
  * code-graph tool set over the MCP streamable-HTTP transport at {@code /mcp} on embedded Jetty 12.
  * {@link HttpMain} is the thin CLI wrapper; tests start it on port 0 and read {@link #port()}.
  * Progress goes to stderr, matching the stdio server's convention.
@@ -68,7 +68,7 @@ public final class HttpServer implements AutoCloseable {
     /**
      * Multi-project variant: every root indexes as its own project (tools route on the
      * {@code project} parameter); {@code vizPort >= 0} also serves the 3D visualization UI,
-     * bound to all interfaces like the MCP endpoint (this is the team deployment).
+     * bound to loopback like the MCP endpoint.
      */
     public static HttpServer start(List<Path> roots, int port, int vizPort) throws Exception {
         Analyzers analyzers = Analyzers.discover();
@@ -85,8 +85,7 @@ public final class HttpServer implements AutoCloseable {
 
     /**
      * @param vizAdmin enable the viz action endpoints (reindex/add/remove/browse). Off by
-     *                 default because this server binds to all interfaces — only enable behind
-     *                 trusted network controls.
+     *                 default; both listeners are restricted to loopback.
      */
     public static HttpServer start(Workspace workspace, int port, int vizPort, boolean vizAdmin)
             throws Exception {
@@ -124,6 +123,7 @@ public final class HttpServer implements AutoCloseable {
             if (dbaConfig != null) {
                 dba = new io.doindev.codegraph.dba.DbaRuntime(dbaConfig,vizPort>=0);
                 if(vizPort>=0)System.err.println("code-graph-http: DBA direct local browser access enabled");
+                io.doindev.codegraph.mcp.ProjectContextBridge.attach(dba,workspace,registry,tools);
                 tools.addAll(io.doindev.codegraph.mcp.DbaMcpTools.tools(dba,null));
             }
             HttpServletStreamableServerTransportProvider transport =
@@ -142,6 +142,7 @@ public final class HttpServer implements AutoCloseable {
             threadPool.setVirtualThreadsExecutor(Executors.newVirtualThreadPerTaskExecutor());
             jetty = new Server(threadPool);
             ServerConnector connector = new ServerConnector(jetty);
+            connector.setHost("127.0.0.1");
             connector.setPort(port);
             jetty.addConnector(connector);
 
@@ -149,20 +150,20 @@ public final class HttpServer implements AutoCloseable {
             ServletHolder holder = new ServletHolder("mcp", transport);
             holder.setAsyncSupported(true); // the transport streams SSE responses via startAsync()
             context.addServlet(holder, MCP_ENDPOINT);
-            if(dba!=null){var filter=new org.eclipse.jetty.ee10.servlet.FilterHolder(new DbaHttpAccess(dba));filter.setAsyncSupported(true);context.addFilter(filter,MCP_ENDPOINT,java.util.EnumSet.of(jakarta.servlet.DispatcherType.REQUEST));}
+            var filter=new org.eclipse.jetty.ee10.servlet.FilterHolder(new DbaHttpAccess(dba));filter.setAsyncSupported(true);context.addFilter(filter,MCP_ENDPOINT,java.util.EnumSet.of(jakarta.servlet.DispatcherType.REQUEST));
             jetty.setHandler(context);
             jetty.start();
 
             int boundPort = connector.getLocalPort();
-            System.err.printf("code-graph-http: serving MCP (streamable HTTP) on http://0.0.0.0:%d%s%n",
+            System.err.printf("code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:%d%s%n",
                     boundPort, MCP_ENDPOINT);
 
             if (vizPort >= 0) {
-                String endpoint = "http://<host>:" + boundPort + MCP_ENDPOINT;
+                String endpoint = "http://localhost:" + boundPort + MCP_ENDPOINT;
                 io.doindev.codegraph.viz.VizControl control = new WorkspaceVizControl(
                         workspace, registry, Analyzers.discover(), endpoint, vizAdmin);
-                viz = VizServer.start(control, java.net.InetAddress.getByName("0.0.0.0"), vizPort, dba);
-                System.err.println("code-graph-http: viz on http://0.0.0.0:" + viz.port() + "/"
+                viz = VizServer.start(control, java.net.InetAddress.getByName("127.0.0.1"), vizPort, dba);
+                System.err.println("code-graph-http: viz on http://127.0.0.1:" + viz.port() + "/"
                         + (vizAdmin ? " (actions enabled)" : " (read-only)"));
             }
             registry.lifecycle().start();
@@ -195,6 +196,9 @@ public final class HttpServer implements AutoCloseable {
     public int port() {
         return connector.getLocalPort();
     }
+
+    /** Listener address; never a wildcard address. */
+    String host() { return connector.getHost(); }
 
     /** Blocks until the server is stopped. */
     public void join() throws InterruptedException {

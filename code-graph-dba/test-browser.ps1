@@ -1,12 +1,23 @@
 param([string]$NodeModules)
 $ErrorActionPreference = 'Stop'
+if (-not $env:DBA_BROWSER_SUITE) {
+    # Independent suites get independent runtimes, profiles and browser sessions.
+    # A closed browser context must not require weakening production session limits.
+    try {
+        foreach ($dbaSuite in @('tree-context','workspace-toolbar','script-selection','grid','table-designer','view-query','query-builder','object-creation','object-designer','grid-edit','project-context','approvals','approval-review','core')) {
+            $env:DBA_BROWSER_SUITE = $dbaSuite
+            & $PSCommandPath -NodeModules $NodeModules
+        }
+    } finally { Remove-Item Env:DBA_BROWSER_SUITE -ErrorAction SilentlyContinue }
+    return
+}
 if ($NodeModules) { $env:NODE_PATH = $NodeModules }
 $dbaRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $dbaRun = New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot ('target/browser-' + [guid]::NewGuid().ToString('N')))
 $dbaFixture = $null
 Push-Location $dbaRoot
 try {
-    $dbaFixture = Start-Process java -WindowStyle Hidden -PassThru -ArgumentList @('--enable-native-access=ALL-UNNAMED','-cp','"code-graph-dba/target/test-classes;code-graph-dba/target/classes;code-graph-dba/target/test-lib/*"','io.doindev.codegraph.dba.BrowserFixture') -RedirectStandardOutput (Join-Path $dbaRun.FullName 'stdout.log') -RedirectStandardError (Join-Path $dbaRun.FullName 'stderr.log')
+    $dbaFixture = Start-Process java -WindowStyle Hidden -PassThru -ArgumentList @('--enable-native-access=ALL-UNNAMED','-cp','"code-graph-dba/target/test-classes;code-graph-dba/target/classes;code-graph-core/target/classes;code-graph-dba/target/test-lib/*"','io.doindev.codegraph.dba.BrowserFixture') -RedirectStandardOutput (Join-Path $dbaRun.FullName 'stdout.log') -RedirectStandardError (Join-Path $dbaRun.FullName 'stderr.log')
     $dbaDeadline = [DateTime]::UtcNow.AddSeconds(30)
     do {
         $dbaLine = Get-Content (Join-Path $dbaRun.FullName 'stdout.log') -ErrorAction SilentlyContinue | Where-Object { $_ -like 'DBA_FIXTURE=*' } | Select-Object -First 1

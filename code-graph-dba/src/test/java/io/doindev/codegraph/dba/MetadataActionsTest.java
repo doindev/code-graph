@@ -51,6 +51,13 @@ class MetadataActionsTest {
             }
         }
     }
+    @Test void materializedViewDeletePreviewGroupsCrossDatabaseManagedCleanup(){
+        var base=new MetadataActions.Plan("mv","MATERIALIZED VIEW","\"reporting\".\"mv\"","DROP MATERIALIZED VIEW \"reporting\".\"mv\" RESTRICT","","reason","base","","",java.util.List.of(),java.util.List.of("External schedules remain unchanged."));
+        var cleanup=new MaterializedViewSchedules.Command("SELECT cron.unschedule(42)","cron_control","scheduler","Remove the code-graph-managed refresh job");
+        var plan=MetadataActions.withDeleteCleanup(base,java.util.List.of(cleanup),java.util.List.of("Cleanup and drop cannot be atomic."));
+        var json=plan.json("app");
+        assertNotEquals("base",plan.fingerprint());assertEquals(2,json.path("deleteCommands").size());assertEquals("cron_control",json.path("deleteCommandDetails").path(0).path("database").asText());assertEquals("scheduler",json.path("deleteCommandDetails").path(0).path("phase").asText());assertEquals("app",json.path("deleteCommandDetails").path(1).path("database").asText());assertTrue(json.path("deleteSql").asText().contains("cron_control"));assertEquals(2,json.path("deleteWarnings").size());
+    }
     @Test void connectionRenamePreservesIdColorCredentialsAndRejectsStaleOrDuplicateNames()throws Exception{
         var vault=new DbaTest.MemoryVault();try(var p=new Profiles(root,vault)){
             var input=new DbaTest().input().put("name","original").put("password","secret").put("color","#123456");String id=p.put(null,input).path("id").asText();

@@ -5,10 +5,12 @@ import java.util.*;
 
 /** Explicit opt-in. Limits govern retained application records, not driver/native allocations. */
 public record DbaConfig(Path directory, long memoryBytes, int concurrency, int uiRows,
-                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds) {
+                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds, String approvalMode) {
+    public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,"auto");}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,60);}
     public DbaConfig {
         directory = directory.toAbsolutePath().normalize();
+        if (!Set.of("auto","browser","desktop","none").contains(approvalMode)) throw new IllegalArgumentException("DBA approval mode must be auto, browser, desktop, or none");
         if (memoryBytes < 32L * 1024 * 1024 || concurrency < 1 || concurrency > 16
                 || uiRows < 1 || uiRows > 10_000 || agentRows < 1 || agentRows > 1000
                 || timeoutSeconds < 1 || timeoutSeconds > 300 || decisionTimeoutSeconds < 10 || decisionTimeoutSeconds > 600)
@@ -19,7 +21,7 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
         Map<String,String> values = new HashMap<>();
         for (int i=0; i<args.length; i++) if (args[i].startsWith("--dba-")) {
             String key=args[i];
-            if (!Set.of("--dba-dir","--dba-memory","--dba-concurrency","--dba-ui-rows","--dba-agent-rows","--dba-timeout","--dba-decision-timeout").contains(key))
+            if (!Set.of("--dba-dir","--dba-memory","--dba-concurrency","--dba-ui-rows","--dba-agent-rows","--dba-timeout","--dba-decision-timeout","--dba-approval-mode").contains(key))
                 throw new IllegalArgumentException("Unknown DBA argument: " + key);
             if (++i == args.length || args[i].startsWith("--")) throw new IllegalArgumentException("Missing value for " + key);
             values.put(key,args[i]);
@@ -34,7 +36,7 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
                 Integer.parseInt(values.getOrDefault("--dba-ui-rows","1000")),
                 Integer.parseInt(values.getOrDefault("--dba-agent-rows","100")),
                 Integer.parseInt(values.getOrDefault("--dba-timeout","30")),
-                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60"))));
+                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60")),values.getOrDefault("--dba-approval-mode","auto")));
     }
     public static long budget(String value) {
         if (!value.matches("(?i)[0-9]+[mg]")) throw new IllegalArgumentException("Use whole MiB/GiB, e.g. 256m");

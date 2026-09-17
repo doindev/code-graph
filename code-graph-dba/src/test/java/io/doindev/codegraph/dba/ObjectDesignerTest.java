@@ -20,7 +20,7 @@ class ObjectDesignerTest {
     }
     static ObjectNode draft(ObjectNode snapshot){
         ObjectNode draft=Profiles.JSON.createObjectNode().put("sqlMode",false).put("sql","").put("splitSql",false);
-        draft.set("fields",snapshot.path("fields").deepCopy());return draft;
+        draft.set("fields",snapshot.path("fields").deepCopy());if(snapshot.has("refreshSchedule"))draft.set("schedule",snapshot.path("refreshSchedule").path("config").deepCopy());return draft;
     }
     static JsonNode save(QueryJobs jobs,String id,ObjectNode request,ObjectNode snapshot,ObjectNode draft)throws Exception{
         ObjectNode input=request.deepCopy().put("fingerprint",snapshot.path("fingerprint").asText());input.set("draft",draft);

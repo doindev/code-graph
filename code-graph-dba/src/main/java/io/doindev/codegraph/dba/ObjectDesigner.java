@@ -34,8 +34,10 @@ final class ObjectDesigner {
         ObjectNode parent=MetadataTree.request(creating?input.path("target"):input.path("parent"));
         if(!GROUPS.contains(str(parent,"kind")))throw new IllegalArgumentException("Choose an object category in the database tree");
         String engine=generic?"jdbc":ObjectCreation.engine(c),kind=kind(parent);
+        String quote=Objects.toString(c.getMetaData().getIdentifierQuoteString(),"").strip();if(quote.isBlank())quote="\"";
         ObjectNode out=Profiles.JSON.createObjectNode().put("engine",engine).put("kind",kind)
                 .put("label",label(kind)).put("database",Objects.toString(c.getCatalog(),""))
+                .put("quote",quote)
                 .put("version",c.getMetaData().getDatabaseProductVersion()).put("creation",creating)
                 .put("ddl","").put("ddlComplete",false);
         out.set("target",parent);if(!creating)out.set("selection",MetadataActions.request(input));
@@ -53,22 +55,27 @@ final class ObjectDesigner {
         }
         ObjectCatalog.populate(job,c,out,node);
         ObjectForms.configure(c,out);
+        MaterializedViewSchedules.populate(job,c,out);
         category(out,"DDL");
         ArrayNode ordered=Profiles.JSON.createArrayNode();for(String name:List.of("General","Definition","Columns","Parameters","Return Type"))if(out.path("categories").toString().contains("\""+name+"\""))ordered.add(name);
         java.util.stream.StreamSupport.stream(out.path("categories").spliterator(),false).map(JsonNode::asText).filter(n->!List.of("General","Definition","Columns","Parameters","Return Type","Advanced","Datatypes","DDL").contains(n)).sorted().forEach(ordered::add);
         for(String name:List.of("Advanced","Datatypes","DDL"))for(JsonNode n:out.path("categories"))if(n.asText().equals(name))ordered.add(name);out.set("categories",ordered);
-        // Metadata visible to the current account participates in conflict detection. Volatile state
-        // (sequence current value, statistics and refresh time) is kept out of the fingerprint.
-        ObjectNode identity=Profiles.JSON.createObjectNode().put("engine",engine).put("database",str(out,"database"));
-        identity.set("target",parent);identity.set("fields",values);identity.put("ddl",str(out,"ddl"));
+        fingerprint(c,out);
+        if(Profiles.JSON.writeValueAsBytes(out).length>1<<20)throw new IllegalArgumentException("Object metadata exceeds the 1 MiB editor limit");
+        return out;
+    }
+    static void fingerprint(Connection c,ObjectNode out)throws Exception {
+        // Stable catalog metadata and schedule configuration participate in conflict detection.
+        // Run history, last/next run, and other volatile scheduler status remain outside it.
+        ObjectNode identity=Profiles.JSON.createObjectNode().put("engine",str(out,"engine")).put("database",str(out,"database"));
+        identity.set("target",out.path("target"));identity.set("fields",out.path("fields"));identity.put("ddl",str(out,"ddl"));
+        if(out.has("refreshSchedule"))identity.set("refreshSchedule",MaterializedViewSchedules.stable(out.path("refreshSchedule")));
         if(out.path("details").has("Permissions"))identity.set("permissions",out.path("details").path("Permissions"));
-        if(node!=null)identity.set("node",node);if(out.has("replacement"))identity.set("replacement",out.path("replacement"));
+        if(out.has("node"))identity.set("node",out.path("node"));if(out.has("replacement"))identity.set("replacement",out.path("replacement"));
         out.put("fingerprint",TableDesigner.hash(identity));
         out.put("connectionFingerprint",TableDesigner.hash(Profiles.JSON.createObjectNode()
                 .put("url",c.getMetaData().getURL()).put("user",c.getMetaData().getUserName())
                 .put("database",Objects.toString(c.getCatalog(),""))));
-        if(Profiles.JSON.writeValueAsBytes(out).length>1<<20)throw new IllegalArgumentException("Object metadata exceeds the 1 MiB editor limit");
-        return out;
     }
     static void category(ObjectNode out,String name){ArrayNode categories=(ArrayNode)out.path("categories");for(JsonNode n:categories)if(n.asText().equals(name))return;categories.add(name);}
     static void detail(ObjectNode out,String category,JsonNode data){category(out,category);((ObjectNode)out.path("details")).set(category,data);}
@@ -77,16 +84,23 @@ final class ObjectDesigner {
         if(!str(snapshot,"fingerprint").equals(str(input,"fingerprint")))throw new IllegalArgumentException("Object changed. Refresh and review your draft against the current database.");
         JsonNode draft=input.path("draft");if(!draft.isObject())throw new IllegalArgumentException("Object draft is required");
         boolean sqlMode=draft.path("sqlMode").asBoolean();
-        List<String> commands=sqlMode?sqlCommands(draft):ObjectForms.compile(snapshot,draft);
-        if(commands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
-        if(commands.size()>128)throw new IllegalArgumentException("At most 128 statements can be reviewed together");
+        List<String> objectCommands;
+        if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft);}
+        else objectCommands=ObjectForms.compile(snapshot,draft);
+        List<MaterializedViewSchedules.Command> scheduleCommands=MaterializedViewSchedules.compile(snapshot,draft);
+        if(objectCommands.isEmpty()&&scheduleCommands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
+        if(objectCommands.size()+scheduleCommands.size()>128)throw new IllegalArgumentException("At most 128 statements can be reviewed together");
+        String database=str(snapshot,"database");boolean oneDatabase=scheduleCommands.stream().allMatch(x->x.database().isBlank()||x.database().equals(database));
+        boolean atomic=!sqlMode&&str(snapshot,"engine").equals("postgresql")&&!Set.of("databases","tablespaces").contains(str(snapshot,"kind"))&&oneDatabase;
         ObjectNode out=Profiles.JSON.createObjectNode().put("objectDesignerPlan",true)
-                .put("atomic",!sqlMode&&str(snapshot,"engine").equals("postgresql")&&!Set.of("databases","tablespaces").contains(str(snapshot,"kind")))
-                .put("risky",true).put("sqlMode",sqlMode).put("expiresAt",System.currentTimeMillis()+300000);
+                .put("atomic",atomic).put("risky",true).put("sqlMode",sqlMode).put("expiresAt",System.currentTimeMillis()+300000);
         out.set("snapshot",snapshot.deepCopy());out.set("draft",draft.deepCopy());
-        ArrayNode sql=out.putArray("commands");for(String command:commands)sql.addObject().put("sql",command);
-        out.put("sql",String.join(";\n\n",commands)+";");
-        out.put("warning",sqlMode?"Execute the reviewed SQL on the displayed connection/database. Custom SQL can affect objects beyond this tab.":"Review the exact object changes. Definitions can run database code and acquire locks.");
+        ArrayNode sql=out.putArray("commands");int index=0;
+        for(String command:objectCommands)sql.addObject().put("sql",command).put("database",database).put("phase","object").put("purpose",(snapshot.path("creation").asBoolean()?"Create ":"Update ")+str(snapshot,"label")+(objectCommands.size()>1?" (step "+(++index)+")":""));
+        for(MaterializedViewSchedules.Command command:scheduleCommands)sql.addObject().put("sql",command.sql()).put("database",command.database()).put("phase",command.phase()).put("purpose",command.purpose());
+        List<String> commands=new ArrayList<>();for(JsonNode command:sql)commands.add(command.path("sql").asText());out.put("sql",String.join(";\n\n",commands)+";");
+        out.put("warning",sqlMode?"Execute the reviewed SQL on the displayed connection/database. Custom SQL can affect objects beyond this tab.":"Review the exact object and refresh-schedule changes. Definitions can run database code and acquire locks.");
+        if(!oneDatabase||!atomic&&!objectCommands.isEmpty()&&!scheduleCommands.isEmpty())out.put("partialCommitWarning","Object definition and scheduler configuration cannot be atomic. If scheduling fails after object creation, the object remains and the Refresh page can retry only its schedule.");
         return out;
     }
     static List<String> sqlCommands(JsonNode draft){

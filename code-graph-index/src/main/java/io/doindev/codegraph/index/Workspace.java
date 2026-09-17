@@ -286,6 +286,8 @@ public final class Workspace implements AutoCloseable {
         return watchers.size();
     }
 
+    public io.doindev.codegraph.store.DocumentStore contextDocuments() { return storage.documents(); }
+
     public Map<String, Object> storageStatus() { return storage.status(); }
     public void graphMemory(long bytes) { storage.resize(bytes); }
 

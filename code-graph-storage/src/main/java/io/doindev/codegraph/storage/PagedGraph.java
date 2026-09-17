@@ -64,6 +64,11 @@ public final class PagedGraph implements ManagedGraph {
         });
     }
 
+    public byte[] document(String key) { return read(() -> active==null?null:active.map.get("a/"+key)); }
+    public void documents(String prefix, BiConsumer<String,byte[]> visitor) {
+        read(() -> { if(active!=null)owner.scan(() -> active.scan("a/"+prefix,(key,value)->visitor.accept(key.substring(2),value)));return null; });
+    }
+
     public final class Builder {
         private final Generation generation;
         private long sequence;

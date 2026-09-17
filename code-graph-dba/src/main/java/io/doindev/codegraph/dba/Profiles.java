@@ -81,6 +81,7 @@ public final class Profiles implements AutoCloseable {
         if(id==null){if(state.path("connections").size()>=64)throw new IllegalArgumentException("Maximum 64 profiles");id=UUID.randomUUID().toString();}
         ObjectNode old=state.path("connections").has(id)?get(id):JSON.createObjectNode();
         ObjectNode p=draft.profile().deepCopy().put("id",id);
+        if(old.has("agentProvenance"))p.set("agentProvenance",old.path("agentProvenance").deepCopy());
         ObjectNode key=draft.validateKey();if(!key.isEmpty()){key.remove("contentHash");p.set("keyValidation",key);}
         if(draft.secret().has("password")||draft.secret().path("properties").size()>0)p.set("credentialRefs",SecretRecords.write(vault,draft.secret()));
         ArrayNode names=p.putArray("secretPropertyNames");draft.secret().path("properties").fieldNames().forEachRemaining(names::add);
@@ -101,6 +102,12 @@ public final class Profiles implements AutoCloseable {
         ObjectNode next=state.deepCopy();((ObjectNode)next.path("connections").path(id)).put("name",name);save(next);state=next;return publicProfile(get(id));
     }
     public static ObjectNode publicProfile(JsonNode p){ObjectNode result=p.deepCopy();result.remove(List.of("credentialRef","credentialRefs"));result.put("color",p.path("color").asText("transparent"));result.put("hasCredential",!SecretRecords.refs(p).isEmpty());return result;}
+    static ObjectNode agentProfile(JsonNode p){
+        ObjectNode result=JSON.createObjectNode();for(String key:List.of("id","name","templateId","url","driverClass","username","readOnly","color","validationStatus","driverBundle","hashes","pool","keyValidation","agentProvenance"))if(p.has(key))result.set(key,p.path(key).deepCopy());
+        ObjectNode properties=result.putObject("properties");Set<String> hidden=new HashSet<>();p.path("secretPropertyNames").forEach(n->hidden.add(n.asText()));p.path("properties").fields().forEachRemaining(e->{String key=e.getKey().toLowerCase(Locale.ROOT);if(!hidden.contains(e.getKey())&&!key.contains("password")&&!key.contains("secret")&&!key.contains("token")&&!key.contains("private_key")&&!key.contains("privatekey"))properties.set(e.getKey(),e.getValue().deepCopy());});
+        ArrayNode secretNames=result.putArray("writeOnlyPropertyNames");hidden.stream().sorted().forEach(secretNames::add);result.put("hasCredential",!SecretRecords.refs(p).isEmpty());return result;
+    }
+    synchronized ObjectNode markAgentCreated(String id,String agent,String requestId)throws IOException{ObjectNode next=state.deepCopy();ObjectNode p=(ObjectNode)next.path("connections").path(id);p.putObject("agentProvenance").put("agentId",agent).put("requestId",requestId).put("createdAt",System.currentTimeMillis());save(next);state=next;return agentProfile(p);}
     public synchronized ArrayNode publicList(){ArrayNode out=JSON.createArrayNode();list().forEach(p->out.add(publicProfile(p)));return out;}
     synchronized ArrayNode reorder(JsonNode input)throws IOException{JsonNode ids=input.path("ids");ObjectNode current=state.withObject("connections");if(!ids.isArray()||ids.size()!=current.size())throw new IllegalArgumentException("Connection list changed; refresh before reordering");ObjectNode ordered=JSON.createObjectNode();for(JsonNode value:ids){if(!value.isTextual()||!current.has(value.asText())||ordered.has(value.asText()))throw new IllegalArgumentException("Order must contain every connection ID exactly once");ordered.set(value.asText(),current.path(value.asText()).deepCopy());}ObjectNode next=state.deepCopy();next.set("connections",ordered);save(next);state=next;return publicList();}
     Properties credentials(ObjectNode p) {

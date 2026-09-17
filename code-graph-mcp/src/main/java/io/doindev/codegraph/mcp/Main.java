@@ -65,7 +65,8 @@ public final class Main {
         ProjectOnboarding onboarding = new ProjectOnboarding(workspace, registry, analyzers);
         workspace.projects().forEach(onboarding::register);
         List<GraphTool> tools = new ArrayList<>(registry.tools(onboarding::add));
-        if(dba!=null)tools.addAll(DbaMcpTools.tools(dba,()->dba.authenticateAgent(System.getenv("CODE_GRAPH_DBA_AGENT_TOKEN"))));
+        if(dba!=null)ProjectContextBridge.attach(dba,workspace,registry,tools);
+        if(dba!=null)tools.addAll(DbaMcpTools.tools(dba,()->localAgent(dba,System.getenv("CODE_GRAPH_DBA_AGENT_TOKEN"))));
 
         VizServer viz = null;
         int vizPort = intArg(args, "--viz", -1);
@@ -99,6 +100,10 @@ public final class Main {
             }
         }
         return false;
+    }
+
+    static String localAgent(io.doindev.codegraph.dba.DbaRuntime dba,String token){
+        return token==null||token.isBlank()?dba.trustedLocalAgent():dba.authenticateAgent(token);
     }
 
     public static io.doindev.codegraph.dba.DbaRuntime openDba(String[] args, Workspace workspace) {

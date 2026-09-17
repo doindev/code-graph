@@ -66,6 +66,19 @@ public final class GraphStorage implements AutoCloseable {
         });
     }
 
+    /** Catalog partitions share this workspace's paging lifecycle and memory allowance. */
+    public io.doindev.codegraph.store.DocumentStore documents() {
+        if(!hybrid)return io.doindev.codegraph.store.DocumentStore.memory(Math.min(budget/4,64L<<20));
+        PagedGraph graph=(PagedGraph)create();
+        return new io.doindev.codegraph.store.DocumentStore() {
+            public void replace(java.util.function.Consumer<Writer> producer){graph.rebuild(builder->{producer.accept(builder::auxiliary);return null;});}
+            public byte[] get(String key){return graph.document(key);}
+            public void scan(String prefix,java.util.function.BiConsumer<String,byte[]> visitor){graph.documents(prefix,visitor);}
+            public <T>T read(java.util.function.Supplier<T> reader){return graph.read(reader);}
+            public void close(){graph.close();}
+        };
+    }
+
     /** Reject indexing a root containing the scratch directory (including symlink aliases). */
     public void checkRoot(Path root) {
         if (directory != null && (directory.startsWith(root) || root.startsWith(directory)))

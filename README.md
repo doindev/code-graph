@@ -25,8 +25,14 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Script SQL, or in the Diagram view of tables/views/materialized views. It supports source and
   column drag/drop, joins, query expressions, SQL files, undo/redo and bounded result grids.
   Unsupported SQL is preserved in SQL mode; saving a query never changes a database view.
-  The full write-policy/MCP administration suite is not yet complete; see
-  [DBA status, configuration, and remaining gates](docs/dba.md).
+  Database relationships use canonical local/dev/test/stage/prod environments, unique logical roles,
+  human-readable purposes, direct UI management, and exact human-reviewed MCP connection/binding proposals.
+  Persistent approvals are read-only and can cover one target/capability or current and future bindings in an
+  application/environment; every mutation remains one-time. See [DBA status, configuration, and remaining gates](docs/dba.md).
+  [Project database context](docs/project-database-context.md) links applications to environment-aware database/schema snapshots,
+  pauses catalog scans when MCP activity stops, and provides human approval for live agent SQL across all connection templates.
+  The [approval broker](docs/approval-broker.md) routes requests to an active DBA browser or a
+  JDK-only desktop consent prompt, with a restricted temporary browser editor for complex reviews.
 - **Tree-sitter AST parsing** for the top-10 languages: Java, JavaScript, TypeScript (+TSX),
   Python, C#, Go, Rust, C, C++, PHP — plus Ruby and Kotlin. New languages plug in behind a
   `LanguageAnalyzer` SPI.
@@ -46,7 +52,7 @@ large text codebases into a queryable **code property graph** so AI agents can a
 - **Code smells**: god class, long method, hubs, cycles, feature envy, data clumps, refused
   bequest, temporal coupling (git co-change mining) and duplicate logic — every finding carries
   its metric evidence.
-- **MCP tools** (stdio for local agents, streamable HTTP for team deployment): `search_symbols`,
+- **MCP tools** (stdio or loopback-only streamable HTTP for local agents): `search_symbols`,
   `get_symbol`, `get_impact_radius`, `get_call_graph`, `get_blast_score`, `find_dead_code`,
   `find_code_smells`, `compare_architectural_drift`, `index_status`, `reindex`,
   `list_projects`, `add_project`, `remove_project`.
@@ -94,6 +100,42 @@ large text codebases into a queryable **code property graph** so AI agents can a
 | [docs/guides/architecture-drift.md](docs/guides/architecture-drift.md) | Blueprint rules, cycle detection, baseline diffs |
 | [docs/guides/ci.md](docs/guides/ci.md) | The `ci` pipeline, exit codes, GitHub Actions / GitLab examples |
 | [docs/guides/visualization.md](docs/guides/visualization.md) | 3D graph UI and multi-project workspaces |
+
+## Install the `cgraph` command
+
+The source installers check Git, a full **JDK 25**, and **Maven 3.9+**, offer supported
+prerequisite installations with confirmation, clone a selected repository/ref, test/build in an
+isolated checkout, and create a native launcher with its own Java runtime. Node.js/npm are not required.
+
+From a checkout containing the installer:
+
+```powershell
+# Windows; use the current checkout, including local changes
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceDir .
+```
+
+```bash
+# macOS / Linux
+bash ./install.sh --source-dir "$PWD"
+```
+
+Omit `-SourceDir .` / `--source-dir "$PWD"` to clone the published `main` branch instead.
+The selected remote ref must include these installer files. Open a new terminal after installation:
+
+```text
+cgraph
+```
+
+This starts local MCP on **3000**, Graph/admin UI and DBA on **8137**, desktop approvals,
+and hybrid storage with a **1 GiB shared graph/cache budget**. No project is automatically
+onboarded unless explicitly configured. This is not a hard total-RAM or JVM heap limit.
+Use `cgraph --help` for overrides; Ctrl+C stops the foreground server. Installation itself
+does not start, stop, or restart a server.
+
+**Behind a proxy?** Use `-Proxy` / `--proxy`, standard proxy environment variables, and
+`-MavenSettings` / `--maven-settings` for corporate mirrors and authentication. See the
+[installation guide](docs/installation.md) for authenticated proxies, certificates,
+prerequisite checks, updates, native distribution, and validation limits.
 
 ## Build
 
@@ -186,17 +228,29 @@ rejected, so verify startup logs and `/api/server` rather than relying on typo d
 | `--graph-storage MODE` | HTTP, stdio | `memory` | `memory` keeps the graph in Java heap; `hybrid` stores records on disk with a shared cache. Selected for the whole server session. |
 | `--graph-memory SIZE` | HTTP, stdio | `1g` | Shared graph/cache allowance in hybrid mode, **not per project**. Accepted but does not bound the pure in-memory backend. |
 | `--dba-decision-timeout N` | HTTP, stdio with `--dba` | `60` | Seconds to wait for a human script-error decision; valid range 10–600. Other DBA flags are documented in [the DBA guide](docs/dba.md#start-explicit). |
+| `--dba-approval-mode MODE` | HTTP, stdio with `--dba` | `auto` | Human approval channel: `auto`, `browser`, `desktop`, or `none`. Browser mode requires the UI; desktop mode requires an interactive desktop. See [routing, security and validation](docs/approval-broker.md). |
 
 For listener ports, use `1–65535`; `0` requests an OS-assigned port, reported in startup logs.
-MCP and UI need separate available ports. HTTP MCP and HTTP UI bind to `0.0.0.0`; the stdio
-UI binds to loopback. There is no server argument for a custom bind address, TLS certificate,
-authentication, or per-project access policy. The HTTP UI uses JDK `HttpServer`; the MCP HTTP
-transport uses embedded Jetty 12.
+MCP and UI need separate available ports. HTTP MCP and its UI bind strictly to `127.0.0.1`;
+the stdio UI also binds to loopback. There is no remote/wildcard bind option or TLS listener.
+The HTTP UI uses JDK `HttpServer`; the MCP HTTP transport uses embedded Jetty 12.
 
-**Security:** expose HTTP only to trusted clients or protect it with network controls and an
-authenticated reverse proxy. MCP `add_project` can access directories readable by the server
-account. Read-only UI mode does **not** disable MCP project management. Neither `--viz-admin`
-nor the absence of that flag is an authentication mechanism.
+**Local trust:** no token or Agent access setup is required for local MCP clients. With DBA
+enabled, token-free HTTP and stdio clients use a shared **Trusted local agents** identity.
+They can discover connection IDs/names and application/environment bindings and submit
+approval requests. Connection details/tests and SQL still require human approval or an
+existing read grant; mutations always require exact one-time approval. Approved shared read
+policies, ownership and created-connection history apply to all token-free local clients.
+Optional named bearer tokens remain available for separate identities. Invalid explicit
+tokens fail closed rather than falling back to local trust. See [DBA access](docs/dba.md).
+
+All MCP HTTP requests enforce loopback peer, Host and Origin checks, including graph-only
+mode. Forwarding headers do not establish local trust. Local processes are trusted; do not
+expose this listener with a reverse proxy or tunnel. Docker port publishing does not expose
+a loopback-bound listener; clients must share its network namespace (or use local stdio).
+MCP `add_project` can access directories readable by the server account. Read-only UI mode
+does **not** disable MCP project management. Neither `--viz-admin` nor its absence identifies
+an agent. Unknown/expired MCP sessions return 404 so clients can reinitialize after restart.
 
 ### Workspace file and project onboarding
 
@@ -590,10 +644,12 @@ After building the HTTP module, build the image from the repository root:
 docker build -t code-graph-mcp-http -f code-graph-mcp-http/Dockerfile code-graph-mcp-http
 ~~~
 
-Example empty hybrid server using an explicit entrypoint (PowerShell):
+Example empty hybrid server inside the container's network namespace, using an explicit
+entrypoint (PowerShell). This is not reachable through published host ports; run Java locally
+for desktop MCP clients, or run the client in this same network namespace:
 
 ~~~powershell
-docker run --rm -p 127.0.0.1:3000:3000 -p 127.0.0.1:8137:8137 `
+docker run --rm --name code-graph-local `
   --entrypoint java code-graph-mcp-http `
   -Xmx1g --enable-native-access=ALL-UNNAMED -cp "/app/classes:/app/lib/*" `
   io.doindev.codegraph.mcp.http.HttpMain `

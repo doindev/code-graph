@@ -3,7 +3,7 @@ module.exports=async(browser,base,jar)=>{
   const context=await browser.newContext(),page=await context.newPage(),errors=[];let profile;
   page.on('pageerror',e=>errors.push(e.message));
   try{
-    await page.goto(base+'/dba');
+    await page.goto(base+'/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
     profile=await page.evaluate(async jar=>{const session=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();const r=await fetch('/api/dba/connections',{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':session.csrf},body:JSON.stringify({name:'Creation fixture',url:'jdbc:h2:mem:creation_'+Date.now()+';DB_CLOSE_DELAY=-1',jar,driverClass:'org.h2.Driver',username:'sa',saveUntested:true})});if(!r.ok)throw Error(await r.text());return r.json();},jar);
     await page.reload();for(const name of ['Creation fixture','Schemas','PUBLIC','Tables'])await page.getByRole('button',{name:'Expand '+name,exact:true}).click();
     const row=page.locator('.metadata-node[data-kind="tables"] > .metadata-title');await row.click({button:'right'});

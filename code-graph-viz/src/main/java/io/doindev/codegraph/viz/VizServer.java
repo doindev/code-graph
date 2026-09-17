@@ -60,6 +60,7 @@ public final class VizServer implements AutoCloseable {
             httpServer.createContext("/", viz::handle);
             httpServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             httpServer.start();
+            if(dba!=null)dba.browserAddress(java.net.URI.create("http://localhost:"+httpServer.getAddress().getPort()));
             return viz;
         } catch (IOException e) {
             throw new UncheckedIOException("failed to start viz server on port " + port, e);

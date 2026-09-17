@@ -18,8 +18,11 @@ final class BrowserAuth {
         Session(String id,String csrf,long expires){this.id=id;this.csrf=csrf;this.expires=expires;}
         String id(){return id;}String csrf(){return csrf;}long expires(){return expires;}
     }
+    final String cookieName;
     private final Map<String,Session> sessions=new HashMap<>();
-    BrowserAuth(Path directory)throws IOException {Files.deleteIfExists(directory.resolve("browser-token"));}
+    BrowserAuth(Path directory)throws IOException {this(directory,"dba_session");}
+    BrowserAuth(Path directory,String cookieName)throws IOException {this.cookieName=cookieName;Files.deleteIfExists(directory.resolve("browser-token"));}
+    synchronized Session create(long expires){prune();if(sessions.size()>=8)throw new SecurityException("Too many review sessions");Session s=new Session(token(),token(),Math.min(expires,System.currentTimeMillis()+3_600_000));sessions.put(s.id,s);return s;}
     static String token(){byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);}
     static boolean equal(String a,String b){return a!=null&&b!=null&&MessageDigest.isEqual(a.getBytes(StandardCharsets.UTF_8),b.getBytes(StandardCharsets.UTF_8));}
     static void local(HttpExchange x) {
@@ -33,7 +36,7 @@ final class BrowserAuth {
     }
     synchronized Session bootstrap(HttpExchange x){prune();Session existing=find(x);if(existing!=null)return existing;if(sessions.size()>=8)throw new SecurityException("Too many browser sessions; end an existing session or wait for expiration");Session s=new Session(token(),token(),System.currentTimeMillis()+3_600_000);sessions.put(s.id,s);return s;}
     private Session find(HttpExchange x){String cookie=x.getRequestHeaders().getFirst("Cookie");String id=null;
-        if(cookie!=null)for(String part:cookie.split(";")){String[] kv=part.strip().split("=",2);if(kv.length==2&&kv[0].equals("dba_session"))id=kv[1];}
+        if(cookie!=null)for(String part:cookie.split(";")){String[] kv=part.strip().split("=",2);if(kv.length==2&&kv[0].equals(cookieName))id=kv[1];}
         return sessions.get(id);
     }
     synchronized Session require(HttpExchange x){prune();Session s=find(x);if(s==null)throw new SecurityException("DBA session expired");

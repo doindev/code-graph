@@ -66,6 +66,36 @@ final class Connections implements AutoCloseable {
         if(base.startsWith("jdbc:postgresql://")){int slash=base.indexOf('/',"jdbc:postgresql://".length());return (slash<0?base+"/":base.substring(0,slash+1))+name+suffix;}
         return "jdbc:postgresql:"+name+suffix;
     }
+    /** Explicit catalog targeting, verified before any caller-supplied statement executes. */
+    final class Target implements AutoCloseable {
+        private final String id;private final Connection c;private final DatabaseConnection external;
+        Target(String id,Connection c,DatabaseConnection external){this.id=id;this.c=c;this.external=external;}
+        Connection connection(){return c;}
+        public void close()throws Exception{if(external!=null)external.close();else discard(id,c);}
+    }
+    Target target(String id,String catalog)throws Exception{
+        Connection c=open(id);
+        try{
+            String current=Objects.toString(c.getCatalog(),"");
+            if(catalog!=null&&!catalog.isBlank()&&!catalog.equals(current)){
+                if(profiles.get(id).path("url").asText().startsWith("jdbc:postgresql:")){
+                    c.close();c=null;DatabaseConnection other=openDatabase(id,catalog,30);return new Target(id,other.connection(),other);
+                }
+                // Vendors without catalog switching require a profile already targeting that catalog.
+                c.setCatalog(catalog);
+                if(!catalog.equals(c.getCatalog()))throw new SQLException("Driver did not select the requested catalog; save a connection targeting it explicitly");
+            }
+            return new Target(id,c,null);
+        }catch(Exception e){if(c!=null)discard(id,c);throw e;}
+    }
+
+    static void selectSchema(Connection c,String schema)throws SQLException{
+        if(schema==null||schema.isBlank())return;
+        String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+        if(product.contains("mysql")||product.contains("mariadb")){if(!schema.equals(c.getCatalog())){c.setCatalog(schema);if(!schema.equals(c.getCatalog()))throw new SQLException("Requested schema was not selected");}return;}
+        if(!c.getMetaData().supportsSchemasInDataManipulation())return;
+        if(!schema.equals(c.getSchema())){c.setSchema(schema);if(!schema.equals(c.getSchema()))throw new SQLException("Requested schema was not selected; qualify names explicitly using a database-only binding");}
+    }
     // Human SQL can change arbitrary session state. Never return its physical session to a pool.
     synchronized void discard(String id,Connection connection)throws SQLException{Pool p=pools.get(id);if(p!=null)p.source.evictConnection(connection);else connection.close();}
     String humanError(String id,Exception error){return profiles.redactError(id,HumanSql.failure(error));}

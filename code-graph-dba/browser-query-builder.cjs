@@ -4,7 +4,7 @@ module.exports=async(browser,base,jar)=>{
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());
   await page.addInitScript(()=>{window.showSaveFilePicker=undefined;window.showOpenFilePicker=undefined;});
   try{
-    await page.goto(base+'/dba');
+    await page.goto(base+'/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
     profile=await page.evaluate(async jar=>{
       const s=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
       const api=async(path,body)=>{const r=await fetch('/api/dba'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Dba-CSRF':s.csrf},body:JSON.stringify(body)});if(!r.ok)throw Error(await r.text());return r.json();};

@@ -25,6 +25,7 @@ record ConnectionDraft(ObjectNode profile,ObjectNode secret) {
         p.put("jar",jars.get(0).asText());if(input.has("driverBundle")){ObjectNode bundle=p.putObject("driverBundle");for(String k:List.of("groupId","artifactId","version","classifier","source","bundleId"))if(input.path("driverBundle").has(k)&&!input.path("driverBundle").path(k).asText().isBlank())bundle.put(k,Profiles.text(input.path("driverBundle"),k,200));bundle.set("jars",jars.deepCopy());bundle.set("hashes",hashes.deepCopy());}
         ObjectNode secret=oldSecret.deepCopy();if(input.path("removePassword").asBoolean())secret.remove("password");if(input.has("password"))secret.put("password",input.path("password").asText());
         ObjectNode hidden=secret.has("properties")?(ObjectNode)secret.path("properties"):secret.putObject("properties");
+        if(input.path("replaceSecretProperties").asBoolean())hidden.removeAll();
         JsonNode changes=input.path("secretProperties");if(!changes.isMissingNode()&&!changes.isObject())throw new IllegalArgumentException("secretProperties must be an object");
         changes.fields().forEachRemaining(e->{if(e.getValue().isNull())hidden.remove(e.getKey());else hidden.put(e.getKey(),propertyValue(e.getValue()));});
         ObjectNode properties=p.putObject("properties");JsonNode props=input.path("properties");if(!props.isMissingNode()&&!props.isObject())throw new IllegalArgumentException("properties must be an object");

@@ -3,7 +3,7 @@
 The `/dba` JDBC administration plan is **not fully implemented**. This change delivers an
 opt-in, authenticated UI and a restricted-read foundation. It must not be presented as the
 completed administration/agent suite. Authenticated restricted-read DBA MCP tools are enabled;
-agent write execution and paired editor operations remain unavailable. Human browser SQL supports
+agent writes require exact one-time human approval; paired editor operations remain unavailable. Human browser SQL supports
 JDBC DDL/DML and statement-aware scripts with savepoint-backed error decisions, commit-on-success,
 or explicit auto-commit; see [execution behavior and limitations](dba-connections.md#script-files-and-execution-targets).
 
@@ -52,7 +52,10 @@ one-hour expiration. **Local users/processes can administer connections**: brows
 protections do not authenticate local processes. The toolbar settings gear contains **RAM**
 and **Agent access**. There is no End session button; session expiration and the protected
 logout API remain unchanged. Existing obsolete `browser-token` files are removed on UI startup.
-MCP agent tokens and grants remain mandatory and unchanged.
+Local MCP clients need no token or Agent access setup. Both HTTP listeners bind to
+`127.0.0.1`, and token-free HTTP/stdio clients share a built-in **Trusted local agents**
+identity. Database operation approvals and grants remain enforced; local transport trust
+is not blanket SQL authorization. Optional named tokens keep separate identities.
 
 See [connection setup, drivers, Snowflake and test-result behavior](dba-connections.md).
 
@@ -69,6 +72,7 @@ Stdio can own a DBA runtime; it is not yet an attachment bridge to another runni
 | `--dba-agent-rows N` | `100` | Agent result cap; effective maximum is always 100, even if a legacy configuration specifies a larger value |
 | `--dba-timeout N` | `30` | Query deadline in seconds, 1–300 |
 | `--dba-decision-timeout N` | `60` | Human script-error decision timeout in seconds, 10–600 |
+| `--dba-approval-mode MODE` | `auto` | `auto`, `browser`, `desktop`, `none`; startup-only human approval routing. See [approval broker](approval-broker.md). |
 
 DBA-specific settings without `--dba` and unknown DBA flags are rejected. Memory, concurrency,
 UI row cap, query timeout, and decision timeout can be changed through the RAM dialog for the current run; these
@@ -184,16 +188,30 @@ plus a matching temporary test receipt or explicit `saveUntested:true`. Optional
 includes `templateId`, `username`, `password`, `properties`, `secretProperties`, and `pool`.
 Connection tests do not create profiles, vault entries or persisted test data. Pool defaults
 remain read-only, but human SQL explicitly opens a writable session and discards it after the
-run. Agent execution always enforces its separate read-only path, regardless of profile flags.
+run. Restricted agent read tools enforce their separate read-only path, regardless of profile
+flags; human-approved live SQL uses the separately reviewed approval path.
 
 ## Headless MCP and agent access
 
-Omit `--viz` to run without the UI. No browser login token or UI listener is created in this
-mode. DBA is still explicitly opt-in with `--dba`; graph tools are unchanged. DBA tools are
-read-only in both launch modes for now. There are no approval prompts during agent execution.
+Omit `--viz` to run without the main UI. DBA remains opt-in with `--dba`; graph tools are unchanged.
+The default approval mode uses a native consent prompt when an interactive desktop is available,
+and a temporary request-scoped browser site for complex reviews. Truly headless execution or
+`--dba-approval-mode none` exposes only the restricted safe read/catalog/plan toolset.
 Authentication, object authorization and database permissions remain mandatory.
+See [approval modes, APIs and platform validation](approval-broker.md).
 
-Prepare profiles and grants in `/dba` before a headless run:
+Local clients connect without configuration. The built-in local identity is created lazily
+on the first DBA-capable MCP connection/call and persists without a token. It exposes only
+connection IDs/names and binding summaries by default so a client can request access.
+Profile inspection, connection tests, database reads and mutations still use the reviewed
+permission/approval workflows. Requesting SQL review needs no separate local-agent grant.
+With no human approval channel, approval-dependent tools remain unavailable.
+
+All token-free clients share read policies, approval/job ownership, request IDs and created
+connection history; they are not cryptographically distinguishable. Persistent read policies
+can be revoked in Project databases. The built-in identity cannot be deleted. Do not rely on
+client-supplied names to isolate privileges. For separate named identities, optionally prepare
+profiles and grants in `/dba` before a headless run:
 
 1. Save the PostgreSQL connection using a least-privilege account and a trusted driver JAR.
 2. Open **Agent access**, choose a connection and an exact schema, then enter exact object names
@@ -213,23 +231,24 @@ java --enable-native-access=ALL-UNNAMED `
   --port 3000 --dba --dba-dir "C:\CodeGraphData\dba" --dba-agent-rows 100
 ```
 
-Configure the MCP client to send `Authorization: Bearer <agent token>` on **every** request,
-including initialization, polling and SSE. HTTP DBA access requires a loopback peer, a literal
-loopback Host and a matching Origin if supplied; proxy forwarding headers are not trusted.
-SDK sessions are bound to the original identity (including anonymous graph sessions) and expire
-after one hour. A different token identity cannot replay, poll, delete or use another session.
-Reinitialize after expiry. Anonymous graph requests still work but DBA calls return tool errors.
+No Authorization header is needed for trusted local access. To use an optional named identity,
+send `Authorization: Bearer <agent token>` on **every** request, including initialization,
+polling and SSE. Invalid supplied tokens are rejected. All HTTP MCP access, even graph-only,
+requires a loopback peer, a loopback Host and a matching Origin if supplied; proxy forwarding
+headers are not trusted. Cross-site browser requests are rejected. Sessions remain bound to
+their initial local/named identity and expire after one hour. Missing/expired sessions return
+404 for reinitialization; a different identity replaying a valid session receives 403.
 
-For stdio, configure `CODE_GRAPH_DBA_AGENT_TOKEN` in the MCP child process's environment and use
-`io.doindev.codegraph.mcp.Main` with the same `--dba`/`--dba-dir` arguments. Do not place the token
-in a command argument or tool argument. Stdio uses one authenticated agent identity per process.
+For stdio, leave `CODE_GRAPH_DBA_AGENT_TOKEN` unset to use the shared local identity, or set it
+for an optional named identity. Use `io.doindev.codegraph.mcp.Main` with the same `--dba`/`--dba-dir`
+arguments. Do not place tokens in command or tool arguments. Stdio uses one identity per process.
 The directory has one exclusive owner; the future stdio attachment bridge is not implemented.
 Headless operation uses the existing OS vault and fails closed if credentials are unavailable;
 it does not fall back to plaintext credentials or automatically grant access.
 
 | MCP tool | Behavior |
 |---|---|
-| `dba_list_connections` | Authorized opaque IDs and display names only; no JDBC URLs or credentials |
+| `dba_list_connections` | Local clients discover opaque IDs/names; optional named identities retain grant filtering. No JDBC URLs or credentials; discovery grants no database access. |
 | `dba_get_metadata` | Granted object roster, or bounded column metadata for an exact schema/object |
 | `dba_get_object_ddl` | Read PostgreSQL catalog definition fragments; never execute DDL |
 | `dba_explain_query` | `EXPLAIN (ANALYZE FALSE, FORMAT JSON)` for an authorized SELECT |
@@ -340,3 +359,7 @@ Oracle's Queues, Packages, Java, Jobs and Scheduler groups. Every node has a Ref
 existing expanded descendants are restored where their catalog identities still exist.
 See the [capability matrix and metadata API](dba-catalog-tree.md) for all supported templates,
 bounds, cross-database behavior and validation limits.
+
+## Project database context
+
+See [project/database bindings, activity-driven catalog scans, stored versions and approved live SQL](project-database-context.md). All connection templates participate through native metadata adapters or an explicitly partial JDBC fallback. The Project databases settings page manages bindings and agent grants; the Approvals toolbar button reviews each new live request.

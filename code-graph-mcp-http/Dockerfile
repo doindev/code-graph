@@ -1,13 +1,13 @@
-# code-graph streamable-HTTP MCP server for shared/team deployment.
+# code-graph streamable-HTTP MCP server, strictly loopback-bound.
 #
 # Build the module layout first (produces target/classes and target/lib):
 #   mvn -B -pl code-graph-mcp-http -am package
 # Then, from the repo root:
 #   docker build -t code-graph-mcp-http -f code-graph-mcp-http/Dockerfile code-graph-mcp-http
 #
-# Run against the repo you want indexed (mounted read-only at /workspace):
-#   docker run --rm -p 3000:3000 -v $PWD:/workspace:ro code-graph-mcp-http
-# MCP clients then connect to http://localhost:3000/mcp (streamable HTTP transport).
+# Clients must share the container's network namespace to reach its loopback listener.
+# Ordinary -p port publishing does not expose the application. For desktop clients,
+# run Java locally (or use the stdio entry point); do not proxy the trusted local endpoint.
 
 FROM eclipse-temurin:25-jre
 

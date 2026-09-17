@@ -103,7 +103,7 @@ an isolated profile and a temporary Java fixture, not the production application
 | Explain/analysis | Both tools return estimated PostgreSQL JSON plans with `executed:false`; bounded observations copy node types, costs and cardinality evidence |
 | Definitions and metadata | Granted PostgreSQL column metadata and catalog definition fragments; unsupported/unauthorized object requests fail |
 | Job lifecycle | Read completion, release, cancellation and cross-owner rejection; no write execution |
-| HTTP authentication | `DbaMcpHttpTest`: browser grant creation, CSRF rejection, authenticated catalog/read roster, anonymous denial, cross-agent session/replay rejection |
+| Local MCP access | `DbaHttpAccessTest` / `DbaMcpHttpTest`: token-free HTTP/stdio identity, loopback listener, Host/Origin/remote-peer rejection without a token, invalid-token and cross-identity rejection, stale-session recovery, retained database permissions |
 | Headless startup | Same profiles/grants reopen with no UI listener or browser token; graph tools remain; restricted DBA tool catalog only |
 | Stdio | Real child-process MCP initialization and authenticated connection listing using an environment token |
 | Browser | Automatic local session, SQL parameters/results, PostgreSQL EXPLAIN, DDL fragments, row truncation, create/revoke grant, one-time agent-token clearing, keyboard resizing and live limits; no page errors |

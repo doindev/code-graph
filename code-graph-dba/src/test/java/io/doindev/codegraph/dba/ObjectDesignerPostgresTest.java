@@ -38,6 +38,7 @@ class ObjectDesignerPostgresTest {
                     String display=k.equals("functions")?"test_functions(x integer)":k.equals("procedures")?"test_procedures()":"test_"+k;
                     var selection=MetadataActionsTest.selection(jobs,id,k,schema,display);var loaded=load(jobs,id,selection);
                     assertTrue(loaded.path("categories").toString().contains("DDL"));assertFalse(loaded.path("ddl").asText().isBlank(),k);
+                    if(k.equals("materialized_views")){assertEquals("postgresql",loaded.path("refreshSchedule").path("provider").asText());assertTrue(loaded.path("categories").toString().contains("Refresh"));assertTrue(loaded.path("refreshSchedule").path("config").isObject());if(!loaded.path("refreshSchedule").path("editable").asBoolean())assertFalse(loaded.path("refreshSchedule").path("guidance").isEmpty());}
                     if(k.equals("indexes"))assertFalse(loaded.path("controls").findParents("id").stream().filter(x->x.path("id").asText().equals("owner")).findFirst().orElseThrow().path("editable").asBoolean());
                     if(k.equals("functions")){
                         var edit=draft(loaded);((ObjectNode)edit.path("fields")).put("body","SELECT x + 2");

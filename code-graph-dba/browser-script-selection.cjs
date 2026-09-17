@@ -5,7 +5,7 @@ module.exports = async (browser, base, jar) => {
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   try {
-    await page.goto(base + '/dba');
+    await page.goto(base + '/dba');await page.locator('#agent-approvals').waitFor({state:'attached'});
     const profile = await page.evaluate(async jar => {
       const session = await (await fetch('/api/dba/bootstrap', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'})).json();
       const response = await fetch('/api/dba/connections', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Dba-CSRF': session.csrf}, body: JSON.stringify({name: 'Selection fixture', url: 'jdbc:h2:mem:selection_' + Date.now(), jar, driverClass: 'org.h2.Driver', username: 'sa', saveUntested: true})});

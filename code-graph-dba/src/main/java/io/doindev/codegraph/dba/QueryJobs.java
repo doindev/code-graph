@@ -145,6 +145,38 @@ final class QueryJobs implements AutoCloseable {
             finally{deadline.cancel(false);job.thread=null;Thread.interrupted();cleanup.run();job.finished=System.currentTimeMillis();}
         });}catch(RejectedExecutionException e){jobs.remove(job.id);cleanup.run();throw new IllegalArgumentException("DBA queue full");}return job.json();
     }
+    /** Only ApprovalQueue calls this after an authenticated human consumes a stored request. */
+    ObjectNode approved(String principal,JsonNode request,Runnable validate,Runnable completed){
+        String id=request.path("connectionId").asText();
+        return local("agent:"+principal,id,job->{
+            validate.run();boolean attempted=false,committing=false;Connection c=null;
+            Connections.Target target=null;
+            try{target=connections.target(id,request.path("database").asText());
+                c=target.connection();Connections.selectSchema(c,request.path("schema").asText());boolean transactions=c.getMetaData().supportsTransactions();boolean verifiedRead=request.path("eligiblePersistentRead").asBoolean();boolean autoCommit=verifiedRead?false:request.path("autoCommit").asBoolean()||!transactions;
+                if(verifiedRead){String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);if(!product.contains("postgresql")&&!product.equals("h2")&&!product.contains("mysql")&&!product.contains("mariadb"))throw new IllegalArgumentException("This driver has no verified read-only session implementation; request one-time review instead");try{c.setReadOnly(true);}catch(SQLException e){throw new IllegalArgumentException("The driver could not establish a verified read-only session");}if(!c.isReadOnly())throw new IllegalArgumentException("The driver did not confirm read-only session mode");}
+                else if(transactions)try{c.setReadOnly(false);}catch(SQLFeatureNotSupportedException ignored){}if(transactions)c.setAutoCommit(autoCommit);
+                if(c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))try(Statement st=c.createStatement()){st.execute((autoCommit?"SET ":"SET LOCAL ")+"statement_timeout = "+config.timeoutSeconds()*1000);st.execute((autoCommit?"SET ":"SET LOCAL ")+"lock_timeout = 3000");}
+                validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
+                ObjectNode result=Profiles.JSON.createObjectNode();ArrayNode results=result.putArray("results");long affected=0;int remaining=job.rowLimit;
+                try(PreparedStatement statement=c.prepareStatement(request.path("sql").asText())){
+                    job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());
+                    JsonNode parameters=request.path("parameters");for(int i=0;i<parameters.size();i++)statement.setObject(i+1,Profiles.JSON.convertValue(parameters.get(i),Object.class));
+                    attempted=true;boolean hasRows=statement.execute();int count=0;
+                    while(true){
+                        if(job.cancelled||!alive.test(job.owner))throw new CancellationException();if(++count>64)throw new IllegalArgumentException("Too many statement results");
+                        if(hasRows){try(ResultSet rs=statement.getResultSet()){ObjectNode data=rows(rs,remaining,Math.max(8192,job.byteLimit/2));remaining=Math.max(0,remaining-data.path("rows").size());results.add(data);}}
+                        else{long n=statement.getLargeUpdateCount();if(n==-1)break;affected+=n;results.addObject().put("affectedRows",n);}
+                        if(result.toString().length()*2L>job.byteLimit-16384)throw new IllegalArgumentException("Approved query result exceeds the agent result allowance");
+                        hasRows=statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
+                    }
+                }
+                validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();committing=true;if(transactions&&!autoCommit)c.commit();
+                job.outcome=autoCommit?"auto_commit_completed":"commit_acknowledged";return result.put("affectedRows",affected).put("outcome",job.outcome);
+            }catch(Exception e){job.outcome=!attempted?"not_started":committing?"unknown":"partial_or_unknown";if(c!=null&&!committing)try{if(!c.isClosed()&&!c.getAutoCommit()){c.rollback();job.outcome="rollback_requested";}}catch(SQLException ignored){}throw e;
+            }finally{job.statement=null;try{if(target!=null)target.close();}finally{/* Completion runs in the job wrapper, including pre-execution cancellation. */}}
+        },completed);
+    }
+
     static ObjectNode exceptionInfo(Throwable error){ObjectNode out=Profiles.JSON.createObjectNode().put("type",error.getClass().getName()).put("details","Raw driver exception text is withheld because it may contain credentials or connection parameters.");ArrayNode chain=out.putArray("causes");for(int i=0;error!=null&&i<6;i++,error=error.getCause()){ObjectNode n=chain.addObject().put("type",error.getClass().getName());if(error instanceof SQLException sql){String state=sql.getSQLState();if(state!=null&&state.matches("[A-Za-z0-9]{5}"))n.put("sqlState",state);n.put("vendorCode",sql.getErrorCode());}}return out;}
     private static String validateSql(String owner,String sql){return owner.startsWith("agent:")?SqlReadGuard.validate(sql):SqlReadGuard.validateBrowser(sql);}
     ObjectNode query(String owner,String id,String sql,JsonNode parameters){
@@ -280,7 +312,7 @@ final class QueryJobs implements AutoCloseable {
         if(connections.genericOnly(id))throw new IllegalArgumentException("Object mutations are not certified for this database template; use the SQL editor with the vendor's documented syntax");
         ObjectNode selection=MetadataActions.request(input);int timeout=config.timeoutSeconds();
         if(!execute)return catalogRead(owner,id,(ObjectNode)selection.path("parent"),(job,c)->{
-            ObjectNode result=MetadataActions.resolve(job,c,selection,timeout).json();
+            MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,timeout);ObjectNode result=plan.json(Objects.toString(c.getCatalog(),""));
             // Cross-database browsing is supported, but mutations require an explicit saved target.
             result.put("database",c.getCatalog());
             return result;
@@ -291,20 +323,51 @@ final class QueryJobs implements AutoCloseable {
         return submit(owner,id,(job,c)->{
             String database=selection.path("parent").path("database").asText("");
             if(!database.isEmpty()&&!database.equals(c.getCatalog()))throw new IllegalArgumentException("For object changes, use a saved connection targeting the selected database. No other database was modified.");
-            MetadataActions.Plan plan=MetadataActions.resolve(job,c,selection,job.remainingSeconds());
+            MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,job.remainingSeconds());
             String product=c.getMetaData().getDatabaseProductName(),engine=product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
-            String sql=MetadataActions.command(plan,engine,action,commandInput);
-            if(job.cancelled||!alive.test(owner))throw new CancellationException();
-            try(Statement st=c.createStatement()){job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.execute(sql);}finally{job.statement=null;}
-            return Profiles.JSON.createObjectNode().put("action",action).put("name",plan.name()).put("changed",true);
+            String sql=MetadataActions.command(plan,engine,action,commandInput);List<MaterializedViewSchedules.Command> commands=new ArrayList<>();
+            if(action.equals("delete"))commands.addAll(plan.deleteCleanup());commands.add(new MaterializedViewSchedules.Command(sql,Objects.toString(c.getCatalog(),""),"object",action+" the selected object"));
+            for(MaterializedViewSchedules.Command command:commands){
+                if(job.cancelled||!alive.test(owner))throw new CancellationException();String commandDatabase=command.database();
+                if(commandDatabase.isBlank()||commandDatabase.equals(c.getCatalog()))executeActionStatement(job,c,command.sql());
+                else try(var other=connections.openDatabase(id,commandDatabase,job.remainingSeconds())){Connection target=other.connection();target.setReadOnly(false);target.setAutoCommit(true);try(Statement setup=target.createStatement()){setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET statement_timeout = "+config.timeoutSeconds()*1000);setup.execute("SET lock_timeout = 3000");}executeActionStatement(job,target,command.sql());}
+            }
+            return Profiles.JSON.createObjectNode().put("action",action).put("name",plan.name()).put("changed",true).put("statements",commands.size());
         },true,true);
     }
+    private MetadataActions.Plan objectActionPlan(Job job,String id,Connection c,ObjectNode selection,int timeout)throws Exception {
+        MetadataActions.Plan plan=MetadataActions.resolve(job,c,selection,timeout);JsonNode parent=selection.path("parent");
+        if(!parent.path("kind").asText().equals("materialized_views")||!c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))return plan;
+        String database=Objects.toString(c.getCatalog(),parent.path("database").asText()),control=MaterializedViewSchedules.postgresControlDatabase(job,c,database);
+        if(control.equals(database))return plan;
+        List<MaterializedViewSchedules.Command> cleanup;
+        try(var other=connections.openDatabase(id,control,job.remainingSeconds())){Connection target=other.connection();target.setReadOnly(true);target.setAutoCommit(false);try{cleanup=MaterializedViewSchedules.deleteCleanup(job,target,"postgresql",database,parent.path("schema").asText(),plan.name());}finally{target.rollback();}}
+        List<String> warnings=cleanup.isEmpty()?List.of():List.of("The managed pg_cron job is stored in "+control+". Its cleanup commits there before the materialized view is dropped from "+database+"; these steps cannot be atomic.");
+        return MetadataActions.withDeleteCleanup(plan,cleanup,warnings);
+    }
+    private static void executeActionStatement(Job job,Connection c,String sql)throws Exception {try(Statement st=c.createStatement()){job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.execute(sql);}finally{job.statement=null;}}
     private static final java.util.concurrent.locks.ReentrantLock[] DESIGNER_LOCKS=java.util.stream.IntStream.range(0,64).mapToObj(i->new java.util.concurrent.locks.ReentrantLock()).toArray(java.util.concurrent.locks.ReentrantLock[]::new);
+    private ObjectNode objectSnapshot(Job job,String id,Connection target,JsonNode request)throws Exception {
+        ObjectNode snapshot=ObjectDesigner.load(job,target,request,connections.genericOnly(id));
+        JsonNode schedule=snapshot.path("refreshSchedule");String control=schedule.path("controlDatabase").asText(),database=snapshot.path("database").asText();
+        if(snapshot.path("engine").asText().equals("postgresql")&&schedule.path("state").asText().equals("control_database")&&!control.isBlank()&&!control.equals(target.getCatalog())){
+            boolean eligible=schedule.path("capabilities").path("concurrentEligible").asBoolean();
+            try(var scheduler=connections.openDatabase(id,control,job.remainingSeconds())){
+                Connection other=scheduler.connection();other.setAutoCommit(false);other.setReadOnly(true);
+                try{MaterializedViewSchedules.populate(job,other,snapshot);((ObjectNode)snapshot.path("refreshSchedule").path("capabilities")).put("concurrentEligible",eligible);}
+                finally{other.rollback();}
+            }catch(Exception unavailable){
+                ((ObjectNode)snapshot.path("refreshSchedule")).put("editable",false).put("state","control_database_unavailable").put("message","The pg_cron control database "+control+" could not be inspected with this saved connection. Verify CONNECT permission and scheduler grants.");
+            }
+            ObjectDesigner.fingerprint(target,snapshot);
+        }
+        return snapshot;
+    }
     ObjectNode objectProperties(String owner,String id,JsonNode input,boolean prepare){
         if(owner.startsWith("agent:"))throw new SecurityException("Object editors are browser-only");
         JsonNode request=input.deepCopy();ObjectNode target=MetadataTree.request(input.path(input.path("creation").asBoolean()?"target":"parent"));
         return catalogRead(owner,id,target,(job,c)->{
-            ObjectNode snapshot=ObjectDesigner.load(job,c,request,connections.genericOnly(id));
+            ObjectNode snapshot=objectSnapshot(job,id,c,request);
             return prepare?ObjectDesigner.prepare(snapshot,request):snapshot;
         });
     }
@@ -321,7 +384,7 @@ final class QueryJobs implements AutoCloseable {
             ObjectNode snapshot=(ObjectNode)plan.path("snapshot");boolean creating=snapshot.path("creation").asBoolean(),atomic=plan.path("atomic").asBoolean();
             String lockKey=id+snapshot.path("database")+snapshot.path("target");
             var lock=DESIGNER_LOCKS[Math.floorMod(lockKey.hashCode(),DESIGNER_LOCKS.length)];
-            Connection c=null;Connections.DatabaseConnection external=null;boolean locked=false,committing=false,attempted=false;int completed=0;
+            Connection c=null;Connections.DatabaseConnection external=null;boolean locked=false,committing=false,attempted=false,objectCommitted=false;int completed=0;String activePhase="";
             ObjectNode report=Profiles.JSON.createObjectNode().put("status","failed").put("atomic",atomic);ArrayNode steps=report.putArray("steps");job.result=report;
             try{
                 if(!lock.tryLock(config.timeoutSeconds(),TimeUnit.SECONDS))throw new IllegalArgumentException("Another object operation is active");locked=true;
@@ -337,20 +400,28 @@ final class QueryJobs implements AutoCloseable {
                 }finally{job.statement=null;}
                 ObjectNode request=creating?Profiles.JSON.createObjectNode().put("creation",true):(ObjectNode)snapshot.path("selection").deepCopy();
                 if(creating)request.set("target",snapshot.path("target"));
-                ObjectNode current=ObjectDesigner.load(job,c,request,connections.genericOnly(id));
+                ObjectNode current=objectSnapshot(job,id,c,request);
                 if(!current.path("fingerprint").equals(snapshot.path("fingerprint"))||!current.path("connectionFingerprint").equals(snapshot.path("connectionFingerprint")))throw new IllegalArgumentException("Object or connection changed after review. Refresh and review again.");
                 Set<String> previousRoutines=new HashSet<>();
                 boolean nativeRoutine=snapshot.path("engine").asText().equals("postgresql")&&Set.of("functions","procedures").contains(snapshot.path("kind").asText());
                 if(nativeRoutine&&creating)for(JsonNode row:ObjectCatalog.query(job,c,"SELECT p.oid::text AS oid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname=? AND p.proname=?",snapshot.path("fields").path("schema").asText(),plan.path("draft").path("fields").path("name").asText()))previousRoutines.add(row.path("oid").asText());
                 for(JsonNode command:plan.path("commands")){
                     if(job.cancelled||!alive.test(owner))throw new CancellationException();
-                    job.progress="Applying object operation "+(completed+1)+" of "+plan.path("commands").size();attempted=true;
+                    String commandDatabase=command.path("database").asText(snapshot.path("database").asText());
+                    if(!commandDatabase.isBlank()&&!commandDatabase.equals(c.getCatalog())){
+                        if(atomic||!snapshot.path("engine").asText().equals("postgresql"))throw new SQLFeatureNotSupportedException("A reviewed scheduler command targets a different database, but this provider cannot switch databases safely");
+                        if(external!=null){external.close();external=null;}else connections.discard(id,c);c=null;
+                        external=connections.openDatabase(id,commandDatabase,job.remainingSeconds());c=external.connection();c.setReadOnly(false);c.setAutoCommit(true);
+                        try(var setup=c.createStatement()){job.statement=setup;setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET statement_timeout = "+config.timeoutSeconds()*1000);setup.execute("SET lock_timeout = 3000");}finally{job.statement=null;}
+                    }
+                    activePhase=command.path("phase").asText("object");job.progress="Applying "+activePhase+" operation "+(completed+1)+" of "+plan.path("commands").size();attempted=true;
                     try(var st=c.createStatement()){job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.execute(command.path("sql").asText());}finally{job.statement=null;}
-                    completed++;steps.addObject().put("index",completed).put("status",atomic?"executed_pending_commit":"committed");
+                    completed++;if(!atomic&&activePhase.equals("object"))objectCommitted=true;
+                    steps.addObject().put("index",completed).put("status",atomic?"executed_pending_commit":"committed").put("database",command.path("database").asText(snapshot.path("database").asText())).put("phase",activePhase).put("purpose",command.path("purpose").asText());
                 }
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
-                committing=true;if(atomic)c.commit();
-                report.put("status","success").put("outcome","commit_acknowledged").put("message","Object changes saved.");
+                committing=true;if(atomic){c.commit();objectCommitted=plan.path("commands").findValues("phase").stream().anyMatch(n->n.asText().equals("object"));}
+                report.put("status","success").put("outcome","commit_acknowledged").put("message","Object and refresh-schedule changes saved.").put("objectCommitted",objectCommitted);
                 report.set("fields",plan.path("draft").path("fields"));report.put("sqlMode",plan.path("sqlMode").asBoolean());
                 if(nativeRoutine){
                     // Resolve a newly created overload using its new catalog identity, not its display name.
@@ -372,7 +443,10 @@ final class QueryJobs implements AutoCloseable {
                 String outcome=committing?"unknown":atomic?"rolled_back":attempted?"partial_or_unknown":"not_applied";
                 if(c!=null&&atomic&&!committing)try{c.rollback();}catch(SQLException rollback){outcome="unknown";}
                 if(e instanceof SQLException sql&&sql.getSQLState()!=null&&sql.getSQLState().startsWith("08"))outcome="unknown";
-                report.put("outcome",outcome).put("message",connections.humanError(id,e));
+                report.put("outcome",outcome).put("failedPhase",activePhase).put("objectCommitted",objectCommitted);
+                report.set("fields",plan.path("draft").path("fields"));
+                if(objectCommitted&&activePhase.equals("scheduler"))report.put("message","The materialized view exists, but its requested refresh schedule was not applied: "+connections.humanError(id,e)).put("scheduleRetryAvailable",true);
+                else report.put("message",connections.humanError(id,e));
                 for(JsonNode step:steps)if(atomic)((ObjectNode)step).put("status",outcome);
             }finally{
                 job.statement=null;if(external!=null)try{external.close();}catch(Exception ignored){}else if(c!=null)try{connections.discard(id,c);c.close();}catch(Exception ignored){}

@@ -119,7 +119,7 @@ final class ObjectCatalog {
                 detail(out,"Columns",query(job,c,"SELECT attname AS name,format_type(atttypid,atttypmod) AS datatype,attnotnull AS not_null,COALESCE(col_description(attrelid,attnum),'') AS comment FROM pg_attribute WHERE attrelid=?::oid AND attnum>0 AND NOT attisdropped ORDER BY attnum",oid));
                 detail(out,"Indexes",query(job,c,"SELECT c.relname AS name,pg_get_indexdef(i.indexrelid) AS definition FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid WHERE i.indrelid=?::oid",oid));
                 detail(out,"Rules",query(job,c,"SELECT rulename,pg_get_ruledef(oid) AS definition FROM pg_rewrite WHERE ev_class=?::oid",oid));
-                if(k.equals("materialized_views")){MaterializedViewChanges.capture(job,c,out,oid);category(out,"Refresh");warning(out,"Refresh schedules belong to the database scheduler or extension. Manual Refresh does not edit them.");}
+                if(k.equals("materialized_views")){MaterializedViewChanges.capture(job,c,out,oid);category(out,"Refresh");}
             }
             case "functions","procedures"->{
                 JsonNode row=query(job,c,"SELECT pg_get_functiondef(p.oid) AS ddl,pg_get_function_arguments(p.oid) AS parameters,pg_get_function_identity_arguments(p.oid) AS identity,pg_get_function_result(p.oid) AS returns,l.lanname AS language,p.prosrc AS body,p.probin AS library,p.provolatile::text AS volatility,p.proparallel::text AS parallel,p.prosecdef AS security_definer,p.proisstrict AS strict,p.proleakproof AS leakproof,p.procost::text AS cost,p.prorows::text AS rows,p.proretset AS returns_set,p.proconfig::text AS configuration,p.prosqlbody IS NOT NULL AS sql_body FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang WHERE p.oid=?::oid",oid).path(0);
