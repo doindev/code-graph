@@ -8,8 +8,9 @@ import io.doindev.codegraph.model.Node;
 import io.doindev.codegraph.model.NodeKind;
 import io.doindev.codegraph.query.GraphQuery;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import io.doindev.codegraph.model.SymbolId;
+import io.doindev.codegraph.query.GenerationCursor;
 
 import static io.doindev.codegraph.tools.ToolSupport.JSON;
 
@@ -20,7 +21,10 @@ import static io.doindev.codegraph.tools.ToolSupport.JSON;
  */
 final class SearchSymbolsTool implements GraphTool {
 
-    private static final int SCAN_CAP = 10_000;
+    private final GenerationCursor cursors = new GenerationCursor();
+    private record Row(String id, String kind, String signature, Integer line) {
+        long estimatedBytes() { return 128L + 6L * (id.length() + kind.length() + signature.length()); }
+    }
 
     private final GraphQuery graph;
     private final CodeGraphConfig config;
@@ -34,13 +38,14 @@ final class SearchSymbolsTool implements GraphTool {
     public ToolSpec spec() {
         return new ToolSpec("search_symbols",
                 "Find symbols by name to obtain valid symbol IDs (required by every other tool). "
-                        + "Case-insensitive substring match over simple and qualified names.",
+                        + "Case-insensitive substring match over simple and qualified names. Optional cursors expire after five minutes; restart discovery when the index generation changes.",
                 """
                 { "type": "object",
                   "properties": {
                     "query": { "type": "string", "description": "Name or qualified-name substring, e.g. 'Service.validate'" },
                     "kind":  { "type": "string", "enum": ["function", "class", "file", "variable"] },
                     "lang":  { "type": "string", "description": "Language id, e.g. java, ts, js, py" },
+                    "cursor": { "type": "string", "maxLength": 16384, "description": "Opaque continuation from this exact query and project; does not retain a graph generation." },
                     "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
                   "required": ["query"] }
                 """);
@@ -68,23 +73,47 @@ final class SearchSymbolsTool implements GraphTool {
             return ToolResponse.fail("unknown kind: " + kind);
         }
 
-        List<Node> all = graph.findSymbols(query, kinds, lang, SCAN_CAP);
-        List<Node> page = all.size() > limit ? all.subList(0, limit) : all;
+        try { return graph.read(() -> page(args, query, kind, lang, kinds, limit)); }
+        catch (IllegalArgumentException invalid) { return ToolResponse.fail(invalid.getMessage()); }
+    }
 
+    private ToolResponse page(JsonNode args, String query, String kind, String lang, Set<NodeKind> kinds, int limit) {
+        long generation = graph.status().generation();
+        String scope = JSON.createArrayNode().add(query).add(kind).add(lang).toString();
+        var position = cursors.read(ToolSupport.stringArg(args, "cursor", ""), scope, generation);
+        Comparator<Row> order = Comparator.comparing(Row::id);
+        var best = new PriorityQueue<Row>(order.reversed());
+        long[] totals = {0, 0};
+        String needle = query.toLowerCase(Locale.ROOT);
+        graph.scanNodes(kinds, node -> {
+            if (Thread.currentThread().isInterrupted()) throw new IllegalArgumentException("Search cancelled; retry without cursor");
+            if (lang != null && !lang.equals(node.lang())) return;
+            if (!node.name().toLowerCase(Locale.ROOT).contains(needle)
+                    && !(node.id() instanceof SymbolId symbol && symbol.qualifiedName().toLowerCase(Locale.ROOT).contains(needle))) return;
+            totals[0]++;
+            String id = node.id().value();
+            if (id.compareTo(position.key()) <= 0 || best.size() == limit && id.compareTo(best.peek().id()) >= 0) return;
+            var row = new Row(id, node.kind().name().toLowerCase(Locale.ROOT), node.displaySignature(), node.span() == null ? null : node.span().startLine());
+            if (best.size() == limit) totals[1] -= best.remove().estimatedBytes();
+            best.add(row); totals[1] += row.estimatedBytes();
+            if (totals[1] > config.limits().maxResponseBytes()) throw new IllegalArgumentException("Search page exceeds memory/response bound; lower limit or narrow the query");
+        });
+        if (graph.status().generation() != generation) return ToolResponse.fail("stale_cursor: index changed during search; restart without cursor");
+        List<Row> page = best.stream().sorted(order).toList();
         ObjectNode out = JSON.createObjectNode();
         ArrayNode symbols = out.putArray("symbols");
-        for (Node node : page) {
+        for (Row node : page) {
             ObjectNode row = symbols.addObject();
-            row.put("id", node.id().value());
-            row.put("kind", node.kind().name().toLowerCase());
-            row.put("sig", node.displaySignature());
-            if (node.span() != null) {
-                row.put("line", node.span().startLine());
-            }
+            row.put("id", node.id());
+            row.put("kind", node.kind());
+            row.put("sig", node.signature());
+            if (node.line() != null) row.put("line", node.line());
         }
-        out.put("total", all.size());
-        out.put("truncated", all.size() > limit);
-        out.put("omitted", Math.max(0, all.size() - limit));
+        long seen = position.seen() + page.size(), omitted = Math.max(0, totals[0] - seen);
+        out.put("total", totals[0]).put("truncated", omitted > 0).put("omitted", omitted);
+        out.put("generation", generation).put("inventoryComplete", true);
+        if (omitted > 0 && !page.isEmpty()) out.put("nextCursor", cursors.issue(scope, generation,
+                new GenerationCursor.Position(page.getLast().id(), seen, position.expiresAt())));
         return ToolSupport.finish(out, config);
     }
 }

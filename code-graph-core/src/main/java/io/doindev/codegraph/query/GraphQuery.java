@@ -50,6 +50,11 @@ public interface GraphQuery {
      */
     List<Edge> edges(NodeId id, Direction direction, Set<EdgeKind> kinds);
 
+    /** Streaming adjacency for bounded navigation pages; visitors must not retain complete adjacency. */
+    default void scanEdges(NodeId id, Direction direction, Set<EdgeKind> kinds, java.util.function.Consumer<Edge> visitor) {
+        edges(id, direction, kinds).forEach(visitor);
+    }
+
     /**
      * Transitive closure by breadth-first traversal — the blast-radius primitive.
      * {@link Direction#IN} over CALLS/REFERENCES answers "who breaks if this changes".

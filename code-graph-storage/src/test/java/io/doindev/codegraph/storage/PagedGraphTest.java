@@ -40,6 +40,11 @@ class PagedGraphTest {
             assertEquals(memory.findSymbols("C.M1", null, "java", 10), first.findSymbols("C.M1", null, "java", 10));
             for (Direction direction : Direction.values()) {
                 assertEquals(memory.edges(node(0).id(), direction, Set.of(EdgeKind.CALLS)), first.edges(node(0).id(), direction, Set.of(EdgeKind.CALLS)));
+                var memoryScan=new ArrayList<Edge>(); var diskScan=new ArrayList<Edge>();
+                memory.scanEdges(node(0).id(),direction,Set.of(EdgeKind.CALLS),memoryScan::add);
+                first.scanEdges(node(0).id(),direction,Set.of(EdgeKind.CALLS),diskScan::add);
+                assertEquals(memoryScan,diskScan);
+                assertEquals(first.edges(node(0).id(),direction,Set.of(EdgeKind.CALLS)),diskScan);
                 assertEquals(memory.closure(node(0).id(), direction, null, 4, 25, .8f), first.closure(node(0).id(), direction, null, 4, 25, .8f));
             }
             assertThrows(IllegalStateException.class, () -> first.rebuild(b -> { b.node(node(999)); throw new IllegalStateException("injected write failure"); }));

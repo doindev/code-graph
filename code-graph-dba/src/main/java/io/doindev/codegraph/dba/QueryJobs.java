@@ -25,6 +25,11 @@ final class QueryJobs implements AutoCloseable {
         volatile boolean cancelled;
         volatile JsonNode result;
         volatile JsonNode exception;
+        // Retained workflow targets are server-only; never accepted from an agent's comparison payload.
+        volatile ObjectNode schemaScope,schemaRequest;
+        volatile ObjectNode planScope,planRequest;
+        // Guarded by QueryJobs: retained consumers keep the original reservation accounted.
+        private int retainedUses;
         volatile ObjectNode decision;
         volatile String outcome="";
         boolean designerPlanUsed;
@@ -32,7 +37,7 @@ final class QueryJobs implements AutoCloseable {
         private ScheduledFuture<?> activeDeadline;
         private long activeRemainingNanos,activeStartedNanos;
         Job(String owner,String connection){this.owner=owner;this.connection=connection;rowLimit=owner.startsWith("agent:")?Math.min(100,config.agentRows()):config.uiRows();byteLimit=owner.startsWith("agent:")?1<<20:4<<20;}
-        ObjectNode json(){long completed=finished;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("state",state).put("created",created).put("started",started).put("finished",completed).put("bytes",bytes).put("error",error).put("progress",progress);if(!outcome.isEmpty())n.put("outcome",outcome);if(result!=null)n.set("result",result);if(exception!=null)n.set("exception",exception);if(decision!=null)n.set("decision",decision.deepCopy());return n;}
+        ObjectNode json(){long completed=finished;String visibleState=completed==0&&Set.of("complete","failed","cancelled").contains(state)?"running":state;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("state",visibleState).put("created",created).put("started",started).put("finished",completed).put("bytes",bytes).put("error",error).put("progress",progress);if(!outcome.isEmpty())n.put("outcome",outcome);if(result!=null)n.set("result",result);if(exception!=null)n.set("exception",exception);if(decision!=null)n.set("decision",decision.deepCopy());return n;}
         synchronized void beginActiveBudget(int seconds){activeRemainingNanos=TimeUnit.SECONDS.toNanos(seconds);resumeActiveBudget();}
         synchronized void pauseActiveBudget(){if(activeStartedNanos==0)return;activeRemainingNanos=Math.max(0,activeRemainingNanos-(System.nanoTime()-activeStartedNanos));activeStartedNanos=0;if(activeDeadline!=null)activeDeadline.cancel(false);activeDeadline=null;}
         synchronized void resumeActiveBudget(){if(cancelled)return;if(activeRemainingNanos<=0){QueryJobs.this.cancel(this);return;}activeStartedNanos=System.nanoTime();activeDeadline=timer.schedule(()->QueryJobs.this.cancel(this),activeRemainingNanos,TimeUnit.NANOSECONDS);}
@@ -133,7 +138,7 @@ final class QueryJobs implements AutoCloseable {
         return local(owner,"",task,cleanup);
     }
     private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup){
-        reap();if(jobs.size()>=32||(jobs.size()+1)*JOB_RESERVATION>config.memoryBytes())throw new IllegalArgumentException("DBA allowance full; release completed jobs");
+        reap();if(jobs.size()>=32||(jobs.size()+1)*JOB_RESERVATION>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs");}
         Job job=new Job(owner,connection);jobs.put(job.id,job);
         try{workers.execute(()->{
             job.started=System.currentTimeMillis();job.state="running";job.thread=Thread.currentThread();
@@ -147,6 +152,8 @@ final class QueryJobs implements AutoCloseable {
     }
     /** Only ApprovalQueue calls this after an authenticated human consumes a stored request. */
     ObjectNode approved(String principal,JsonNode request,Runnable validate,Runnable completed){
+        if(request.has("migrationStatements"))return approvedMigration(principal,request,validate,completed);
+        if(request.has("planSql"))return approvedPlan(principal,request,validate,completed);
         String id=request.path("connectionId").asText();
         return local("agent:"+principal,id,job->{
             validate.run();boolean attempted=false,committing=false;Connection c=null;
@@ -188,6 +195,64 @@ final class QueryJobs implements AutoCloseable {
             }finally{job.statement=null;try{if(target!=null)target.close();}finally{/* Completion runs in the job wrapper, including pre-execution cancellation. */}}
         },completed);
     }
+
+    private ObjectNode approvedPlan(String principal,JsonNode request,Runnable validate,Runnable completed){
+        String id=request.path("connectionId").asText();ObjectNode scope=(ObjectNode)request.path("planScope"),targetRequest=(ObjectNode)request.path("planRequest");
+        String sql=request.path("planSql").asText();JsonNode values=request.path("parameters").deepCopy();
+        return local("agent:"+principal,id,job->{
+            validate.run();Connections.Target target=null;Connection c=null;
+            try{target=connections.target(id,scope.path("database").asText());c=target.connection();if(!c.getAutoCommit())c.rollback();c.setAutoCommit(false);c.setReadOnly(true);Connections.selectSchema(c,scope.path("schema").asText());
+                validate.run();job.planScope=scope.deepCopy();job.planRequest=targetRequest.deepCopy();
+                ObjectNode result=ExplainPlans.collect(job,c,sql,values,connections.driverLoader(id));if(request.path("planAnalyze").asBoolean())QueryPlanAnalysis.attach(result);else result.put("analysisIncluded",false);
+                c.rollback();return result;
+            }finally{job.statement=null;if(target!=null)target.close();}
+        },completed);
+    }
+
+    private ObjectNode approvedMigration(String principal,JsonNode request,Runnable validate,Runnable completed){
+        String id=request.path("connectionId").asText();JsonNode statements=request.path("migrationStatements"),checks=request.path("migrationChecks");
+        if(!statements.isArray()||statements.isEmpty()||statements.size()>32)throw new IllegalArgumentException("Migration plan has no bounded statement list");
+        ObjectNode scope=(ObjectNode)request.path("migrationScope");String expected=request.path("migrationSchemaFingerprint").asText();
+        return local("agent:"+principal,id,job->{
+            validate.run();Connections.Target target=null;Connection c=null;ArrayNode committed=Profiles.JSON.createArrayNode();boolean committing=false;
+            try{
+                target=connections.target(id,scope.path("database").asText());c=target.connection();if(!c.getAutoCommit())c.rollback();
+                boolean atomic=request.path("migrationTransactional").asBoolean()&&c.getMetaData().supportsTransactions();
+                boolean postgres=c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL");
+                c.setReadOnly(false);c.setAutoCommit(!atomic);
+                if(postgres)try(Statement setup=c.createStatement()){setup.execute("SET LOCAL statement_timeout = "+config.timeoutSeconds()*1000);setup.execute("SET LOCAL lock_timeout = 3000");setup.execute("SET LOCAL search_path = pg_catalog");}
+                else Connections.selectSchema(c,scope.path("schema").asText());
+                ObjectNode observed=SchemaSnapshots.capture(job,c,connections.profile(id),scope);
+                if(!expected.equals(observed.path("fingerprint").asText()))throw new IllegalArgumentException("Schema changed since migration preparation; capture and prepare a new plan");
+                if(postgres)Connections.selectSchema(c,scope.path("schema").asText());
+                validate.run();
+                for(int i=0;i<statements.size();i++){
+                    if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
+                    String sql=statements.get(i).asText();try(Statement statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.execute(sql);}
+                    committed.addObject().put("index",i+1).put("state",atomic?"executed_pending_commit":"committed_or_vendor_acknowledged");
+                }
+                ArrayNode validations=Profiles.JSON.createArrayNode();int remaining=Math.min(100,job.rowLimit);
+                if(checks.isArray())for(int i=0;i<checks.size();i++){
+                    if(job.cancelled||!alive.test(job.owner))throw new CancellationException();String sql=SqlReadGuard.validate(checks.get(i).asText());
+                    try(PreparedStatement statement=c.prepareStatement(sql)){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.setFetchSize(32);statement.setMaxRows(remaining+1);
+                        try(ResultSet result=statement.executeQuery()){ObjectNode data=rows(result,remaining,Math.max(8192,job.byteLimit/4));remaining=Math.max(0,remaining-data.path("rows").size());validations.addObject().put("index",i+1).put("sqlHash",CatalogScanner.hash(sql)).set("result",data);}}
+                }
+                ObjectNode post=SchemaSnapshots.capture(job,c,connections.profile(id),scope);
+                validate.run();committing=true;if(atomic)c.commit();job.outcome=atomic?"commit_acknowledged":"steps_acknowledged";
+                ObjectNode result=Profiles.JSON.createObjectNode().put("migrationPlanId",request.path("migrationPlanId").asText()).put("applied",true)
+                        .put("rehearsal",request.path("migrationRehearsal").asBoolean()).put("atomic",atomic).put("outcome",job.outcome)
+                        .put("preFingerprint",expected).put("postFingerprint",post.path("fingerprint").asText())
+                        .put("postconditionObserved",!expected.equals(post.path("fingerprint").asText()));result.set("steps",committed);result.set("validations",validations);
+                if(request.path("migrationRehearsal").asBoolean())result.put("evidence","Disposable-target setup, synthetic fixtures, migration SQL and checks completed; this is not a production guarantee.");
+                return result;
+            }catch(Exception failure){
+                boolean atomic=c!=null&&!safeAutoCommit(c);if(atomic&&!committing)try{c.rollback();job.outcome="rollback_requested";}catch(SQLException uncertain){job.outcome="unknown";}
+                else job.outcome=committing?"unknown":committed.isEmpty()?"not_started":"partial_or_unknown";
+                throw failure;
+            }finally{job.statement=null;if(target!=null)target.close();}
+        },completed);
+    }
+    private static boolean safeAutoCommit(Connection connection){try{return connection.getAutoCommit();}catch(SQLException ignored){return true;}}
 
     private static void verifyReusableReferences(Connection c,JsonNode request,Job job)throws SQLException{
         JsonNode scope=request.path("reusableScope");
@@ -276,6 +341,16 @@ final class QueryJobs implements AutoCloseable {
         return catalogRead(owner,id,Profiles.JSON.createObjectNode().put("database",database),(job,c)->ExplainPlans.collect(job,c,validated,values,connections.driverLoader(id)));
     }
     ObjectNode explain(String owner,String id,String sql,JsonNode parameters){return read(owner,id,validateSql(owner,sql),parameters,true);}
+    ObjectNode estimatedPlan(String owner,String id,ObjectNode scope,ObjectNode request,String sql,JsonNode parameters,boolean analyze){
+        String validated=validateSql(owner,sql);if(!parameters.isArray()||parameters.size()>128)throw new IllegalArgumentException("parameters must be an array of at most 128 values");
+        JsonNode values=parameters.deepCopy();
+        return catalogRead(owner,id,scope,(job,c)->{
+            job.planScope=scope.deepCopy();job.planRequest=request.deepCopy();
+            ObjectNode result=ExplainPlans.collect(job,c,validated,values,connections.driverLoader(id));
+            if(analyze)QueryPlanAnalysis.attach(result);else result.put("analysisIncluded",false);
+            result.put("authorizationTargetBound",true);return result;
+        });
+    }
     private ObjectNode read(String owner,String id,String validated,JsonNode parameters,boolean explain){
         if(!parameters.isArray()||parameters.size()>128)throw new IllegalArgumentException("parameters must be an array of at most 128 values");
         JsonNode values=parameters.deepCopy();
@@ -289,6 +364,29 @@ final class QueryJobs implements AutoCloseable {
         });
     }
     ObjectNode test(String owner,String id){return submit(owner,id,(job,c)->Profiles.JSON.createObjectNode().put("connected",true).put("database",c.getMetaData().getDatabaseProductName()).put("version",c.getMetaData().getDatabaseProductVersion()));}
+    ObjectNode captureSchema(String owner,WorkflowTargets.Target target,Runnable reauthorize){
+        return catalogRead(owner,target.scope().path("connectionId").asText(),target.scope(),(job,c)->{
+            reauthorize.run();job.schemaScope=target.scope().deepCopy();job.schemaRequest=target.request().deepCopy();
+            var result=SchemaSnapshots.capture(job,c,target.profile(),target.scope());reauthorize.run();
+            result.put("authorizationReason",target.authorization());return result;
+        });
+    }
+    ObjectNode validateMigration(String owner,WorkflowTargets.Target target,MigrationPlans.Plan plan,Runnable reauthorize){
+        return catalogRead(owner,target.scope().path("connectionId").asText(),target.scope(),(job,c)->{
+            reauthorize.run();ObjectNode observed=SchemaSnapshots.capture(job,c,target.profile(),target.scope());reauthorize.run();
+            boolean matches=plan.value.path("schemaFingerprint").asText().equals(observed.path("fingerprint").asText());
+            ObjectNode result=Profiles.JSON.createObjectNode().put("format","codegraph-migration-validation-v1").put("planId",plan.id)
+                    .put("valid",matches).put("state",matches?"validated":"stale").put("expectedFingerprint",plan.value.path("schemaFingerprint").asText())
+                    .put("observedFingerprint",observed.path("fingerprint").asText()).put("inventoryComplete",false).put("rehearsalPerformed",false);
+            result.set("target",ApprovalScope.display(target.scope()));
+            result.putArray("limitations").add("Validation rechecks the bounded schema observation and target revision; it does not execute migration SQL")
+                    .add("Rehearsal requires a separately authorized disposable target and is not implied by validation");
+            return result;
+        });
+    }
+    ObjectNode capabilities(String owner,String id,ObjectNode profile,ObjectNode scope,boolean approvalsEnabled,Runnable reauthorize){
+        return catalogRead(owner,id,scope,(job,c)->{reauthorize.run();return DatabaseCapabilities.observe(c,profile,scope,approvalsEnabled);});
+    }
     ObjectNode metadata(String owner,String id,String schema,String table){
         if((schema!=null&&schema.length()>128)||(table!=null&&table.length()>128))throw new IllegalArgumentException("Metadata identifier too long");
         return submit(owner,id,(job,c)->{
@@ -649,9 +747,21 @@ final class QueryJobs implements AutoCloseable {
         });
     }
     synchronized Job require(String owner,String id){Job job=jobs.get(id);if(job==null||!job.owner.equals(owner))throw new IllegalArgumentException("Unknown job");return job;}
+    /** Lease existing results without copying them or dropping their memory reservation. */
+    synchronized Runnable retainResults(String owner,Collection<String> ids){
+        List<Job> retained=new ArrayList<>();
+        for(String id:new LinkedHashSet<>(ids)){
+            Job job=require(owner,id);
+            if(job.finished==0||!job.state.equals("complete")||job.result==null)throw new IllegalArgumentException("Wait for completed, retained snapshot results");
+            retained.add(job);
+        }
+        retained.forEach(job->job.retainedUses++);
+        var released=new java.util.concurrent.atomic.AtomicBoolean();
+        return ()->{if(released.compareAndSet(false,true))synchronized(QueryJobs.this){retained.forEach(job->job.retainedUses--);}};
+    }
     synchronized ObjectNode status(String owner,String id){return require(owner,id).json();}
     void decision(String owner,String id,String decisionId,String action){if(!Set.of("cancel","continue","skip_similar").contains(action))throw new IllegalArgumentException("Unknown SQL error decision");require(owner,id).decide(decisionId,action);}
-    synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");jobs.remove(id);}
+    synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
     void cancel(Job job){synchronized(job){if(job.cancelled)return;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
     synchronized void cancelOwner(String owner){jobs.values().stream().filter(j->j.owner.equals(owner)).forEach(this::cancel);}
     synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->j.connection.equals(id)&&j.finished==0);}
@@ -666,7 +776,7 @@ final class QueryJobs implements AutoCloseable {
         connections.remove(id);
         return action.equals("reconnect")?test(owner,id):connectionState(id);
     }
-    synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&(!alive.test(j.owner)||now-j.finished>300_000));}
+    synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&j.retainedUses==0&&(!alive.test(j.owner)||now-j.finished>300_000));}
     synchronized void configure(DbaConfig next){int n=next.concurrency();if(n>workers.getMaximumPoolSize()){workers.setMaximumPoolSize(n);workers.setCorePoolSize(n);}else{workers.setCorePoolSize(n);workers.setMaximumPoolSize(n);}config=next;}
     synchronized ObjectNode telemetry(){return Profiles.JSON.createObjectNode().put("memoryBudget",config.memoryBytes()).put("reservedBytes",jobs.size()*JOB_RESERVATION).put("retainedResultBytes",jobs.values().stream().mapToLong(j->j.bytes).sum()).put("activeJobs",workers.getActiveCount()).put("queuedJobs",workers.getQueue().size()).put("retainedJobs",jobs.size()).put("concurrency",config.concurrency()).put("heapUsed",Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()).put("hardProcessLimit",false);}
     private static long safeSize(JsonNode value){try{return Profiles.JSON.writeValueAsBytes(value).length;}catch(Exception ignored){return 0;}}

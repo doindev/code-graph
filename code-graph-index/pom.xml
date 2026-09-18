@@ -10,6 +10,7 @@
   <description>Two-pass extraction pipeline: parallel parse on virtual threads, symbol table, confidence-laddered resolution, bulk graph load</description>
 
   <dependencies>
+    <dependency><groupId>com.github.jsqlparser</groupId><artifactId>jsqlparser</artifactId><version>5.3</version></dependency>
     <dependency>
       <groupId>io.doindev</groupId><artifactId>code-graph-storage</artifactId><version>${project.version}</version>
     </dependency>

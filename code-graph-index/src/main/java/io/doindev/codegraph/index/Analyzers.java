@@ -26,6 +26,7 @@ public final class Analyzers {
     public static Analyzers of(List<LanguageAnalyzer> analyzers) {
         Map<String, LanguageAnalyzer> byExtension = new HashMap<>();
         for (LanguageAnalyzer analyzer : analyzers) {
+            analyzer = io.doindev.codegraph.index.mapping.CodeDatabaseMappings.wrap(analyzer);
             for (String extension : analyzer.fileExtensions()) {
                 LanguageAnalyzer previous = byExtension.putIfAbsent(extension, analyzer);
                 if (previous != null) {
@@ -34,6 +35,9 @@ public final class Analyzers {
                 }
             }
         }
+        // Mapping-only formats participate in the same file lifecycle; never launch a second scanner.
+        for (String extension : List.of("xml", "prisma"))
+            byExtension.putIfAbsent(extension, io.doindev.codegraph.index.mapping.CodeDatabaseMappings.standalone(extension));
         return new Analyzers(byExtension);
     }
 

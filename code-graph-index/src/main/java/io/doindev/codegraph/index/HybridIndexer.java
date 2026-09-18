@@ -42,7 +42,7 @@ final class HybridIndexer {
                 builder.file(fragment.lang()); files[0]++;
                 for (Node node : fragment.declarations()) {
                     builder.node(node);
-                    if (node.id() instanceof SymbolId id) {
+                    if (node.id() instanceof SymbolId id && node.kind()!=NodeKind.DATABASE_MAPPING) {
                         byte[] encoded = RecordCodec.node(node);
                         String ordinal = PagedGraph.sequence(nodes[0]);
                         builder.auxiliary("simple/" + PagedGraph.encodeKey(node.name()) + "/" + ordinal, encoded);

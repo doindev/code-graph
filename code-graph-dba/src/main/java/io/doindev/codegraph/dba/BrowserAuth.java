@@ -9,12 +9,13 @@ import java.io.IOException;
 import java.util.*;
 
 /** Local browser sessions are automatic. This is origin protection, not local-user authentication. */
-final class BrowserAuth {
+final class BrowserAuth implements AutoCloseable {
     static final byte[] EMPTY_WORKSPACE="{\"version\":1,\"active\":null,\"lastSelected\":null,\"tabs\":[]}".getBytes(StandardCharsets.UTF_8);
     static final class Session {
         private final String id,csrf;
         private final long expires;
         private byte[] workspace=EMPTY_WORKSPACE.clone();
+        private long workspaceRevision;
         Session(String id,String csrf,long expires){this.id=id;this.csrf=csrf;this.expires=expires;}
         String id(){return id;}String csrf(){return csrf;}long expires(){return expires;}
     }
@@ -46,7 +47,10 @@ final class BrowserAuth {
     synchronized void logout(String id){Session removed=sessions.remove(id);if(removed!=null)Arrays.fill(removed.workspace,(byte)0);}
     synchronized boolean alive(String id){prune();return sessions.containsKey(id);}
     synchronized byte[] workspace(String id){Session s=sessions.get(id);if(s==null)throw new SecurityException("DBA session expired");return s.workspace.clone();}
-    synchronized void workspace(String id,byte[] state){Session s=sessions.get(id);if(s==null)throw new SecurityException("DBA session expired");Arrays.fill(s.workspace,(byte)0);s.workspace=state.clone();}
+    synchronized void workspace(String id,byte[] state){Session s=sessions.get(id);if(s==null)throw new SecurityException("DBA session expired");Arrays.fill(s.workspace,(byte)0);s.workspace=state.clone();s.workspaceRevision++;}
+    record WorkspaceState(byte[] state,long revision){}
+    synchronized WorkspaceState workspaceState(String id){Session s=sessions.get(id);if(s==null)throw new SecurityException("DBA session expired");return new WorkspaceState(s.workspace.clone(),s.workspaceRevision);}
+    synchronized long replaceWorkspace(String id,long expected,byte[] state){Session s=sessions.get(id);if(s==null)throw new SecurityException("DBA session expired");if(s.workspaceRevision!=expected)throw new IllegalArgumentException("Browser workspace changed; refresh document metadata before editing");Arrays.fill(s.workspace,(byte)0);s.workspace=state.clone();return ++s.workspaceRevision;}
     private void prune(){long now=System.currentTimeMillis();sessions.values().removeIf(s->{if(s.expires()>=now)return false;Arrays.fill(s.workspace,(byte)0);return true;});}
-    synchronized void close(){sessions.values().forEach(s->Arrays.fill(s.workspace,(byte)0));sessions.clear();}
+    @Override public synchronized void close(){sessions.values().forEach(s->Arrays.fill(s.workspace,(byte)0));sessions.clear();}
 }

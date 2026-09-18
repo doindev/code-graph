@@ -25,6 +25,8 @@ final class ProjectContexts implements AutoCloseable {
     private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("catalog-activity").factory());
     private final ExecutorService worker=Executors.newSingleThreadExecutor(Thread.ofPlatform().daemon().name("catalog-scan").factory());
     private volatile boolean closed;private boolean scanning;
+    private final io.doindev.codegraph.query.GenerationCursor catalogCursors = new io.doindev.codegraph.query.GenerationCursor();
+    private final Semaphore statusWaiters = new Semaphore(4);
     static final class Scope{
         final DocumentStore store;volatile ObjectNode metadata=Profiles.JSON.createObjectNode();
         volatile String state="never_scanned",error="";long nextScan,generation;volatile boolean cancelled;
@@ -42,6 +44,7 @@ final class ProjectContexts implements AutoCloseable {
     synchronized void attach(ProjectContextHost host){this.host=Objects.requireNonNull(host);}
     static String projectId(String root){return UUID.nameUUIDFromBytes(root.getBytes(StandardCharsets.UTF_8)).toString();}
     synchronized JsonNode projects(){return host.projects();}
+    synchronized JsonNode mappings(String project){for(JsonNode row:host.projects())if(row.path("id").asText().equals(project))return host.mappings(project);throw new IllegalArgumentException("Unknown or unloaded application project");}
     synchronized ObjectNode save(JsonNode request)throws Exception{
         String project=Profiles.text(request,"projectId",36),connection=Profiles.text(request,"connectionId",36);
         JsonNode selected=null;for(JsonNode p:host.projects())if(p.path("id").asText().equals(project))selected=p;
@@ -123,24 +126,53 @@ final class ProjectContexts implements AutoCloseable {
         String id=Profiles.text(args,"bindingId",36);ObjectNode b;
         try{b=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;b=authorized(principal,id,true);supplemental.accept(b);}
         final ObjectNode selectedBinding=b;if(!operation.equals("dba_scan_status"))touch(b.path("projectId").asText());
-        if(operation.equals("dba_scan_status")){for(JsonNode row:state().path("bindings"))if(row.path("id").asText().equals(id))return row;}
+        if(operation.equals("dba_refresh_catalog")){scanNow(id);return scanStatus(principal,id,args,supplemental);}
+        if(operation.equals("dba_scan_status"))return scanStatus(principal,id,args,supplemental);
         Scope scope;synchronized(this){scope=scopes.get(key(b));}if(scope==null||scope.generation==0)return Profiles.JSON.createObjectNode().put("state","scan_pending").put("message","Catalog scan will start while this project is active; retry after it completes");
         final Scope found=scope;return scope.store.read(()->{
             JsonNode snapshotMetadata=json(found.store.get("metadata"));ObjectNode out=Profiles.JSON.createObjectNode().put("generation",snapshotMetadata.path("generation").asLong()).put("scannedAt",snapshotMetadata.path("finishedAt").asLong()).put("state",found.state).put("stale",clock.getAsLong()>found.nextScan||found.state.equals("stale"));out.set("version",snapshotMetadata.path("version"));
             if(operation.equals("dba_search_objects")){
-                String query=args.path("query").asText("").toLowerCase(Locale.ROOT),kind=args.path("kind").asText("");int offset=number(args,"offset",0,0,50000),limit=number(args,"limit",30,1,100);int[] matched={0};ArrayNode objects=out.putArray("objects");
+                String query=args.path("query").asText("").toLowerCase(Locale.ROOT),kind=args.path("kind").asText("");
+                String cursorScope=Profiles.JSON.createArrayNode().add(principal).add(id).add(profileRevision(selectedBinding)).add(query).add(kind).add(args.path("searchDefinitions").asBoolean()).toString();
+                if(args.has("cursor")&&args.has("offset"))throw new IllegalArgumentException("Use cursor or legacy offset, not both");
+                var position=catalogCursors.read(args.path("cursor").asText(""),cursorScope,out.path("generation").asLong());
+                int offset=args.has("cursor")?Math.toIntExact(position.seen()):number(args,"offset",0,0,50000),limit=number(args,"limit",30,1,100);int[] matched={0};ArrayNode objects=out.putArray("objects");
                 found.store.scan("i/",(key,value)->{JsonNode row=json(value);boolean matches=(kind.isBlank()||kind.equals(row.path("kind").asText()))&&(row.path("name").asText().toLowerCase(Locale.ROOT).contains(query)||row.path("schema").asText().toLowerCase(Locale.ROOT).contains(query));if(!matches&&args.path("searchDefinitions").asBoolean()&&query.length()>=3&&(kind.isBlank()||kind.equals(row.path("kind").asText())))matches=json(found.store.get("o/"+row.path("id").asText())).path("ddl").asText().toLowerCase(Locale.ROOT).contains(query);if(matches){if(matched[0]++>=offset&&objects.size()<limit)objects.add(row);}});
-                out.put("total",matched[0]).put("nextOffset",offset+objects.size()).put("truncated",matched[0]>offset+objects.size());return out;
+                int next=offset+objects.size();out.put("total",matched[0]).put("nextOffset",next).put("truncated",matched[0]>next);
+                out.put("inventoryComplete",snapshotMetadata.path("inventoryComplete").asBoolean(false)).put("coverage",snapshotMetadata.path("coverage").asText("unknown"));
+                if(matched[0]>next)out.put("nextCursor",catalogCursors.issue(cursorScope,out.path("generation").asLong(),new io.doindev.codegraph.query.GenerationCursor.Position("",next,position.expiresAt())));
+                return out;
             }
             String objectId=Profiles.text(args,"objectId",64);JsonNode object=json(found.store.get("o/"+objectId));if(object==null)throw new IllegalArgumentException("Unknown object in this snapshot");
             if(operation.equals("dba_get_indexed_properties")){String section=args.path("section").asText("columns");if(!Set.of("columns","indexes","primaryKeys","foreignKeys","privileges").contains(section))throw new IllegalArgumentException("Unknown metadata section");int offset=number(args,"offset",0,0,10000),limit=number(args,"limit",50,1,100);JsonNode rows=object.path(section);ArrayNode values=out.putArray("properties");for(int i=offset;i<Math.min(rows.size(),offset+limit);i++)values.add(rows.get(i));out.put("section",section).put("nextOffset",offset+values.size()).put("truncated",offset+values.size()<rows.size());return out;}
             if(operation.equals("dba_get_indexed_ddl")){String ddl=object.path("ddl").asText();int offset=number(args,"offset",0,0,MAX_OFFSET),length=number(args,"length",32000,1,64000);if(offset>ddl.length())throw new IllegalArgumentException("DDL offset exceeds its length");int end=Math.min(ddl.length(),offset+length);out.set("object",json(found.store.get("i/"+objectId)));out.put("ddl",ddl.substring(offset,end)).put("nextOffset",end).put("truncated",end<ddl.length());return out;}
             if(operation.equals("dba_get_database_dependencies")){ArrayNode edges=out.putArray("dependencies");int offset=number(args,"offset",0,0,50000),limit=number(args,"limit",100,1,100);int[] total={0};found.store.scan("e/",(k,v)->{JsonNode e=json(v);if(e.path("schema").equals(object.path("schema"))&&e.path("name").equals(object.path("name"))||e.path("targetSchema").equals(object.path("schema"))&&e.path("target").equals(object.path("name"))){if(total[0]++>=offset&&edges.size()<limit)edges.add(e);}});out.put("truncated",total[0]>offset+edges.size()).put("nextOffset",offset+edges.size());return out;}
-            if(operation.equals("dba_find_code_references")){out.set("references",host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()));out.put("resolution","Textual SQL and mapping evidence; candidates require review. Runtime SQL may remain unresolved.");return out;}
+            if(operation.equals("dba_find_code_references")){out.set("references",host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()));out.put("resolution","Indexed static SQL and ORM evidence; candidates require review. Runtime SQL and naming strategies may remain unresolved.").put("inventoryComplete",false).put("truncated",out.path("references").size()>=100);return out;}
             throw new IllegalArgumentException("Unknown catalog operation");
         });
     }
     private static final int MAX_OFFSET=4<<20;
+    private JsonNode scanStatus(String principal,String id,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental){
+        int wait=number(args,"waitMillis",0,0,5000);
+        long after=args.path("afterGeneration").asLong(-1);
+        if(args.has("afterGeneration")&&(!args.path("afterGeneration").isIntegralNumber()||after<0))throw new IllegalArgumentException("afterGeneration must be a nonnegative integer");
+        if(wait>0&&after<0)throw new IllegalArgumentException("afterGeneration is required when waiting");
+        if(wait>0&&!statusWaiters.tryAcquire())throw new IllegalArgumentException("Catalog status wait capacity reached; poll without waiting");
+        long deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(wait);
+        try{
+            while(true){
+                ObjectNode current;try{current=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;current=authorized(principal,id,true);supplemental.accept(current);}
+                long generation;synchronized(this){Scope scope=scopes.get(key(current));generation=scope==null?0:scope.generation;}
+                boolean timeout=System.nanoTime()>=deadline;
+                if(wait==0||generation>after||timeout||closed){
+                    for(JsonNode row:state().path("bindings"))if(row.path("id").asText().equals(id))return ((ObjectNode)row).put("waitTimedOut",wait>0&&generation<=after&&timeout);
+                    throw new IllegalArgumentException("Binding removed while waiting");
+                }
+                try{Thread.sleep(Math.min(100,Math.max(1,TimeUnit.NANOSECONDS.toMillis(deadline-System.nanoTime()))));}
+                catch(InterruptedException cancelled){Thread.currentThread().interrupt();throw new java.util.concurrent.CancellationException("Catalog status wait cancelled");}
+            }
+        }finally{if(wait>0)statusWaiters.release();}
+    }
     static JsonNode json(byte[] bytes){if(bytes==null)return null;try{return Profiles.JSON.readTree(bytes);}catch(Exception e){throw new IllegalStateException("Invalid snapshot record",e);}}
     private synchronized void cleanupScopes(){Set<String> used=new HashSet<>(),live=onboarded();for(JsonNode b:configuration.path("bindings"))if(live.contains(b.path("projectId").asText()))try{used.add(key(b));}catch(IllegalArgumentException ignored){}var iterator=scopes.entrySet().iterator();while(iterator.hasNext()){var e=iterator.next();if(!used.contains(e.getKey())){e.getValue().cancelled=true;if(e.getValue().scanner!=null)e.getValue().scanner.cancel();if(!e.getValue().state.equals("scanning")){e.getValue().store.close();iterator.remove();}}}}
     static String bounded(JsonNode input,String field,int max){String value=input.path(field).asText("").strip();if(value.length()>max||value.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid "+field);return value;}

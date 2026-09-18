@@ -4,6 +4,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DbaToolSchemaTest {
+    @Test void connectionDraftsAndParametersAreFullyDescribed() throws Exception {
+        var mapper = new ObjectMapper();
+        var schemas = new HashMap<String,com.fasterxml.jackson.databind.JsonNode>();
+        for (var tool : DbaMcpTools.tools(null, () -> null)) schemas.put(tool.spec().name(), mapper.readTree(tool.spec().inputSchemaJson()));
+        var create = schemas.get("dba_request_connection_create").path("properties");
+        var profile = create.path("profile").path("properties");
+        assertTrue(profile.path("password").path("writeOnly").asBoolean());
+        assertTrue(profile.path("secretProperties").path("writeOnly").asBoolean());
+        assertEquals(64, profile.path("jars").path("maxItems").asInt());
+        assertEquals(16, profile.path("pool").path("properties").path("maximumPoolSize").path("maximum").asInt());
+        assertEquals(5, create.path("binding").path("properties").path("environment").path("enum").size());
+        assertTrue(create.path("driverInstall").path("properties").has("version"));
+        var params = schemas.get("dba_request_live_sql").path("properties").path("parameters");
+        assertEquals(128, params.path("maxItems").asInt());
+        assertEquals(4, params.path("items").path("anyOf").size());
+        assertFalse(profile.has("approved"));
+    }
     @Test void liveSqlAcceptsEitherBindingOrExactStandaloneConnection()throws Exception {
         var tool=DbaMcpTools.tools(null,()->null).stream().filter(t->t.spec().name().equals("dba_request_live_sql")).findFirst().orElseThrow();
         var schema=new ObjectMapper().readTree(tool.spec().inputSchemaJson());assertFalse(schema.path("required").toString().contains("bindingId"));

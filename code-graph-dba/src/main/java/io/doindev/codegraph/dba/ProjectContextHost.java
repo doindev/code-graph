@@ -9,6 +9,7 @@ public interface ProjectContextHost {
     DocumentStore documents();
     default AutoCloseable hold(String projectId){return ()->{};}
     default JsonNode references(String projectId,String schema,String object){return Profiles.JSON.createArrayNode();}
+    default JsonNode mappings(String projectId){return Profiles.JSON.createArrayNode();}
     static ProjectContextHost detached(){return new ProjectContextHost(){
         public JsonNode projects(){return Profiles.JSON.createArrayNode();}
         public DocumentStore documents(){return DocumentStore.memory(64L<<20);}

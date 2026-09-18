@@ -67,6 +67,27 @@ class ProjectContextsTest {
         assertThrows(IllegalArgumentException.class,()->contexts.save(contexts.binding(binding).put("schema","SECRET")));
         contexts.close();contexts=new ProjectContexts(profiles,connections,agents,clock::get,false);assertEquals(binding,contexts.binding(binding).path("id").asText());assertTrue(Files.readString(directory.resolve("project-contexts.json")).contains("PUBLIC"));
     }
+    @Test void catalogCursorRejectsChangedGenerationAndOtherFilters()throws Exception{
+        contexts.scanNow(binding);finishScan();
+        JsonNode first=contexts.agent(principal,"dba_search_objects",args().put("query","ITEM").put("limit",1));
+        String cursor=first.path("nextCursor").asText();assertFalse(cursor.isBlank());
+        JsonNode next=contexts.agent(principal,"dba_search_objects",args().put("query","ITEM").put("limit",1).put("cursor",cursor));
+        assertNotEquals(first.path("objects").get(0).path("id"),next.path("objects").get(0).path("id"));
+        assertThrows(IllegalArgumentException.class,()->contexts.agent(principal,"dba_search_objects",args().put("query","OTHER").put("cursor",cursor)));
+        assertThrows(IllegalArgumentException.class,()->contexts.agent(principal,"dba_search_objects",args().put("query","ITEM").put("offset",0).put("cursor",cursor)));
+        contexts.scanNow(binding);finishScan();
+        assertTrue(assertThrows(IllegalArgumentException.class,()->contexts.agent(principal,"dba_search_objects",args().put("query","ITEM").put("cursor",cursor))).getMessage().contains("stale_cursor"));
+    }
+    @Test void boundedStatusWaitDoesNotExtendActivityAndRefreshNeedsAuthorization()throws Exception{
+        contexts.scanNow(binding);finishScan();long generation=state().path("generation").asLong();
+        JsonNode waited=contexts.agent(principal,"dba_scan_status",args().put("afterGeneration",generation).put("waitMillis",30));
+        assertTrue(waited.path("waitTimedOut").asBoolean());
+        assertThrows(IllegalArgumentException.class,()->contexts.agent(principal,"dba_scan_status",args().put("waitMillis",1)));
+        assertThrows(SecurityException.class,()->contexts.agent("other","dba_refresh_catalog",args()));
+        contexts.agent(principal,"dba_refresh_catalog",args());finishScan();
+        JsonNode newer=contexts.agent(principal,"dba_scan_status",args().put("afterGeneration",generation).put("waitMillis",100));
+        assertFalse(newer.path("waitTimedOut").asBoolean());assertTrue(newer.path("generation").asLong()>generation);
+    }
     @Test void legacyEnvironmentsAndLabelsMigrateWithoutWideningPolicies()throws Exception{
         contexts.close();ObjectNode old=Profiles.JSON.createObjectNode().put("version",1);ObjectNode legacy=old.putArray("bindings").addObject().put("id",binding).put("projectId",project).put("projectName","sample").put("connectionId",connection).put("database","").put("schema","PUBLIC").put("environment","qa").put("label","primary").put("enabled",true).put("scanIntervalSeconds",10).put("idleTimeoutSeconds",20);Files.writeString(directory.resolve("project-contexts.json"),old.toString());
         contexts=new ProjectContexts(profiles,connections,agents,clock::get,false);ObjectNode migrated=contexts.binding(binding);assertEquals("test",migrated.path("environment").asText());assertTrue(migrated.path("role").asText().startsWith("primary-legacy-"));assertTrue(migrated.path("reviewRequired").asBoolean());assertFalse(migrated.path("legacyEnvironment").asBoolean());

@@ -1,6 +1,7 @@
 package io.doindev.codegraph.dba;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,5 +47,33 @@ class ReusableSqlApprovalTest extends StandaloneSqlApprovalTest {
             release.countDown();var done=await(proposed.path("id").asText());assertEquals("failed",done.path("state").asText(),done.toString());
             try(var c=connections.open(connection);var rows=c.getMetaData().getTables(c.getCatalog(),"PUBLIC","REVOKED_QA",null)){assertFalse(rows.next());}
         }finally{release.countDown();}
+    }
+
+    @Test void migrationPlansRequireFreshOneTimeReviewEvenWhenExactSqlPermissionMatches()throws Exception{
+        session("one");String sql="CREATE TABLE PUBLIC.MIGRATION_REVIEW_QA(ID INT)";
+        ObjectNode exactRequest=request(sql).put("autoCommit",true);
+        JsonNode granted=approvals.request(principal,"one",exactRequest);approvals.decide("human",granted.path("id").asText(),ReusableApprovals.EXACT,true);
+        assertEquals("complete",await(granted.path("id").asText()).path("state").asText());
+        try(var c=connections.open(connection);var statement=c.createStatement()){c.setAutoCommit(true);statement.execute("DROP TABLE PUBLIC.MIGRATION_REVIEW_QA");}
+
+        try(var plans=new MigrationPlans()){
+            approvals.migrations(plans);ObjectNode targetRequest=Profiles.JSON.createObjectNode().put("connectionId",connection).put("connectionName","Standalone test");
+            ObjectNode scope=ApprovalScope.resolve(profiles.get(connection),Profiles.JSON.createObjectNode(),targetRequest);
+            var target=new WorkflowTargets.Target(profiles.get(connection),scope,targetRequest,"Exact-review regression fixture");
+            QueryJobs.Job snapshot=job(jobs.captureSchema("agent:"+principal,target,()->{}));
+            ObjectNode preparation=Profiles.JSON.createObjectNode().put("snapshotId",snapshot.id).put("sql",sql);
+            MigrationPlans.Plan plan=plans.require("agent:"+principal,plans.prepare("agent:"+principal,snapshot,preparation,()->{}).path("id").asText());
+            ObjectNode apply=Profiles.JSON.createObjectNode().put("requestId",UUID.randomUUID().toString()).put("purpose","Verify migration review cannot reuse SQL grants");
+            JsonNode review=approvals.migration(principal,"one",apply,plan);
+            assertEquals("awaiting_approval",review.path("state").asText(),review.toString());assertFalse(review.has("matchedPolicy"));
+            assertFalse(review.path("approvalChoices").get(1).path("enabled").asBoolean());
+            assertThrows(IllegalArgumentException.class,()->approvals.decide("human",review.path("id").asText(),ReusableApprovals.EXACT,true));
+            approvals.decide("human",review.path("id").asText(),"approve_once",true);assertEquals("complete",await(review.path("id").asText()).path("state").asText());
+        }
+    }
+
+    private QueryJobs.Job job(JsonNode submitted)throws Exception{
+        QueryJobs.Job job=jobs.require("agent:"+principal,submitted.path("id").asText());long until=System.nanoTime()+10_000_000_000L;
+        while(job.finished==0&&System.nanoTime()<until)Thread.sleep(10);assertEquals("complete",job.state,job.json().toString());return job;
     }
 }

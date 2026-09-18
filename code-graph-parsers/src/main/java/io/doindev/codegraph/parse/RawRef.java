@@ -16,5 +16,9 @@ import io.doindev.codegraph.model.SourceSpan;
  * @param site         where the reference occurs
  */
 public record RawRef(NodeId from, RefKind kind, String name, String receiverHint, int arity,
-                     SourceSpan site) {
+                     SourceSpan site, String locationPrecision) {
+    public RawRef(NodeId from,RefKind kind,String name,String receiverHint,int arity,SourceSpan site){
+        this(from,kind,name,receiverHint,arity,site,kind==RefKind.CALL?"reference_expression":"containing_declaration");
+    }
+    public RawRef { if(locationPrecision==null)locationPrecision=kind==RefKind.CALL?"reference_expression":"containing_declaration"; }
 }

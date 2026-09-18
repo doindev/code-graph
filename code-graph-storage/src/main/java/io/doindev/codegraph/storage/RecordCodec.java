@@ -19,9 +19,9 @@ public final class RecordCodec {
         E(Edge e) { this(e.from().value(), e.to().value(), e.kind(), e.confidence(), e.attrs()); }
         Edge edge() { return new Edge(NodeId.parse(from), NodeId.parse(to), kind, confidence, attrs); }
     }
-    public record R(String from, RefKind kind, String name, String receiverHint, int arity, SourceSpan site) {
-        R(RawRef r) { this(r.from().value(), r.kind(), r.name(), r.receiverHint(), r.arity(), r.site()); }
-        RawRef ref() { return new RawRef(NodeId.parse(from), kind, name, receiverHint, arity, site); }
+    public record R(String from, RefKind kind, String name, String receiverHint, int arity, SourceSpan site, String locationPrecision) {
+        R(RawRef r) { this(r.from().value(), r.kind(), r.name(), r.receiverHint(), r.arity(), r.site(),r.locationPrecision()); }
+        RawRef ref() { return new RawRef(NodeId.parse(from), kind, name, receiverHint, arity, site,locationPrecision); }
     }
     public record F(String path, String lang, String hash, List<N> nodes, List<E> edges, List<R> refs, List<String> imports) {
         public F(FileFragment f) { this(f.file().relPath(), f.lang(), f.contentHash(), f.declarations().stream().map(N::new).toList(),

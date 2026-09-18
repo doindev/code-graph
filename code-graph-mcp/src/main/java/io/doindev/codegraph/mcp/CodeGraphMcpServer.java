@@ -79,14 +79,22 @@ public final class CodeGraphMcpServer implements AutoCloseable {
                 .name(tool.spec().name())
                 .description(tool.spec().description())
                 .inputSchema(JSON, tool.spec().inputSchemaJson())
+                .outputSchema(JSON, McpToolContracts.OUTPUT_SCHEMA)
+                .annotations(McpToolContracts.annotations(tool.spec().name()))
                 .build();
         return new McpServerFeatures.SyncToolSpecification(mcpTool, (exchange, request) -> {
             ToolResponse response = tool instanceof DbaMcpTools.AgentTool agent
                     ? agent.execute((String)exchange.transportContext().get(DbaMcpTools.PRINCIPAL), (String)exchange.transportContext().get(DbaMcpTools.SESSION), MAPPER.valueToTree(request.arguments()))
                     : execute(tool, request.arguments());
+            java.util.Map<String, Object> structured;
+            try { structured = McpToolContracts.structured(response, tool.spec().name()); }
+            catch (IllegalStateException invalidPayload) {
+                response = ToolResponse.fail("Tool returned an invalid JSON payload");
+                structured = McpToolContracts.structured(response, tool.spec().name());
+            }
             return new McpSchema.CallToolResult(
                     List.of((McpSchema.Content) new McpSchema.TextContent(response.json())),
-                    response.error(), null, null);
+                    response.error(), structured, null);
         });
     }
 

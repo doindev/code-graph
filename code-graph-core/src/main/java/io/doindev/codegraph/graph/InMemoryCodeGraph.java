@@ -136,6 +136,13 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
     // ---- read path (lock-free) ----
 
     @Override
+    public void scanNodes(Set<NodeKind> kinds, java.util.function.Consumer<Node> visitor) {
+        State snapshot = state;
+        for (Node node : snapshot.nodes().values())
+            if (kinds == null || kinds.isEmpty() || kinds.contains(node.kind())) visitor.accept(node);
+    }
+
+    @Override
     public Optional<Node> node(NodeId id) {
         return Optional.ofNullable(state.nodes().get(id));
     }
@@ -176,6 +183,18 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
             collect(s.in().get(id), kinds, result);
         }
         return List.copyOf(result);
+    }
+
+    @Override
+    public void scanEdges(NodeId id, Direction direction, Set<EdgeKind> kinds, java.util.function.Consumer<Edge> visitor) {
+        State snapshot = state;
+        for (Direction side : List.of(Direction.OUT, Direction.IN)) {
+            if (direction != Direction.BOTH && direction != side) continue;
+            Map<EdgeKind,List<Edge>> adjacency = (side == Direction.OUT ? snapshot.out() : snapshot.in()).get(id);
+            if (adjacency == null) continue;
+            for (EdgeKind kind : EdgeKind.values()) if (kinds == null || kinds.isEmpty() || kinds.contains(kind))
+                adjacency.getOrDefault(kind,List.of()).forEach(visitor);
+        }
     }
 
     @Override
@@ -239,7 +258,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
     @Override
     public IndexStatus status() {
         State s = state;
-        int symbols = (int) s.nodes().keySet().stream().filter(id -> id instanceof SymbolId).count();
+        int symbols = (int) s.nodes().values().stream().filter(node -> node.id() instanceof SymbolId && node.kind()!=NodeKind.DATABASE_MAPPING).count();
         String stateName = s.generation() == 0 ? "empty" : "ready";
         return new IndexStatus(stateName, s.generation(), s.ownedByFile().size(), symbols,
                 s.edgeCount(), dirtyPending, s.lastAppliedAt(), filesPerLang, ENGINE_VERSION);

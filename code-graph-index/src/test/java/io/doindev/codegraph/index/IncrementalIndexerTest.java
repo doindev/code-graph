@@ -58,6 +58,10 @@ class IncrementalIndexerTest {
     void modifyingACalleeKeepsCrossFileEdgesHealthy() throws IOException {
         SymbolId a = sym("src/A.java", "A.a", 0);
         assertEquals(1, graph.edges(a, Direction.IN, Set.of(EdgeKind.CALLS)).size());
+        var reference=graph.edges(a,Direction.IN,Set.of(EdgeKind.CALLS)).getFirst();
+        assertEquals("src/B.java",reference.attrs().get("referencePath"));
+        assertEquals("identifier_token",reference.attrs().get("referencePrecision"));
+        assertEquals("2",reference.attrs().get("referenceStartLine"));
 
         // add a new method to A — a() keeps its identity, edge must survive re-extraction
         write("src/A.java", """
@@ -128,5 +132,20 @@ class IncrementalIndexerTest {
         write("src/A.java", Files.readString(repo.resolve("src/A.java")));
         indexer.applyChanges(List.of("src/A.java"));
         assertEquals(generation, graph.generation(), "unchanged content must not bump the graph");
+    }
+    @Test
+    void overloadAmbiguityAndUnicodeReferencePositionsAreExplicit() throws IOException {
+        String line="  void call() { String emoji = \"🙂\"; pick(1); }";
+        write("Overloads.java","class Overloads {\n void pick(int x) {}\n void pick(String x) {}\n"+line+"\n}");
+        indexer.applyChanges(List.of("Overloads.java"));
+        var caller=graph.findSymbols("Overloads.call",null,"java",10).getFirst();
+        var refs=graph.edges(caller.id(),Direction.OUT,Set.of(EdgeKind.CALLS));
+        assertEquals(2,refs.size());
+        for(var edge:refs){
+            assertTrue(edge.confidence()<.5f);assertTrue(edge.attrs().get("resolution").endsWith("ambiguous"));
+            assertEquals("identifier_token",edge.attrs().get("referencePrecision"));
+            assertEquals(String.valueOf(line.indexOf("pick")+1),edge.attrs().get("referenceStartColumn"));
+            assertEquals(String.valueOf(line.indexOf("pick")+4),edge.attrs().get("referenceEndColumn"));
+        }
     }
 }

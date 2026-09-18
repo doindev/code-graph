@@ -25,8 +25,18 @@ final class CatalogScanner {
     private long bytes;private int objects,edges;
     private boolean inventoryComplete=true;
     private volatile Statement statement;
+    record Limits(int objects,long bytes,int rows,int ddlCharacters){
+        static final Limits DEFAULT=new Limits(MAX_OBJECTS,MAX_BYTES,10_000,MAX_DDL);
+    }
+    static final class CaptureLimit extends IllegalArgumentException {CaptureLimit(String reason){super(reason);}}
+    private final Limits limits;
+    private int capturedRows;
+    private final java.util.function.Consumer<Statement> execution;
     CatalogScanner(Connection c,JsonNode p,JsonNode b,DocumentStore.Writer w,BooleanSupplier cancel){
-        connection=c;profile=p;binding=b;writer=w;cancelled=cancel;deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MINUTES.toNanos(5);engine=engine(p);
+        this(c,p,b,w,cancel,Limits.DEFAULT,_ ->{});
+    }
+    CatalogScanner(Connection c,JsonNode p,JsonNode b,DocumentStore.Writer w,BooleanSupplier cancel,Limits limits,java.util.function.Consumer<Statement> execution){
+        connection=c;profile=p;binding=b;writer=w;cancelled=cancel;this.limits=limits;this.execution=execution;deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MINUTES.toNanos(5);engine=engine(p);
     }
     static String engine(JsonNode p){return switch(p.path("templateId").asText("custom")){
         case "azure-sql"->"sqlserver";case "cosmos-cassandra"->"cassandra";default->p.path("templateId").asText("custom");};}
@@ -91,7 +101,13 @@ final class CatalogScanner {
             switch(engine){
                 case "postgresql"->{if(kind.contains("view")){sql="SELECT pg_get_viewdef(c.oid,true) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=? AND c.relname=?";args=new Object[]{s,name};}}
                 case "oracle"->{sql="SELECT DBMS_METADATA.GET_DDL(?,?,?) FROM dual";args=new Object[]{kind.equals("materialized_view")?"MATERIALIZED_VIEW":kind.contains("view")?"VIEW":kind.toUpperCase(Locale.ROOT),name,s};}
-                case "mysql","mariadb","starrocks","clickhouse"->{sql="SHOW CREATE "+(kind.contains("view")?"VIEW":kind.equals("procedure")?"PROCEDURE":kind.equals("function")?"FUNCTION":"TABLE")+" "+target;column=2;}
+                case "mysql","mariadb","starrocks","clickhouse"->{
+                    // Indexes, constraints and other supplemental objects are not tables.
+                    if(Set.of("table","base_table","view","materialized_view","procedure","function").contains(kind)){
+                        sql="SHOW CREATE "+(kind.contains("view")?"VIEW":kind.equals("procedure")?"PROCEDURE":kind.equals("function")?"FUNCTION":"TABLE")+" "+target;
+                        column=kind.equals("procedure")||kind.equals("function")?3:2;
+                    }
+                }
                 case "snowflake"->{sql="SELECT GET_DDL(?,?)";args=new Object[]{kind.contains("view")?"VIEW":kind.toUpperCase(Locale.ROOT),target};}
                 case "sqlite"->{sql="SELECT sql FROM "+q(s.isBlank()?"main":s)+".sqlite_schema WHERE name=?";args=new Object[]{name};}
                 case "duckdb"->{sql="SELECT sql FROM "+(kind.contains("view")?"duckdb_views()":"duckdb_tables()")+" WHERE schema_name=? AND "+(kind.contains("view")?"view_name":"table_name")+"=?";args=new Object[]{s,name};}
@@ -100,7 +116,7 @@ final class CatalogScanner {
                 case "h2","hsqldb"->{if(kind.contains("view")){sql="SELECT VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";args=new Object[]{s,name};}}
                 default->{}
             }
-            if(sql!=null){final int col=column;query(sql,r->{String ddl=r.getString(col);if(ddl!=null&&!ddl.isBlank()){if(ddl.length()>MAX_DDL)throw new IllegalArgumentException("Definition exceeds 4 MiB; previous snapshot retained");o.put("ddl",ddl).put("definitionSource","native").put("definitionCoverage",engine.equals("postgresql")||engine.equals("h2")||engine.equals("hsqldb")?"body":"native");}},args);}
+            if(sql!=null){final int col=column;query(sql,r->{String ddl=definition(r,col);if(!ddl.isBlank()){o.put("ddl",ddl).put("definitionSource","native").put("definitionCoverage",engine.equals("postgresql")||engine.equals("h2")||engine.equals("hsqldb")?"body":"native");}},args);}
         });
     }
     private void nativeInventory()throws Exception{
@@ -126,7 +142,14 @@ final class CatalogScanner {
     }
     private void inventory(String label,String sql,String scope)throws Exception{
         String column=sql.substring(7,sql.indexOf(','));String scopedSql=sql+(sql.contains(" WHERE ")?" AND ":" WHERE ")+"LOWER("+column+") NOT IN ('information_schema','sys','system','mysql','performance_schema','syscat','sysibm','sysstat')"+(engine.equals("postgresql")?" AND "+column+" !~ '^pg_'":"")+(scope.isBlank()?"":" AND "+column+"=?");
-        optional(label,()->query(scopedSql,r->{String schema=Objects.toString(r.getString(1),"");if(systemSchema(schema)||!scope.isBlank()&&!scope.equals(schema))return;ObjectNode o=object(schema,Objects.toString(r.getString(2),""),Objects.toString(r.getString(3),"object"),Objects.toString(r.getString(4),""));String ddl=Objects.toString(r.getString(5),"");o.put("ddl",ddl).put("definitionSource","native").put("definitionCoverage",ddl.isBlank()?"unavailable":"native_fragment");emit(o);},scope.isBlank()?new Object[]{}:new Object[]{scope}));
+        optional(label,()->query(scopedSql,r->{String schema=Objects.toString(r.getString(1),"");if(systemSchema(schema)||!scope.isBlank()&&!scope.equals(schema))return;ObjectNode o=object(schema,Objects.toString(r.getString(2),""),Objects.toString(r.getString(3),"object"),Objects.toString(r.getString(4),""));String ddl=definition(r,5);o.put("ddl",ddl).put("definitionSource","native").put("definitionCoverage",ddl.isBlank()?"unavailable":"native_fragment");emit(o);},scope.isBlank()?new Object[]{}:new Object[]{scope}));
+    }
+    private String definition(ResultSet rows,int column)throws Exception{
+        try(var reader=rows.getCharacterStream(column)){
+            if(reader==null)return "";var text=new StringBuilder();char[] chunk=new char[4096];int count;
+            while((count=reader.read(chunk))!=-1){check();if(text.length()+count>limits.ddlCharacters())throw new CaptureLimit("Definition exceeds capture limit; narrow the scope");text.append(chunk,0,count);}
+            return text.toString();
+        }
     }
     static String stable(JsonNode node){if(node.isArray()){List<String> values=new ArrayList<>();node.forEach(v->values.add(stable(v)));Collections.sort(values);return values.toString();}if(node.isObject()){TreeMap<String,String> values=new TreeMap<>();node.fields().forEachRemaining(e->values.put(e.getKey(),stable(e.getValue())));return values.toString();}return node.toString();}
     private void supplementalInventory(DatabaseMetaData metadata)throws Exception{
@@ -145,12 +168,12 @@ final class CatalogScanner {
     }
     private void dependency(String schema,String name,String targetSchema,String target,String kind){ObjectNode e=Profiles.JSON.createObjectNode().put("schema",schema).put("name",name).put("targetSchema",targetSchema).put("target",target).put("kind",kind).put("confidence",1.0).put("source","catalog");store("e/"+String.format(Locale.ROOT,"%08d",edges++),e);}
     private void emit(ObjectNode object){
-        if(!seen.add(object.path("id").asText()))return;if(++objects>MAX_OBJECTS)throw new IllegalArgumentException("Catalog exceeds 50,000 objects; narrow the schema scope");
-        String ddl=object.path("ddl").asText();if(ddl.length()>MAX_DDL)throw new IllegalArgumentException("Definition exceeds 4 MiB; previous snapshot retained");
+        if(!seen.add(object.path("id").asText()))return;if(++objects>limits.objects())throw new CaptureLimit("Catalog object limit reached; narrow the schema scope");
+        String ddl=object.path("ddl").asText();if(ddl.length()>limits.ddlCharacters())throw new CaptureLimit("Definition exceeds capture limit; narrow the scope");
         object.put("objectHash",hash(stable(object))).put("definitionHash",hash(ddl)).put("observedAt",System.currentTimeMillis());String id=object.path("id").asText();
         store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);
     }
-    private void store(String key,JsonNode value){check();byte[] data=value.toString().getBytes(StandardCharsets.UTF_8);bytes+=data.length+key.length()*2L+128;if(bytes>MAX_BYTES)throw new IllegalArgumentException("Catalog exceeds 64 MiB; narrow its scope");writer.put(key,data);}
+    private void store(String key,JsonNode value){check();byte[] data=value.toString().getBytes(StandardCharsets.UTF_8);bytes+=data.length+key.length()*2L+128;if(bytes>limits.bytes())throw new CaptureLimit("Catalog byte limit reached; narrow its scope");writer.put(key,data);}
     private boolean inScope(String catalog,String schema){String db=binding.path("database").asText(),s=binding.path("schema").asText();return (db.isBlank()||catalog.isBlank()||db.equals(catalog))&&(s.isBlank()||s.equals(schema)||schema.isBlank()&&(s.equals(catalog)||engine.equals("sqlite")&&s.equals("main")));}
     static boolean systemSchema(String schema){String s=Objects.toString(schema,"").toLowerCase(Locale.ROOT);return s.startsWith("pg_")||Set.of("information_schema","sys","system","mysql","performance_schema","syscat","sysibm","sysstat").contains(s);}
     static String pattern(DatabaseMetaData m,String s)throws SQLException{if(s==null||s.isEmpty())return null;String escape=m.getSearchStringEscape();if(escape==null||escape.isEmpty())return s;return s.replace(escape,escape+escape).replace("%",escape+"%").replace("_",escape+"_");}
@@ -159,10 +182,10 @@ final class CatalogScanner {
     private static String empty(String s){return s==null||s.isBlank()?null:s;}
     private static String text(ResultSet r,String column){try{return Objects.toString(r.getString(column),"");}catch(SQLException e){return "";}}
     private void check(){if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted()||System.nanoTime()>deadline)throw new CancellationException("Catalog scan cancelled or exceeded five minutes");}
-    private void bounded(ArrayNode rows){if(rows.size()>=10_000)throw new IllegalArgumentException("Object metadata exceeds 10,000 rows; previous snapshot retained");}
+    private void bounded(ArrayNode rows){if(rows.size()>=limits.rows()||limits!=Limits.DEFAULT&&capturedRows++>=limits.rows())throw new CaptureLimit("Metadata row limit reached; narrow its scope");}
     interface Rows{void accept(ResultSet r)throws Exception;}
     interface Checked{void run()throws Exception;}
-    private void query(String sql,Rows consume,Object...args)throws Exception{check();try(PreparedStatement s=connection.prepareStatement(sql)){statement=s;try{s.setQueryTimeout(30);}catch(SQLFeatureNotSupportedException ignored){}try{s.setFetchSize(128);}catch(SQLFeatureNotSupportedException ignored){}for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(ResultSet r=s.executeQuery()){while(r.next()){check();consume.accept(r);}}}finally{statement=null;}}
+    private void query(String sql,Rows consume,Object...args)throws Exception{check();try(PreparedStatement s=connection.prepareStatement(sql)){statement=s;execution.accept(s);try{s.setQueryTimeout(30);}catch(SQLFeatureNotSupportedException ignored){}try{s.setFetchSize(128);}catch(SQLFeatureNotSupportedException ignored){}for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(ResultSet r=s.executeQuery()){while(r.next()){check();consume.accept(r);}}}finally{statement=null;execution.accept(null);}}
     private void optional(String label,Checked work)throws Exception{Savepoint point=null;try{if(!connection.getAutoCommit()&&connection.getMetaData().supportsSavepoints())point=connection.setSavepoint();work.run();}catch(SQLException|UnsupportedOperationException failure){if(point!=null)connection.rollback(point);inventoryComplete=false;warn(label+" is unavailable with this provider or database account");}finally{if(point!=null)try{connection.releaseSavepoint(point);}catch(SQLException ignored){}}}
     private void warn(String warning){if(warnings.size()<100)warnings.add(warning);}
 }

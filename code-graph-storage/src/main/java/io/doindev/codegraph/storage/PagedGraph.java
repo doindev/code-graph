@@ -79,7 +79,7 @@ public final class PagedGraph implements ManagedGraph {
             checkOpen();
             byte[] previous = generation.map.get(nodeKey(node.id()));
             generation.put(nodeKey(node.id()), RecordCodec.node(node));
-            if (previous == null && node.id() instanceof SymbolId) generation.symbols++;
+            if (previous == null && node.id() instanceof SymbolId && node.kind()!=NodeKind.DATABASE_MAPPING) generation.symbols++;
         }
         public void edge(Edge edge) {
             checkOpen();
@@ -196,6 +196,21 @@ public final class PagedGraph implements ManagedGraph {
             if (direction != Direction.IN) collect(id, true, kinds, result);
             if (direction != Direction.OUT) collect(id, false, kinds, result);
             return List.copyOf(result);
+        });
+    }
+    @Override public void scanEdges(NodeId id, Direction direction, Set<EdgeKind> kinds, Consumer<Edge> visitor) {
+        read(() -> {
+            if (active != null) owner.scan(() -> {
+                for (boolean out : new boolean[]{true,false}) {
+                    if (out && direction == Direction.IN || !out && direction == Direction.OUT) continue;
+                    for (EdgeKind kind : EdgeKind.values()) {
+                        if (kinds != null && !kinds.isEmpty() && !kinds.contains(kind)) continue;
+                        String prefix = edgePrefix(id,out) + String.format(Locale.ROOT,"%02d/",kind.ordinal());
+                        active.scan(prefix,(key,value)->visitor.accept(RecordCodec.edge(value)));
+                    }
+                }
+            });
+            return null;
         });
     }
     private void collect(NodeId id, boolean out, Set<EdgeKind> kinds, List<Edge> result) {

@@ -258,8 +258,10 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
         private void visitCall(TSNode call, Scope scope) {
             CallSite site = callOf(call, src);
             if (site != null && site.name() != null && !site.name().isBlank()) {
+                TSNode token=referenceToken(call,site.name(),src,0);
                 rawRefs.add(new RawRef(scope.owner(), RefKind.CALL, site.name(),
-                        site.receiverHint(), site.arity(), src.span(call)));
+                        site.receiverHint(), site.arity(), src.span(token==null?call:token),
+                        token==null?"reference_expression":"identifier_token"));
             }
         }
 
@@ -280,6 +282,16 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
             }
             return collided;
         }
+    }
+
+    /** Select a syntactic call name only when its text equals the extracted reference name. */
+    private static TSNode referenceToken(TSNode node,String name,Src src,int depth){
+        if(node==null||node.isNull()||depth>4)return null;
+        if(Set.of("identifier","type_identifier","property_identifier","field_identifier").contains(node.getType())&&src.text(node).equals(name))return node;
+        for(String field:List.of("name","function","property","attribute","field","type")){
+            TSNode match=referenceToken(node.getChildByFieldName(field),name,src,depth+1);if(match!=null)return match;
+        }
+        return null;
     }
 
     /** One-line display signature; default {@code name(paramText)} truncated. */

@@ -56,13 +56,24 @@ large text codebases into a queryable **code property graph** so AI agents can a
 - **MCP tools** (stdio or loopback-only streamable HTTP for local agents): `search_symbols`,
   `get_symbol`, `get_impact_radius`, `get_call_graph`, `get_blast_score`, `find_dead_code`,
   `find_code_smells`, `compare_architectural_drift`, `index_status`, `reindex`,
-  `list_projects`, `add_project`, `remove_project`.
+  `list_projects`, `get_workspace_context`, `add_project`, `remove_project`.
+  Tools publish backward-compatible text plus structured results. Symbol/catalog
+  pagination uses expiring generation-bound cursors. DBA adds template discovery,
+  exact-target capability observations and authorized catalog refresh/waits.
+  See the [MCP tool reference](docs/guides/mcp-server.md), the
+  [workflow acceptance report](docs/mcp-workflow-acceptance.md), and the
+  [42-template capability manifest](docs/workflow-capabilities.json).
 - **Headless CI mode**: scan a PR, compute the blast radius of the diff, post a markdown risk
   report to GitHub/GitLab, and gate merges via exit codes.
 - **Local-first**: all parsing and graph traversal stays inside your perimeter; tools return
   minimized metadata (signatures, IDs, counts) — never file contents.
 
 ## Modules
+
+The maintained [agent skill](skills/code-graph/SKILL.md) supports Codex, GitHub
+Copilot, Claude Code and Windsurf. Explicit installation instructions are in the
+[MCP guide](docs/guides/mcp-server.md#agent-skill-for-copilot-claude-code-codex-and-windsurf);
+installation never configures MCP access or overwrites customized skills.
 
 | Module | Purpose |
 |---|---|

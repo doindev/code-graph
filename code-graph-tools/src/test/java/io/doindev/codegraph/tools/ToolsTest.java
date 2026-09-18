@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class ToolsTest {
 
@@ -81,6 +82,24 @@ class ToolsTest {
         assertEquals(3, out.get("total").asInt());
         assertTrue(out.get("truncated").asBoolean());
         assertEquals(2, out.get("omitted").asInt());
+    }
+
+    @Test
+    void searchPagesWithoutDuplicatesAndRejectsChangedQueriesOrGenerations() throws Exception {
+        JsonNode first = call("search_symbols", "{\"query\":\"acme\",\"limit\":1}");
+        var args = JSON.createObjectNode().put("query", "acme").put("limit", 1).put("cursor", first.path("nextCursor").asText());
+        JsonNode second = JSON.readTree(tool("search_symbols").call(args).json());
+        assertNotEquals(first.path("symbols").get(0).path("id"), second.path("symbols").get(0).path("id"));
+        assertEquals(first.path("generation"), second.path("generation"));
+        args.put("cursor", second.path("nextCursor").asText());
+        JsonNode third = JSON.readTree(tool("search_symbols").call(args).json());
+        assertFalse(third.path("truncated").asBoolean());
+        assertFalse(third.has("nextCursor"));
+        args.put("query", "different");
+        assertTrue(tool("search_symbols").call(args).error());
+        args.put("query", "acme");
+        graph.apply(new GraphDelta(99, List.of(), List.of(), List.of(), List.of()));
+        assertTrue(tool("search_symbols").call(args).json().contains("stale_cursor"));
     }
 
     @Test

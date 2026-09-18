@@ -65,6 +65,7 @@ public final class WorkspaceTools implements AutoCloseable {
                     defaultName, template.spec(), lifecycle));
         }
         built.add(new ListProjectsTool(graphs, defaultName, lifecycle));
+        built.add(new WorkspaceContextTool(graphs));
         built.add(new RemoveProjectTool(this));
         this.tools = List.copyOf(built);
     }

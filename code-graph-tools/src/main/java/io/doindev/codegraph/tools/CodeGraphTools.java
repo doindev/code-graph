@@ -61,6 +61,12 @@ public final class CodeGraphTools {
                 new FindCodeSmellsTool(graph, effective, repoRoot),
                 new CompareDriftTool(graph, effective),
                 new IndexStatusTool(graph),
-                new ReindexTool(reindexer));
+                new ReindexTool(reindexer),
+                new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.OUTLINE),
+                new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.POSITION),
+                new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.REFERENCES),
+                new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.IMPLEMENTATIONS),
+                new ChangeAnalysisTool(graph,effective,repoRoot,false),
+                new ChangeAnalysisTool(graph,effective,repoRoot,true));
     }
 }

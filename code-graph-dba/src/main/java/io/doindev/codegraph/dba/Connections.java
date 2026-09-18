@@ -18,6 +18,7 @@ final class Connections implements AutoCloseable {
     private final Profiles profiles;
     private final Map<String,Pool> pools=new HashMap<>();
     Connections(Profiles profiles){this.profiles=profiles;}
+    ObjectNode profile(String id){return profiles.get(id);}
     boolean genericOnly(String id){return !Set.of("custom","postgresql","mysql","mariadb","sqlserver","oracle","db2","snowflake","h2","hsqldb","sqlite","duckdb").contains(profiles.get(id).path("templateId").asText("custom"));}
     synchronized Connection open(String id) throws SQLException {
         Pool p=pools.get(id);

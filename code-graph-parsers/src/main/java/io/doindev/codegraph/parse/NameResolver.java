@@ -47,11 +47,9 @@ public final class NameResolver {
         for (String imported : fragment.imports()) {
             if (imported.equals(ref.name()) || imported.endsWith("." + ref.name())
                     || imported.endsWith("::" + ref.name()) || imported.endsWith("/" + ref.name())) {
-                for (SymbolTable.Entry entry : table.byQualifiedName(normalizeImport(imported))) {
-                    if (kindCompatible(ref, entry)) {
-                        return List.of(edge(ref, entry, 1.0f, "import"));
-                    }
-                }
+                var importedCandidates=table.byQualifiedName(normalizeImport(imported)).stream()
+                        .filter(e->kindCompatible(ref,e)&&arityCompatible(ref,e)).toList();
+                if(!importedCandidates.isEmpty())return candidates(ref,importedCandidates,1.0f,"import");
             }
         }
 
@@ -69,12 +67,12 @@ public final class NameResolver {
         List<SymbolTable.Entry> sameFile = candidates.stream()
                 .filter(e -> e.id().relPath().equals(relPath)).toList();
         if (!sameFile.isEmpty()) {
-            return List.of(edge(ref, best(sameFile), 0.95f, "same-file"));
+            return candidates(ref,sameFile,0.95f,"same-file");
         }
         List<SymbolTable.Entry> sameDir = candidates.stream()
                 .filter(e -> dirOf(e.id().relPath()).equals(dir)).toList();
         if (!sameDir.isEmpty()) {
-            return List.of(edge(ref, best(sameDir), 0.9f, "same-dir"));
+            return candidates(ref,sameDir,0.9f,"same-dir");
         }
 
         // rung 3: globally unique within the language
@@ -110,8 +108,10 @@ public final class NameResolver {
         return entry.arity() == ref.arity();
     }
 
-    private static SymbolTable.Entry best(List<SymbolTable.Entry> entries) {
-        return entries.get(0);
+    private static List<Edge> candidates(RawRef ref,List<SymbolTable.Entry> entries,float uniqueConfidence,String scope) {
+        if(entries.size()==1)return List.of(edge(ref,entries.getFirst(),uniqueConfidence,scope));
+        var top=entries.stream().limit(MAX_CANDIDATES).toList();
+        return top.stream().map(entry->edge(ref,entry,0.5f/top.size(),scope+"-ambiguous")).toList();
     }
 
     private static String dirOf(String relPath) {
@@ -125,9 +125,21 @@ public final class NameResolver {
 
     private static Edge edge(RawRef ref, SymbolTable.Entry target, float confidence, String resolution) {
         SymbolId from = ref.from() instanceof SymbolId s ? s : null;
+        var attrs = new java.util.HashMap<String,String>();
+        attrs.put("resolution", resolution);
+        if (ref.site() != null) {
+            var site = ref.site();
+            attrs.put("site", String.valueOf(site.startLine())); // compatibility with existing consumers
+            attrs.put("referencePath", site.relPath());
+            attrs.put("referenceStartLine", String.valueOf(site.startLine()));
+            attrs.put("referenceStartColumn", String.valueOf(site.startCol()));
+            attrs.put("referenceEndLine", String.valueOf(site.endLine()));
+            attrs.put("referenceEndColumn", String.valueOf(site.endCol()));
+            // Calls carry the parsed expression; inheritance currently carries its declaration.
+            // Do not describe either as a resolved identifier token.
+            attrs.put("referencePrecision", ref.locationPrecision());
+        }
         return new Edge(from != null ? from : ref.from(), target.id(), ref.kind().edgeKind(),
-                confidence, Map.of(
-                        "resolution", resolution,
-                        "site", String.valueOf(ref.site().startLine())));
+                confidence, attrs);
     }
 }

@@ -50,6 +50,16 @@ class WorkspaceToolsTest {
         return tools.stream().filter(t -> t.spec().name().equals(name)).findFirst().orElseThrow();
     }
 
+    @Test void workspaceContextPagesProjectSummariesWithoutDatabaseData()throws Exception{
+        var args=JSON.createObjectNode().put("limit",1);
+        var first=JSON.readTree(tool("get_workspace_context").call(args).json());
+        assertFalse(first.path("dbaEnabled").asBoolean());assertEquals(1,first.path("entries").size());
+        args.put("cursor",first.path("nextCursor").asText());
+        var second=JSON.readTree(tool("get_workspace_context").call(args).json());
+        assertEquals("beta",second.path("entries").get(0).path("name").asText());
+        assertFalse(second.path("truncated").asBoolean());
+    }
+
     @Test
     void mcpActivityRenewsOnlyResolvedProjectAndListsDoNot() throws Exception {
         var time = new java.util.concurrent.atomic.AtomicLong();

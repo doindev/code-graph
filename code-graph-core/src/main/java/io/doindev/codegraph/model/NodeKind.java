@@ -7,5 +7,7 @@ public enum NodeKind {
     FILE,
     TYPE,
     FUNCTION,
-    VARIABLE
+    VARIABLE,
+    /** Static source-code database evidence, never live catalog data or credentials. */
+    DATABASE_MAPPING
 }

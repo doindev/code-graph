@@ -1,9 +1,32 @@
 ---
 name: code-graph
-description: Prefer an available code-graph MCP server to find source filenames, paths, and symbol line locations before broad shell searches. Use for code navigation, callers and dependencies, debugging, refactoring, and change-impact review. Read the located source directly when contents are needed; use text search for questions the index cannot answer.
+description: Use an available code-graph MCP server for indexed code navigation, impact analysis, and authorized database development workflows. Locate source before broad shell searches, select exact environments and database targets, and handle approvals and bounded jobs. Fall back to local tools for file contents, editing, builds, and unsupported operations.
 ---
 
-# Code-graph-first code exploration
+# Code-graph code and database workflows
+
+Discover the actual connected server's schemas first. This skill supports servers
+at different implementation milestones: a tool named in a reference is usable
+only when advertised by this server, and only within its reported capabilities.
+The skill is guidance, never permission to mutate code, databases or configuration.
+
+Read only the reference relevant to the task:
+
+- [Code navigation and impact evidence](references/code-navigation.md) for precise
+  locations, confidence, mapping limitations and current-index change analysis.
+- [Environment selection and capabilities](references/database-targets.md) for
+  connection discovery, project bindings and standalone databases.
+- [Schema comparison and migrations](references/migrations.md) when comparing
+  schemas, preparing artifacts or rehearsing a reviewed change.
+- [Approvals and jobs](references/approvals-and-jobs.md) before a database
+  operation, including cancellation and uncertain outcomes.
+- [Editor handoff and verification](references/editor-and-verification.md) for
+  paired browser drafts and post-change checks.
+
+Use `get_workspace_context` when advertised for inexpensive workspace discovery.
+It does not connect all profiles or renew activity. A cloud-hosted agent cannot
+reach a developer machine's loopback server merely by installing this skill;
+do not broaden server network exposure as a workaround.
 
 Use the connected code-graph MCP server to locate code and answer structural
 questions before running broad shell searches. The preferred workflow is:
@@ -83,6 +106,19 @@ natural-language search. Start with a distinctive name and a small `limit`, such
 as 10. Narrow by kind, language, or qualified name when results are ambiguous or
 truncated. Use returned IDs verbatim; do not fabricate them. Re-search after a
 rename or when an ID becomes unknown.
+
+When advertised, use `get_file_outline`, `resolve_symbol_at_position`,
+`find_references` and `find_implementations` for precise navigation. Distinguish
+exact occurrence spans from containing-symbol locations; unresolved references
+are not proof of non-use. Use `analyze_change`/`find_affected_tests` only when
+available, with explicit targets and evidence; never equate a working-tree graph
+with a historical Git revision. ORM mapping coverage is adapter-specific.
+
+For paged discovery, repeat the exact target and query with `nextCursor`. Restart
+without a cursor when it expires or the generation changes; do not combine pages
+from different generations. `structuredContent.data` is the legacy JSON payload;
+metadata describes the invocation and known evidence, not automatic authorization
+or asynchronous completion. Small pages keep shared-server memory bounded.
 
 For example, to investigate callers of `validateToken` in an already identified
 project named `acme`:

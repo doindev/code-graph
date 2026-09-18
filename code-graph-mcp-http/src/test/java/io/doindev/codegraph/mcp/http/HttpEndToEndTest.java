@@ -164,7 +164,7 @@ class HttpEndToEndTest {
                     HttpResponse.BodyHandlers.ofString());
 
             JsonNode catalog = rpc(client, endpoint, session, "tools/list", Map.of()).get("tools");
-            assertEquals(13, catalog.size());
+            assertEquals(20, catalog.size());
             assertTrue(catalog.toString().contains("add_project"));
             JsonNode added = callTool(client, endpoint, session, "add_project",
                     Map.of("path", parent.toString()));

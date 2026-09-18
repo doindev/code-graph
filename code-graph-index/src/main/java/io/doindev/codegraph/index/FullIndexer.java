@@ -83,7 +83,7 @@ public final class FullIndexer {
 
         graph.apply(new GraphDelta(graph.generation() + 1, List.of(), nodes, edges, List.of()));
         graph.filesPerLang(filesPerLang);
-        int symbols = (int) nodes.stream().filter(n -> n.kind() != NodeKind.FILE).count();
+        int symbols = (int) nodes.stream().filter(n -> n.kind() != NodeKind.FILE && n.kind()!=NodeKind.DATABASE_MAPPING).count();
         return new Result(fragments.size(), symbols, edges.size(), pending, failed);
     }
 

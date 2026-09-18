@@ -4,7 +4,7 @@ if (-not $env:DBA_BROWSER_SUITE) {
     # Independent suites get independent runtimes, profiles and browser sessions.
     # A closed browser context must not require weakening production session limits.
     try {
-        foreach ($dbaSuite in @('tree-context','workspace-toolbar','script-selection','grid','table-designer','view-query','query-builder','object-creation','object-designer','grid-edit','project-context','approvals','approval-review','core')) {
+        foreach ($dbaSuite in @('tree-context','workspace-toolbar','script-selection','grid','table-designer','view-query','query-builder','object-creation','object-designer','grid-edit','project-context','editor-pairing','approvals','approval-review','core')) {
             $env:DBA_BROWSER_SUITE = $dbaSuite
             & $PSCommandPath -NodeModules $NodeModules
         }

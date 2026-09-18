@@ -33,7 +33,7 @@ public final class SymbolTable {
         Map<String, List<Entry>> byQualified = new HashMap<>();
         for (FileFragment fragment : fragments) {
             for (Node node : fragment.declarations()) {
-                if (!(node.id() instanceof SymbolId id)) {
+                if (!(node.id() instanceof SymbolId id) || node.kind() == NodeKind.DATABASE_MAPPING) {
                     continue;
                 }
                 Entry entry = new Entry(id, node.kind(), id.arity());
