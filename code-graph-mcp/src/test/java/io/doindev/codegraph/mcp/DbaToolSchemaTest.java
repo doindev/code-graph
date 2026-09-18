@@ -10,7 +10,9 @@ class DbaToolSchemaTest {
         assertEquals(2,schema.path("oneOf").size());assertEquals("bindingId",schema.path("oneOf").get(0).path("required").get(0).asText());
         assertEquals("connectionId",schema.path("oneOf").get(1).path("required").get(0).asText());assertEquals("connectionName",schema.path("oneOf").get(1).path("required").get(1).asText());
         assertTrue(schema.path("oneOf").get(0).has("not"));assertTrue(schema.path("oneOf").get(1).has("not"));
-        assertTrue(tool.spec().description().contains("No project"));
+        assertTrue(tool.spec().description().contains("standalone"));
+        assertEquals("string",schema.path("properties").path("database").path("type").asText());
+        assertEquals("string",schema.path("properties").path("schema").path("type").asText());
     }
     @Test void schemasAreBoundedAndNeverAcceptAgentApprovalBooleans()throws Exception{
         var mapper=new ObjectMapper();Set<String> names=new HashSet<>();for(var tool:DbaMcpTools.tools(null,()->null)){assertTrue(names.add(tool.spec().name()));var schema=mapper.readTree(tool.spec().inputSchemaJson());assertFalse(schema.path("properties").has("approved"),tool.spec().name());assertFalse(schema.path("properties").has("acknowledged"),tool.spec().name());assertFalse(schema.path("additionalProperties").asBoolean(true),tool.spec().name());}

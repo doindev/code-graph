@@ -14,7 +14,8 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>${h2.version}</version><scope>test</scope></dependency>
+    <!-- Hybrid graph storage uses MVStore at runtime; do not mask it with a test-only dependency. -->
+    <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>${h2.version}</version></dependency>
     <dependency>
       <groupId>io.doindev</groupId>
       <artifactId>code-graph-mcp</artifactId>

@@ -49,7 +49,9 @@ class AgentRequestsTest {
     @Test void environmentPolicyIncludesFutureBindingsAndCanBeRevoked()throws Exception{
         ObjectNode first=contexts.save(binding("primary"));ObjectNode detail=request("detail-1","Inspect safe connection settings").put("bindingId",first.path("id").asText());
         JsonNode pending=requests.maybeRead(principal,"connection_details",detail);assertEquals("awaiting_approval",pending.path("state").asText());
-        JsonNode approved=requests.decide("human",pending.path("id").asText(),"always_environment_read",true,Profiles.JSON.createObjectNode());assertEquals("complete",approved.path("state").asText());assertFalse(approved.toString().contains("credentialRef"));
+        assertThrows(IllegalArgumentException.class,()->requests.decide("human",pending.path("id").asText(),"always_environment_read",true,Profiles.JSON.createObjectNode()));
+        agents.grantRead(principal,"always_environment_read","connection_details",first); // Simulate a stored legacy policy, not a new approval.
+        JsonNode approved=requests.decide("human",pending.path("id").asText(),"approve_once",true,Profiles.JSON.createObjectNode());assertEquals("complete",approved.path("state").asText());assertFalse(approved.toString().contains("credentialRef"));
         String secondConnection=profiles.put(null,new DbaTest().input().put("name","Analytics")).path("id").asText();connection=secondConnection;ObjectNode future=contexts.save(binding("analytics"));JsonNode immediate=requests.maybeRead(principal,"connection_details",request("detail-2","Inspect future binding").put("bindingId",future.path("id").asText()));assertEquals("Analytics",immediate.path("name").asText());
         JsonNode permissions=agents.permissions(principal,contexts);String policy=permissions.path("readPolicies").get(0).path("id").asText();agents.removePolicy(principal,policy);assertEquals("awaiting_approval",requests.maybeRead(principal,"connection_details",request("detail-3","Inspect after revoke").put("bindingId",future.path("id").asText())).path("state").asText());
     }

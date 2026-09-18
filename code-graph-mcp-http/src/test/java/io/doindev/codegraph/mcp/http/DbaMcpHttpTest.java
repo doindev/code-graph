@@ -107,6 +107,7 @@ class DbaMcpHttpTest {
             writer.println("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
             writer.println("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"dba_get_my_permissions\",\"arguments\":{}}}");
             String result=executor.submit(reader::readLine).get(20,java.util.concurrent.TimeUnit.SECONDS);assertTrue(result.contains("Trusted local agents"));assertFalse(JSON.readTree(result).path("result").path("isError").asBoolean(true));
+            writer.close();assertTrue(child.waitFor(15,java.util.concurrent.TimeUnit.SECONDS),"stdio EOF must terminate its session and runtime");
         }finally{child.destroy();if(!child.waitFor(10,java.util.concurrent.TimeUnit.SECONDS))child.destroyForcibly();executor.shutdownNow();}
     }
     static String initialize(HttpClient c,String url,String token)throws Exception{

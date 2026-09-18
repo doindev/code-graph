@@ -7,7 +7,7 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
   const title=el('h2','Agent database approvals');title.id='agent-approval-title';
   const error=el('p','','context-error');error.setAttribute('role','alert');
   const list=el('div'),close=el('button','Close');close.onclick=()=>dialog.close();
-  dialog.append(title,el('p','Review the exact request and target. Mutations require one-time approval.'),error,list,close);document.body.append(dialog);
+  dialog.append(title,el('p','Review the exact request and target. Dangerous and administrative operations require one-time approval.'),error,list,close);document.body.append(dialog);
   let active=null,opening=false,editing=false,requests=[],queued=[],refreshing=false;const deferred=new Set();
   const client=new ApprovalClient({api,changed:count=>{if(button)button.textContent=count?'Approvals ('+count+')':'Approvals';},offer:id=>{if((!only||only===id)&&!deferred.has(id)&&!queued.includes(id)&&active!==id)queued.push(id);void present();},unavailable:e=>{error.textContent=e.message;for(const b of list.querySelectorAll('button'))b.disabled=true;}});
   const safely=fn=>async()=>{try{error.textContent='';await fn();}catch(e){error.textContent=e.message;}};
@@ -16,7 +16,10 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
     list.replaceChildren();list.dataset.job=JSON.stringify(request?.job??null);if(!request){list.append(el('p','No pending agent database requests.'));return;}
     const row=el('article',undefined,'approval-request');row.dataset.approval=request.id;
     const h=el('h3');h.append(lucide(request.type?.startsWith('connection_')?'plug':request.type?.startsWith('binding_')?'link':'terminal'),document.createTextNode(kindName(request.type||'live_sql')));row.append(h);
-    row.append(el('p','Agent: '+request.agentId+' · '+request.state),el('p',request.purpose||''),el('p',[request.project,request.environment,request.role,request.connectionName,request.database,request.schema].filter(Boolean).join(' · ')));
+    row.append(el('p','Agent: '+(request.agentName||request.agentId)+' · '+request.state),el('p',request.purpose||''),el('p',[request.project,request.environment,request.role,request.connectionName,request.database,request.schema].filter(Boolean).join(' · ')));
+    if(request.environment){const environment=el('p','Environment: '+request.environment.toUpperCase(),'approval-environment');environment.dataset.environment=request.environment;row.append(environment);}
+    if(request.operation)row.append(el('p','Category: '+request.operation.category+' · '+request.operation.reason),el('p',request.operation.limitations||''));
+    if(request.permissionScope)row.append(json('Exact reusable scope',request.permissionScope),el('p',request.identityNotice||''),el('p','Always allow matches exact SQL, typed parameters and execution options until revoked. Similar grants only this category and exact scope, either until this MCP session ends or until revoked.'));
     for(const key of ['target','before','after'])if(request[key])row.append(json(key==='target'?'Exact target':key==='before'?'Current configuration':'Proposed configuration',request[key]));
     if(request.sql){const sql=el('textarea');sql.readOnly=true;sql.spellcheck=false;sql.value=request.sql;sql.setAttribute('aria-label','SQL awaiting approval');row.append(sql,json('Parameters',request.parameters),el('p',request.scopeNotice||''),el('p',request.transactionNotice||''));}
     if(request.job)row.append(json('Ephemeral test / execution status',request.job));
@@ -26,7 +29,7 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
     const actions=el('div',undefined,'approval-actions');
     // The explicit approval click is the acknowledgement; rendering or dismissing is not.
     const decide=async(action,extra={})=>{if(extra.saveUntested&&!confirm('Save without a successful connection test?'))return;const outcome=await api('/approvals/'+request.id,'POST',{action,acknowledged:action!=='reject',...extra});render(outcome);client.leases.delete(request.id);client.active=null;active=null;await refresh();await present();};
-    const reject=el('button','Reject');reject.onclick=safely(()=>decide('reject'));actions.append(reject);
+    const reject=el('button','Deny');reject.onclick=safely(()=>decide('reject'));actions.append(reject);
     const add=(text,action,extra={})=>{const b=el('button',text);b.onclick=safely(()=>decide(action,extra));actions.append(b);};
     if(['connection_create','connection_update'].includes(request.type)){
       const edit=el('button','Review / edit proposal');edit.onclick=safely(async()=>{editing=true;dialog.close();await reviewConnection(request,async()=>{editing=false;await client.release(request.id).catch(()=>{});active=null;queued.unshift(request.id);await present();});});actions.append(edit);
@@ -36,8 +39,17 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
         add('Apply after successful test','approve_once');add('Save untested','approve_once',{saveUntested:true});
       }
     }else{
-      add('Approve once','approve_once');
-      if(request.eligiblePersistentRead){add('Always allow this read',request.projectId?'always_binding_read':'always_connection_read');if(request.projectId&&request.environment)add('Always allow read-only for '+request.environment,'always_environment_read');}
+      add('Allow once','approve_once');
+      if(request.approvalChoices){
+        const split=el('span',undefined,'approval-split'),arrow=el('button','▾'),menu=el('div',undefined,'approval-choice-menu');
+        arrow.title='Reusable approval choices';arrow.setAttribute('aria-label',arrow.title);arrow.setAttribute('aria-haspopup','menu');arrow.setAttribute('aria-expanded','false');menu.setAttribute('role','menu');menu.hidden=true;
+        const dismiss=()=>{menu.hidden=true;arrow.setAttribute('aria-expanded','false');};
+        for(const choice of request.approvalChoices){const item=el('button',choice.label);item.setAttribute('role','menuitem');item.setAttribute('aria-disabled',String(!choice.enabled));item.title=choice.reason+' · '+choice.lifetime;item.onclick=safely(async()=>{if(!choice.enabled)return;dismiss();await decide(choice.action);});menu.append(item);if(!choice.enabled)menu.append(el('small',choice.reason));}
+        arrow.onclick=()=>{menu.hidden=!menu.hidden;arrow.setAttribute('aria-expanded',String(!menu.hidden));if(!menu.hidden)menu.querySelector('button')?.focus();};
+        split.addEventListener('keydown',event=>{const items=[...menu.querySelectorAll('button')];if(event.key==='Escape'&&!menu.hidden){event.preventDefault();event.stopPropagation();dismiss();arrow.focus();}else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)&&!menu.hidden){event.preventDefault();let i=items.indexOf(document.activeElement);i=event.key==='Home'?0:event.key==='End'?items.length-1:(i+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[i]?.focus();}});
+        split.addEventListener('focusout',event=>{if(!split.contains(event.relatedTarget))dismiss();});
+        split.append(actions.lastElementChild,arrow,menu);actions.append(split);
+      }else if(request.eligiblePersistentRead){add('Always allow this read',request.projectId?'always_binding_read':'always_connection_read');}
     }
     row.append(actions);list.append(row);countdown();
   }

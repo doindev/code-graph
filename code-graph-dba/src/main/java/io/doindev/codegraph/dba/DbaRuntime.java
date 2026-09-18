@@ -47,6 +47,7 @@ public final class DbaRuntime implements AutoCloseable {
         reviewServer=new ApprovalReviewServer(this,broker,config.directory());
         broker.detailed(id->{if(uiEnabled&&browserAddress!=null)return new ApprovalBroker.Handoff(browserAddress.resolve("/dba#approval="+id),"");return reviewServer.open(id);});
         approvals.onPending(broker::published);agentRequests.onPending(broker::published);
+        profiles.onAuthorizationChange(approvals.reusable::invalidateConnection);contexts.onAuthorizationChange(approvals.reusable::invalidateBinding);
         contextTimer.scheduleWithFixedDelay(()->{try{approvals.tick();agentRequests.tick();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
         shutdownHook=new Thread(this::close,"dba-shutdown");Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
@@ -110,8 +111,8 @@ public final class DbaRuntime implements AutoCloseable {
                 throw new IllegalArgumentException("Unsupported approval operation");
             }
             if(path.startsWith("/api/dba/agents/")&&path.endsWith("/context")&&method.equals("PUT")){String id=path.substring("/api/dba/agents/".length(),path.length()-"/context".length());json(x,200,agents.contextGrants(id,body(x).path("grants"),contexts));return;}
-            if(path.startsWith("/api/dba/agents/")&&path.endsWith("/permissions")&&method.equals("GET")){String id=path.substring("/api/dba/agents/".length(),path.length()-"/permissions".length());json(x,200,agents.permissions(id,contexts));return;}
-            if(path.startsWith("/api/dba/agents/")&&path.contains("/policies/")&&method.equals("DELETE")){String tail=path.substring("/api/dba/agents/".length());String[] parts=tail.split("/policies/",2);json(x,200,agents.removePolicy(parts[0],parts[1]));return;}
+            if(path.startsWith("/api/dba/agents/")&&path.endsWith("/permissions")&&method.equals("GET")){String id=path.substring("/api/dba/agents/".length(),path.length()-"/permissions".length());json(x,200,permissions(id));return;}
+            if(path.startsWith("/api/dba/agents/")&&path.contains("/policies/")&&Set.of("DELETE","PATCH").contains(method)){String tail=path.substring("/api/dba/agents/".length());String[] parts=tail.split("/policies/",2);if(approvals.reusable.contains(parts[0],parts[1])){Boolean enabled=null;if(method.equals("PATCH")){JsonNode b=body(x);if(b.size()!=1||!b.path("enabled").isBoolean())throw new IllegalArgumentException("Expected enabled boolean only");enabled=b.path("enabled").asBoolean();}json(x,200,approvals.reusable.change(parts[0],parts[1],enabled));}else{if(!method.equals("DELETE"))throw new IllegalArgumentException("Legacy permissions support revocation only");json(x,200,agents.removePolicy(parts[0],parts[1]));}return;}
 
             if(path.equals("/api/dba/drivers/import")&&method.equals("POST")){
                 if(!"application/java-archive".equals(x.getRequestHeaders().getFirst("Content-Type")))throw new IllegalArgumentException("JAR content type required; key uploads are not supported");
@@ -206,22 +207,41 @@ public final class DbaRuntime implements AutoCloseable {
     public String trustedLocalAgent(){return agents.trustedLocal();}
     public boolean agentAlive(String id){return id!=null&&agents.alive("agent:"+id);}
     public boolean approvalsEnabled(){return broker.enabled();}
+    private ObjectNode permissions(String principal){ObjectNode out=agents.permissions(principal,contexts);out.set("reusablePolicies",approvals.reusable.list(principal));return out;}
+    /** Only trusted transports register the logical SDK session, never tool arguments. */
+    public void registerMcpSession(String id,String principal,long expires){if(!agentAlive(principal))throw new SecurityException("Agent revoked");approvals.reusable.sessions.register(id,principal,expires);}
+    public void endMcpSession(String id){approvals.sessionEnded(id);}
     /** Called only with a principal established by the transport, never with an ID from tool arguments. */
     public JsonNode agentCall(String principal,String operation,JsonNode args){
+        return agentCall(principal,null,operation,args);
+    }
+    public JsonNode agentCall(String principal,String mcpSession,String operation,JsonNode args){
         if(!agentAlive(principal))throw new SecurityException("DBA agent authentication required");
         if(args==null||!args.isObject()||args.toString().length()>65_536)throw new IllegalArgumentException("Bounded JSON object required");
         String owner="agent:"+principal;
-        if(operation.equals("dba_request_live_sql")){broker.requireAvailable();return broker.decorate(approvals.request(principal,args));}
+        if(operation.equals("dba_request_live_sql")){broker.requireAvailable();return broker.decorate(approvals.request(principal,mcpSession,args));}
         if(operation.equals("dba_cancel_live_request"))return approvals.cancel(principal,Profiles.text(args,"approvalId",36));
         if(operation.equals("dba_live_request_status"))return broker.decorate(approvals.get(principal,Profiles.text(args,"approvalId",36)));
-        if(operation.equals("dba_get_my_permissions"))return agents.permissions(principal,contexts);
+        if(operation.equals("dba_get_my_permissions"))return permissions(principal);
         if(operation.equals("dba_list_my_created_connections")){ArrayNode out=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())if(p.path("agentProvenance").path("agentId").asText().equals(principal)){ObjectNode row=Profiles.JSON.createObjectNode().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("requestId",p.path("agentProvenance").path("requestId").asText()).put("createdAt",p.path("agentProvenance").path("createdAt").asLong()).put("creatorReceivesAccess",false);row.set("bindings",contexts.bindingsForConnection(p.path("id").asText()));out.add(row);}return out;}
         if(operation.equals("dba_request_status")){String id=Profiles.text(args,"requestId",36);return broker.decorate(agentRequests.has(id)?agentRequests.get(principal,id):approvals.get(principal,id));}
         if(operation.equals("dba_cancel_request")){String id=Profiles.text(args,"requestId",36);return agentRequests.has(id)?agentRequests.cancel(principal,id):approvals.cancel(principal,id);}
         if(operation.equals("dba_get_connection_details")){broker.requireAvailable();JsonNode result=agentRequests.maybeRead(principal,"connection_details",args);return result.has("state")?broker.decorate(result):result;}
         if(operation.equals("dba_request_connection_test")){broker.requireAvailable();return broker.decorate(agentRequests.maybeRead(principal,"connection_test",args));}
         if(operation.startsWith("dba_request_connection_")||operation.startsWith("dba_request_binding_")){broker.requireAvailable();String type=operation.substring("dba_request_".length());return broker.decorate(agentRequests.request(principal,type,args));}
-        if(Set.of("dba_list_project_databases","dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies","dba_find_code_references","dba_scan_status").contains(operation))return contexts.agent(principal,operation,args);
+        if(Set.of("dba_list_project_databases","dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies","dba_find_code_references","dba_scan_status").contains(operation)){
+            var matched=new java.util.concurrent.atomic.AtomicReference<ObjectNode>();
+            java.util.function.Consumer<ObjectNode> check=b->{
+                ObjectNode scope=ApprovalScope.resolve(profiles.get(b.path("connectionId").asText()),b,Profiles.JSON.createObjectNode());
+                ObjectNode request=Profiles.JSON.createObjectNode().put("sql",operation).put("autoCommit",false);request.set("parameters",args);
+                var op=new ReusableOperation.Result("ddl_inspection",true,true,"Cached metadata read");
+                ObjectNode p=approvals.reusable.match(principal,mcpSession,request,scope,op);if(p==null)throw new SecurityException("Catalog permission required");
+                approvals.reusable.require(p.path("id").asText(),principal,mcpSession,request,scope,op);approvals.reusable.auditUse(p.path("id").asText(),principal,operation);matched.set(p);
+            };
+            JsonNode result=contexts.agent(principal,operation,args,check);
+            if(matched.get()!=null){check.accept(contexts.binding(Profiles.text(args,"bindingId",36)));if(result instanceof ObjectNode object){object.set("matchedPolicy",matched.get());object.put("authorizationReason","Scoped reusable catalog permission");}}
+            return result;
+        }
 
         if(operation.equals("dba_list_connections")){ArrayNode result=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())try{if(!agents.isTrustedLocal(principal))agents.requireName(principal,p.path("id").asText(),p.path("name").asText());result.addObject().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("readOnly",true);}catch(SecurityException denied){}return result;}
         if(Set.of("dba_job_status","dba_cancel_job","dba_release_job").contains(operation)){
@@ -232,9 +252,29 @@ public final class DbaRuntime implements AutoCloseable {
             if(operation.equals("dba_cancel_job"))jobs.cancel(job);else jobs.remove(owner,id);
             return Profiles.JSON.createObjectNode().put("ok",true);
         }
-        String connectionName=Profiles.text(args,"connectionName",120),connection=args.path("connectionId").asText("");
+        boolean readCall=Set.of("dba_execute_read_query","dba_explain_query","dba_analyze_query_plan","dba_get_metadata","dba_get_object_ddl").contains(operation);
+        if(Set.of("dba_execute_read_query","dba_explain_query","dba_analyze_query_plan").contains(operation))SqlReadGuard.validate(Profiles.text(args,"sql",16384));
+        ObjectNode bindingTarget=readCall&&args.has("bindingId")?contexts.authorized(principal,Profiles.text(args,"bindingId",36),true):null;
+        if(bindingTarget!=null&&(args.has("connectionId")||args.has("connectionName")||args.has("database")||args.has("schema")))throw new IllegalArgumentException("A binding fixes the complete target; do not also supply connection, database or schema");
+        String connectionName=bindingTarget==null?Profiles.text(args,"connectionName",120):profiles.get(bindingTarget.path("connectionId").asText()).path("name").asText(),connection=bindingTarget==null?args.path("connectionId").asText(""):bindingTarget.path("connectionId").asText();
         if(connection.isEmpty()){List<String> matches=new ArrayList<>();for(JsonNode p:profiles.list())if(Profiles.nameKey(p.path("name").asText()).equals(Profiles.nameKey(connectionName)))matches.add(p.path("id").asText());if(matches.size()!=1)throw new SecurityException("Unknown or ambiguous connection name");connection=matches.get(0);}
-        ObjectNode profile=profiles.get(connection);if(!Profiles.nameKey(profile.path("name").asText()).equals(Profiles.nameKey(connectionName)))throw new SecurityException("Connection name does not match ID");agents.requireName(principal,connection,connectionName);ArrayNode allowed=agents.objects(principal,connection);final String authorizedConnection=connection;
+        ObjectNode profile=profiles.get(connection);if(!Profiles.nameKey(profile.path("name").asText()).equals(Profiles.nameKey(connectionName)))throw new SecurityException("Connection name does not match ID");
+        if(readCall&&(bindingTarget!=null||!legacyReadAuthorized(principal,connection,connectionName,operation,args))){
+            if(mcpSession==null)throw new SecurityException("No existing read grant; a validated MCP session is required for scoped approval");
+            if(bindingTarget==null&&!args.has("connectionId"))throw new IllegalArgumentException("Reusable or one-time access requires stable connectionId plus exact connectionName");
+            if(approvalsEnabled())broker.requireAvailable();
+            ObjectNode input=Profiles.JSON.createObjectNode().put("requestId",UUID.randomUUID().toString()).put("purpose",operation);
+            if(bindingTarget==null)input.put("connectionId",connection).put("connectionName",connectionName);else input.put("bindingId",bindingTarget.path("id").asText());
+            if(args.has("database"))input.set("database",args.path("database"));if(args.has("schema"))input.set("schema",args.path("schema"));
+            if(operation.equals("dba_get_metadata")||operation.equals("dba_get_object_ddl")){
+                ObjectNode scope=ApprovalScope.resolve(profile,bindingTarget==null?Profiles.JSON.createObjectNode():bindingTarget,input);var query=TrustedCatalogRead.prepare(operation,scope,args);
+                input.put("sql",query.sql());input.set("parameters",query.parameters());return broker.decorate(approvals.readTool(principal,mcpSession,input,true,approvalsEnabled()));
+            }
+            String sql=Profiles.text(args,"sql",16384);SqlReadGuard.validate(sql);
+            input.put("sql",operation.equals("dba_execute_read_query")?sql:"EXPLAIN "+sql);input.set("parameters",args.has("parameters")?args.path("parameters"):Profiles.JSON.createArrayNode());
+            return broker.decorate(approvals.readTool(principal,mcpSession,input,false,approvalsEnabled()));
+        }
+        agents.requireName(principal,connection,connectionName);ArrayNode allowed=agents.objects(principal,connection);final String authorizedConnection=connection;
         String schema=optional(args,"schema"),object=optional(args,"object");
         contexts.databaseQueried(connection,schema);
         switch(operation){
@@ -288,6 +328,15 @@ public final class DbaRuntime implements AutoCloseable {
         try{JsonNode n=Profiles.JSON.readTree(bytes);if(n==null||!n.isObject())throw new IllegalArgumentException("JSON object required");return n;}
         catch(com.fasterxml.jackson.core.JacksonException e){throw new IllegalArgumentException("Invalid JSON");}
         finally{Arrays.fill(bytes,(byte)0);}
+    }
+    private boolean legacyReadAuthorized(String principal,String connection,String name,String operation,JsonNode args){
+        try{
+            agents.requireName(principal,connection,name);
+            if(args.has("database"))return false;
+            if(Set.of("dba_execute_read_query","dba_explain_query","dba_analyze_query_plan").contains(operation))SqlReadGuard.validate(args.path("sql").asText(),(s,n)->agents.requireObject(principal,connection,s,n));
+            else if(args.has("object"))agents.requireObject(principal,connection,optional(args,"schema"),optional(args,"object"));
+            return true;
+        }catch(SecurityException|IllegalArgumentException e){return false;}
     }
     static void asset(HttpExchange x,String path)throws IOException {
         String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";default->null;};

@@ -63,6 +63,28 @@ class DesktopApprovalsTest {
             assertTrue(decision.get().acknowledged());assertNull(onEdt(DesktopApprovalsTest::visible));
         }
     }
+    @Test void splitMenuDoesNotApproveOnOpenAndResetsForEveryRequest()throws Exception{
+        for(boolean eligible:new boolean[]{true,false}){
+            var decision=new AtomicReference<ApprovalBroker.Decision>();
+            var r=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("type","live_sql").put("agentName","Trusted local agents").put("connectionName","Synthetic reusable target").put("expiresAt",System.currentTimeMillis()+300000);
+            var op=ReusableOperation.classify(eligible?"CREATE TABLE item(id INT)":"DROP TABLE item",ReusableOperationTest.scope("mysql"));
+            r.set("operation",op.json());r.set("permissionScope",ReusableOperationTest.scope("mysql"));r.set("approvalChoices",ApprovalQueue.choices(op,true));
+            desktop.show(r,0,decision::set,()->{});
+            JDialog card=null;for(int i=0;i<100;i++){card=onEdt(DesktopApprovalsTest::visible);if(card!=null)break;Thread.sleep(30);}assertNotNull(card);
+            JDialog shown=card;
+            onEdt(()->{
+                var nodes=components(shown);JButton once=(JButton)nodes.stream().filter(c->c instanceof JButton b&&"Allow once".equals(b.getText())).findFirst().orElseThrow();
+                assertTrue(once.isEnabled());assertTrue(nodes.stream().noneMatch(JCheckBox.class::isInstance));
+                JButton arrow=(JButton)nodes.stream().filter(c->c instanceof JButton b&&"Reusable approval choices".equals(b.getToolTipText())).findFirst().orElseThrow();
+                arrow.doClick();assertNull(decision.get());
+                JPopupMenu menu=(JPopupMenu)Arrays.stream(MenuSelectionManager.defaultManager().getSelectedPath()).filter(JPopupMenu.class::isInstance).findFirst().orElseThrow();
+                assertEquals(4,menu.getComponentCount());for(int i=1;i<4;i++){JMenuItem item=(JMenuItem)menu.getComponent(i);assertEquals(eligible,item.isEnabled());assertFalse(item.getToolTipText().isBlank());}
+                if(eligible)((JMenuItem)menu.getComponent(2)).doClick();else{menu.setVisible(false);JButton deny=(JButton)nodes.stream().filter(c->c instanceof JButton b&&"Deny".equals(b.getText())).findFirst().orElseThrow();deny.doClick();}
+                return null;
+            });
+            assertEquals(eligible?"session_similar":"reject",decision.get().action());
+        }
+    }
     @Test void requestZoomDarkScrollingAndMaximizeRestoreLeaveDecisionControlsUnchanged()throws Exception{
         var decision=new AtomicReference<ApprovalBroker.Decision>();JDialog card=show("live_sql",false,decision);
         onEdt(()->{

@@ -198,3 +198,12 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .agent-approval-dialog .approval-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .agent-approval-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .agent-approval-dialog label { display: block; margin-block: 1rem; }
+.approval-split { position: relative; display: inline-flex; }
+.approval-choice-menu:not([hidden]) { position: absolute; top: 100%; left: 0; z-index: 20; display: flex; flex-direction: column; width: min(30rem,70vw); max-height: 45vh; overflow: auto; padding: .4rem; border: 1px solid #46536b; border-radius: .4rem; background: #202735; box-shadow: 0 .5rem 2rem #0008; }
+.approval-choice-menu button { text-align: left; white-space: normal; }
+.approval-choice-menu button[aria-disabled="true"] { color: #98a4b5; cursor: not-allowed; }
+.approval-choice-menu small { color: #b8c3d5; padding: .2rem .5rem .5rem; }
+.approval-choice-menu button:focus-visible { outline: 2px solid #63b3ed; outline-offset: -2px; }
+.policy-row { overflow-wrap: anywhere; }
+.approval-environment { font-weight: 700; border-left: 4px solid #63b3ed; padding: .5rem .75rem; background: #263548; }
+.approval-environment[data-environment="prod"], .approval-environment[data-environment="stage"] { color: #ffd5a0; border-color: #ffb768; background: #493323; }

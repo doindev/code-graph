@@ -15,6 +15,8 @@ final class ProjectContexts implements AutoCloseable {
     static final List<String> ENVIRONMENTS=List.of("local","dev","test","stage","prod");
     private final Profiles profiles;private final Connections connections;private final AgentAccess agents;
     private final Path file;private ObjectNode configuration;
+    private java.util.function.Consumer<String> authorizationChanged=id->{};
+    synchronized void onAuthorizationChange(java.util.function.Consumer<String> listener){authorizationChanged=listener;}
     private volatile ProjectContextHost host=ProjectContextHost.detached();
     private final LongSupplier clock;
     private final Map<String,Long> activity=new HashMap<>();
@@ -58,9 +60,9 @@ final class ProjectContexts implements AutoCloseable {
         for(int i=0;i<bindings.size();i++)if(bindings.get(i).path("id").asText().equals(id))found=i;
         for(int i=0;i<bindings.size();i++){JsonNode other=bindings.get(i);if(i!=found&&other.path("projectId").asText().equals(project)&&other.path("environment").asText().equals(environment)&&other.path("roleKey").asText(roleKey(other.path("role").asText(other.path("label").asText()))).equals(roleKey(role)))throw new IllegalArgumentException("Logical role must be unique within the application and environment");}
         if(found<0){if(bindings.size()>=128)throw new IllegalArgumentException("Maximum 128 bindings");bindings.add(binding);}else{JsonNode old=bindings.get(found);if(!old.path("projectId").equals(binding.path("projectId"))||!old.path("connectionId").equals(binding.path("connectionId"))||!old.path("database").equals(binding.path("database"))||!old.path("schema").equals(binding.path("schema")))throw new IllegalArgumentException("Binding scope is immutable; remove it and add a new binding so agent grants cannot change targets");bindings.set(found,binding);}
-        persist(next);configuration=next;return binding.deepCopy();
+        if(found>=0)authorizationChanged.accept(id);binding.put("authorizationRevision",UUID.randomUUID().toString());persist(next);configuration=next;return binding.deepCopy();
     }
-    synchronized void remove(String id)throws Exception{ObjectNode next=configuration.deepCopy();ArrayNode list=(ArrayNode)next.path("bindings");boolean found=false;for(int i=list.size()-1;i>=0;i--)if(list.get(i).path("id").asText().equals(id)){list.remove(i);found=true;}if(!found)throw new IllegalArgumentException("Unknown binding");persist(next);configuration=next;cleanupScopes();}
+    synchronized void remove(String id)throws Exception{ObjectNode next=configuration.deepCopy();ArrayNode list=(ArrayNode)next.path("bindings");boolean found=false;for(int i=list.size()-1;i>=0;i--)if(list.get(i).path("id").asText().equals(id)){list.remove(i);found=true;}if(!found)throw new IllegalArgumentException("Unknown binding");authorizationChanged.accept(id);persist(next);configuration=next;cleanupScopes();}
     synchronized void removeConnection(String connection)throws Exception{ObjectNode next=configuration.deepCopy();ArrayNode list=(ArrayNode)next.path("bindings");boolean changed=false;for(int i=list.size()-1;i>=0;i--)if(list.get(i).path("connectionId").asText().equals(connection)){list.remove(i);changed=true;}if(changed){persist(next);configuration=next;cleanupScopes();}}
     synchronized ArrayNode bindingsForConnection(String connection){ArrayNode out=Profiles.JSON.createArrayNode();for(JsonNode b:configuration.path("bindings"))if(b.path("connectionId").asText().equals(connection))out.add(b.deepCopy());return out;}
     synchronized ObjectNode binding(String id){for(JsonNode b:configuration.path("bindings"))if(b.path("id").asText().equals(id))return b.deepCopy();throw new IllegalArgumentException("Unknown project database binding");}
@@ -114,8 +116,13 @@ final class ProjectContexts implements AutoCloseable {
     static String versionIdentity(JsonNode version){ObjectNode v=version.deepCopy();v.remove("detectedAt");return v.toString();}
     synchronized ObjectNode authorized(String principal,String bindingId,boolean live){ObjectNode b=binding(bindingId);agents.requireContext(principal,b,live);if(!b.path("enabled").asBoolean())throw new SecurityException("Binding is paused");if(!onboarded().contains(b.path("projectId").asText()))throw new IllegalArgumentException("Related project is unloaded; onboard it first");profiles.get(b.path("connectionId").asText());return b;}
     JsonNode agent(String principal,String operation,JsonNode args){
+        return agent(principal,operation,args,null);
+    }
+    JsonNode agent(String principal,String operation,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental){
         if(operation.equals("dba_list_project_databases")){ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("bindings");for(JsonNode b:state().path("bindings"))try{if(!agents.isTrustedLocal(principal))agents.requireContext(principal,(ObjectNode)b,false);ObjectNode row=b.deepCopy();row.remove("projectRoot");row.set("effectivePermissions",agents.effectiveForBinding(principal,row));rows.add(row);}catch(SecurityException ignored){}return out;}
-        String id=Profiles.text(args,"bindingId",36);ObjectNode b=authorized(principal,id,false);if(!operation.equals("dba_scan_status"))touch(b.path("projectId").asText());
+        String id=Profiles.text(args,"bindingId",36);ObjectNode b;
+        try{b=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;b=authorized(principal,id,true);supplemental.accept(b);}
+        final ObjectNode selectedBinding=b;if(!operation.equals("dba_scan_status"))touch(b.path("projectId").asText());
         if(operation.equals("dba_scan_status")){for(JsonNode row:state().path("bindings"))if(row.path("id").asText().equals(id))return row;}
         Scope scope;synchronized(this){scope=scopes.get(key(b));}if(scope==null||scope.generation==0)return Profiles.JSON.createObjectNode().put("state","scan_pending").put("message","Catalog scan will start while this project is active; retry after it completes");
         final Scope found=scope;return scope.store.read(()->{
@@ -129,7 +136,7 @@ final class ProjectContexts implements AutoCloseable {
             if(operation.equals("dba_get_indexed_properties")){String section=args.path("section").asText("columns");if(!Set.of("columns","indexes","primaryKeys","foreignKeys","privileges").contains(section))throw new IllegalArgumentException("Unknown metadata section");int offset=number(args,"offset",0,0,10000),limit=number(args,"limit",50,1,100);JsonNode rows=object.path(section);ArrayNode values=out.putArray("properties");for(int i=offset;i<Math.min(rows.size(),offset+limit);i++)values.add(rows.get(i));out.put("section",section).put("nextOffset",offset+values.size()).put("truncated",offset+values.size()<rows.size());return out;}
             if(operation.equals("dba_get_indexed_ddl")){String ddl=object.path("ddl").asText();int offset=number(args,"offset",0,0,MAX_OFFSET),length=number(args,"length",32000,1,64000);if(offset>ddl.length())throw new IllegalArgumentException("DDL offset exceeds its length");int end=Math.min(ddl.length(),offset+length);out.set("object",json(found.store.get("i/"+objectId)));out.put("ddl",ddl.substring(offset,end)).put("nextOffset",end).put("truncated",end<ddl.length());return out;}
             if(operation.equals("dba_get_database_dependencies")){ArrayNode edges=out.putArray("dependencies");int offset=number(args,"offset",0,0,50000),limit=number(args,"limit",100,1,100);int[] total={0};found.store.scan("e/",(k,v)->{JsonNode e=json(v);if(e.path("schema").equals(object.path("schema"))&&e.path("name").equals(object.path("name"))||e.path("targetSchema").equals(object.path("schema"))&&e.path("target").equals(object.path("name"))){if(total[0]++>=offset&&edges.size()<limit)edges.add(e);}});out.put("truncated",total[0]>offset+edges.size()).put("nextOffset",offset+edges.size());return out;}
-            if(operation.equals("dba_find_code_references")){out.set("references",host.references(b.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()));out.put("resolution","Textual SQL and mapping evidence; candidates require review. Runtime SQL may remain unresolved.");return out;}
+            if(operation.equals("dba_find_code_references")){out.set("references",host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()));out.put("resolution","Textual SQL and mapping evidence; candidates require review. Runtime SQL may remain unresolved.");return out;}
             throw new IllegalArgumentException("Unknown catalog operation");
         });
     }

@@ -38,6 +38,7 @@ final class AgentRequests implements AutoCloseable {
         if(requests.size()+otherCount.getAsInt()>=32)throw new IllegalArgumentException("Approval queue is full; wait for completed requests to expire");
         ObjectNode value=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("type",type).put("requestId",requestId).put("purpose",purpose).put("createdAt",clock.getAsLong()).put("expiresAt",clock.getAsLong()+300_000).put("mutation",mutation(type));
         prepare(type,payload,value);
+        if(mutation(type))value.set("approvalChoices",ApprovalQueue.choices(new ReusableOperation.Result("administration",false,false,"Administrative changes require one-time detailed approval"),false));
         Request r=new Request(value,payload,principal,hash);if(!capacity.tryAcquire()){r.clear();throw new IllegalArgumentException("Approval queue is full");}try{record(r,"requested","");}catch(RuntimeException e){capacity.release();r.clear();throw e;}requests.put(value.path("id").asText(),r);retainedCount=requests.size();pendingOwners.put(value.path("id").asText(),new Owner(principal,value.path("expiresAt").asLong()));onPending.accept(value.path("id").asText());return status(r,false);
     }
     private void prepare(String type,ObjectNode payload,ObjectNode value){
@@ -108,6 +109,7 @@ final class AgentRequests implements AutoCloseable {
         reap();Request r=requests.get(id);if(r==null||!r.state.equals("awaiting_approval"))throw new IllegalArgumentException("Approval request expired or already consumed");
         if(action.equals("reject")){record(r,"rejected",session);r.state="rejected";pendingOwners.remove(id);r.clear();return status(r,true);}
         if(!acknowledged)throw new IllegalArgumentException("Acknowledge the exact target, diff and possible effects before approving");
+        if(action.equals("always_environment_read"))throw new IllegalArgumentException("New approvals cannot include other or future bindings; use an exact target permission");
         boolean persistent=action.startsWith("always_");if(persistent&&!r.value.path("eligiblePersistentRead").asBoolean())throw new IllegalArgumentException("Persistent approval is available only for verified read requests");
         if(!action.equals("approve_once")&&!persistent)throw new IllegalArgumentException("Unsupported approval decision");
         validate(r);

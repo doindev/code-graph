@@ -151,15 +151,27 @@ final class QueryJobs implements AutoCloseable {
         return local("agent:"+principal,id,job->{
             validate.run();boolean attempted=false,committing=false;Connection c=null;
             Connections.Target target=null;
-            try{target=connections.target(id,request.path("database").asText());
-                c=target.connection();Connections.selectSchema(c,request.path("schema").asText());boolean transactions=c.getMetaData().supportsTransactions();boolean verifiedRead=request.path("eligiblePersistentRead").asBoolean();boolean autoCommit=verifiedRead?false:request.path("autoCommit").asBoolean()||!transactions;
+            try{JsonNode scoped=request.has("reusableScope")?request.path("reusableScope"):request;target=connections.target(id,scoped.path("database").asText());
+                c=target.connection();if(!c.getAutoCommit())c.rollback();c.setAutoCommit(true);Connections.selectSchema(c,scoped.path("schema").asText());boolean transactions=c.getMetaData().supportsTransactions();boolean verifiedRead=request.path("authorizationReason").asText().startsWith("Legacy read policy")||request.path("reusableRead").asBoolean();boolean autoCommit=verifiedRead?false:request.path("autoCommit").asBoolean()||!transactions;
+                if(request.has("reusableScope")){
+                    // Set even when getSchema already matches: PostgreSQL may otherwise retain
+                    // extra search_path entries and resolve unqualified names outside this scope.
+                    if(Set.of("postgresql","h2").contains(scoped.path("vendor").asText()))c.setSchema(scoped.path("schema").asText());
+                    verifyReusableTarget(c,scoped);
+                }
                 if(verifiedRead){String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);if(!product.contains("postgresql")&&!product.equals("h2")&&!product.contains("mysql")&&!product.contains("mariadb"))throw new IllegalArgumentException("This driver has no verified read-only session implementation; request one-time review instead");try{c.setReadOnly(true);}catch(SQLException e){throw new IllegalArgumentException("The driver could not establish a verified read-only session");}if(!c.isReadOnly())throw new IllegalArgumentException("The driver did not confirm read-only session mode");}
                 else if(transactions)try{c.setReadOnly(false);}catch(SQLFeatureNotSupportedException ignored){}if(transactions)c.setAutoCommit(autoCommit);
+                if(request.path("reusableRead").asBoolean())try(Statement st=c.createStatement()){
+                    // Do not rely on JDBC's advisory flag or configurable readOnlyPropagatesToServer.
+                    st.execute("SET TRANSACTION READ ONLY");
+                }
                 if(c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))try(Statement st=c.createStatement()){st.execute((autoCommit?"SET ":"SET LOCAL ")+"statement_timeout = "+config.timeoutSeconds()*1000);st.execute((autoCommit?"SET ":"SET LOCAL ")+"lock_timeout = 3000");}
+                validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
+                if(request.has("reusableScope"))verifyReusableReferences(c,request,job);
                 validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
                 ObjectNode result=Profiles.JSON.createObjectNode();ArrayNode results=result.putArray("results");long affected=0;int remaining=job.rowLimit;
                 try(PreparedStatement statement=c.prepareStatement(request.path("sql").asText())){
-                    job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());
+                    job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());statement.setFetchSize(64);statement.setMaxRows(job.rowLimit+1);
                     JsonNode parameters=request.path("parameters");for(int i=0;i<parameters.size();i++)statement.setObject(i+1,Profiles.JSON.convertValue(parameters.get(i),Object.class));
                     attempted=true;boolean hasRows=statement.execute();int count=0;
                     while(true){
@@ -175,6 +187,32 @@ final class QueryJobs implements AutoCloseable {
             }catch(Exception e){job.outcome=!attempted?"not_started":committing?"unknown":"partial_or_unknown";if(c!=null&&!committing)try{if(!c.isClosed()&&!c.getAutoCommit()){c.rollback();job.outcome="rollback_requested";}}catch(SQLException ignored){}throw e;
             }finally{job.statement=null;try{if(target!=null)target.close();}finally{/* Completion runs in the job wrapper, including pre-execution cancellation. */}}
         },completed);
+    }
+
+    private static void verifyReusableReferences(Connection c,JsonNode request,Job job)throws SQLException{
+        JsonNode scope=request.path("reusableScope");
+        if(!scope.path("vendor").asText().equals("postgresql"))return;
+        // PostgreSQL implicitly searches pg_catalog/pg_temp even after setSchema. Resolve
+        // unqualified references through the real session, then verify their actual schema.
+        var operation=ReusableOperation.classify(request.path("sql").asText(),scope);
+        for(var reference:operation.references()){
+            if(job.cancelled)throw new CancellationException();
+            String quoted="\""+reference.name().replace("\"","\"\"")+"\"";
+            if(reference.qualified())quoted="\""+scope.path("schema").asText().replace("\"","\"\"")+"\"."+quoted;
+            try(PreparedStatement check=c.prepareStatement("SELECT n.nspname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=pg_catalog.to_regclass(?)")){
+                job.statement=check;check.setQueryTimeout(3);check.setString(1,quoted);
+                try(ResultSet rows=check.executeQuery()){if(!rows.next()||!scope.path("schema").asText().equals(rows.getString(1)))throw new SecurityException("Referenced relation is missing or resolves outside the approved schema; use explicit qualification or one-time review");}
+                finally{job.statement=null;}
+            }
+        }
+    }
+    private static void verifyReusableTarget(Connection c,JsonNode scope)throws SQLException{
+        String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT),vendor=scope.path("vendor").asText();
+        boolean supported=switch(vendor){case "postgresql"->product.equals("postgresql");case "mysql"->product.contains("mysql");case "mariadb"->product.contains("mariadb")||product.contains("mysql");case "h2"->product.equals("h2");default->false;};
+        if(!supported)throw new SecurityException("Actual database product does not match the reviewed reusable capability");
+        if(!scope.path("database").asText().equals(Objects.toString(c.getCatalog(),"")))throw new SecurityException("Effective database differs from permission scope");
+        String schema=(vendor.equals("mysql")||vendor.equals("mariadb"))?c.getCatalog():c.getSchema();
+        if(!scope.path("schema").asText().equals(Objects.toString(schema,"")))throw new SecurityException("Effective schema differs from permission scope");
     }
 
     static ObjectNode exceptionInfo(Throwable error){ObjectNode out=Profiles.JSON.createObjectNode().put("type",error.getClass().getName()).put("details","Raw driver exception text is withheld because it may contain credentials or connection parameters.");ArrayNode chain=out.putArray("causes");for(int i=0;error!=null&&i<6;i++,error=error.getCause()){ObjectNode n=chain.addObject().put("type",error.getClass().getName());if(error instanceof SQLException sql){String state=sql.getSQLState();if(state!=null&&state.matches("[A-Za-z0-9]{5}"))n.put("sqlState",state);n.put("vendorCode",sql.getErrorCode());}}return out;}

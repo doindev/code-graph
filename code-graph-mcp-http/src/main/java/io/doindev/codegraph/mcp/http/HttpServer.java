@@ -132,7 +132,9 @@ public final class HttpServer implements AutoCloseable {
                             .mcpEndpoint(MCP_ENDPOINT)
                             .contextExtractor(request -> io.modelcontextprotocol.common.McpTransportContext.create(java.util.Map.of(
                                     io.doindev.codegraph.mcp.DbaMcpTools.PRINCIPAL,
-                                    java.util.Objects.toString(request.getAttribute(io.doindev.codegraph.mcp.DbaMcpTools.PRINCIPAL),""))))
+                                    java.util.Objects.toString(request.getAttribute(io.doindev.codegraph.mcp.DbaMcpTools.PRINCIPAL),""),
+                                    io.doindev.codegraph.mcp.DbaMcpTools.SESSION,
+                                    java.util.Objects.toString(request.getAttribute(io.doindev.codegraph.mcp.DbaMcpTools.SESSION),""))))
                             .build();
             mcp = CodeGraphMcpServer.serve("code-graph", "0.0.1", tools, transport);
 

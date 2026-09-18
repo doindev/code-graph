@@ -84,7 +84,7 @@ public final class Main {
         try (workspace; registry;
              CodeGraphMcpServer ignored = CodeGraphMcpServer.serveStdio("code-graph", "0.0.1", tools)) {
             System.err.println("code-graph: watching onboarded projects for changes; serving MCP over stdio");
-            Thread.currentThread().join();
+            ignored.awaitStdioTermination();
         } finally {
             if (dba != null) dba.close();
             if (viz != null) {

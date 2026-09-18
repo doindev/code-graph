@@ -16,7 +16,7 @@ module.exports=async(browser,base,jar)=>{
   const pending=await call('dba_get_connection_details',{requestId:'inspect-routing',purpose:'Inspect non-secret fixture settings',connectionId:profile.id,connectionName:profile.name});
   const dialog=b.locator('#agent-approval-dialog');await dialog.waitFor({state:'visible',timeout:10000});
   assert.equal(await a.locator('#agent-approval-dialog').evaluate(d=>d.open),false);
-  const row=b.locator('[data-approval="'+pending.id+'"]');assert.equal(await row.getByRole('button',{name:'Approve once',exact:true}).isEnabled(),true);
+  const row=b.locator('[data-approval="'+pending.id+'"]');assert.equal(await row.getByRole('button',{name:'Allow once',exact:true}).isEnabled(),true);
   assert.equal(await row.getByRole('checkbox').count(),0);
   assert.equal((await call('dba_request_status',{requestId:pending.id})).state,'awaiting_approval','Displaying a prompt must not approve it');
   // No lease, no CSRF, or a different tab cannot approve.
@@ -39,17 +39,21 @@ module.exports=async(browser,base,jar)=>{
   assert.equal(state.state,'complete',JSON.stringify(state));assert.equal(state.result.name,'Reviewed synthetic proposal');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const deletion=await call('dba_request_connection_delete',{requestId:'reject-deletion',purpose:'Verify dismissal never authorizes deletion',connectionId:state.result.id,connectionName:state.result.name});
-  await b.locator('[data-approval="'+deletion.id+'"]').waitFor();await b.getByRole('button',{name:'Reject',exact:true}).click();
+  await b.locator('[data-approval="'+deletion.id+'"]').waitFor();await b.getByRole('button',{name:'Deny',exact:true}).click();
   assert.equal((await call('dba_request_status',{requestId:deletion.id})).state,'rejected');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const standalone=await call('dba_request_live_sql',{requestId:'standalone-create',purpose:'Test standalone SQL without any project binding',connectionId:profile.id,connectionName:profile.name,sql:'CREATE TABLE PUBLIC.STANDALONE_QA(ID INT PRIMARY KEY)'});
   assert.equal(standalone.bindingId,undefined);assert.equal(standalone.projectId,undefined);
   const sqlRow=b.locator('[data-approval="'+standalone.id+'"]');await sqlRow.waitFor();
-  assert.match(await sqlRow.innerText(),/Saved connection default/);
+  assert.match(await sqlRow.innerText(),/Exact reusable scope/);
   assert.equal(await sqlRow.getByRole('button',{name:/Always allow/}).count(),0);
   assert.equal(await sqlRow.getByRole('checkbox').count(),0);
   assert.equal((await call('dba_request_status',{requestId:standalone.id})).state,'awaiting_approval');
-  await sqlRow.getByRole('button',{name:'Approve once',exact:true}).click();
+  const choices=sqlRow.getByRole('button',{name:'Reusable approval choices',exact:true});
+  await choices.click();assert.equal((await call('dba_request_status',{requestId:standalone.id})).state,'awaiting_approval');
+  assert.equal(await sqlRow.getByRole('menuitem').count(),4);await b.keyboard.press('Escape');
+  assert.equal(await dialog.evaluate(d=>d.open),true);assert.equal(await choices.getAttribute('aria-expanded'),'false');
+  await sqlRow.getByRole('button',{name:'Allow once',exact:true}).click();
   for(let n=0;n<50;n++){state=await call('dba_request_status',{requestId:standalone.id});if(['complete','failed'].includes(state.state))break;await b.waitForTimeout(100);}
   assert.equal(state.state,'complete',JSON.stringify(state));
   assert.equal((await call('dba_job_status',{jobId:state.jobId})).state,'complete');
@@ -57,9 +61,30 @@ module.exports=async(browser,base,jar)=>{
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const read=await call('dba_request_live_sql',{requestId:'standalone-read',purpose:'Test standalone read choices',connectionId:profile.id,connectionName:profile.name,sql:'SELECT ID FROM PUBLIC.STANDALONE_QA'});
   const readRow=b.locator('[data-approval="'+read.id+'"]');await readRow.waitFor();
-  assert.equal(await readRow.getByRole('button',{name:'Always allow this read',exact:true}).count(),1);
-  assert.equal(await readRow.getByRole('button',{name:/Always allow read-only for/}).count(),0);
-  await readRow.getByRole('button',{name:'Reject',exact:true}).click();
+  assert.equal(await readRow.getByRole('button',{name:'Allow once',exact:true}).count(),1);
+  await readRow.getByRole('button',{name:'Reusable approval choices',exact:true}).click();
+  assert.equal(await readRow.getByRole('menuitem',{name:'Always allow',exact:true}).getAttribute('aria-disabled'),'true');
+  assert.match(await readRow.innerText(),/H2 has no verified per-session read-only/);
+  await readRow.getByRole('menuitem',{name:'Always allow',exact:true}).click({force:true});assert.equal((await call('dba_request_status',{requestId:read.id})).state,'awaiting_approval');
+  await b.keyboard.press('Escape');await readRow.getByRole('button',{name:'Deny',exact:true}).click();
+  await dialog.getByRole('button',{name:'Close',exact:true}).click();
+  const category=await call('dba_request_live_sql',{requestId:'category-create',purpose:'Test session category permission',connectionId:profile.id,connectionName:profile.name,sql:'CREATE TABLE PUBLIC.CATEGORY_QA(ID INT)'});
+  const categoryRow=b.locator('[data-approval="'+category.id+'"]');await categoryRow.waitFor();
+  assert.equal(await categoryRow.getByRole('button',{name:'Allow once',exact:true}).count(),1);
+  await categoryRow.getByRole('button',{name:'Reusable approval choices',exact:true}).click();
+  await categoryRow.getByRole('menuitem',{name:'Allow similar for this MCP session',exact:true}).focus();await b.keyboard.press('Enter');
+  for(let n=0;n<50;n++){state=await call('dba_request_status',{requestId:category.id});if(state.state==='complete')break;await b.waitForTimeout(100);}assert.equal(state.state,'complete',JSON.stringify(state));
+  const repeated=await call('dba_request_live_sql',{requestId:'category-auto',purpose:'Same category, same session',connectionId:profile.id,connectionName:profile.name,sql:'CREATE TABLE PUBLIC.CATEGORY_QA_TWO(ID INT)'});
+  assert.ok(repeated.matchedPolicy);assert.equal(repeated.matchedPolicy.lifetime,'mcp_session');
+  for(let n=0;n<50;n++){state=await call('dba_request_status',{requestId:repeated.id});if(state.state==='complete')break;await b.waitForTimeout(100);}assert.equal(state.state,'complete',JSON.stringify(state));
+  await dialog.getByRole('button',{name:'Close',exact:true}).click();await b.locator('#workspace-settings').click();await b.locator('#agents').click();
+  await b.locator('#agents-dialog').getByRole('button',{name:'Manage reusable permissions',exact:true}).click();
+  const manager=b.locator('#project-context-dialog');await manager.getByLabel('Context agent',{exact:true}).selectOption(agent.data.id);
+  const policyRow=manager.locator('.policy-row').filter({hasText:'create_table'});await policyRow.waitFor();assert.match(await policyRow.innerText(),/mcp_session/);assert.match(await policyRow.innerText(),/PUBLIC/);
+  await policyRow.getByRole('button',{name:'Disable',exact:true}).focus();await b.keyboard.press('Enter');await policyRow.getByRole('button',{name:'Enable',exact:true}).waitFor();
+  assert.equal((await api(b,'/agents/'+agent.data.id+'/permissions')).data.reusablePolicies[0].enabled,false);
+  await policyRow.getByRole('button',{name:'Enable',exact:true}).click();await policyRow.getByRole('button',{name:'Disable',exact:true}).waitFor();
+  await policyRow.getByRole('button',{name:'Revoke',exact:true}).click();await policyRow.waitFor({state:'detached'});
   assert.deepEqual(errors,[]);console.log('Approval browser coverage passed: SSE routing, competing tab denial, persistent reads, full proposal editing/testing, changed-draft review, apply, and rejection.');
  }finally{await context.close();}
 };

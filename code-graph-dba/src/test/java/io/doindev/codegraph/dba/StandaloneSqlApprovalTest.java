@@ -49,7 +49,7 @@ class StandaloneSqlApprovalTest {
         for(String key:List.of("connectionId","connectionName")){ObjectNode missing=request("SELECT 1");missing.remove(key);assertThrows(IllegalArgumentException.class,()->approvals.request(principal,missing));}
         assertThrows(SecurityException.class,()->approvals.request(principal,request("SELECT 1").put("connectionName","Other database")));
         assertThrows(IllegalArgumentException.class,()->approvals.request(principal,request("SELECT 1").put("bindingId",UUID.randomUUID().toString())));
-        assertThrows(IllegalArgumentException.class,()->approvals.request(principal,request("SELECT 1").put("database","unreviewed-target")));
+        assertEquals("unreviewed-target",approvals.request(principal,request("SELECT 1").put("database","unreviewed-target")).path("permissionScope").path("database").asText());
         assertThrows(IllegalArgumentException.class,()->approvals.request(principal,request("SELECT 1").put("approved",true)));
     }
     @Test void connectionChangeOrRemovalInvalidatesReview()throws Exception {
@@ -71,8 +71,9 @@ class StandaloneSqlApprovalTest {
     }
     @Test void connectionReadPoliciesCannotBecomeEnvironmentPoliciesOrAuthorizeWrites()throws Exception {
         JsonNode request=approvals.request(principal,request("SELECT ID FROM PUBLIC.ITEMS"));String id=request.path("id").asText();assertTrue(request.path("eligiblePersistentRead").asBoolean());
-        for(String action:List.of("always_environment_read","always_binding_read"))assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,action,true));
-        approvals.decide("human",id,"always_connection_read",true);
+        for(String action:List.of("always_environment_read","always_binding_read","always_connection_read"))assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,action,true));
+        agents.grantRead(principal,"always_connection_read","query",Profiles.JSON.createObjectNode().put("connectionId",connection));
+        approvals.decide("human",id,"approve_once",true);
         // H2 can reject JDBC read-only enforcement; this test checks policy admission, not certification.
         await(id);JsonNode policy=agents.agent(principal).path("readPolicies").get(0);assertEquals("connection",policy.path("scope").asText());assertEquals(connection,policy.path("connectionId").asText());
         assertNotEquals("awaiting_approval",approvals.request(principal,request("SELECT ID FROM PUBLIC.ITEMS WHERE ID=1")).path("state").asText());

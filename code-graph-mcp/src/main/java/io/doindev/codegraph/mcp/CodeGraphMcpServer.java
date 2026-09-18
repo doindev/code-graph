@@ -26,6 +26,8 @@ public final class CodeGraphMcpServer implements AutoCloseable {
     private static final JacksonMcpJsonMapper JSON = new JacksonMcpJsonMapper(MAPPER);
 
     private final McpSyncServer server;
+    private List<GraphTool> ownedTools=List.of();
+    private java.util.concurrent.CountDownLatch stdioEnded;
 
     private CodeGraphMcpServer(McpSyncServer server) {
         this.server = server;
@@ -33,8 +35,18 @@ public final class CodeGraphMcpServer implements AutoCloseable {
 
     /** Serve over stdio — the transport local agent hosts (Claude Code, IDEs) use. */
     public static CodeGraphMcpServer serveStdio(String serverName, String version, List<GraphTool> tools) {
-        return serve(serverName, version, tools, new StdioServerTransportProvider(JSON));
+        var ended=new java.util.concurrent.CountDownLatch(1);
+        java.io.InputStream input=new java.io.FilterInputStream(System.in){
+            private void finish(){endSessions(tools);ended.countDown();}
+            @Override public int read()throws java.io.IOException{try{int n=super.read();if(n<0)finish();return n;}catch(java.io.IOException e){finish();throw e;}}
+            @Override public int read(byte[] b,int off,int len)throws java.io.IOException{try{int n=in.read(b,off,len);if(n<0)finish();return n;}catch(java.io.IOException e){finish();throw e;}}
+            @Override public void close()throws java.io.IOException{try{super.close();}finally{finish();}}
+        };
+        CodeGraphMcpServer result=serve(serverName, version, tools, new StdioServerTransportProvider(JSON,input,System.out));
+        result.ownedTools=tools;result.stdioEnded=ended;return result;
     }
+    private static void endSessions(List<GraphTool> tools){for(GraphTool tool:tools)if(tool instanceof DbaMcpTools.AgentTool agent)agent.endSession();}
+    public void awaitStdioTermination()throws InterruptedException{if(stdioEnded==null)throw new IllegalStateException("Not a stdio server");stdioEnded.await();}
 
     /** Serve over any single-session SDK transport provider. */
     public static CodeGraphMcpServer serve(String serverName, String version, List<GraphTool> tools,
@@ -70,7 +82,7 @@ public final class CodeGraphMcpServer implements AutoCloseable {
                 .build();
         return new McpServerFeatures.SyncToolSpecification(mcpTool, (exchange, request) -> {
             ToolResponse response = tool instanceof DbaMcpTools.AgentTool agent
-                    ? agent.execute((String)exchange.transportContext().get(DbaMcpTools.PRINCIPAL), MAPPER.valueToTree(request.arguments()))
+                    ? agent.execute((String)exchange.transportContext().get(DbaMcpTools.PRINCIPAL), (String)exchange.transportContext().get(DbaMcpTools.SESSION), MAPPER.valueToTree(request.arguments()))
                     : execute(tool, request.arguments());
             return new McpSchema.CallToolResult(
                     List.of((McpSchema.Content) new McpSchema.TextContent(response.json())),
@@ -89,6 +101,7 @@ public final class CodeGraphMcpServer implements AutoCloseable {
 
     @Override
     public void close() {
+        endSessions(ownedTools);if(stdioEnded!=null)stdioEnded.countDown();
         server.closeGracefully();
     }
 }

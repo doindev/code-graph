@@ -17,6 +17,8 @@ public final class Profiles implements AutoCloseable {
     private final FileLock lock;
     private final Vault vault;
     private ObjectNode state;
+    private java.util.function.Consumer<String> authorizationChanged=id->{};
+    synchronized void onAuthorizationChange(java.util.function.Consumer<String> listener){authorizationChanged=listener;}
     public Profiles(Path directory,Vault vault) throws IOException {
         this.directory=directory.toAbsolutePath().normalize();this.vault=vault;
         if(this.directory.getParent()==null)throw new IOException("DBA data must use a dedicated directory");
@@ -80,7 +82,8 @@ public final class Profiles implements AutoCloseable {
         for(JsonNode existing:state.path("connections"))if(!existing.path("id").asText().equals(id)&&nameKey(existing.path("name").asText()).equals(nameKey(draft.profile().path("name").asText())))throw new IllegalArgumentException("Connection names must be unique (ignoring case and surrounding spaces)");
         if(id==null){if(state.path("connections").size()>=64)throw new IllegalArgumentException("Maximum 64 profiles");id=UUID.randomUUID().toString();}
         ObjectNode old=state.path("connections").has(id)?get(id):JSON.createObjectNode();
-        ObjectNode p=draft.profile().deepCopy().put("id",id);
+        if(!old.isEmpty())authorizationChanged.accept(id);
+        ObjectNode p=draft.profile().deepCopy().put("id",id).put("authorizationRevision",UUID.randomUUID().toString());
         if(old.has("agentProvenance"))p.set("agentProvenance",old.path("agentProvenance").deepCopy());
         ObjectNode key=draft.validateKey();if(!key.isEmpty()){key.remove("contentHash");p.set("keyValidation",key);}
         if(draft.secret().has("password")||draft.secret().path("properties").size()>0)p.set("credentialRefs",SecretRecords.write(vault,draft.secret()));
@@ -91,15 +94,17 @@ public final class Profiles implements AutoCloseable {
     }
     public synchronized void remove(String id) throws IOException {
         ObjectNode profile=get(id),next=state.deepCopy();next.withObject("connections").remove(id);
+        authorizationChanged.accept(id);
         save(next);state=next;
         SecretRecords.remove(vault,profile);
     }
     synchronized ObjectNode appearance(String id,JsonNode input)throws IOException{get(id);if(!input.isObject()||input.size()!=1||!input.has("color"))throw new IllegalArgumentException("Appearance accepts only color");String color=ConnectionDraft.color(input);ObjectNode next=state.deepCopy();((ObjectNode)next.path("connections").path(id)).put("color",color);save(next);state=next;return publicProfile(get(id));}
     synchronized ObjectNode rename(String id,JsonNode input)throws IOException{
         ObjectNode current=get(id);if(!input.path("expectedName").asText().equals(current.path("name").asText()))throw new IllegalArgumentException("Connection name changed; refresh and retry");
+        authorizationChanged.accept(id);
         String name=Profiles.text(input,"name",128).strip();if(name.chars().anyMatch(Character::isISOControl))throw new IllegalArgumentException("Connection name cannot contain control characters");
         for(JsonNode p:state.path("connections"))if(!p.path("id").asText().equals(id)&&nameKey(p.path("name").asText()).equals(nameKey(name)))throw new IllegalArgumentException("Connection names must be unique");
-        ObjectNode next=state.deepCopy();((ObjectNode)next.path("connections").path(id)).put("name",name);save(next);state=next;return publicProfile(get(id));
+        ObjectNode next=state.deepCopy();((ObjectNode)next.path("connections").path(id)).put("name",name).put("authorizationRevision",UUID.randomUUID().toString());save(next);state=next;return publicProfile(get(id));
     }
     public static ObjectNode publicProfile(JsonNode p){ObjectNode result=p.deepCopy();result.remove(List.of("credentialRef","credentialRefs"));result.put("color",p.path("color").asText("transparent"));result.put("hasCredential",!SecretRecords.refs(p).isEmpty());return result;}
     static ObjectNode agentProfile(JsonNode p){

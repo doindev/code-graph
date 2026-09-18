@@ -3,7 +3,8 @@
 DBA agent requests use one server-side approval queue across browser and desktop presentation.
 The broker never executes SQL or changes a profile itself. Exact target revisions, request
 hashes, acknowledgement, single-use decisions, and audit-before-execution remain enforced by
-the existing request handlers. Persistent approval is available only for eligible verified reads.
+the existing request handlers. [Scoped reusable SQL approvals](reusable-approvals.md) cover
+verified reads and narrowly validated creation categories; destructive/unknown operations stay one-time.
 
 ## Configuration
 
@@ -71,7 +72,9 @@ edges/corners support resizing while restored; resizing is disabled while maximi
 The card contains escaped read-only HTML, native keyboard-accessible decisions, an expiry
 countdown, and risk warnings. Clicking an explicit approval button confirms the displayed
 request and risks; neither browser nor desktop prompts require a separate acknowledgement
-checkbox. Opening or dismissing a prompt never approves it. Mutations cannot receive persistent permission.
+checkbox. Opening or dismissing a prompt never approves it. SQL prompts offer **Deny** and
+**Allow once ▾**, with exact, session-category and persistent-category choices. Ineligible
+choices stay disabled with reasons; dangerous mutations never receive reusable permission.
 Connection creation/update, credentials, drivers, and draft test/save workflows must use
 **Open detailed review in browser**; native approval is disabled for those requests.
 

@@ -20,7 +20,7 @@ final class DbaHttpAccess implements Filter {
     DbaHttpAccess(DbaRuntime runtime,LongSupplier clock){this.runtime=runtime;this.clock=clock;}
     public void doFilter(ServletRequest request,ServletResponse response,FilterChain chain)throws IOException,ServletException {
         HttpServletRequest req=(HttpServletRequest)request;HttpServletResponse res=(HttpServletResponse)response;
-        long now=clock.getAsLong();sessions.entrySet().removeIf(e->e.getValue().expires()<now);
+        long now=clock.getAsLong();sessions.entrySet().removeIf(e->{if(e.getValue().expires()<=now){if(runtime!=null)runtime.endMcpSession(e.getKey());return true;}return false;});
         // Apply peer and browser-origin checks even without DBA or an Authorization header.
         // Never trust X-Forwarded-For/Forwarded to establish local access.
         String host=req.getHeader("Host"),origin=req.getHeader("Origin");
@@ -41,13 +41,15 @@ final class DbaHttpAccess implements Filter {
         }
         else if(sessions.size()>=256){res.sendError(503);return;}
         req.setAttribute(DbaMcpTools.PRINCIPAL,principal);
+        req.setAttribute(DbaMcpTools.SESSION,session==null?"":session);
         final String identity=principal;
         HttpServletResponseWrapper wrapper=new HttpServletResponseWrapper(res){
-            private void bind(String name,String value){if(name.equalsIgnoreCase("Mcp-Session-Id"))sessions.put(value,new Binding(identity,now+3_600_000));}
+            private void bind(String name,String value){if(name.equalsIgnoreCase("Mcp-Session-Id")&&!sessions.containsKey(value)){if(runtime!=null)runtime.registerMcpSession(value,identity,now+3_600_000);sessions.put(value,new Binding(identity,now+3_600_000));}}
             @Override public void setHeader(String name,String value){bind(name,value);super.setHeader(name,value);}
             @Override public void addHeader(String name,String value){bind(name,value);super.addHeader(name,value);}
         };
         chain.doFilter(req,wrapper);
-        if(session!=null&&req.getMethod().equals("DELETE")&&res.getStatus()<300)sessions.remove(session);
+        if(session!=null&&req.getMethod().equals("DELETE")&&res.getStatus()<300){sessions.remove(session);if(runtime!=null)runtime.endMcpSession(session);}
     }
+    @Override public void destroy(){if(runtime!=null)sessions.keySet().forEach(runtime::endMcpSession);sessions.clear();}
 }

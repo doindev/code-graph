@@ -27,8 +27,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Unsupported SQL is preserved in SQL mode; saving a query never changes a database view.
   Database relationships use canonical local/dev/test/stage/prod environments, unique logical roles,
   human-readable purposes, direct UI management, and exact human-reviewed MCP connection/binding proposals.
-  Persistent approvals are read-only and can cover one target/capability or current and future bindings in an
-  application/environment; every mutation remains one-time. See [DBA status, configuration, and remaining gates](docs/dba.md).
+  [Scoped reusable approvals](docs/reusable-approvals.md) cover verified reads and narrowly validated
+  new-object creation, either exactly or by category and MCP-session/persistent lifetime. Destructive
+  operations remain one-time; legacy read grants retain their existing scope. See [DBA status and remaining gates](docs/dba.md).
   [Project database context](docs/project-database-context.md) links applications to environment-aware database/schema snapshots,
   pauses catalog scans when MCP activity stops, and provides human approval for live agent SQL across all connection templates.
   The [approval broker](docs/approval-broker.md) routes requests to an active DBA browser or a
@@ -239,8 +240,9 @@ The HTTP UI uses JDK `HttpServer`; the MCP HTTP transport uses embedded Jetty 12
 enabled, token-free HTTP and stdio clients use a shared **Trusted local agents** identity.
 They can discover connection IDs/names and application/environment bindings and submit
 approval requests. Connection details/tests and SQL still require human approval or an
-existing read grant; mutations always require exact one-time approval. Approved shared read
-policies, ownership and created-connection history apply to all token-free local clients.
+existing grant. Verified creation can receive narrowly scoped reusable approval; destructive
+operations and administration remain one-time. Persistent policies, ownership and created-connection
+history apply to all token-free local clients; temporary policies stay isolated by MCP session.
 Optional named bearer tokens remain available for separate identities. Invalid explicit
 tokens fail closed rather than falling back to local trust. See [DBA access](docs/dba.md).
 

@@ -3,7 +3,8 @@
 The `/dba` JDBC administration plan is **not fully implemented**. This change delivers an
 opt-in, authenticated UI and a restricted-read foundation. It must not be presented as the
 completed administration/agent suite. Authenticated restricted-read DBA MCP tools are enabled;
-agent writes require exact one-time human approval; paired editor operations remain unavailable. Human browser SQL supports
+agent writes require human approval, with [scoped reusable permissions](reusable-approvals.md)
+only for verified new-object creation; destructive/unknown SQL stays one-time. Paired editor operations remain unavailable. Human browser SQL supports
 JDBC DDL/DML and statement-aware scripts with savepoint-backed error decisions, commit-on-success,
 or explicit auto-commit; see [execution behavior and limitations](dba-connections.md#script-files-and-execution-targets).
 

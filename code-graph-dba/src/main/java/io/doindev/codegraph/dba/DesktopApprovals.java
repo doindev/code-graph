@@ -93,12 +93,20 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
                 if(ApprovalPresentation.complex(r)){
                     JButton review=new JButton("Open detailed review in browser");review.addActionListener(e->{review.setEnabled(false);detailed.run();});actions.add(review);
                 }else{
-                    JButton once=new JButton("Allow once");once.addActionListener(e->resolve("approve_once",true));actions.add(once);
-                    if(r.path("eligiblePersistentRead").asBoolean()){
-                        JComboBox<String> choices=new JComboBox<>(r.has("projectId")&&r.has("environment")?
-                            new String[]{"Always allow this read","Always allow read-only for "+r.path("environment").asText()}:new String[]{"Always allow this connection read"});
+                    JButton once=new JButton("Allow once");once.addActionListener(e->resolve("approve_once",true));once.getAccessibleContext().setAccessibleDescription("Approve this exact request once without creating a permission");actions.add(once);
+                    if(r.path("approvalChoices").isArray()){
+                        JButton arrow=new JButton("▾");arrow.setToolTipText("Reusable approval choices");arrow.getAccessibleContext().setAccessibleName("Reusable approval choices");
+                        JPopupMenu menu=new JPopupMenu();menu.setBackground(new Color(32,39,53));menu.setForeground(Color.WHITE);
+                        for(JsonNode choice:r.path("approvalChoices")){
+                            JMenuItem item=new JMenuItem(choice.path("label").asText());item.setBackground(new Color(32,39,53));item.setForeground(Color.WHITE);
+                            item.setEnabled(choice.path("enabled").asBoolean());item.setToolTipText(choice.path("reason").asText()+" · "+choice.path("lifetime").asText());
+                            item.getAccessibleContext().setAccessibleDescription(item.getToolTipText());item.addActionListener(e->resolve(choice.path("action").asText(),true));menu.add(item);
+                        }
+                        arrow.addActionListener(e->menu.show(arrow,Math.min(0,arrow.getWidth()-menu.getPreferredSize().width),arrow.getHeight()));actions.add(arrow);
+                    }else if(r.path("eligiblePersistentRead").asBoolean()){
+                        JComboBox<String> choices=new JComboBox<>(new String[]{"Always allow this read on this target"});
                         JButton persistent=new JButton("Allow selected read access");
-                        persistent.addActionListener(e->resolve(choices.getSelectedIndex()==1?"always_environment_read":r.has("projectId")?"always_binding_read":"always_connection_read",true));
+                        persistent.addActionListener(e->resolve(r.has("projectId")?"always_binding_read":"always_connection_read",true));
                         actions.add(choices);actions.add(persistent);
                     }
                 }
