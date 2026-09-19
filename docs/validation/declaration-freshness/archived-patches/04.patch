@@ -1,0 +1,113 @@
+diff --git a/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridIncrementalTest.java b/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridIncrementalTest.java
+index bdb6091..238958b 100644
+--- a/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridIncrementalTest.java
++++ b/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridIncrementalTest.java
+@@ -58,8 +58,8 @@ class HybridIncrementalTest {
+             assertEquals(1,storage.status().get("activeAndStagedStores"));assertFreshParity(graph);
+             write("B.java","class B { static void changed(){} }");
+             indexer.applyChanges(List.of("B.java"));
+-            assertEquals("incremental-reresolve",indexer.lastHybridUpdate().mode());
+-            assertEquals(1,indexer.lastHybridUpdate().parsedFiles());assertEquals(3,indexer.lastHybridUpdate().resolvedFiles());
++            assertEquals("incremental-targeted",indexer.lastHybridUpdate().mode());
++            assertEquals(1,indexer.lastHybridUpdate().parsedFiles());assertEquals(2,indexer.lastHybridUpdate().resolvedFiles());
+             assertFreshParity(graph);
+             Files.delete(root.resolve("B.java")); indexer.applyChanges(List.of("B.java"));assertFreshParity(graph);
+             write("B.java","class B { static void go(){} }");indexer.applyChanges(List.of("B.java"));assertFreshParity(graph);
+@@ -212,4 +212,97 @@ class HybridIncrementalTest {
+             }
+         }
+     }
++
++    @Test void isolatedDeclarationDoesNotResolveUnrelatedFiles() throws Exception {
++        write("Probe.java","class Probe { static void oldName(){} }");
++        for(int n=0;n<40;n++)write("Unrelated"+n+".java","class Unrelated"+n+" { void own(){ own(); } }");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();
++            write("Probe.java","class Probe { static void newName(){} }");
++            indexer.applyChanges(List.of("Probe.java"));
++            assertEquals("incremental-targeted",indexer.lastHybridUpdate().mode());
++            assertEquals(1,indexer.lastHybridUpdate().resolvedFiles());assertFreshParity(graph);
++            var queued=new AtomicInteger();((PagedGraph)graph).documents("resolution/affected/",(k,v)->queued.incrementAndGet());
++            assertEquals(0,queued.get(),"transient work queue must be removed before publication");
++        }
++    }
++
++    @Test void negativeLookupsAndNewOverloadsHealWithoutGlobalReresolution() throws Exception {
++        write("Use.java","class Use { void run(){ Api.consume(\"hello\"); Missing.go(); } }");
++        write("Api.java","class Api { static void consume(Object x){} }");
++        write("Other.java","class Other { void own(){ own(); } }");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();assertFreshParity(graph);
++            write("Api.java","class Api { static void consume(Object x){} static void consume(String x){} }");
++            indexer.applyChanges(List.of("Api.java"));
++            assertEquals(2,indexer.lastHybridUpdate().resolvedFiles());assertFreshParity(graph);
++            write("Missing.java","class Missing { static void go(){} }");
++            indexer.applyChanges(List.of("Missing.java"));
++            assertEquals(2,indexer.lastHybridUpdate().resolvedFiles());assertFreshParity(graph);
++            Files.delete(root.resolve("Missing.java"));indexer.applyChanges(List.of("Missing.java"));
++            assertEquals(1,indexer.lastHybridUpdate().resolvedFiles());assertFreshParity(graph);
++        }
++    }
++
++    @Test void hierarchyOverridesAndReturnTypeChainsInvalidateTheirLookupReaders() throws Exception {
++        write("Base.java","class Base { void go(){} }");
++        write("Child.java","class Child extends Base {}");
++        write("Alternate.java","class Alternate { void go(){} }");
++        write("Factory.java","class Factory { static Child make(){ return null; } }");
++        write("Use.java","class Use { void run(){ Factory.make().go(); } }");
++        write("Unrelated.java","class Unrelated {}");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();assertFreshParity(graph);
++            write("Child.java","class Child extends Base { @Override void go(){} }");
++            indexer.applyChanges(List.of("Child.java"));assertFreshParity(graph);
++            assertTrue(indexer.lastHybridUpdate().resolvedFiles()<6);
++            write("Factory.java","class Factory { static Alternate make(){ return null; } }");
++            indexer.applyChanges(List.of("Factory.java"));assertFreshParity(graph);
++            assertTrue(indexer.lastHybridUpdate().resolvedFiles()<6);
++            write("Child.java","class Child extends Alternate {}");
++            indexer.applyChanges(List.of("Child.java"));assertFreshParity(graph);
++        }
++    }
++
++    @Test void genericNameAmbiguityAndRemovalInvalidatePositiveAndNegativeLookups() throws Exception {
++        write("main.py","def caller():\n    work()\n    future()\n");
++        write("one.py","def work():\n    pass\n");
++        write("other.py","def independent():\n    pass\n");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();assertFreshParity(graph);
++            write("two.py","def work():\n    pass\ndef future():\n    pass\n");
++            indexer.applyChanges(List.of("two.py"));assertFreshParity(graph);
++            assertEquals(2,indexer.lastHybridUpdate().resolvedFiles());
++            Files.delete(root.resolve("one.py"));indexer.applyChanges(List.of("one.py"));assertFreshParity(graph);
++        }
++    }
++
++    @Test void moduleMissesReexportChangesAndBatchMovesAreTracked() throws Exception {
++        write("main.js","import {go} from './barrel.js'; go();");
++        write("barrel.js","export {first as go} from './missing.js';");
++        write("other.js","export function untouched(){}");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();assertFreshParity(graph);
++            write("missing.js","export function first(){} export function second(){}");
++            indexer.applyChanges(List.of("missing.js"));assertFreshParity(graph);
++            assertTrue(indexer.lastHybridUpdate().resolvedFiles()<4);
++            write("barrel.js","export {second as go} from './missing.js';");
++            indexer.applyChanges(List.of("barrel.js"));assertFreshParity(graph);
++            assertEquals(2,indexer.lastHybridUpdate().resolvedFiles());
++            Files.move(root.resolve("missing.js"),root.resolve("moved.js"));
++            write("barrel.js","export {second as go} from './moved.js';");
++            indexer.applyChanges(List.of("missing.js","moved.js","barrel.js"));assertFreshParity(graph);
++        }
++    }
++
++    @Test void previousFragmentFormatForcesRebuildRatherThanTrustingMissingDependencies() throws Exception {
++        write("A.java","class A { void oldName(){} }");
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=storage.create();var indexer=indexer(graph);indexer.fullIndex();
++            ((PagedGraph)graph).update(builder->{builder.auxiliary("incremental-format",new byte[]{1});return null;});
++            write("A.java","class A { void freshName(){} }");
++            indexer.applyChanges(List.of("A.java"));
++            assertEquals("full-fallback",indexer.lastHybridUpdate().mode());assertFreshParity(graph);
++        }
++    }
+ }

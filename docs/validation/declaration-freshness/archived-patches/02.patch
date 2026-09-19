@@ -1,0 +1,103 @@
+diff --git a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
+index ecff110..52968d6 100644
+--- a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
++++ b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
+@@ -17,7 +17,7 @@ final class HybridIndexer {
+     static final int MAX_BATCH_PATHS = 1024;
+     static final int MAX_BATCH_PATH_BYTES = 1 << 20;
+     private static final String FORMAT = "incremental-format";
+-    private static final byte[] FORMAT_VALUE = {1};
++    private static final byte[] FORMAT_VALUE = {2};
+     private final Path root;
+     private final Analyzers analyzers;
+     private final FullIndexer scanner;
+@@ -45,7 +45,7 @@ final class HybridIndexer {
+                 addFragment(builder, fragment);
+                 files[0]++; nodes[0] += fragment.declarations().size();
+             });
+-            builder.scanAuxiliary("fragment/", (key, value) ->
++            builder.scanAuxiliaryCurrent("fragment/", (key, value) ->
+                     edges[0] += resolve(builder, decode(value)));
+             return new FullIndexer.Result(files[0], nodes[0], edges[0], List.of(), List.of());
+         });
+@@ -78,8 +78,8 @@ final class HybridIndexer {
+         }
+         int[] parsed = {0}, changed = {0}, resolved = {0};
+         boolean[] all = {false};
++        boolean[] declarationChange = {false};
+         graph.update(builder -> {
+-            var affected = new ArrayList<String>();
+             for (String path : bounded) {
+                 if (ModuleConfigurations.candidate(path)) {
+                     JsonNode configuration = eligible(path,true) ? ModuleConfigurations.read(root.resolve(path)) : null;
+@@ -96,24 +96,38 @@ final class HybridIndexer {
+                 if (next == old) continue; // unchanged hash: no parsing, writes or generation churn
+                 if (next != null) parsed[0]++;
+                 if (old == null && next == null) continue;
+-                if (old == null || next == null || !shape(old).equals(shape(next))
+-                        || !old.modules().equals(next.modules())) all[0] = true;
++                if (old == null || next == null || !shape(old).equals(shape(next))) {
++                    declarationChange[0] = true;
++                    // Invalidate both removed and introduced names. A previously
++                    // empty lookup is just as important as a resolved edge.
++                    invalidateDeclarations(builder, old);
++                    invalidateDeclarations(builder, next);
++                }
++                if ((old != null && ResolutionLanguages.compatible(old.lang(),"js"))
++                        || (next != null && ResolutionLanguages.compatible(next.lang(),"js"))) {
++                    declarationChange[0] = true;
++                    ResolutionDependencies.invalidate(builder,ResolutionDependencies.moduleKey(path));
++                }
+                 if (old != null) removeFragment(builder,old);
+-                if (next != null) { addFragment(builder,next); affected.add(path); }
++                if (next != null) { addFragment(builder,next); ResolutionDependencies.affect(builder,path); }
+                 changed[0]++;
+             }
++            if (declarationChange[0]) ResolutionDependencies.invalidateOverflow(builder);
+             if (all[0]) {
+-                builder.scanAuxiliary("fragment/", (key,value) -> {
++                builder.scanAuxiliaryCurrent("fragment/", (key,value) -> {
+                     resolve(builder,decode(value)); resolved[0]++;
+                 });
++                ResolutionDependencies.drain(builder,path -> { });
+             } else {
+-                for (String path : affected) {
+-                    resolve(builder,decode(builder.auxiliary("fragment/"+path))); resolved[0]++;
+-                }
++                ResolutionDependencies.drain(builder,path -> {
++                    byte[] value=builder.auxiliary("fragment/"+path);
++                    if(value!=null) {resolve(builder,decode(value)); resolved[0]++;}
++                });
+             }
+             return null;
+         });
+-        record(changed[0] == 0 ? "unchanged" : all[0] ? "incremental-reresolve" : "incremental",
++        record(changed[0] == 0 ? "unchanged" : all[0] ? "incremental-reresolve"
++                        : declarationChange[0] ? "incremental-targeted" : "incremental",
+                 parsed[0],resolved[0],changed[0],start);
+     }
+ 
+@@ -168,6 +182,15 @@ final class HybridIndexer {
+                 .map(n->n.id().value()+"|"+n.kind()+"|"+new TreeMap<>(n.attrs())).sorted().toList();
+     }
+ 
++    private static void invalidateDeclarations(PagedGraph.Builder builder, FileFragment fragment) {
++        if(fragment==null)return;
++        for(Node node:fragment.declarations()) {
++            if(!(node.id() instanceof SymbolId id)||node.kind()==NodeKind.DATABASE_MAPPING)continue;
++            ResolutionDependencies.invalidate(builder,ResolutionDependencies.symbolKey("simple",node.name(),id.lang()));
++            ResolutionDependencies.invalidate(builder,ResolutionDependencies.symbolKey("qualified",id.qualifiedName(),id.lang()));
++        }
++    }
++
+     private static void symbolEntries(PagedGraph.Builder builder, Node node, boolean add) {
+         if (!(node.id() instanceof SymbolId id) || node.kind()==NodeKind.DATABASE_MAPPING) return;
+         String family = PagedGraph.encodeKey(ResolutionLanguages.family(id.lang()))+"/";
+@@ -197,6 +220,7 @@ final class HybridIndexer {
+     }
+ 
+     private static void removeFragment(PagedGraph.Builder builder, FileFragment fragment) {
++        ResolutionDependencies.clear(builder,fragment.file().relPath());
+         removeOutgoing(builder,fragment);
+         for (Node node : fragment.declarations()) { builder.removeNode(node.id()); symbolEntries(builder,node,false); }
+         builder.removeAuxiliary("fragment/"+fragment.file().relPath());

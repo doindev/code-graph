@@ -3,6 +3,11 @@
 Status: implemented and locally validated; deployment remains pending explicit approval.
 Baseline commit: 6ddfb38. Validation date: September 18, 2026 (Windows).
 
+The [declaration-freshness experiment](validation/declaration-freshness/README.md)
+was set aside in favor of this implementation's smaller disk footprint. Its source
+patches and measurements remain archived; targeted dependency tracking is not active.
+The incremental-indexing and search-latency fixes described here remain in place.
+
 Follow-up performance gate: actual MCP name-search measurements initially found
 a **3.5x latency regression** (90 ms to 318 ms median). A subsequent 32 KiB
 page-split fix restores median/p95 performance while preserving incremental

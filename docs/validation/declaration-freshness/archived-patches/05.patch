@@ -1,0 +1,30 @@
+diff --git a/code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java b/code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java
+index a68b9bc..a5e1b66 100644
+--- a/code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java
++++ b/code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java
+@@ -197,6 +197,25 @@ public final class PagedGraph implements ManagedGraph {
+             checkOpen();
+             generation.scan("a/" + prefix, visitor);
+         }
++        /**
++         * Visit the mutable staged head in key order without retaining a cursor
++         * across callbacks. Use when callbacks write heavily but do not need a
++         * snapshot of the scanned prefix (e.g. resolving unchanged fragments).
++         * Added keys after the last visited key may be visited; removed keys are
++         * skipped. Ordinary scanAuxiliary retains its stable-root semantics.
++         */
++        public void scanAuxiliaryCurrent(String prefix, BiConsumer<String, byte[]> visitor) {
++            checkOpen();
++            String fullPrefix = "a/" + prefix;
++            String key = generation.writerMap.ceilingKey(fullPrefix);
++            while (key != null && key.startsWith(fullPrefix)) {
++                checkOpen();
++                byte[] value = generation.writerMap.get(key);
++                visitor.accept(key, value);
++                // No old cursor/page/version survives a callback's commits.
++                key = generation.writerMap.higherKey(key);
++            }
++        }
+     }
+ 
+     private final class Generation implements AutoCloseable {

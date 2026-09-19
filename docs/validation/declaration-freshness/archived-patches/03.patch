@@ -1,0 +1,38 @@
+diff --git a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
+index c4cc2ff..6260c34 100644
+--- a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
++++ b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
+@@ -10,15 +10,20 @@ import java.util.*;
+ final class HybridSymbolLookup implements SymbolLookup {
+     private final PagedGraph.Builder builder;
+     private final String source;
++    private final ResolutionDependencies dependencies;
+     private final LinkedHashMap<String,Object> cache = new LinkedHashMap<>(32,.75f,true);
+     private final Map<String,Long> sizes = new HashMap<>();
+     private long cacheBytes;
+ 
+-    HybridSymbolLookup(PagedGraph.Builder builder,String source) {this.builder=builder;this.source=source;}
++    HybridSymbolLookup(PagedGraph.Builder builder,String source) {
++        this.builder=builder;this.source=source;
++        this.dependencies=new ResolutionDependencies(builder,source);
++    }
+     @SuppressWarnings("unchecked")
+     private List<SymbolTable.Entry> read(String prefix,String name,String language) {
+-        String key=prefix+"/"+PagedGraph.encodeKey(ResolutionLanguages.family(language))+"/"+PagedGraph.encodeKey(name)+"/";
++        String key=ResolutionDependencies.symbolKey(prefix,name,language);
+         if(cache.containsKey(key))return (List<SymbolTable.Entry>)cache.get(key);
++        dependencies.read(key);
+         var found=new ArrayList<SymbolTable.Entry>();long[] bytes={0};
+         builder.scanAuxiliary(key,(ignored,value)->{
+             bytes[0]+=value.length;
+@@ -36,8 +41,9 @@ final class HybridSymbolLookup implements SymbolLookup {
+         }
+     }
+     @Override public ModuleFile module(String path) {
+-        String key="module/"+PagedGraph.encodeKey(path);
++        String key=ResolutionDependencies.moduleKey(path);
+         if(cache.containsKey(key))return (ModuleFile)cache.get(key);
++        dependencies.read(key);
+         byte[] bytes=builder.auxiliary(key);
+         ModuleFile module=bytes==null?null:RecordCodec.decode(bytes,RecordCodec.M.class).module();
+         remember(key,module,bytes==null?128:bytes.length+128L);return module;

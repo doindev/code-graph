@@ -1,0 +1,7 @@
+code-graph-http: [source] indexed 507 files, 9276 symbols, 26708 edges
+code-graph-http: 1 project(s) ready in 92865 ms
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:64476/mcp
+code-graph-http: project idle TTL PT1H

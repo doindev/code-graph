@@ -1,0 +1,104 @@
+diff --git a/code-graph-index/src/main/java/io/doindev/codegraph/index/ResolutionDependencies.java b/code-graph-index/src/main/java/io/doindev/codegraph/index/ResolutionDependencies.java
+new file mode 100644
+--- /dev/null
++++ b/code-graph-index/src/main/java/io/doindev/codegraph/index/ResolutionDependencies.java
+@@ -0,0 +1,99 @@
++package io.doindev.codegraph.index;
++
++import io.doindev.codegraph.parse.ResolutionLanguages;
++import io.doindev.codegraph.storage.PagedGraph;
++import java.nio.charset.StandardCharsets;
++import java.security.*;
++import java.util.HexFormat;
++
++/**
++ * Generation-owned reverse lookup evidence, including negative lookups.
++ * Both directions and the deduplicated work queue live on disk, never in a
++ * project-sized Java collection. Overflow conservatively marks the source as
++ * dependent on every declaration/module change instead of losing evidence.
++ */
++final class ResolutionDependencies {
++    static final int MAX_READS = 4096;
++    static final long MAX_BYTES = 1L << 20;
++    private static final String SOURCES = "resolution/source/";
++    private static final String READERS = "resolution/readers/";
++    private static final String WILDCARDS = "resolution/wildcard/";
++    private static final String AFFECTED = "resolution/affected/";
++    private static final byte[] EMPTY = new byte[0];
++    private final PagedGraph.Builder builder;
++    private final String sourceToken;
++    private final byte[] sourceBytes;
++    private int reads;
++    private long bytes;
++    private boolean overflow;
++
++    ResolutionDependencies(PagedGraph.Builder builder, String source) {
++        this.builder = builder;
++        this.sourceToken = token(source);
++        this.sourceBytes = source.getBytes(StandardCharsets.UTF_8);
++        clear(builder, source);
++    }
++
++    static String symbolKey(String kind, String name, String language) {
++        return kind + "/" + PagedGraph.encodeKey(ResolutionLanguages.family(language))
++                + "/" + PagedGraph.encodeKey(name) + "/";
++    }
++
++    static String moduleKey(String path) { return "module/" + PagedGraph.encodeKey(path); }
++
++    void read(String lookupKey) {
++        if (overflow) return;
++        // Conservative accounting includes the two keys and repeated path payload.
++        bytes += sourceBytes.length + 384L;
++        if (++reads > MAX_READS || bytes > MAX_BYTES) {
++            overflow = true;
++            builder.auxiliary(WILDCARDS + sourceToken, sourceBytes);
++            return;
++        }
++        String lookupToken = token(lookupKey);
++        builder.auxiliary(SOURCES + sourceToken + "/" + lookupToken, EMPTY);
++        builder.auxiliary(READERS + lookupToken + "/" + sourceToken, sourceBytes);
++    }
++
++    static void clear(PagedGraph.Builder builder, String source) {
++        String sourceToken = token(source);
++        builder.scanAuxiliary(SOURCES + sourceToken + "/", (key, ignored) -> {
++            String lookupToken = key.substring(key.lastIndexOf('/') + 1);
++            builder.removeAuxiliary(READERS + lookupToken + "/" + sourceToken);
++            // Builder auxiliary scan keys include the storage namespace "a/".
++            builder.removeAuxiliary(key.substring(2));
++        });
++        builder.removeAuxiliary(WILDCARDS + sourceToken);
++    }
++
++    static void invalidate(PagedGraph.Builder builder, String lookupKey) {
++        builder.scanAuxiliary(READERS + token(lookupKey) + "/", (key, value) ->
++                affect(builder, new String(value, StandardCharsets.UTF_8)));
++    }
++
++    static void invalidateOverflow(PagedGraph.Builder builder) {
++        builder.scanAuxiliary(WILDCARDS, (key, value) ->
++                affect(builder, new String(value, StandardCharsets.UTF_8)));
++    }
++
++    static void affect(PagedGraph.Builder builder, String source) {
++        String key = AFFECTED + token(source);
++        // Deduplicate on disk. Avoid dirtying pages repeatedly for shared lookups.
++        if (builder.auxiliary(key) == null)
++            builder.auxiliary(key, source.getBytes(StandardCharsets.UTF_8));
++    }
++
++    static void drain(PagedGraph.Builder builder, java.util.function.Consumer<String> consumer) {
++        builder.scanAuxiliary(AFFECTED, (key, value) -> {
++            consumer.accept(new String(value, StandardCharsets.UTF_8));
++            builder.removeAuxiliary(key.substring(2));
++        });
++    }
++
++    private static String token(String value) {
++        try {
++            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
++                    .digest(value.getBytes(StandardCharsets.UTF_8)));
++        } catch (NoSuchAlgorithmException impossible) { throw new AssertionError(impossible); }
++    }
++}

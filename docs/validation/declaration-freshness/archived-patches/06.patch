@@ -1,0 +1,42 @@
+diff --git a/code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedIncrementalTest.java b/code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedIncrementalTest.java
+index e8baf29..354bf62 100644
+--- a/code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedIncrementalTest.java
++++ b/code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedIncrementalTest.java
+@@ -116,6 +116,37 @@ class PagedIncrementalTest {
+         }
+     }
+ 
++    @Test @Timeout(60) void currentHeadScanSurvivesCommitsAndHasExplicitNonSnapshotSemantics() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();
++            PagedGraph.Builder escaped=graph.rebuild(builder->{
++                for(int i=0;i<600;i++)builder.auxiliary("fragment/"+PagedGraph.sequence(i),new byte[]{1});
++                int[] seen={0};
++                builder.scanAuxiliaryCurrent("fragment/",(key,value)->{
++                    assertArrayEquals(new byte[]{1},value);
++                    assertEquals("a/fragment/"+PagedGraph.sequence(seen[0]++),key);
++                    builder.auxiliary("results/"+key,new byte[8192]);
++                });
++                assertEquals(600,seen[0]);return builder;
++            });
++            assertThrows(IllegalStateException.class,()->escaped.scanAuxiliaryCurrent("fragment/",(k,v)->{}));
++            graph.update(builder->{
++                int[] seen={0};
++                builder.scanAuxiliaryCurrent("fragment/",(key,value)->{
++                    if(seen[0]++==0) {
++                        builder.removeAuxiliary("fragment/"+PagedGraph.sequence(1));
++                        builder.auxiliary("fragment/"+PagedGraph.sequence(600),new byte[]{1});
++                    }
++                    builder.removeAuxiliary(key.substring(2));
++                    builder.auxiliary("replacement/"+key,new byte[8192]);
++                });
++                assertEquals(600,seen[0]);return null;
++            });
++            graph.documents("fragment/",(k,v)->fail("visited keys must be removed"));
++            assertEquals(2,graph.generation());
++        }
++    }
++
+     @Test @Timeout(60) void stagedCursorsRemainValidWhileCallbacksReplaceAndFlushPages() {
+         try(var storage=new GraphStorage(true,32L<<20)) {
+             var graph=(PagedGraph)storage.create();

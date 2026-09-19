@@ -65,13 +65,14 @@ async function host(classpath,root,token,report) {
     assert.deepEqual(report.residualStores,[],'Owned session store was not removed');
   }};
 }
-async function main(classpath,source,witnessFile,output,seconds='60',runs='3') {
-  if(!output)throw Error('Usage: node scripts/benchmark-mixed-search.cjs CLASSPATH FROZEN_SOURCE WITNESSES OUTPUT [SECONDS=60] [RUNS=3]');
+async function main(classpath,source,witnessFile,output,seconds='60',runs='3',declarationMode='all') {
+  if(!output)throw Error('Usage: node scripts/benchmark-mixed-search.cjs CLASSPATH FROZEN_SOURCE WITNESSES OUTPUT [SECONDS=60] [RUNS=3] [DECLARATIONS=all|targeted]');
+  assert.ok(['all','targeted'].includes(declarationMode));
   seconds=Number(seconds);runs=Number(runs);assert.ok(seconds>=2&&seconds<=300&&Number.isInteger(runs)&&runs>=1&&runs<=3);
   source=fs.realpathSync(source);fs.mkdirSync(output,{recursive:true});
   const input=inventory(source),witnesses=JSON.parse(fs.readFileSync(witnessFile)).resultWitnesses,all=[];
   const manifest={startedAt:new Date().toISOString(),classpath,source,input,seconds,runs,heapMiB:768,graphCacheMiB:32,
-    concurrency:1,queries,editIntervalsMs:{body:1000,declaration:10000},warmupQueries:24,
+    concurrency:1,queries,declarationMode,editIntervalsMs:{body:1000,declaration:10000},warmupQueries:24,
     scope:'Real watcher; sequential closed-loop MCP searches; independent JVM per run; rotated idle/body/declaration phases; no OS cache flushing',
     freshness:'File-write completion to first verified published probe hash, observed at 10 ms intervals plus read admission; upper-bound visibility, not exact commit timestamp',
     observation:'One tiny compound graph read per changed generation validates fragment hash and call edges. No polling full inventories.'};
@@ -107,7 +108,7 @@ async function main(classpath,source,witnessFile,output,seconds='60',runs='3') {
         const writer=(async()=>{
           if(name==='idle')return;
           const interval=name==='body'?1000:10000;let next=started;
-          while(!done&&performance.now()<deadline) {
+          while(!done&&next<deadline&&performance.now()<deadline) {
             await wait(Math.max(0,next-performance.now()));if(done||performance.now()>=deadline)break;
             const seq=++editSequence;if(name==='declaration')revision++;
             const content=probe(seq,revision),ack=await server.command({action:'edit',content});
@@ -136,9 +137,9 @@ async function main(classpath,source,witnessFile,output,seconds='60',runs='3') {
         publication.visibilityMs=publication.observedAtMs-edit.writeFinishedMs;assert.ok(publication.visibilityMs>=0);
         const target=edit.sequence%2?'alpha':'beta',expected=Array(edit.sequence%3+1).fill(`java:${PROBE}#latencyprobe.LatencyProbe.${target}/0`);
         assert.deepEqual(publication.calls.sort(),expected,'Published fragment and edges disagree');
-        assert.equal(publication.work.mode,edit.phase==='body'?'incremental':'incremental-reresolve');
+        assert.equal(publication.work.mode,edit.phase==='body'?'incremental':declarationMode==='all'?'incremental-reresolve':'incremental-targeted');
         assert.equal(publication.work.parsedFiles,1);
-        assert.equal(publication.work.resolvedFiles,edit.phase==='body'?1:report.before.files);
+        assert.equal(publication.work.resolvedFiles,edit.phase==='body'||declarationMode==='targeted'?1:report.before.files);
       }
       for(const phase of report.phases) {
         const published=report.publications.filter(p=>p.phase===phase.name),edits=report.edits.filter(e=>e.phase===phase.name);

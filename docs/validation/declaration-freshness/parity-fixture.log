@@ -1,0 +1,11 @@
+scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+  required: Map<String,Object>
+  found:    Map
+1 warning
+initial 6790ms parsed=74
+unchanged-save 10ms parsed=0
+body-edit 23ms parsed=1
+declaration-edit 27ms parsed=1
+config-edit 2024ms parsed=0

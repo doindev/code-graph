@@ -1,0 +1,36 @@
+diff --git a/docs/guides/indexing.md b/docs/guides/indexing.md
+index 5c04c66..1adb240 100644
+--- a/docs/guides/indexing.md
++++ b/docs/guides/indexing.md
+@@ -63,9 +63,18 @@ counters.
+ 
+ Hybrid batches store changed fragments and their lookup records under stable file/symbol
+ keys and update copy-on-write MVStore pages. A body-only edit resolves its changed fragments;
+-declaration/module changes, additions/deletions and module-configuration edits re-resolve all
+-disk fragments without reparsing unrelated source files. Unchanged saves skip parsing and do
+-not advance the generation.
++declaration/module changes and additions/deletions re-resolve the changed files and their
++recorded lookup consumers. Positive and negative name lookups and module-path probes are
++tracked, so new overloads, previously missing declarations and re-export changes can heal
++without visiting every source fragment. Module-configuration edits still re-resolve all
++disk fragments without reparsing unrelated source files. Unchanged saves skip parsing
++and do not advance the generation.
++
++Reverse dependencies and a deduplicated work queue are stored in the same staged graph,
++not a project-sized Java map. Per-file evidence is capped at 4,096 uncached lookup
++observations / 1 MiB estimated tracking records. A file exceeding either bound is marked
++for conservative re-resolution on any declaration/module change. Missing legacy evidence
++forces a full rebuild rather than trusting an incomplete dependency inventory.
+ 
+ The prior snapshot is pinned through intermediate write flushes until atomic publication.
+ Failure or cancellation rolls back staged changes. Batches are bounded to 1,024 paths and
+@@ -76,6 +85,9 @@ the 1-second coalescing deadline is not a guarantee of indexing completion.
+ 
+ See [hybrid incremental validation](../hybrid-incremental-delivery.md) for reproducible
+ comparisons, bounded-memory tests and known tradeoffs.
++The [freshness follow-up](../validation/declaration-freshness/README.md) measures
++targeted declaration updates during sustained MCP searches, including the additional
++disk cost of reverse lookup evidence.
+ 
+ ## What gets indexed
+ 

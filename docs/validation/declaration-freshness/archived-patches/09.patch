@@ -1,0 +1,16 @@
+diff --git a/docs/hybrid-incremental-delivery.md b/docs/hybrid-incremental-delivery.md
+index 2045c40..efcf364 100644
+--- a/docs/hybrid-incremental-delivery.md
++++ b/docs/hybrid-incremental-delivery.md
+@@ -3,6 +3,11 @@
+ Status: implemented and locally validated; deployment remains pending explicit approval.
+ Baseline commit: 6ddfb38. Validation date: September 18, 2026 (Windows).
+ 
++The subsequent [declaration-freshness follow-up](validation/declaration-freshness/README.md)
++narrows declaration/module invalidation using bounded disk-owned lookup evidence.
++The all-fragment declaration behavior and timings below describe the original
++incremental milestone, not that follow-up. Configuration changes remain broad.
++
+ Follow-up performance gate: actual MCP name-search measurements initially found
+ a **3.5x latency regression** (90 ms to 318 ms median). A subsequent 32 KiB
+ page-split fix restores median/p95 performance while preserving incremental

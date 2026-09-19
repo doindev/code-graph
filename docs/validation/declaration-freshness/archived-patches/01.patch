@@ -1,0 +1,17 @@
+diff --git a/README.md b/README.md
+index 279da5a..08379cb 100644
+--- a/README.md
++++ b/README.md
+@@ -412,8 +412,10 @@ process-wide ceiling is required, with headroom for those allocations.
+ Hybrid indexing is serialized across projects and stages file fragments/name indexes on disk
+ rather than retaining a second complete Java graph. Ordinary saves update copy-on-write pages
+ in the existing file, then atomically publish a generation; readers continue using the prior
+-snapshot. Unchanged content is not reparsed. Declaration/module/configuration changes re-resolve
+-stored fragments without reparsing unrelated files. Directory/ignore changes, watcher overflow,
++snapshot. Unchanged content is not reparsed. Declaration/module changes use disk-backed
++lookup dependencies (including missing names) to re-resolve affected fragments without
++reparsing unrelated files. Module-configuration changes retain conservative whole-project
++re-resolution. Directory/ignore changes, watcher overflow,
+ and batches exceeding 1,024 paths or 1 MiB of path text fall back to a full staged rebuild.
+ Rebuild fallbacks temporarily require space for two stores. See the
+ [incremental validation and measurements](docs/hybrid-incremental-delivery.md).

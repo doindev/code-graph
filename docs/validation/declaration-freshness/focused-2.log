@@ -1,0 +1,189 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-lang-java                                               [jar]
+[INFO] code-graph-lang-javascript                                         [jar]
+[INFO] code-graph-lang-python                                             [jar]
+[INFO] code-graph-storage                                                 [jar]
+[INFO] code-graph-index                                                   [jar]
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                 [1/8]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-core >---------------------
+[INFO] Building code-graph-core 0.0.1-SNAPSHOT                            [2/8]
+[INFO]   from code-graph-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-core\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-core\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-core ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-parsers >--------------------
+[INFO] Building code-graph-parsers 0.0.1-SNAPSHOT                         [3/8]
+[INFO]   from code-graph-parsers\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-parsers\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-parsers\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-parsers ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-java >-------------------
+[INFO] Building code-graph-lang-java 0.0.1-SNAPSHOT                       [4/8]
+[INFO]   from code-graph-lang-java\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-java ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-java ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-java ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-java\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-java ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-java ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------------< io.doindev:code-graph-lang-javascript >----------------
+[INFO] Building code-graph-lang-javascript 0.0.1-SNAPSHOT                 [5/8]
+[INFO]   from code-graph-lang-javascript\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-javascript ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-javascript ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-javascript ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-javascript\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-javascript ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-javascript ---
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-python >------------------
+[INFO] Building code-graph-lang-python 0.0.1-SNAPSHOT                     [6/8]
+[INFO]   from code-graph-lang-python\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-python ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-python ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-python ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-python\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-python ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-python ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-storage >--------------------
+[INFO] Building code-graph-storage 0.0.1-SNAPSHOT                         [7/8]
+[INFO]   from code-graph-storage\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-storage\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-storage ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-storage\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-storage ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-storage ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-index >---------------------
+[INFO] Building code-graph-index 0.0.1-SNAPSHOT                           [8/8]
+[INFO]   from code-graph-index\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-index ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-index\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-index ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-index ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-index\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-index ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 13 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-index ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.index.HybridIncrementalTest
+code-graph: incremental index failed; scheduling recovery: java.lang.IllegalStateException: transient test failure
+[WARNING] Tests run: 15, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 7.205 s -- in io.doindev.codegraph.index.HybridIncrementalTest
+[INFO] Running io.doindev.codegraph.index.ResolutionDependenciesTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.367 s -- in io.doindev.codegraph.index.ResolutionDependenciesTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[WARNING] Tests run: 18, Failures: 0, Errors: 0, Skipped: 1
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph ......................................... SUCCESS [  0.003 s]
+[INFO] code-graph-core .................................... SUCCESS [  1.139 s]
+[INFO] code-graph-parsers ................................. SUCCESS [  0.206 s]
+[INFO] code-graph-lang-java ............................... SUCCESS [  0.085 s]
+[INFO] code-graph-lang-javascript ......................... SUCCESS [  0.090 s]
+[INFO] code-graph-lang-python ............................. SUCCESS [  0.055 s]
+[INFO] code-graph-storage ................................. SUCCESS [  0.079 s]
+[INFO] code-graph-index ................................... SUCCESS [ 11.147 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  13.150 s
+[INFO] Finished at: 2026-09-19T00:12:18-05:00
+[INFO] ------------------------------------------------------------------------

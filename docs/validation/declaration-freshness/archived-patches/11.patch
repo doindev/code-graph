@@ -1,0 +1,78 @@
+diff --git a/code-graph-index/src/test/java/io/doindev/codegraph/index/ResolutionDependenciesTest.java b/code-graph-index/src/test/java/io/doindev/codegraph/index/ResolutionDependenciesTest.java
+new file mode 100644
+--- /dev/null
++++ b/code-graph-index/src/test/java/io/doindev/codegraph/index/ResolutionDependenciesTest.java
+@@ -0,0 +1,73 @@
++package io.doindev.codegraph.index;
++
++import io.doindev.codegraph.storage.*;
++import java.util.*;
++import java.util.concurrent.atomic.AtomicInteger;
++import org.junit.jupiter.api.Test;
++import static org.junit.jupiter.api.Assertions.*;
++
++class ResolutionDependenciesTest {
++    private static int count(PagedGraph graph,String prefix) {
++        var count=new AtomicInteger();graph.documents(prefix,(k,v)->count.incrementAndGet());return count.get();
++    }
++
++    @Test void overflowIsConservativeAndCleanupRemovesBothDirections() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();
++            graph.rebuild(builder->{
++                var dependencies=new ResolutionDependencies(builder,"bounded.java");
++                for(int n=0;n<ResolutionDependencies.MAX_READS+10;n++)dependencies.read("lookup-"+n);
++                return null;
++            });
++            assertEquals(1,count(graph,"resolution/wildcard/"));
++            assertTrue(count(graph,"resolution/source/")<=ResolutionDependencies.MAX_READS);
++            assertEquals(count(graph,"resolution/source/"),count(graph,"resolution/readers/"));
++            graph.update(builder->{
++                ResolutionDependencies.invalidateOverflow(builder);
++                var found=new ArrayList<String>();ResolutionDependencies.drain(builder,found::add);
++                assertEquals(List.of("bounded.java"),found);
++                ResolutionDependencies.clear(builder,"bounded.java");return null;
++            });
++            assertEquals(0,count(graph,"resolution/"));
++        }
++    }
++
++    @Test void streamedFanInQueueIsDeduplicatedAndPartitionIsolated() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();var other=(PagedGraph)storage.create();
++            graph.rebuild(builder->{
++                for(int n=0;n<100;n++)new ResolutionDependencies(builder,"source-"+n).read("shared");
++                return null;
++            });
++            other.rebuild(builder->{new ResolutionDependencies(builder,"another-project").read("shared");return null;});
++            graph.update(builder->{
++                ResolutionDependencies.invalidate(builder,"shared");ResolutionDependencies.invalidate(builder,"shared");
++                var seen=new HashSet<String>();ResolutionDependencies.drain(builder,path->assertTrue(seen.add(path)));
++                assertEquals(100,seen.size());return null;
++            });
++            assertEquals(0,count(graph,"resolution/affected/"));
++            assertEquals(0,count(other,"resolution/affected/"));
++            assertEquals(100,count(graph,"resolution/source/"));
++        }
++    }
++
++    @Test void failedPublicationRollsBackLookupEvidenceAndWorkQueue() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();
++            graph.rebuild(builder->{new ResolutionDependencies(builder,"source").read("old");return null;});
++            long generation=graph.generation();
++            assertThrows(IllegalStateException.class,()->graph.update(builder->{
++                var replacement=new ResolutionDependencies(builder,"source");replacement.read("new");
++                ResolutionDependencies.affect(builder,"source");throw new IllegalStateException("injected failure");
++            }));
++            assertEquals(generation,graph.generation());
++            graph.update(builder->{
++                var found=new ArrayList<String>();ResolutionDependencies.invalidate(builder,"new");
++                ResolutionDependencies.drain(builder,found::add);assertTrue(found.isEmpty());
++                ResolutionDependencies.invalidate(builder,"old");ResolutionDependencies.drain(builder,found::add);
++                assertEquals(List.of("source"),found);return null;
++            });
++            assertEquals(0,count(graph,"resolution/affected/"));
++        }
++    }
++}

@@ -1,0 +1,760 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph-bom                                                     [pom]
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-config                                                  [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-lang-java                                               [jar]
+[INFO] code-graph-lang-javascript                                         [jar]
+[INFO] code-graph-lang-python                                             [jar]
+[INFO] code-graph-lang-go                                                 [jar]
+[INFO] code-graph-lang-rust                                               [jar]
+[INFO] code-graph-lang-c                                                  [jar]
+[INFO] code-graph-lang-csharp                                             [jar]
+[INFO] code-graph-lang-php                                                [jar]
+[INFO] code-graph-lang-ruby                                               [jar]
+[INFO] code-graph-lang-kotlin                                             [jar]
+[INFO] code-graph-lang-scala                                              [jar]
+[INFO] code-graph-lang-swift                                              [jar]
+[INFO] code-graph-lang-dart                                               [jar]
+[INFO] code-graph-lang-objc                                               [jar]
+[INFO] code-graph-lang-sql                                                [jar]
+[INFO] code-graph-storage                                                 [jar]
+[INFO] code-graph-index                                                   [jar]
+[INFO] code-graph-analysis                                                [jar]
+[INFO] code-graph-rules                                                   [jar]
+[INFO] code-graph-smells                                                  [jar]
+[INFO] code-graph-tools                                                   [jar]
+[INFO] code-graph-dba                                                     [jar]
+[INFO] code-graph-viz                                                     [jar]
+[INFO] code-graph-mcp                                                     [jar]
+[INFO] code-graph-store-h2                                                [jar]
+[INFO] code-graph-store-neo4j                                             [jar]
+[INFO] code-graph-store-arangodb                                          [jar]
+[INFO] code-graph-linker                                                  [jar]
+[INFO] code-graph-cli                                                     [jar]
+[INFO] code-graph-mcp-http                                                [jar]
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-bom >----------------------
+[INFO] Building code-graph-bom 0.0.1-SNAPSHOT                            [1/35]
+[INFO]   from code-graph-bom\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                [2/35]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-core >---------------------
+[INFO] Building code-graph-core 0.0.1-SNAPSHOT                           [3/35]
+[INFO]   from code-graph-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-core\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-core\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-core ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.graph.EnginePerfTest
+[WARNING] Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.007 s -- in io.doindev.codegraph.graph.EnginePerfTest
+[INFO] Running io.doindev.codegraph.graph.InMemoryCodeGraphTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.096 s -- in io.doindev.codegraph.graph.InMemoryCodeGraphTest
+[INFO] Running io.doindev.codegraph.graph.PinnedReadTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in io.doindev.codegraph.graph.PinnedReadTest
+[INFO] Running io.doindev.codegraph.lifecycle.ProjectLifecycleTest
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'b'
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'a'
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.036 s -- in io.doindev.codegraph.lifecycle.ProjectLifecycleTest
+[INFO] Running io.doindev.codegraph.model.NodeIdTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in io.doindev.codegraph.model.NodeIdTest
+[INFO] Running io.doindev.codegraph.query.GenerationCursorTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.083 s -- in io.doindev.codegraph.query.GenerationCursorTest
+[INFO] Running io.doindev.codegraph.snapshot.FileSnapshotStoreTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.053 s -- in io.doindev.codegraph.snapshot.FileSnapshotStoreTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[WARNING] Tests run: 26, Failures: 0, Errors: 0, Skipped: 1
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-core ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-config >--------------------
+[INFO] Building code-graph-config 0.0.1-SNAPSHOT                         [4/35]
+[INFO]   from code-graph-config\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-config ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-config\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-config ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-config ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-config\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-config ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-config ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.config.loader.ConfigLoaderTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.503 s -- in io.doindev.codegraph.config.loader.ConfigLoaderTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-config ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-parsers >--------------------
+[INFO] Building code-graph-parsers 0.0.1-SNAPSHOT                        [5/35]
+[INFO]   from code-graph-parsers\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-parsers\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-parsers\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-parsers ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.parse.GrammarAbiSmokeTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.380 s -- in io.doindev.codegraph.parse.GrammarAbiSmokeTest
+[INFO] Running io.doindev.codegraph.parse.NameResolverLanguageTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s -- in io.doindev.codegraph.parse.NameResolverLanguageTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-parsers ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-java >-------------------
+[INFO] Building code-graph-lang-java 0.0.1-SNAPSHOT                      [6/35]
+[INFO]   from code-graph-lang-java\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-java ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-java ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-java ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-java\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-java ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-java ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-java ---
+[INFO] 
+[INFO] ---------------< io.doindev:code-graph-lang-javascript >----------------
+[INFO] Building code-graph-lang-javascript 0.0.1-SNAPSHOT                [7/35]
+[INFO]   from code-graph-lang-javascript\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-javascript ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-javascript ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-javascript ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-javascript\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-javascript ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-javascript ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.javascript.ModuleResolutionTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.334 s -- in io.doindev.codegraph.lang.javascript.ModuleResolutionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-javascript ---
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-python >------------------
+[INFO] Building code-graph-lang-python 0.0.1-SNAPSHOT                    [8/35]
+[INFO]   from code-graph-lang-python\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-python ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-python ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-python ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-python\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-python ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-python ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-python ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-go >--------------------
+[INFO] Building code-graph-lang-go 0.0.1-SNAPSHOT                        [9/35]
+[INFO]   from code-graph-lang-go\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-go ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-go ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-go ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-go\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-go ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-go ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.go.GoAnalyzerTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.221 s -- in io.doindev.codegraph.lang.go.GoAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-go ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-rust >-------------------
+[INFO] Building code-graph-lang-rust 0.0.1-SNAPSHOT                     [10/35]
+[INFO]   from code-graph-lang-rust\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-rust ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-rust ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-rust ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-rust\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-rust ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-rust ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.rust.RustAnalyzerTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.307 s -- in io.doindev.codegraph.lang.rust.RustAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-rust ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-lang-c >--------------------
+[INFO] Building code-graph-lang-c 0.0.1-SNAPSHOT                        [11/35]
+[INFO]   from code-graph-lang-c\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-c ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-c ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-c ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-c\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-c ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-c ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.c.CAnalyzerTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.192 s -- in io.doindev.codegraph.lang.c.CAnalyzerTest
+[INFO] Running io.doindev.codegraph.lang.c.CppAnalyzerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.079 s -- in io.doindev.codegraph.lang.c.CppAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-c ---
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-csharp >------------------
+[INFO] Building code-graph-lang-csharp 0.0.1-SNAPSHOT                   [12/35]
+[INFO]   from code-graph-lang-csharp\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-csharp ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-csharp ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-csharp ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-csharp\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-csharp ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-csharp ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.csharp.CSharpAnalyzerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.244 s -- in io.doindev.codegraph.lang.csharp.CSharpAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-csharp ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-php >-------------------
+[INFO] Building code-graph-lang-php 0.0.1-SNAPSHOT                      [13/35]
+[INFO]   from code-graph-lang-php\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-php ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-php ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-php ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-php\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-php ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-php ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.php.PhpAnalyzerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.216 s -- in io.doindev.codegraph.lang.php.PhpAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-php ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-ruby >-------------------
+[INFO] Building code-graph-lang-ruby 0.0.1-SNAPSHOT                     [14/35]
+[INFO]   from code-graph-lang-ruby\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-ruby ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-ruby ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-ruby ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-ruby\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-ruby ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-ruby ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.ruby.RubyAnalyzerTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.194 s -- in io.doindev.codegraph.lang.ruby.RubyAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-ruby ---
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-kotlin >------------------
+[INFO] Building code-graph-lang-kotlin 0.0.1-SNAPSHOT                   [15/35]
+[INFO]   from code-graph-lang-kotlin\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-kotlin ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-kotlin ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-kotlin ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-kotlin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-kotlin ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-kotlin ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.kotlin.KotlinAnalyzerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.240 s -- in io.doindev.codegraph.lang.kotlin.KotlinAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-kotlin ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-scala >------------------
+[INFO] Building code-graph-lang-scala 0.0.1-SNAPSHOT                    [16/35]
+[INFO]   from code-graph-lang-scala\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-scala ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-scala ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-scala ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-scala\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-scala ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-scala ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.scala.ScalaAnalyzerTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.222 s -- in io.doindev.codegraph.lang.scala.ScalaAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-scala ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-swift >------------------
+[INFO] Building code-graph-lang-swift 0.0.1-SNAPSHOT                    [17/35]
+[INFO]   from code-graph-lang-swift\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-swift ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-swift ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-swift ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-swift\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-swift ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-swift ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.swift.SwiftAnalyzerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.216 s -- in io.doindev.codegraph.lang.swift.SwiftAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-swift ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-dart >-------------------
+[INFO] Building code-graph-lang-dart 0.0.1-SNAPSHOT                     [18/35]
+[INFO]   from code-graph-lang-dart\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-dart ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-dart ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-dart ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-dart\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-dart ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-dart ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.dart.DartAnalyzerTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.197 s -- in io.doindev.codegraph.lang.dart.DartAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-dart ---
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-objc >-------------------
+[INFO] Building code-graph-lang-objc 0.0.1-SNAPSHOT                     [19/35]
+[INFO]   from code-graph-lang-objc\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-objc ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-objc ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-objc ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-objc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-objc ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-objc ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.objc.ObjcAnalyzerTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.222 s -- in io.doindev.codegraph.lang.objc.ObjcAnalyzerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-objc ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-sql >-------------------
+[INFO] Building code-graph-lang-sql 0.0.1-SNAPSHOT                      [20/35]
+[INFO]   from code-graph-lang-sql\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-sql ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-sql ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-sql ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-lang-sql\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-sql ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-sql ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.sql.SqlAnalyzerTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.174 s -- in io.doindev.codegraph.lang.sql.SqlAnalyzerTest
+[INFO] Running io.doindev.codegraph.lang.sql.SqlQueriesTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in io.doindev.codegraph.lang.sql.SqlQueriesTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-sql ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-storage >--------------------
+[INFO] Building code-graph-storage 0.0.1-SNAPSHOT                       [21/35]
+[INFO]   from code-graph-storage\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-storage\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-storage ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 3 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-storage\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-storage ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 4 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-storage ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.storage.DocumentStoreTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.176 s -- in io.doindev.codegraph.storage.DocumentStoreTest
+[INFO] Running io.doindev.codegraph.storage.PagedGraphTest
+[WARNING] Tests run: 6, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 1.085 s -- in io.doindev.codegraph.storage.PagedGraphTest
+[INFO] Running io.doindev.codegraph.storage.PagedIncrementalTest
+[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.813 s <<< FAILURE! -- in io.doindev.codegraph.storage.PagedIncrementalTest
+[ERROR] io.doindev.codegraph.storage.PagedIncrementalTest.freshFragmentedStoreCompactsWithoutLosingRecords -- Time elapsed: 1.316 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: {mode=hybrid, budgetBytes=33554432, cacheCapacityBytes=15728640, cacheUsedBytesEstimate=0, peakCacheUsedBytesEstimate=0, cacheHits=0, cacheMisses=0, cacheEvictions=0, enginePageCacheBytes=0, activeAndStagedStores=1, metadataReserveBytes=1048576, temporaryReserveBytes=16777216, peakUnsavedBytesEstimate=1066081, unsavedBytesEstimate=0, cacheOverCapacityBytesEstimate=0, peakDirtyThresholdOvershootBytesEstimate=17505, accountingComplete=false, hardProcessMemoryLimit=false, heapMaxBytes=268435456, heapUsedBytes=135721552, diskBytes=75522048, note=Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds.} ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at io.doindev.codegraph.storage.PagedIncrementalTest.freshFragmentedStoreCompactsWithoutLosingRecords(PagedIncrementalTest.java:137)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO] Running io.doindev.codegraph.storage.PagedSearchRegressionTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.254 s -- in io.doindev.codegraph.storage.PagedSearchRegressionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   PagedIncrementalTest.freshFragmentedStoreCompactsWithoutLosingRecords:137 {mode=hybrid, budgetBytes=33554432, cacheCapacityBytes=15728640, cacheUsedBytesEstimate=0, peakCacheUsedBytesEstimate=0, cacheHits=0, cacheMisses=0, cacheEvictions=0, enginePageCacheBytes=0, activeAndStagedStores=1, metadataReserveBytes=1048576, temporaryReserveBytes=16777216, peakUnsavedBytesEstimate=1066081, unsavedBytesEstimate=0, cacheOverCapacityBytesEstimate=0, peakDirtyThresholdOvershootBytesEstimate=17505, accountingComplete=false, hardProcessMemoryLimit=false, heapMaxBytes=268435456, heapUsedBytes=135721552, diskBytes=75522048, note=Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds.} ==> expected: <true> but was: <false>
+[INFO] 
+[ERROR] Tests run: 16, Failures: 1, Errors: 0, Skipped: 1
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph-bom ..................................... SUCCESS [  0.003 s]
+[INFO] code-graph ......................................... SUCCESS [  0.001 s]
+[INFO] code-graph-core .................................... SUCCESS [  2.819 s]
+[INFO] code-graph-config .................................. SUCCESS [  1.440 s]
+[INFO] code-graph-parsers ................................. SUCCESS [  1.416 s]
+[INFO] code-graph-lang-java ............................... SUCCESS [  0.068 s]
+[INFO] code-graph-lang-javascript ......................... SUCCESS [  1.148 s]
+[INFO] code-graph-lang-python ............................. SUCCESS [  0.070 s]
+[INFO] code-graph-lang-go ................................. SUCCESS [  0.997 s]
+[INFO] code-graph-lang-rust ............................... SUCCESS [  1.140 s]
+[INFO] code-graph-lang-c .................................. SUCCESS [  1.035 s]
+[INFO] code-graph-lang-csharp ............................. SUCCESS [  1.066 s]
+[INFO] code-graph-lang-php ................................ SUCCESS [  0.993 s]
+[INFO] code-graph-lang-ruby ............................... SUCCESS [  1.016 s]
+[INFO] code-graph-lang-kotlin ............................. SUCCESS [  1.008 s]
+[INFO] code-graph-lang-scala .............................. SUCCESS [  0.994 s]
+[INFO] code-graph-lang-swift .............................. SUCCESS [  0.995 s]
+[INFO] code-graph-lang-dart ............................... SUCCESS [  0.940 s]
+[INFO] code-graph-lang-objc ............................... SUCCESS [  1.004 s]
+[INFO] code-graph-lang-sql ................................ SUCCESS [  1.107 s]
+[INFO] code-graph-storage ................................. FAILURE [  6.394 s]
+[INFO] code-graph-index ................................... SKIPPED
+[INFO] code-graph-analysis ................................ SKIPPED
+[INFO] code-graph-rules ................................... SKIPPED
+[INFO] code-graph-smells .................................. SKIPPED
+[INFO] code-graph-tools ................................... SKIPPED
+[INFO] code-graph-dba ..................................... SKIPPED
+[INFO] code-graph-viz ..................................... SKIPPED
+[INFO] code-graph-mcp ..................................... SKIPPED
+[INFO] code-graph-store-h2 ................................ SKIPPED
+[INFO] code-graph-store-neo4j ............................. SKIPPED
+[INFO] code-graph-store-arangodb .......................... SKIPPED
+[INFO] code-graph-linker .................................. SKIPPED
+[INFO] code-graph-cli ..................................... SKIPPED
+[INFO] code-graph-mcp-http ................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  26.015 s
+[INFO] Finished at: 2026-09-19T00:46:25-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test (default-test) on project code-graph-storage: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\timhj\AppData\Local\Temp\cgraph-freshness-cfd6ea37f30e4d24afcdd6c381507446\code-graph-storage\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :code-graph-storage
