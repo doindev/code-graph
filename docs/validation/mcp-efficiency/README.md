@@ -161,11 +161,15 @@ TypeScript compiler, bundler, or runtime evaluator. Missing edges do not prove
 non-use. No real client trial proves that every agent will adopt the skill's
 stopping rule.
 
-Hybrid file changes retain the existing full staged rebuild lifecycle. The
+At this benchmark's frozen build, hybrid file changes retained the full staged rebuild lifecycle. The
 250-300 ms watcher start delay is not completion latency; later edits can wait
 behind a running rebuild. Incremental disk-delta indexing, cheaper file-owned
 lookups and remaining position-coverage questions are recorded in the
 [follow-up ledger](../../language-resolution-followups.md), not claimed fixed.
+
+Subsequent work addresses the full-rebuild-per-edit limitation; see the separate
+[hybrid incremental acceptance report](../../hybrid-incremental-delivery.md).
+That later result does not alter the historical measurements above.
 
 Deployment requires explicit approval to restart the application and a fresh
 index so old fragments gain module evidence.

@@ -16,11 +16,17 @@ import java.util.function.*;
 public final class PagedGraph implements ManagedGraph {
     public static final int MAX_RECORD_BYTES = 8 << 20;
     public static final int MAX_RESULTS = 20_000;
+    // A split target, not a maximum record size. With the cancellation-safe async
+    // channel, 4 KiB pages cause excessive small reads during streaming searches.
+    // 32 KiB amortizes those reads without adding a page cache or changing the
+    // shared allowance / 1 MiB dirty-write threshold. Keep large-record bounds.
+    static final int PAGE_SPLIT_BYTES = 32 << 10;
     private final GraphStorage owner;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
     private Generation active;
     private volatile boolean closed;
     private volatile int dirty;
+    private volatile boolean updateRecoveryFailed;
 
     PagedGraph(GraphStorage owner) { this.owner = owner; }
     @Override public int materializationLimit() { return MAX_RESULTS; }
@@ -34,7 +40,11 @@ public final class PagedGraph implements ManagedGraph {
     @Override public <T> T read(Supplier<T> query) {
         return owner.query(() -> {
             lock.readLock().lock();
-            try { if (closed) throw new IllegalStateException("project graph was removed"); return query.get(); }
+            try {
+                if (closed) throw new IllegalStateException("project graph was removed");
+                if (updateRecoveryFailed) throw new IllegalStateException("hybrid update recovery failed; reindex this project");
+                return query.get();
+            }
             finally { lock.readLock().unlock(); }
         });
     }
@@ -50,18 +60,73 @@ public final class PagedGraph implements ManagedGraph {
             try {
                 T result = producer.apply(builder);
                 builder.open = false;
-                staged.store.commit();
-                owner.unsaved(0);
-                staged.indexed = Instant.now();
+                staged.freeze();
                 lock.writeLock().lock();
                 try {
                     Generation old = active;
-                    active = staged; published = true;
+                    active = staged; published = true; updateRecoveryFailed = false;
                     if (old != null) old.close();
                 } finally { lock.writeLock().unlock(); }
                 return result;
             } finally { builder.open = false; if (!published) staged.close(); owner.unsaved(0); }
         });
+    }
+
+    /**
+     * Stage copy-on-write pages in the existing file. Queries retain the old
+     * committed snapshot until the short publication barrier. Intermediate
+     * flushes bound dirty memory; they never publish a partial graph.
+     */
+    public <T> T update(Function<Builder,T> producer) {
+        if (lock.getReadHoldCount() > 0) throw new IllegalStateException("cannot update inside a graph read");
+        return owner.write(() -> {
+            if (closed) throw new IllegalStateException("project graph was removed");
+            if (updateRecoveryFailed) throw new IllegalStateException("hybrid update recovery failed; reindex this project");
+            if (active == null) throw new IllegalStateException("initial graph generation is required");
+            Generation previous = active;
+            Generation staged = new Generation(previous);
+            Builder builder = new Builder(staged);
+            boolean published = false;
+            try {
+                T result = producer.apply(builder);
+                builder.checkOpen();
+                if (!builder.changed) return result;
+                builder.open = false;
+                staged.freeze();
+                lock.writeLock().lock();
+                try {
+                    checkInterrupted();
+                    active = staged;
+                    published = true;
+                    previous.releaseSnapshot();
+                } finally { lock.writeLock().unlock(); }
+                return result;
+            } finally {
+                builder.open = false;
+                if (!published && builder.changed) {
+                    // Finish recovery even when the requester cancelled. Restore
+                    // the signal afterward; never interrupt rollback halfway.
+                    boolean interrupted = Thread.interrupted();
+                    try {
+                        staged.releaseSnapshot();
+                        previous.store.rollbackTo(previous.committedVersion);
+                    }
+                    catch (RuntimeException recovery) {
+                        updateRecoveryFailed = true;
+                        throw new IllegalStateException("hybrid update rollback failed; reindex this project", recovery);
+                    } finally {
+                        owner.unsaved(0);
+                        if (interrupted) Thread.currentThread().interrupt();
+                    }
+                }
+                owner.unsaved(0);
+            }
+        });
+    }
+
+    private static void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted())
+            throw new java.util.concurrent.CancellationException("graph indexing was interrupted");
     }
 
     public byte[] document(String key) { return read(() -> active==null?null:active.map.get("a/"+key)); }
@@ -71,26 +136,62 @@ public final class PagedGraph implements ManagedGraph {
 
     public final class Builder {
         private final Generation generation;
-        private long sequence;
         private boolean open = true;
-        private void checkOpen() { if (!open) throw new IllegalStateException("staged builder is no longer active"); }
+        private boolean changed;
+        private void checkOpen() {
+            if (!open) throw new IllegalStateException("staged builder is no longer active");
+            checkInterrupted();
+        }
         private Builder(Generation generation) { this.generation = generation; }
         public void node(Node node) {
             checkOpen();
             byte[] previous = generation.map.get(nodeKey(node.id()));
+            changed = true;
             generation.put(nodeKey(node.id()), RecordCodec.node(node));
             if (previous == null && node.id() instanceof SymbolId && node.kind()!=NodeKind.DATABASE_MAPPING) generation.symbols++;
         }
         public void edge(Edge edge) {
             checkOpen();
-            String suffix = String.format(Locale.ROOT, "%02d/", edge.kind().ordinal()) + sequence(sequence++);
+            changed = true;
+            String suffix = String.format(Locale.ROOT, "%02d/", edge.kind().ordinal()) + sequence(generation.nextEdge++);
             byte[] bytes = RecordCodec.edge(edge);
             generation.put(edgePrefix(edge.from(), true) + suffix, bytes);
             generation.put(edgePrefix(edge.to(), false) + suffix, bytes);
             generation.edges++;
         }
-        public void file(String lang) { checkOpen(); generation.files++; generation.languages.merge(lang, 1, Integer::sum); }
-        public void auxiliary(String key, byte[] bytes) { checkOpen(); generation.put("a/" + key, bytes); }
+        public void file(String lang) { checkOpen(); changed = true; generation.files++; generation.languages.merge(lang, 1, Integer::sum); }
+        public void removeFile(String lang) {
+            checkOpen(); changed = true; generation.files--;
+            generation.languages.compute(lang,(key,count)->count==null||count<=1?null:count-1);
+        }
+        public void removeNode(NodeId id) {
+            checkOpen();
+            byte[] bytes = generation.map.get(nodeKey(id));
+            if (bytes == null) return;
+            Node node = RecordCodec.node(bytes);
+            changed = true; generation.remove(nodeKey(id));
+            if (id instanceof SymbolId && node.kind()!=NodeKind.DATABASE_MAPPING) generation.symbols--;
+        }
+        /** Streaming removal retains both adjacency indexes and duplicate occurrence counts. */
+        public void removeOutgoing(NodeId id) {
+            checkOpen();
+            String prefix = edgePrefix(id,true);
+            generation.scan(prefix,(key,value)->{
+                checkOpen();
+                Edge edge = RecordCodec.edge(value);
+                changed = true;
+                generation.remove(edgePrefix(edge.to(),false)+key.substring(prefix.length()));
+                generation.remove(key);
+                generation.edges--;
+            });
+        }
+        public void auxiliary(String key, byte[] bytes) {
+            checkOpen(); changed = true; generation.put("a/" + key, bytes);
+        }
+        public void removeAuxiliary(String key) {
+            checkOpen();
+            if (generation.map.containsKey("a/"+key)) { changed = true; generation.remove("a/"+key); }
+        }
         public byte[] auxiliary(String key) { checkOpen(); return generation.map.get("a/" + key); }
         public void scanAuxiliary(String prefix, BiConsumer<String, byte[]> visitor) {
             checkOpen();
@@ -102,33 +203,66 @@ public final class PagedGraph implements ManagedGraph {
         final Path path;
         final String cachePrefix;
         final MVStore store;
-        final MVMap<String, byte[]> map;
+        final MVMap<String, byte[]> writerMap;
+        MVMap<String, byte[]> map;
         final long number;
         final Map<String, Integer> languages = new HashMap<>();
         int files, symbols;
         long edges;
+        long nextEdge, committedVersion;
+        MVStore.TxCounter versionLease;
         Instant indexed;
         Generation(long number) {
             this.number = number;
-            path = owner.newFile(); cachePrefix = path.getFileName() + "/";
+            path = owner.newFile(); cachePrefix = path.getFileName() + "/g" + number + "/";
             MVStore opened = null;
             try {
-                opened = new MVStore.Builder().fileName(path.toString()).cacheSize(0)
-                        .compress().autoCommitDisabled().pageSplitSize(4096).open();
+                // H2's async channel waits through Java interrupts without
+                // closing the shared file. Cancellation is checked between
+                // bounded operations, never by destroying an active snapshot.
+                opened = new MVStore.Builder().fileName("async:" + path).cacheSize(0)
+                        .compress().autoCommitDisabled().pageSplitSize(PAGE_SPLIT_BYTES).open();
                 if (opened.getCacheSize() != 0) throw new IllegalStateException("engine page cache must be disabled");
-                opened.setRetentionTime(0); // No historical versions are exposed; active generations are separate files.
+                opened.setRetentionTime(0); // Explicit version leases protect published snapshots.
+                opened.setVersionsToKeep(1);
                 store = opened;
-                map = store.openMap("records", new MVMap.Builder<String, byte[]>()
+                writerMap = store.openMap("records", new MVMap.Builder<String, byte[]>()
                         .keyType(StringDataType.INSTANCE).valueType(ByteArrayDataType.INSTANCE));
+                map = writerMap;
             } catch (RuntimeException | Error e) {
                 if (opened != null) opened.closeImmediately();
                 owner.deleteFile(path); throw e;
             }
         }
+        Generation(Generation previous) {
+            number = previous.number + 1;
+            path = previous.path; store = previous.store; writerMap = previous.writerMap; map = writerMap;
+            cachePrefix = path.getFileName() + "/g" + number + "/";
+            files = previous.files; symbols = previous.symbols; edges = previous.edges;
+            nextEdge = previous.nextEdge; languages.putAll(previous.languages);
+        }
+        void freeze() {
+            checkInterrupted();
+            // Pin the version BEFORE committing; openVersion refers to that
+            // version's immutable data, not the next writable head.
+            versionLease = store.registerVersionUsage();
+            store.commit();
+            committedVersion = store.getCurrentVersion();
+            map = writerMap.openVersion(versionLease.version);
+            indexed = Instant.now();
+            owner.unsaved(0);
+        }
         void put(String key, byte[] bytes) {
             if (key.length() > 32_768 || bytes.length > MAX_RECORD_BYTES)
                 throw new IllegalArgumentException("graph record exceeds hybrid safety bound (8 MiB value / 32K key)");
-            map.put(key, bytes);
+            writerMap.put(key, bytes);
+            flushIfNeeded();
+        }
+        void remove(String key) {
+            writerMap.remove(key);
+            flushIfNeeded();
+        }
+        void flushIfNeeded() {
             long unsaved = store.getUnsavedMemory(); owner.unsaved(unsaved);
             if (unsaved >= (1 << 20)) { store.commit(); owner.unsaved(0); }
         }
@@ -141,15 +275,26 @@ public final class PagedGraph implements ManagedGraph {
             return bytes;
         }
         void scan(String prefix, BiConsumer<String, byte[]> visitor) {
-            var cursor = map.cursor(prefix);
-            while (cursor.hasNext()) {
-                String key = cursor.next();
-                if (!key.startsWith(prefix)) break;
-                visitor.accept(key, cursor.getValue());
-            }
+            // A staged scan may modify other records and flush repeatedly.
+            // Pin its cursor root too, including during an initial full build
+            // where there is not yet a published-generation lease.
+            var scanLease = map == writerMap ? store.registerVersionUsage() : null;
+            try {
+                var cursor = map.cursor(prefix);
+                while (cursor.hasNext()) {
+                    checkInterrupted();
+                    String key = cursor.next();
+                    if (!key.startsWith(prefix)) break;
+                    visitor.accept(key, cursor.getValue());
+                }
+            } finally { if (scanLease != null) store.deregisterVersionUsage(scanLease); }
         }
         @Override public void close() {
-            store.closeImmediately(); owner.invalidate(cachePrefix); owner.deleteFile(path);
+            releaseSnapshot(); store.closeImmediately(); owner.deleteFile(path);
+        }
+        void releaseSnapshot() {
+            if (versionLease != null) { store.deregisterVersionUsage(versionLease); versionLease = null; }
+            owner.invalidate(cachePrefix);
         }
     }
 
@@ -284,7 +429,7 @@ public final class PagedGraph implements ManagedGraph {
     @Override public long generation() { return status().generation(); }
     @Override public void dirtyPending(int count) { dirty = count; }
     @Override public void filesPerLang(Map<String, Integer> counts) { throw new UnsupportedOperationException("publish metadata with the generation"); }
-    @Override public void apply(GraphDelta delta) { throw new UnsupportedOperationException("hybrid writes require a staged rebuild"); }
+    @Override public void apply(GraphDelta delta) { throw new UnsupportedOperationException("hybrid writes require a staged builder"); }
     @Override public void close() {
         if (closed) return;
         if (lock.getReadHoldCount() > 0) throw new IllegalStateException("cannot close inside a graph read");

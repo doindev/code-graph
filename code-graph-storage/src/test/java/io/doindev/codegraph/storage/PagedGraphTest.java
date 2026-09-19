@@ -129,6 +129,18 @@ class PagedGraphTest {
             long indexedMs = (System.nanoTime() - start) / 1_000_000;
             assertEquals(100_000, graph.status().symbolCount()); assertEquals(1_000_000, graph.status().edgeCount());
             int[] count = {0}; graph.scanNodes(null, n -> count[0]++); assertEquals(100_000, count[0]);
+            long updateStart = System.nanoTime();
+            for (int repeat=0;repeat<25;repeat++) {
+                graph.update(builder -> {
+                    builder.removeOutgoing(node(42).id());
+                    for(int target=0;target<10;target++)builder.edge(edge(42,target,1f));
+                    return null;
+                });
+                assertEquals(1_000_000,graph.status().edgeCount());
+                assertEquals(10,graph.edges(node(42).id(),Direction.OUT,null).size());
+            }
+            long updatesMs = (System.nanoTime()-updateStart)/1_000_000;
+            assertEquals(26,graph.generation());assertEquals(1,storage.status().get("activeAndStagedStores"));
             graph.node(node(42).id());
             long[] latency = new long[300];
             for (int i = 0; i < latency.length; i++) {
@@ -137,7 +149,7 @@ class PagedGraphTest {
             }
             Arrays.sort(latency);
             assertTrue(((Number) storage.status().get("diskBytes")).longValue() > 32L << 20);
-            System.out.println("HYBRID_STRESS indexingMs=" + indexedMs + " p50Ns=" + latency[150] + " p95Ns=" + latency[285] + " p99Ns=" + latency[297] + " stats=" + storage.status());
+            System.out.println("HYBRID_STRESS indexingMs=" + indexedMs + " updates25Ms=" + updatesMs + " p50Ns=" + latency[150] + " p95Ns=" + latency[285] + " p99Ns=" + latency[297] + " stats=" + storage.status());
         }
     }
 }

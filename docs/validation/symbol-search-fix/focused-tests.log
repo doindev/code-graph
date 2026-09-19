@@ -1,0 +1,87 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-config                                                  [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-lang-java                                               [jar]
+[INFO] code-graph-lang-javascript                                         [jar]
+[INFO] code-graph-lang-python                                             [jar]
+[INFO] code-graph-lang-go                                                 [jar]
+[INFO] code-graph-lang-rust                                               [jar]
+[INFO] code-graph-lang-c                                                  [jar]
+[INFO] code-graph-lang-csharp                                             [jar]
+[INFO] code-graph-lang-php                                                [jar]
+[INFO] code-graph-lang-ruby                                               [jar]
+[INFO] code-graph-lang-kotlin                                             [jar]
+[INFO] code-graph-lang-scala                                              [jar]
+[INFO] code-graph-lang-swift                                              [jar]
+[INFO] code-graph-lang-dart                                               [jar]
+[INFO] code-graph-lang-objc                                               [jar]
+[INFO] code-graph-lang-sql                                                [jar]
+[INFO] code-graph-storage                                                 [jar]
+[INFO] code-graph-index                                                   [jar]
+[INFO] code-graph-analysis                                                [jar]
+[INFO] code-graph-rules                                                   [jar]
+[INFO] code-graph-smells                                                  [jar]
+[INFO] code-graph-tools                                                   [jar]
+[INFO] code-graph-dba                                                     [jar]
+[INFO] code-graph-viz                                                     [jar]
+[INFO] code-graph-mcp                                                     [jar]
+[INFO] code-graph-mcp-http                                                [jar]
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                [1/29]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph ......................................... FAILURE [  0.003 s]
+[INFO] code-graph-core .................................... SKIPPED
+[INFO] code-graph-config .................................. SKIPPED
+[INFO] code-graph-parsers ................................. SKIPPED
+[INFO] code-graph-lang-java ............................... SKIPPED
+[INFO] code-graph-lang-javascript ......................... SKIPPED
+[INFO] code-graph-lang-python ............................. SKIPPED
+[INFO] code-graph-lang-go ................................. SKIPPED
+[INFO] code-graph-lang-rust ............................... SKIPPED
+[INFO] code-graph-lang-c .................................. SKIPPED
+[INFO] code-graph-lang-csharp ............................. SKIPPED
+[INFO] code-graph-lang-php ................................ SKIPPED
+[INFO] code-graph-lang-ruby ............................... SKIPPED
+[INFO] code-graph-lang-kotlin ............................. SKIPPED
+[INFO] code-graph-lang-scala .............................. SKIPPED
+[INFO] code-graph-lang-swift .............................. SKIPPED
+[INFO] code-graph-lang-dart ............................... SKIPPED
+[INFO] code-graph-lang-objc ............................... SKIPPED
+[INFO] code-graph-lang-sql ................................ SKIPPED
+[INFO] code-graph-storage ................................. SKIPPED
+[INFO] code-graph-index ................................... SKIPPED
+[INFO] code-graph-analysis ................................ SKIPPED
+[INFO] code-graph-rules ................................... SKIPPED
+[INFO] code-graph-smells .................................. SKIPPED
+[INFO] code-graph-tools ................................... SKIPPED
+[INFO] code-graph-dba ..................................... SKIPPED
+[INFO] code-graph-viz ..................................... SKIPPED
+[INFO] code-graph-mcp ..................................... SKIPPED
+[INFO] code-graph-mcp-http ................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.392 s
+[INFO] Finished at: 2026-09-18T22:58:51-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Unknown lifecycle phase ".failIfNoSpecifiedTests=false". You must specify a valid lifecycle phase or a goal in the format <plugin-prefix>:<goal> or <plugin-group-id>:<plugin-artifact-id>[:<plugin-version>]:<goal>. Available lifecycle phases are: pre-clean, clean, post-clean, validate, initialize, generate-sources, process-sources, generate-resources, process-resources, compile, process-classes, generate-test-sources, process-test-sources, generate-test-resources, process-test-resources, test-compile, process-test-classes, test, prepare-package, package, pre-integration-test, integration-test, post-integration-test, verify, install, deploy, pre-site, site, post-site, site-deploy. -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/LifecyclePhaseNotFoundException

@@ -1,0 +1,15 @@
+probe 1 sync 4096 scan p50=36.365 point=0.0179
+probe 1 async 4096 scan p50=75.021 point=0.0786
+probe 1 async 16384 scan p50=38.8187 point=0.0565
+probe 1 async 32768 scan p50=26.6903 point=0.0464
+probe 1 async 65536 scan p50=27.6449 point=0.0568
+probe 2 async 16384 scan p50=33.8428 point=0.0462
+probe 2 async 32768 scan p50=27.7616 point=0.04
+probe 2 async 65536 scan p50=25.4731 point=0.0531
+probe 2 sync 4096 scan p50=29.9044 point=0.0164
+probe 2 async 4096 scan p50=73.1903 point=0.064
+probe 3 async 65536 scan p50=26.5286 point=0.0529
+probe 3 sync 4096 scan p50=28.4776 point=0.0161
+probe 3 async 4096 scan p50=71.8502 point=0.076
+probe 3 async 16384 scan p50=33.0275 point=0.0476
+probe 3 async 32768 scan p50=28.2464 point=0.0513

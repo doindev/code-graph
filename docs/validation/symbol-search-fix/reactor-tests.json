@@ -1,0 +1,1010 @@
+[
+  {
+    "name": "io.doindev.codegraph.analysis.BlastFormulaTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.analysis.DeadCodeAndScoreTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.analysis.DeadCodeHierarchyTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.analysis.TarjanTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.cli.ArgsTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.cli.CiEndToEndTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.cli.CiGitTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.cli.GithubPosterLiveTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.cli.PosterTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.cli.ReportTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.config.loader.ConfigLoaderTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.graph.EnginePerfTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.graph.InMemoryCodeGraphTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.graph.PinnedReadTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lifecycle.ProjectLifecycleTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.model.NodeIdTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.query.GenerationCursorTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.snapshot.FileSnapshotStoreTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.AgentAccessTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.AgentRequestsTest",
+    "tests": 13,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ApprovalBrokerTest",
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ApprovalDetailsViewTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ApprovalReviewServerTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ApprovalTitleBarTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.BrowserSqlGuardTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ConnectionAppearanceTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ConnectionLifecycleTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ConnectionSetupTest",
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.DbaTest",
+    "tests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.DesktopApprovalsTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 9
+  },
+  {
+    "name": "io.doindev.codegraph.dba.DiscoveryTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.DockerDatabaseTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.DriverInstallationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.EditorPairingsTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ExplainPlansTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.GridSqlTest",
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.HumanSqlTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.MaterializedViewSchedulesTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.MetadataActionsTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.MetadataEmbeddedTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.MetadataTreeTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.MigrationPlansTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativeFoundationTest",
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativeMemoryTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativePerformanceTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativeReviewTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativeVaultTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  {
+    "name": "io.doindev.codegraph.dba.NativeVendorTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ObjectCreationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ObjectDesignerPostgresTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ObjectDesignerTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.PostgresIntegrationTest",
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 10
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ProjectContextPostgresTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ProjectContextsTest",
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.QueryBuilderTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.RequestLedgerTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ReusableApprovalsTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ReusableOperationTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ReusableSqlApprovalTest",
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.ReusableVendorIntegrationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.SchemaSnapshotsTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.SqlScriptTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.SqlServerNativeDeliveryTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.StandaloneSqlApprovalTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.TableCreationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.TableDesignerTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.TableMetadataTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.TableQueriesTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.TemplateDiscoveryTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.VisualPostgresTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.VisualQueryTest",
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.WorkflowAnalysisTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.WorkflowTargetsTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.dba.WorkflowVendorIntegrationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.YoloTest",
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.dba.YoloVendorIntegrationTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.index.FullIndexerTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.HybridIncrementalTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.index.HybridWorkspaceTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.index.IncrementalIndexerTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.JavaResolutionTest",
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.LanguageResolutionIntegrationTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.mapping.CodeDatabaseMappingsTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.ModuleConfigurationIntegrationTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.PendingChangesTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.ProtectedDirectoryTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.WatcherTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.index.WorkspaceTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.lang.c.CAnalyzerTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.c.CppAnalyzerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.csharp.CSharpAnalyzerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.dart.DartAnalyzerTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.go.GoAnalyzerTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.javascript.ModuleResolutionTest",
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.kotlin.KotlinAnalyzerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.objc.ObjcAnalyzerTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.php.PhpAnalyzerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.ruby.RubyAnalyzerTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.rust.RustAnalyzerTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.scala.ScalaAnalyzerTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.sql.SqlAnalyzerTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.sql.SqlQueriesTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.lang.swift.SwiftAnalyzerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.linker.HttpRouteLinkerTest",
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.linker.RouteNormalizerTest",
+    "tests": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.CodeGraphMcpServerTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.DbaToolSchemaTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.MainTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.ToolCatalogTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.WorkspaceVizControlTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.CgraphMainTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.DbaHttpAccessTest",
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.DbaMcpHttpTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.HttpEndToEndTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.HybridHttpTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.NativeMcpHttpTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.ReusableMcpHttpTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.mcp.http.YoloMcpHttpTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.parse.GrammarAbiSmokeTest",
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.parse.NameResolverLanguageTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.rules.DriftTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.smells.EmbeddedSqlSmellsTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.smells.SmellEngineTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.smells.WaveBSmellsTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.storage.DocumentStoreTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.storage.PagedGraphTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  {
+    "name": "io.doindev.codegraph.storage.PagedIncrementalTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.storage.PagedSearchRegressionTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.store.arango.ArangoGraphStoreLiveTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.store.h2.H2GraphStoreTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.store.neo4j.Neo4jGraphStoreLiveTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.AddProjectToolTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.ChangeEvidenceTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.CodeNavigationTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.EfficiencyRegressionTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.GitChangeSelectionTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.ImpactSeedExpansionTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.RiskGateAndScoreToolTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.ToolsTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.tools.WorkspaceToolsTest",
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.viz.DbaRouteTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.viz.StaticAssetsTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.viz.VizIdleTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "name": "io.doindev.codegraph.viz.VizServerTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+]

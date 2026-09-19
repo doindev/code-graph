@@ -105,6 +105,30 @@ public final class FullIndexer {
     void scanConfigurations(Path root, java.util.function.Consumer<Path> visitor) {
         scan(root,visitor,true);
     }
+    /** Apply the same scan eligibility to a known changed path without walking the project. */
+    boolean eligible(Path root,Path file,boolean configuration) throws IOException {
+        Path base=root.toAbsolutePath().normalize(),target=file.toAbsolutePath().normalize();
+        if(!target.startsWith(base)||target.equals(base))throw new IOException("changed path is outside the indexed root");
+        if(!Files.isRegularFile(target,java.nio.file.LinkOption.NOFOLLOW_LINKS))return false;
+        String relative=relativize(base,target);
+        if(configuration?!ModuleConfigurations.candidate(relative):analyzers.forPath(relative)==null)return false;
+        if(!configuration&&Files.size(target)>MAX_FILE_BYTES)return false;
+        if(!configuration&&!config.paths().include().isEmpty()&&!Globs.matchesAny(config.paths().include(),relative))return false;
+        if(Globs.matchesAny(config.paths().exclude(),relative))return false;
+        var rules=new ArrayList<List<GitIgnore.Rule>>();
+        Path directory=base;
+        rules.add(GitIgnore.load(directory,""));
+        Path parent=base.relativize(target.getParent());
+        for(Path segment:parent) {
+            if(segment.toString().isEmpty())continue;
+            directory=directory.resolve(segment);
+            if(ALWAYS_IGNORED_DIRS.contains(segment.toString())||Files.isSymbolicLink(directory)
+                    ||GitIgnore.ignored(relativize(base,directory),rules))return false;
+            rules.add(GitIgnore.load(directory,relativize(base,directory)));
+        }
+        return !Files.isSymbolicLink(target)&&target.toRealPath().startsWith(base.toRealPath())
+                &&!GitIgnore.ignored(relative,rules);
+    }
     private void scan(Path root, java.util.function.Consumer<Path> visitor, boolean configurations) {
         List<String> include = config.paths().include();
         List<String> exclude = config.paths().exclude();
@@ -113,6 +137,7 @@ public final class FullIndexer {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    checkInterrupted();
                     if (ALWAYS_IGNORED_DIRS.contains(dir.getFileName().toString())) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
@@ -133,6 +158,7 @@ public final class FullIndexer {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    checkInterrupted();
                     String relPath = relativize(root, file);
                     if (attrs.isSymbolicLink() || (configurations ? !ModuleConfigurations.candidate(relPath)
                             : analyzers.forPath(relPath) == null || attrs.size() > MAX_FILE_BYTES)) {
@@ -151,6 +177,11 @@ public final class FullIndexer {
         } catch (IOException e) {
             throw new UncheckedIOException("failed to scan " + root, e);
         }
+    }
+
+    private static void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted())
+            throw new java.util.concurrent.CancellationException("indexing interrupted");
     }
 
     /** Extract one file — shared with the incremental indexer. */

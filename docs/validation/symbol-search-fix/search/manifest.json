@@ -1,0 +1,96 @@
+{
+  "startedAt": "2026-09-19T04:05:02.133Z",
+  "baseline": "C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/baseline/code-graph-mcp-http/target/classes;C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/baseline/code-graph-mcp-http/target/lib/*",
+  "candidate": "C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/search-fix/code-graph-mcp-http/target/classes;C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/search-fix/code-graph-mcp-http/target/lib/*",
+  "dataset": "C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/baseline",
+  "inputInventory": {
+    "files": 1015,
+    "sha256": "fb9747b6d5d5988e5f5f59436477155aaa884d2d0041486dd66606d552fe3c8d"
+  },
+  "queries": [
+    {
+      "id": "qualified-java-function",
+      "query": "NativeRedisArguments.bytes",
+      "kind": "function",
+      "lang": "java",
+      "limit": 10
+    },
+    {
+      "id": "java-class",
+      "query": "SearchSymbolsTool",
+      "kind": "class",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "storage-class",
+      "query": "PagedGraph",
+      "kind": "class",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "indexer-method",
+      "query": "IncrementalIndexer.apply",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "ambiguous-resolve",
+      "query": "resolve",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "common-close",
+      "query": "close",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "broad-get",
+      "query": "get",
+      "kind": "function",
+      "limit": 100
+    },
+    {
+      "id": "broad-table",
+      "query": "Table",
+      "limit": 100
+    },
+    {
+      "id": "javascript-grid",
+      "query": "DataGridView",
+      "limit": 20
+    },
+    {
+      "id": "javascript-function",
+      "query": "openTableTab",
+      "kind": "function",
+      "lang": "js",
+      "limit": 20
+    },
+    {
+      "id": "file-name",
+      "query": "Watcher",
+      "kind": "file",
+      "limit": 20
+    },
+    {
+      "id": "missing-name",
+      "query": "__symbol_benchmark_absent_81f93d72__",
+      "limit": 20
+    }
+  ],
+  "independentRunsPerBuild": 3,
+  "warmupRequestsPerRun": 24,
+  "mixedRequestsPerRun": 120,
+  "repeatedRequestsPerRun": 60,
+  "scope": "HTTP tools/call through response receipt and JSON decoding; no agent/model scheduling overhead",
+  "cache": "Fresh JVM/store per run; first query follows indexing. OS cache is NOT cleared. MCP search rescans; this is not the graph point-lookup cache.",
+  "heapCeilingMiB": 768,
+  "sharedGraphAllowanceMiB": 32
+}

@@ -1,0 +1,40 @@
+SUITE native
+Native browser checks passed: picker, setup, exact targets, typed JSON/grid, safe rendering, reusable layout, recovery, review/cancel/apply, binary Redis commands and removed-connection cleanup.
+SUITE yolo
+YOLO browser checks passed: persistent warning, no approval polling, and unchanged destructive confirmation.
+SUITE tree-context
+Tree context-menu browser checks passed (root, branches, objects, leaves, refresh, permissions, dismissal).
+SUITE workspace-toolbar
+Workspace toolbar checks passed: merged branding, preserved background, menu, keyboard/focus, dialogs, dismissal and narrow layout.
+SUITE script-selection
+Script selection: Run, Explain, Ctrl+Enter, exact submitted SQL, selection direction/scrolling, failure retention and later focus changes passed.
+SUITE grid
+Data Grid column-menu checks passed (exact menu, values, duplicates, keyboard, resizing, virtualization, cleanup).
+Refresh scheduler/browser checks passed: intervals, replacement, no overlap, disposal, failure stop, fixed toolbar, menu and viewport retention.
+Grid controller checks passed: standalone host, overlay, elapsed time, focus, cancellation races, terminal acknowledgement, remount, concurrency, uncertainty guards, schedule retention/clearing and column layout.
+Table tabs: tree activation, fixed targets, reuse, full-size grid, filters, independent schemas, mixed recovery, lazy loading, and close races passed
+SUITE table-designer
+Table designer browser checks passed: layout, drafts, Revert, review, acknowledgement, Apply, preserved data, refreshed grid and close protection.
+SUITE view-query
+View query: canvas/grid dirty state, shared Save/Revert, reviewed database update, cancel/revert, saved baseline, workspace recovery, and hidden row actions passed.
+SUITE query-builder
+Canvas geometry: Query Output drag/keyboard, divider/window resize, canvas growth/shrinkage, zoom, card-edge endpoints, unobstructed cards, clickable joins, source movement and scrolling passed.
+Visual Query Builder: permanent tabs, manual canvas compilation, explicit joins, grid filters/sorts, retained rows, Explain, Detail/Summary, parameters, recovery, import and narrow layout passed.
+Builder lifecycle: 20 sources, explicit/composite joins, no auto execution, output independence, late responses, focus, failure retention, cancellation and release passed.
+SUITE object-creation
+New Table Properties checks passed: validation, disabled views, review/apply, metadata conversion, Revert, recovery exclusion and dedicated object draft tabs.
+SUITE object-designer
+Object editor browser checks passed: nested Properties/DDL, create/edit, exact large sequence values, reopen, workspace restore, native properties, menu order, and confirmed Truncate.
+SUITE grid-edit
+Grid SQL browser checks passed: query edits, custom-dialog close, independent Script controls/editor, cancellation, Script replacement, filter/Play schedule clearing and result cleanup.
+SUITE project-context
+Project context browser checks passed: environment relationship, token/grant, activity scan, version, DDL/properties, exact SQL review, persistent read policy, agent profile creation without auto-access, rejection and cancellation.
+SUITE editor-pairing
+Editor pairing browser checks passed: explicit pairing, revision-checked draft/edit, SSE resynchronization, no execution, stale conflict and revocation.
+SUITE approvals
+Approval browser coverage passed: SSE routing, competing tab denial, persistent reads, full proposal editing/testing, changed-draft review, apply, and rejection.
+SUITE approval-review
+Approval-only site passed: one-use fragment removal, isolated APIs, cookie reload, full editor/test/review/apply.
+SUITE core
+Browser checks passed: session-scoped Script recovery, compact toolbars, reusable statement-aware Data Grid, SQL viewer resizing/dismissal, filter command strip, direct and modal column reordering, stable widths, sticky headers/row numbers, virtualization, tab connection selectors, file actions, direct access, connection tests, query, grants, keyboard operation, responsive layout, settings menu, session expiry/logout API; no page errors.
+Sidebar browser storage checks passed: drag, keyboard, reload, bounds and malformed data.

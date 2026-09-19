@@ -1,0 +1,32 @@
+[
+  {
+    "build": "baseline",
+    "module": "code-graph-index",
+    "sha256": "7CA86F9E8446516007EEADAD16D4AD134FE547C5C01590859E62822E5572114F"
+  },
+  {
+    "build": "baseline",
+    "module": "code-graph-storage",
+    "sha256": "53BDAFCD23D93A26A47F1D7C5FFDE19E252D8C8FA4F89DDF5139035BC596112E"
+  },
+  {
+    "build": "baseline",
+    "module": "code-graph-parsers",
+    "sha256": "F9A94940AD8805D9E95E87662341C9449CD34F9F3C03474535A6BBCA39CB91F5"
+  },
+  {
+    "build": "candidate",
+    "module": "code-graph-index",
+    "sha256": "CAD0AD4D34A4F18DDA42AFC3B5A0CC5DF9A9CCEA623E24F5A54A196B2246A177"
+  },
+  {
+    "build": "candidate",
+    "module": "code-graph-storage",
+    "sha256": "2C0B338A318189B5D12F82E0E69640CBF3E4A0078CEB5973FCB86EC87416179E"
+  },
+  {
+    "build": "candidate",
+    "module": "code-graph-parsers",
+    "sha256": "88F2D518B97F7A34E850A23612F754B4EEBA9B23F5C406374FDFCA128D78B0EA"
+  }
+]

@@ -1,0 +1,100 @@
+{
+  "startedAt": "2026-09-19T04:43:01.286Z",
+  "classpath": "C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/search-fix/code-graph-mcp-http/target/classes;C:/Users/timhj/AppData/Local/Temp/cgraph-incremental-81f93d72c7754aeeb9962245d8155984/search-fix/code-graph-mcp-http/target/lib/*",
+  "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+  "input": {
+    "files": 1015,
+    "sha256": "fb9747b6d5d5988e5f5f59436477155aaa884d2d0041486dd66606d552fe3c8d"
+  },
+  "seconds": 60,
+  "runs": 3,
+  "heapMiB": 768,
+  "graphCacheMiB": 32,
+  "concurrency": 1,
+  "queries": [
+    {
+      "id": "qualified-java-function",
+      "query": "NativeRedisArguments.bytes",
+      "kind": "function",
+      "lang": "java",
+      "limit": 10
+    },
+    {
+      "id": "java-class",
+      "query": "SearchSymbolsTool",
+      "kind": "class",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "storage-class",
+      "query": "PagedGraph",
+      "kind": "class",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "indexer-method",
+      "query": "IncrementalIndexer.apply",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "ambiguous-resolve",
+      "query": "resolve",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "common-close",
+      "query": "close",
+      "kind": "function",
+      "lang": "java",
+      "limit": 20
+    },
+    {
+      "id": "broad-get",
+      "query": "get",
+      "kind": "function",
+      "limit": 100
+    },
+    {
+      "id": "broad-table",
+      "query": "Table",
+      "limit": 100
+    },
+    {
+      "id": "javascript-grid",
+      "query": "DataGridView",
+      "limit": 20
+    },
+    {
+      "id": "javascript-function",
+      "query": "openTableTab",
+      "kind": "function",
+      "lang": "js",
+      "limit": 20
+    },
+    {
+      "id": "file-name",
+      "query": "Watcher",
+      "kind": "file",
+      "limit": 20
+    },
+    {
+      "id": "missing-name",
+      "query": "__symbol_benchmark_absent_81f93d72__",
+      "limit": 20
+    }
+  ],
+  "editIntervalsMs": {
+    "body": 1000,
+    "declaration": 10000
+  },
+  "warmupQueries": 24,
+  "scope": "Real watcher; sequential closed-loop MCP searches; independent JVM per run; rotated idle/body/declaration phases; no OS cache flushing",
+  "freshness": "File-write completion to first verified published probe hash, observed at 10 ms intervals plus read admission; upper-bound visibility, not exact commit timestamp",
+  "observation": "One tiny compound graph read per changed generation validates fragment hash and call edges. No polling full inventories."
+}

@@ -1,0 +1,76 @@
+{
+  "run": 1,
+  "root": "C:\\Users\\timhj\\AppData\\Local\\Temp\\code-graph-mixed-search-ZdespR\\source",
+  "phases": [],
+  "publications": [],
+  "edits": [],
+  "errors": [
+    {
+      "message": "Control command deadline",
+      "stack": "Error: Control command deadline\n    at Timeout.<anonymous> (C:\\Users\\timhj\\eclipse-workspace\\code-graph\\scripts\\benchmark-mixed-search.cjs:56:60)\n    at listOnTimeout (node:internal/timers:585:17)\n    at process.processTimers (node:internal/timers:521:7)"
+    }
+  ],
+  "complete": false,
+  "host": {
+    "metrics": {
+      "atMs": 77891.0749,
+      "heapUsedBytes": 78217048,
+      "sampledPeakHeapBytes": 78217048,
+      "gcCount": 102,
+      "gcTimeMs": 194,
+      "processCpuNanos": 104250000000,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1278503,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 229927,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 79806312,
+        "diskBytes": 82137088,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+      }
+    },
+    "pid": 27192,
+    "processors": 8,
+    "java": "25",
+    "os": "Windows 11",
+    "endpoint": "http://127.0.0.1:56443/mcp",
+    "indexAndStartupMs": 77890.8144
+  },
+  "before": {
+    "state": "ready",
+    "generation": 1,
+    "files": 507,
+    "symbols": 6568,
+    "edges": 26708,
+    "dirtyPending": 0,
+    "lastIndexedAt": "2026-09-19T04:39:58.574244600Z",
+    "langs": {
+      "java": 413,
+      "js": 58,
+      "xml": 36
+    },
+    "engineVersion": "hybrid-mvstore-1",
+    "server": {
+      "version": "0.0.1-SNAPSHOT",
+      "builtAt": "2026-09-19T04:02:54Z",
+      "toolCatalogFingerprint": "f7fffc0bc1c6e198b29755c1ef20d807c143be8cc05df58b2adca26a2f9f1e2a",
+      "toolCount": 20
+    }
+  },
+  "ownedSourceRemoved": true
+}

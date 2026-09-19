@@ -1,0 +1,337 @@
+{
+  "build": "baseline",
+  "sourceRoot": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+  "dataset": "frozen indexing-stack main sources plus 5 deterministic probe source files",
+  "sourceFiles": 69,
+  "datasetSha256": "1dbee544c7fe601db0decf32877441118a907fd8d0fb08ef2cee3ed609d8d269",
+  "os": "Windows 11 amd64",
+  "java": "25",
+  "processors": 8,
+  "maxHeapBytes": 805306368,
+  "graphCacheAllowanceBytes": 33554432,
+  "cacheState": "fresh JVM/store; OS file cache is NOT flushed",
+  "warmQuerySamplesMs": [
+    0.054,
+    0.0494,
+    0.0438,
+    0.0395,
+    0.0498,
+    0.0432,
+    0.0398,
+    0.0562,
+    0.0419,
+    0.0404,
+    0.0634,
+    0.0368,
+    0.0383,
+    0.0374,
+    0.0397,
+    0.0392,
+    0.0372,
+    0.0398,
+    0.0378,
+    0.04,
+    0.0413,
+    0.0434,
+    0.0395,
+    0.2888,
+    0.0419,
+    0.0628,
+    0.0355,
+    0.0367,
+    0.0426,
+    0.0347
+  ],
+  "queryP50Ms": 0.04,
+  "queryP95Ms": 0.0634,
+  "queryP99Ms": 0.2888,
+  "sampledPeakHeapBeforeOracle": 119298688,
+  "heapUsedBeforeOracle": 58000808,
+  "gcMillisBeforeOracle": 89,
+  "operations": [
+    {
+      "operation": "initial",
+      "milliseconds": 5399.0218,
+      "parsedFiles": 74,
+      "indexerWork": {
+        "resolvedFiles": "unavailable in baseline"
+      },
+      "generation": 1,
+      "heapUsedBytes": 63007056,
+      "gcMillis": 39,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1054907,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 6331,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 65104208,
+        "diskBytes": 4800512,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+      }
+    },
+    {
+      "operation": "unchanged-save",
+      "milliseconds": 4439.1304,
+      "parsedFiles": 74,
+      "indexerWork": {
+        "resolvedFiles": "unavailable in baseline"
+      },
+      "generation": 2,
+      "heapUsedBytes": 64351600,
+      "gcMillis": 15,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1054907,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 6331,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 66448752,
+        "diskBytes": 4800512,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+      }
+    },
+    {
+      "operation": "body-edit",
+      "milliseconds": 3998.7894,
+      "parsedFiles": 74,
+      "indexerWork": {
+        "resolvedFiles": "unavailable in baseline"
+      },
+      "generation": 3,
+      "heapUsedBytes": 62415800,
+      "gcMillis": 16,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1054907,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 6331,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 63464376,
+        "diskBytes": 4804608,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+      }
+    },
+    {
+      "operation": "declaration-edit",
+      "milliseconds": 3902.1859,
+      "parsedFiles": 74,
+      "indexerWork": {
+        "resolvedFiles": "unavailable in baseline"
+      },
+      "generation": 4,
+      "heapUsedBytes": 56103600,
+      "gcMillis": 8,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1054907,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 6331,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 56627888,
+        "diskBytes": 4841472,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+      }
+    },
+    {
+      "operation": "config-edit",
+      "milliseconds": 3932.6193,
+      "parsedFiles": 74,
+      "indexerWork": {
+        "resolvedFiles": "unavailable in baseline"
+      },
+      "generation": 5,
+      "heapUsedBytes": 49612200,
+      "gcMillis": 7,
+      "storage": {
+        "mode": "hybrid",
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 0,
+        "peakCacheUsedBytesEstimate": 0,
+        "cacheHits": 0,
+        "cacheMisses": 0,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "activeAndStagedStores": 1,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1054907,
+        "unsavedBytesEstimate": 0,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 6331,
+        "accountingComplete": false,
+        "hardProcessMemoryLimit": false,
+        "heapMaxBytes": 805306368,
+        "heapUsedBytes": 50660776,
+        "diskBytes": 4841472,
+        "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+      }
+    }
+  ],
+  "graph": {
+    "symbols": 727,
+    "edges": 1758,
+    "files": 74
+  },
+  "storageBeforeOracle": {
+    "mode": "hybrid",
+    "budgetBytes": 33554432,
+    "cacheCapacityBytes": 15728640,
+    "cacheUsedBytesEstimate": 2752,
+    "peakCacheUsedBytesEstimate": 2752,
+    "cacheHits": 64,
+    "cacheMisses": 3,
+    "cacheEvictions": 0,
+    "enginePageCacheBytes": 0,
+    "activeAndStagedStores": 1,
+    "metadataReserveBytes": 1048576,
+    "temporaryReserveBytes": 16777216,
+    "peakUnsavedBytesEstimate": 1054907,
+    "unsavedBytesEstimate": 0,
+    "cacheOverCapacityBytesEstimate": 0,
+    "peakDirtyThresholdOvershootBytesEstimate": 6331,
+    "accountingComplete": false,
+    "hardProcessMemoryLimit": false,
+    "heapMaxBytes": 805306368,
+    "heapUsedBytes": 59049384,
+    "diskBytes": 4841472,
+    "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+  },
+  "freshInMemoryOracle": "passed; not included in measurements",
+  "ownedStoreRemoved": true,
+  "iteration": 2,
+  "processMemory": {
+    "scope": "whole JVM including source launcher compilation and final correctness oracle; 2s OS sampling",
+    "samples": [
+      {
+        "time": 1789787701206,
+        "WorkingSet64": 238862336,
+        "PeakWorkingSet64": 238862336,
+        "PrivateMemorySize64": 440647680
+      },
+      {
+        "time": 1789787703011,
+        "WorkingSet64": 299044864,
+        "PeakWorkingSet64": 304570368,
+        "PrivateMemorySize64": 453988352
+      },
+      {
+        "time": 1789787705100,
+        "WorkingSet64": 220504064,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 271978496
+      },
+      {
+        "time": 1789787707144,
+        "WorkingSet64": 266637312,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 304672768
+      },
+      {
+        "time": 1789787709005,
+        "WorkingSet64": 228503552,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 270090240
+      },
+      {
+        "time": 1789787711269,
+        "WorkingSet64": 266252288,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 301961216
+      },
+      {
+        "time": 1789787713047,
+        "WorkingSet64": 265707520,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 301006848
+      },
+      {
+        "time": 1789787715085,
+        "WorkingSet64": 245510144,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 280391680
+      },
+      {
+        "time": 1789787717042,
+        "WorkingSet64": 247726080,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 281739264
+      },
+      {
+        "time": 1789787719058,
+        "WorkingSet64": 234250240,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 267636736
+      },
+      {
+        "time": 1789787721089,
+        "WorkingSet64": 245727232,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 278605824
+      },
+      {
+        "time": 1789787723111,
+        "WorkingSet64": 245202944,
+        "PeakWorkingSet64": 316379136,
+        "PrivateMemorySize64": 278953984
+      }
+    ]
+  }
+}

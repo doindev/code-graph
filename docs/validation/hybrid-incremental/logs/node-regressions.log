@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: PowerShell bootstrap forwards all/subset/none/omitted skills and reports partial success
+ok 1 - PowerShell bootstrap forwards all/subset/none/omitted skills and reports partial success
+  ---
+  duration_ms: 6913.862
+  type: 'test'
+  ...
+# Subtest: Bash bootstrap forwards skill choices for Linux/macOS and preserves partial-success status
+ok 2 - Bash bootstrap forwards skill choices for Linux/macOS and preserves partial-success status
+  ---
+  duration_ms: 8460.0477
+  type: 'test'
+  ...
+# Subtest: precise bindings permit bounded navigation, not a claim of inventory completeness
+ok 3 - precise bindings permit bounded navigation, not a claim of inventory completeness
+  ---
+  duration_ms: 2.3002
+  type: 'test'
+  ...
+# Subtest: old high heuristic confidence does not masquerade as resolved binding
+ok 4 - old high heuristic confidence does not masquerade as resolved binding
+  ---
+  duration_ms: 0.3512
+  type: 'test'
+  ...
+# Subtest: ambiguous, omitted, absent and containing-only references require fallback
+ok 5 - ambiguous, omitted, absent and containing-only references require fallback
+  ---
+  duration_ms: 0.2962
+  type: 'test'
+  ...
+# Subtest: implementation task remains a distinct unavoidable source-content control
+ok 6 - implementation task remains a distinct unavoidable source-content control
+  ---
+  duration_ms: 0.2329
+  type: 'test'
+  ...
+# Subtest: catalog identity ignores key/registration order, not descriptions or schemas
+ok 7 - catalog identity ignores key/registration order, not descriptions or schemas
+  ---
+  duration_ms: 4.4455
+  type: 'test'
+  ...
+# Subtest: client filtering and server registration differences remain separate
+ok 8 - client filtering and server registration differences remain separate
+  ---
+  duration_ms: 0.522
+  type: 'test'
+  ...
+# Subtest: name-only client inventory does not pretend to compare absent schemas
+ok 9 - name-only client inventory does not pretend to compare absent schemas
+  ---
+  duration_ms: 0.7563
+  type: 'test'
+  ...
+# Subtest: all selected clients receive skill and references; unchanged installs are idempotent
+ok 10 - all selected clients receive skill and references; unchanged installs are idempotent
+  ---
+  duration_ms: 318.5691
+  type: 'test'
+  ...
+# Subtest: all local Markdown reference links resolve inside the maintained skill
+ok 11 - all local Markdown reference links resolve inside the maintained skill
+  ---
+  duration_ms: 4.4094
+  type: 'test'
+  ...
+# Subtest: dry run does not create directories and customized skills are never overwritten
+ok 12 - dry run does not create directories and customized skills are never overwritten
+  ---
+  duration_ms: 55.9314
+  type: 'test'
+  ...
+# Subtest: destination junction/symlink cannot redirect installation outside the chosen project
+ok 13 - destination junction/symlink cannot redirect installation outside the chosen project
+  ---
+  duration_ms: 10.7753
+  type: 'test'
+  ...
+# Subtest: global all/subset/none copies complete skills only to selected current-user destinations
+ok 14 - global all/subset/none copies complete skills only to selected current-user destinations
+  ---
+  duration_ms: 257.5694
+  type: 'test'
+  ...
+# Subtest: global dry-run and documented config overrides are explicit; customized clients do not block others
+ok 15 - global dry-run and documented config overrides are explicit; customized clients do not block others
+  ---
+  duration_ms: 246.8885
+  type: 'test'
+  ...
+# Subtest: global installation refuses linked configuration roots and does not touch the redirect target
+ok 16 - global installation refuses linked configuration roots and does not touch the redirect target
+  ---
+  duration_ms: 10.7856
+  type: 'test'
+  ...
+# Subtest: CLI choices preserve project mode and require explicit scope
+ok 17 - CLI choices preserve project mode and require explicit scope
+  ---
+  duration_ms: 0.9848
+  type: 'test'
+  ...
+# Subtest: real CLI global installs honor a disposable user home without requiring a running MCP
+ok 18 - real CLI global installs honor a disposable user home without requiring a running MCP
+  ---
+  duration_ms: 631.6939
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15488.3227

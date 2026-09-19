@@ -63,7 +63,8 @@ against source-reviewed fixtures, not against unreviewed grep output as a semant
   qualified-lookup work to 2,048. An exhausted resolution stays unresolved, never an invented edge.
 - In-memory incremental indexing reparses changed files only. Declaration-context changes trigger
   re-resolution of existing fragments so return-type, inheritance and overload changes cannot leave
-  stale bindings. Hybrid mode continues to use staged rebuilds.
+  stale bindings. The later [hybrid incremental update](hybrid-incremental-delivery.md)
+  reuses disk fragments and copy-on-write pages, retaining full rebuild fallbacks.
 - Existing tool inputs and symbol IDs are preserved. find_references/position responses add
   resolutionEvidence; referenceCompleteness is explicitly not_guaranteed.
 

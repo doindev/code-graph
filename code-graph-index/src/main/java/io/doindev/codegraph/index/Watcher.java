@@ -12,11 +12,9 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -28,14 +26,11 @@ import java.util.concurrent.CountDownLatch;
  */
 public final class Watcher implements AutoCloseable {
 
-    private static final long QUIESCENCE_MS = 250;
-    private static final long MAX_COALESCE_MS = 1000;
-
     private final Path root;
     private final IncrementalIndexer indexer;
     private final WatchService watchService;
     private final Map<WatchKey, Path> keyDirs = new HashMap<>();
-    private final ConcurrentHashMap<String, long[]> pending = new ConcurrentHashMap<>(); // [first, last] nanos
+    private final PendingChanges pending = new PendingChanges();
     private final CountDownLatch started = new CountDownLatch(1);
     private volatile boolean running = true;
     private final Thread pumpThread;
@@ -95,6 +90,16 @@ public final class Watcher implements AutoCloseable {
             }
             Path dir = keyDirs.get(key);
             for (WatchEvent<?> event : key.pollEvents()) {
+                if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
+                    pending.offer("*",System.nanoTime());
+                    // Nonrecursive platforms may also have lost directory-create
+                    // events. Re-register before the recovery scan.
+                    if (!System.getProperty("os.name","").toLowerCase().contains("win")) {
+                        try { register(root); }
+                        catch(IOException e) { System.err.println("code-graph: watcher registration recovery failed: "+e); }
+                    }
+                    continue;
+                }
                 if (!(event.context() instanceof Path context) || dir == null) {
                     continue;
                 }
@@ -112,13 +117,12 @@ public final class Watcher implements AutoCloseable {
                         // directory vanished between event and registration
                     }
                 }
-                long now = System.nanoTime();
-                // Hybrid indexing rebuilds the disk generation: coalesce all paths to one flag.
-                String pendingKey = indexer.boundedRebuild() ? "*" : relPath;
-                pending.compute(pendingKey, (k, window) -> window == null
-                        ? new long[] {now, now} : new long[] {window[0], now});
+                pending.offer(relPath,System.nanoTime());
             }
-            key.reset();
+            if (!key.reset()) {
+                keyDirs.remove(key);
+                pending.offer("*",System.nanoTime());
+            }
         }
     }
 
@@ -132,6 +136,8 @@ public final class Watcher implements AutoCloseable {
     }
 
     private void debounce() {
+        long retryAfter = 0;
+        int failures = 0;
         while (running) {
             try {
                 Thread.sleep(50);
@@ -139,24 +145,22 @@ public final class Watcher implements AutoCloseable {
                 return;
             }
             long now = System.nanoTime();
-            List<String> ready = new ArrayList<>();
-            pending.forEach((relPath, window) -> {
-                long sinceLastMs = (now - window[1]) / 1_000_000;
-                long sinceFirstMs = (now - window[0]) / 1_000_000;
-                if (sinceLastMs >= QUIESCENCE_MS || sinceFirstMs >= MAX_COALESCE_MS) {
-                    ready.add(relPath);
-                }
-            });
+            List<String> ready = now < retryAfter ? List.of() : pending.drain(now);
             if (ready.isEmpty()) {
                 indexer.graph().dirtyPending(pending.size());
                 continue;
             }
-            ready.forEach(pending::remove);
-            indexer.graph().dirtyPending(pending.size());
+            indexer.graph().dirtyPending(pending.size()+ready.size());
             try {
                 indexer.applyChanges(ready);
+                failures = 0;
             } catch (RuntimeException e) {
-                System.err.println("code-graph: incremental index failed for " + ready + ": " + e);
+                if (!running) return;
+                System.err.println("code-graph: incremental index failed; scheduling recovery: " + e);
+                pending.offer("*",System.nanoTime());
+                retryAfter = System.nanoTime()+Math.min(30,1L << Math.min(++failures,5))*1_000_000_000L;
+            } finally {
+                indexer.graph().dirtyPending(pending.size());
             }
         }
     }

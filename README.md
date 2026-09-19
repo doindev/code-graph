@@ -54,7 +54,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Opt-in [hybrid graph storage](docs/hybrid-graph-storage.md) pages graph records from session-only
   disk storage using a shared bounded cache. H2 SQL, Neo4j and ArangoDB remain separate mirrors.
 - **Incremental background indexing**: a file watcher re-parses only changed files and patches
-  the graph atomically. Hybrid mode uses bounded staged rebuilds instead of incremental deltas.
+  the graph atomically. Hybrid mode uses bounded copy-on-write updates; directory/ignore-rule
+  changes and watcher overflow fall back to staged rebuilds.
 - **Blast score + risk gating**: an auditable weighted formula (transitive reach, fan-in, module
   spread, cross-language reach, test coverage proxy); high-score targets get a mandatory risk
   report attached, and CI can fail the build on it.
@@ -409,9 +410,13 @@ allocations and OS file cache need additional memory. Use an OS/container memory
 process-wide ceiling is required, with headroom for those allocations.
 
 Hybrid indexing is serialized across projects and stages file fragments/name indexes on disk
-rather than retaining a second complete Java graph. Changes currently trigger a bounded full
-rebuild, then an atomic generation swap; readers continue using the previous generation.
-Rebuilds may be slower and temporarily require space for two disk generations.
+rather than retaining a second complete Java graph. Ordinary saves update copy-on-write pages
+in the existing file, then atomically publish a generation; readers continue using the prior
+snapshot. Unchanged content is not reparsed. Declaration/module/configuration changes re-resolve
+stored fragments without reparsing unrelated files. Directory/ignore changes, watcher overflow,
+and batches exceeding 1,024 paths or 1 MiB of path text fall back to a full staged rebuild.
+Rebuild fallbacks temporarily require space for two stores. See the
+[incremental validation and measurements](docs/hybrid-incremental-delivery.md).
 
 Safety bounds are currently fixed in code, not configuration options: source files up to
 2 MiB in full/hybrid scans; serialized records up to 8 MiB; 32K-character storage keys;

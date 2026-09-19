@@ -3,8 +3,9 @@
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process');
 const modules=require('./benchmark-module-navigation.cjs'),java=require('./benchmark-agent-navigation.cjs');
 const {McpClient}=require('./mcp-benchmark-client.cjs');
-async function host(jar,dataset) {
-  const child=spawn('java',['-Xmx768m','--enable-native-access=ALL-UNNAMED','-cp',jar,path.join(__dirname,'EfficiencyServer.java'),dataset],{windowsHide:true,stdio:['pipe','pipe','pipe']});
+async function host(jar,dataset,{heapMiB=768}={}) {
+  if(!Number.isInteger(heapMiB)||heapMiB<32||heapMiB>4096)throw Error('Benchmark heapMiB must be an integer in 32..4096');
+  const child=spawn('java',['-Xmx'+heapMiB+'m','--enable-native-access=ALL-UNNAMED','-cp',jar,path.join(__dirname,'EfficiencyServer.java'),dataset],{windowsHide:true,stdio:['pipe','pipe','pipe']});
   let stdout='',stderr='',ready;
   const exited=new Promise(resolve=>child.once('exit',(code,signal)=>resolve({code,signal})));
   child.stderr.on('data',data=>{stderr=(stderr+data).slice(-65536);});

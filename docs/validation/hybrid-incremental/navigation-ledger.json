@@ -1,0 +1,45 @@
+{
+  "scope": "Selected instrumented MCP navigation calls only; not an exhaustive filesystem/tool-call ledger or an end-to-end agent-speed benchmark.",
+  "limitations": [
+    "Connected client catalog remains older than the live catalog; no invented tools or per-query shell/HTTP bridge was introduced.",
+    "Initial live discovery was slow (17–25 seconds) while the old deployed hybrid build was servicing this project. These observations do not isolate the cause.",
+    "Focused source reads were still necessary to implement and review storage and indexing changes."
+  ],
+  "calls": [
+    {
+      "timestamp": "2026-09-19T02:27:19.782Z",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate hybrid mutation and publication interfaces.",
+      "durationMs": 17535,
+      "responseBytes": 1233
+    },
+    {
+      "timestamp": "2026-09-19T02:27:25.062Z",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate hybrid mutation and publication interfaces.",
+      "durationMs": 22815,
+      "responseBytes": 2612
+    },
+    {
+      "timestamp": "2026-09-19T02:27:27.532Z",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate hybrid mutation and publication interfaces.",
+      "durationMs": 25285,
+      "responseBytes": 781
+    },
+    {
+      "operation": "search_symbols",
+      "purpose": "Locate existing module/configuration parity fixtures before adding incremental cases",
+      "durationMs": 4747,
+      "responseBytes": 4855,
+      "fallback": "Read test implementation to extend fixture assertions"
+    },
+    {
+      "operation": "index_status",
+      "purpose": "Confirm the running application's project index remains available during isolated implementation/tests",
+      "durationMs": 3858,
+      "responseBytes": 687,
+      "fallback": "None; status is sufficient. This is the pre-deployment running binary, not the candidate."
+    }
+  ]
+}

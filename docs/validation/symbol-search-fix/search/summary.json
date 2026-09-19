@@ -1,0 +1,1634 @@
+{
+  "completedAt": "2026-09-19T04:14:26.249Z",
+  "inputInventory": {
+    "files": 1015,
+    "sha256": "fb9747b6d5d5988e5f5f59436477155aaa884d2d0041486dd66606d552fe3c8d"
+  },
+  "equivalentResults": true,
+  "resultWitnesses": {
+    "qualified-java-function": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+          "kind": "function",
+          "sig": "bytes(JsonNode command,int index)",
+          "line": 34
+        }
+      ],
+      "total": 1,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 10,
+      "returnedCount": 1,
+      "pageEndReason": "complete"
+    },
+    "java-class": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-tools/src/main/java/io/doindev/codegraph/tools/SearchSymbolsTool.java#io.doindev.codegraph.tools.SearchSymbolsTool/0",
+          "kind": "type",
+          "sig": "SearchSymbolsTool",
+          "line": 22
+        }
+      ],
+      "total": 1,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 1,
+      "pageEndReason": "complete"
+    },
+    "storage-class": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java#io.doindev.codegraph.storage.PagedGraph.Builder/0",
+          "kind": "type",
+          "sig": "Builder",
+          "line": 72
+        },
+        {
+          "id": "java:code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java#io.doindev.codegraph.storage.PagedGraph.Generation/0",
+          "kind": "type",
+          "sig": "Generation",
+          "line": 101
+        },
+        {
+          "id": "java:code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java#io.doindev.codegraph.storage.PagedGraph.closure.Step/0",
+          "kind": "type",
+          "sig": "Step",
+          "line": 242
+        },
+        {
+          "id": "java:code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java#io.doindev.codegraph.storage.PagedGraph.findSymbols.Weighted/0",
+          "kind": "type",
+          "sig": "Weighted",
+          "line": 174
+        },
+        {
+          "id": "java:code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java#io.doindev.codegraph.storage.PagedGraph/0",
+          "kind": "type",
+          "sig": "PagedGraph",
+          "line": 16
+        },
+        {
+          "id": "java:code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedGraphTest.java#io.doindev.codegraph.storage.PagedGraphTest/0",
+          "kind": "type",
+          "sig": "PagedGraphTest",
+          "line": 13
+        }
+      ],
+      "total": 6,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 6,
+      "pageEndReason": "complete"
+    },
+    "indexer-method": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-index/src/main/java/io/doindev/codegraph/index/IncrementalIndexer.java#io.doindev.codegraph.index.IncrementalIndexer.applyBatch/2",
+          "kind": "function",
+          "sig": "applyBatch(List<String> candidatePaths, boolean initial)",
+          "line": 101
+        },
+        {
+          "id": "java:code-graph-index/src/main/java/io/doindev/codegraph/index/IncrementalIndexer.java#io.doindev.codegraph.index.IncrementalIndexer.applyChanges/1",
+          "kind": "function",
+          "sig": "applyChanges(Collection<String> relPaths)",
+          "line": 91
+        }
+      ],
+      "total": 2,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 2,
+      "pageEndReason": "complete"
+    },
+    "ambiguous-resolve": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentRequests.java#io.doindev.codegraph.dba.AgentRequests.resolveTarget/2",
+          "kind": "function",
+          "sig": "resolveTarget(JsonNode input,boolean create)",
+          "line": 86
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalScope.java#io.doindev.codegraph.dba.ApprovalScope.resolve/3",
+          "kind": "function",
+          "sig": "resolve(JsonNode profile, JsonNode binding, JsonNode input)",
+          "line": 11
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/DesktopApprovals.java#io.doindev.codegraph.dba.DesktopApprovals.resolve/2",
+          "kind": "function",
+          "sig": "resolve(String action,boolean acknowledged)",
+          "line": 149
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/GridSql.java#io.doindev.codegraph.dba.GridSql.resolve/4",
+          "kind": "function",
+          "sig": "resolve(PlainSelect select,int index,String label,JsonNode columns)",
+          "line": 145
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/MetadataActions.java#io.doindev.codegraph.dba.MetadataActions.resolve/4",
+          "kind": "function",
+          "sig": "resolve(QueryJobs.Job job,Connection c,JsonNode selection,int timeout)",
+          "line": 34
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeOperations.java#io.doindev.codegraph.dba.NativeOperations.resolve/1",
+          "kind": "function",
+          "sig": "resolve(JsonNode input)",
+          "line": 21
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeTarget.java#io.doindev.codegraph.dba.NativeTarget.resolve/2",
+          "kind": "function",
+          "sig": "resolve(JsonNode profile, JsonNode input)",
+          "line": 10
+        },
+        {
+          "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/ApprovalReviewServerTest.java#io.doindev.codegraph.dba.ApprovalReviewServerTest.resolvedReviewsReleaseTheirListener/0",
+          "kind": "function",
+          "sig": "resolvedReviewsReleaseTheirListener()",
+          "line": 109
+        },
+        {
+          "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/ExplainPlansTest.java#io.doindev.codegraph.dba.ExplainPlansTest.formatsRemainUsableAndXmlCannotResolveEntities/0",
+          "kind": "function",
+          "sig": "formatsRemainUsableAndXmlCannotResolveEntities()",
+          "line": 30
+        },
+        {
+          "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/PostgresIntegrationTest.java#io.doindev.codegraph.dba.PostgresIntegrationTest.catalogObjectActionsResolveIdentitiesAndConfirmDestruction/0",
+          "kind": "function",
+          "sig": "catalogObjectActionsResolveIdentitiesAndConfirmDestruction()",
+          "line": 137
+        },
+        {
+          "id": "java:code-graph-index/src/main/java/io/doindev/codegraph/index/FullIndexer.java#io.doindev.codegraph.index.FullIndexer.resolveAll/3",
+          "kind": "function",
+          "sig": "resolveAll(List<FileFragment> fragments, SymbolTable table, ...",
+          "line": 202
+        },
+        {
+          "id": "java:code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java#io.doindev.codegraph.index.HybridIndexer.index.resolveModule/4",
+          "kind": "function",
+          "sig": "resolveModule(String source,String specifier,String kind,java.util.function.Function<Strin...",
+          "line": 121
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/FullIndexerTest.java#io.doindev.codegraph.index.FullIndexerTest.crossFileJavaCallResolvesByUniqueName/0",
+          "kind": "function",
+          "sig": "crossFileJavaCallResolvesByUniqueName()",
+          "line": 130
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/FullIndexerTest.java#io.doindev.codegraph.index.FullIndexerTest.extendsEdgeResolvesSameDirectory/0",
+          "kind": "function",
+          "sig": "extendsEdgeResolvesSameDirectory()",
+          "line": 141
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/FullIndexerTest.java#io.doindev.codegraph.index.FullIndexerTest.pythonMethodAritySkipsSelfAndCallResolves/0",
+          "kind": "function",
+          "sig": "pythonMethodAritySkipsSelfAndCallResolves()",
+          "line": 160
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/FullIndexerTest.java#io.doindev.codegraph.index.FullIndexerTest.typeScriptSameFileCallResolvesHighConfidence/0",
+          "kind": "function",
+          "sig": "typeScriptSameFileCallResolvesHighConfidence()",
+          "line": 151
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/IncrementalIndexerTest.java#io.doindev.codegraph.index.IncrementalIndexerTest.newFileCreatesSymbolsAndResolvesItsCalls/0",
+          "kind": "function",
+          "sig": "newFileCreatesSymbolsAndResolvesItsCalls()",
+          "line": 114
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/JavaResolutionTest.java#io.doindev.codegraph.index.JavaResolutionTest.localsParametersFieldsCastsAndReturnChainsResolve/0",
+          "kind": "function",
+          "sig": "localsParametersFieldsCastsAndReturnChainsResolve()",
+          "line": 65
+        },
+        {
+          "id": "java:code-graph-index/src/test/java/io/doindev/codegraph/index/JavaResolutionTest.java#io.doindev.codegraph.index.JavaResolutionTest.qualifiedReceiverCannotResolveToLocalOrSameDirectoryNames/0",
+          "kind": "function",
+          "sig": "qualifiedReceiverCannotResolveToLocalOrSameDirectoryNames()",
+          "line": 34
+        },
+        {
+          "id": "java:code-graph-lang-javascript/src/test/java/io/doindev/codegraph/lang/javascript/ModuleResolutionTest.java#io.doindev.codegraph.lang.javascript.ModuleResolutionTest.aliasedImportNeverResolvesToSameNamedUnrelatedExport/0",
+          "kind": "function",
+          "sig": "aliasedImportNeverResolvesToSameNamedUnrelatedExport()",
+          "line": 17
+        }
+      ],
+      "total": 83,
+      "truncated": true,
+      "omitted": 63,
+      "requestedCount": 20,
+      "returnedCount": 20,
+      "pageEndReason": "item_limit"
+    },
+    "common-close": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/lifecycle/ProjectLifecycle.java#io.doindev.codegraph.lifecycle.ProjectLifecycle.Lease.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 120
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/lifecycle/ProjectLifecycle.java#io.doindev.codegraph.lifecycle.ProjectLifecycle.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 180
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/FileSnapshotStore.java#io.doindev.codegraph.snapshot.FileSnapshotStore.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 160
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/DocumentStore.java#io.doindev.codegraph.store.DocumentStore.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 13
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/DocumentStore.java#io.doindev.codegraph.store.DocumentStore.memory.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 26
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/GraphStore.java#io.doindev.codegraph.store.GraphStore.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 20
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/ManagedGraph.java#io.doindev.codegraph.store.ManagedGraph.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 12
+        },
+        {
+          "id": "java:code-graph-core/src/test/java/io/doindev/codegraph/lifecycle/ProjectLifecycleTest.java#io.doindev.codegraph.lifecycle.ProjectLifecycleTest.wallClockChangesDoNotChangeIdleDecisionsAndCloseReleasesEntries/0",
+          "kind": "function",
+          "sig": "wallClockChangesDoNotChangeIdleDecisionsAndCloseReleasesEntries()",
+          "line": 86
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentRequests.java#io.doindev.codegraph.dba.AgentRequests.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 242
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalBroker.java#io.doindev.codegraph.dba.ApprovalBroker.Desktop.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 27
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalBroker.java#io.doindev.codegraph.dba.ApprovalBroker.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 228
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalQueue.java#io.doindev.codegraph.dba.ApprovalQueue.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 192
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalReviewServer.java#io.doindev.codegraph.dba.ApprovalReviewServer.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 108
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/BrowserAuth.java#io.doindev.codegraph.dba.BrowserAuth.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 55
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.DatabaseConnection.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 53
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 112
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getInputStream.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 129
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Pool.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 16
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Target.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 76
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 106
+        }
+      ],
+      "total": 74,
+      "truncated": true,
+      "omitted": 54,
+      "requestedCount": 20,
+      "returnedCount": 20,
+      "pageEndReason": "item_limit"
+    },
+    "broad-get": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/DocumentStore.java#io.doindev.codegraph.store.DocumentStore.get/1",
+          "kind": "function",
+          "sig": "get(String key)",
+          "line": 10
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/store/DocumentStore.java#io.doindev.codegraph.store.DocumentStore.memory.get/1",
+          "kind": "function",
+          "sig": "get(String key)",
+          "line": 23
+        },
+        {
+          "id": "java:code-graph-core/src/test/java/io/doindev/codegraph/lifecycle/ProjectLifecycleTest.java#io.doindev.codegraph.lifecycle.ProjectLifecycleTest.activeOperationPinsUntilCompletionAndThenGetsAFullTimeout/0",
+          "kind": "function",
+          "sig": "activeOperationPinsUntilCompletionAndThenGetsAFullTimeout()",
+          "line": 50
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentRequests.java#io.doindev.codegraph.dba.AgentRequests.get/2",
+          "kind": "function",
+          "sig": "get(String principal,String id)",
+          "line": 181
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentRequests.java#io.doindev.codegraph.dba.AgentRequests.resolveTarget/2",
+          "kind": "function",
+          "sig": "resolveTarget(JsonNode input,boolean create)",
+          "line": 86
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalBroker.java#io.doindev.codegraph.dba.ApprovalBroker.forgetSession/1",
+          "kind": "function",
+          "sig": "forgetSession(String session)",
+          "line": 180
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalDetailsView.java#io.doindev.codegraph.dba.ApprovalDetailsView.DarkScrollBarUI.getMinimumThumbSize/0",
+          "kind": "function",
+          "sig": "getMinimumThumbSize()",
+          "line": 113
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalQueue.java#io.doindev.codegraph.dba.ApprovalQueue.get/2",
+          "kind": "function",
+          "sig": "get(String principal,String id)",
+          "line": 144
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalTitleBar.java#io.doindev.codegraph.dba.ApprovalTitleBar.WindowIcon.getIconHeight/0",
+          "kind": "function",
+          "sig": "getIconHeight()",
+          "line": 162
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalTitleBar.java#io.doindev.codegraph.dba.ApprovalTitleBar.WindowIcon.getIconWidth/0",
+          "kind": "function",
+          "sig": "getIconWidth()",
+          "line": 161
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getContentLengthLong/0",
+          "kind": "function",
+          "sig": "getContentLengthLong()",
+          "line": 130
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getContentType/0",
+          "kind": "function",
+          "sig": "getContentType()",
+          "line": 131
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getInputStream.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 129
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getInputStream/0",
+          "kind": "function",
+          "sig": "getInputStream()",
+          "line": 129
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getLastModified/0",
+          "kind": "function",
+          "sig": "getLastModified()",
+          "line": 132
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.JarLoader.uncached.openConnection.getPermission/0",
+          "kind": "function",
+          "sig": "getPermission()",
+          "line": 133
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Source.getConnection/0",
+          "kind": "function",
+          "sig": "getConnection()",
+          "line": 149
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Source.getConnection/2",
+          "kind": "function",
+          "sig": "getConnection(String user,String password)",
+          "line": 150
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Source.getLogWriter/0",
+          "kind": "function",
+          "sig": "getLogWriter()",
+          "line": 151
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Source.getLoginTimeout/0",
+          "kind": "function",
+          "sig": "getLoginTimeout()",
+          "line": 151
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Source.getParentLogger/0",
+          "kind": "function",
+          "sig": "getParentLogger()",
+          "line": 152
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Target.Target/3",
+          "kind": "function",
+          "sig": "Target(String id,Connection c,DatabaseConnection external)",
+          "line": 74
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Target.close/0",
+          "kind": "function",
+          "sig": "close()",
+          "line": 76
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.Target.connection/0",
+          "kind": "function",
+          "sig": "connection()",
+          "line": 75
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java#io.doindev.codegraph.dba.Connections.target/2",
+          "kind": "function",
+          "sig": "target(String id,String catalog)",
+          "line": 78
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/DatabaseCatalog.java#io.doindev.codegraph.dba.DatabaseCatalog.get/1",
+          "kind": "function",
+          "sig": "get(String id)",
+          "line": 54
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/DbaConfig.java#io.doindev.codegraph.dba.DbaConfig.budget/1",
+          "kind": "function",
+          "sig": "budget(String value)",
+          "line": 53
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/MaterializedViewSchedules.java#io.doindev.codegraph.dba.MaterializedViewSchedules.targets/2",
+          "kind": "function",
+          "sig": "targets(JsonNode row,String target)",
+          "line": 277
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeOperations.java#io.doindev.codegraph.dba.NativeOperations.forgetOwner/1",
+          "kind": "function",
+          "sig": "forgetOwner(String owner)",
+          "line": 157
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeTarget.java#io.doindev.codegraph.dba.NativeTarget.json/0",
+          "kind": "function",
+          "sig": "json()",
+          "line": 44
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeTarget.java#io.doindev.codegraph.dba.NativeTarget.resolve/2",
+          "kind": "function",
+          "sig": "resolve(JsonNode profile, JsonNode input)",
+          "line": 10
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeTarget.java#io.doindev.codegraph.dba.NativeTarget.text/3",
+          "kind": "function",
+          "sig": "text(JsonNode input, String field, int max)",
+          "line": 52
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.get/1",
+          "kind": "function",
+          "sig": "get(String id)",
+          "line": 102
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.get/1",
+          "kind": "function",
+          "sig": "get(String id)",
+          "line": 65
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.get/1",
+          "kind": "function",
+          "sig": "get(String id)",
+          "line": 45
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.Limit.Limit/1",
+          "kind": "function",
+          "sig": "Limit(long allowance)",
+          "line": 24
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.Limit.channelRead/2",
+          "kind": "function",
+          "sig": "channelRead(ChannelHandlerContext context,Object message)",
+          "line": 25
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.RespLimit.channelRead/2",
+          "kind": "function",
+          "sig": "channelRead(ChannelHandlerContext context,Object message)",
+          "line": 43
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.RespLimit.completeLine/0",
+          "kind": "function",
+          "sig": "completeLine()",
+          "line": 85
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.RespLimit.inspect/1",
+          "kind": "function",
+          "sig": "inspect(ByteBuf buffer)",
+          "line": 55
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.RespLimit.length/0",
+          "kind": "function",
+          "sig": "length()",
+          "line": 99
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java#io.doindev.codegraph.dba.NativeWireBudget.afterChannelInitialized/1",
+          "kind": "function",
+          "sig": "afterChannelInitialized(Channel channel)",
+          "line": 14
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectCatalog.java#io.doindev.codegraph.dba.ObjectCatalog.target/1",
+          "kind": "function",
+          "sig": "target(ObjectNode out)",
+          "line": 72
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.get/1",
+          "kind": "function",
+          "sig": "get(String id)",
+          "line": 67
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.Job.beginActiveBudget/1",
+          "kind": "function",
+          "sig": "beginActiveBudget(int seconds)",
+          "line": 42
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.Job.pauseActiveBudget/0",
+          "kind": "function",
+          "sig": "pauseActiveBudget()",
+          "line": 43
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.Job.resumeActiveBudget/0",
+          "kind": "function",
+          "sig": "resumeActiveBudget()",
+          "line": 44
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.Job.stopActiveBudget/0",
+          "kind": "function",
+          "sig": "stopActiveBudget()",
+          "line": 45
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.verifyReusableTarget/2",
+          "kind": "function",
+          "sig": "verifyReusableTarget(Connection c,JsonNode scope)",
+          "line": 286
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.target/1",
+          "kind": "function",
+          "sig": "target(JsonNode snapshot)",
+          "line": 17
+        }
+      ],
+      "total": 153,
+      "truncated": true,
+      "omitted": 103,
+      "requestedCount": 50,
+      "returnedCount": 50,
+      "pageEndReason": "item_limit"
+    },
+    "broad-table": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "file:code-graph-dba/browser-table-designer.cjs",
+          "kind": "file",
+          "sig": "browser-table-designer.cjs",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/browser-table-tabs.cjs",
+          "kind": "file",
+          "sig": "browser-table-tabs.cjs",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java",
+          "kind": "file",
+          "sig": "TableCreation.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java",
+          "kind": "file",
+          "sig": "TableDesigner.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableMetadata.java",
+          "kind": "file",
+          "sig": "TableMetadata.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableQueries.java",
+          "kind": "file",
+          "sig": "TableQueries.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/main/resources/codegraph/dba/table-properties.js",
+          "kind": "file",
+          "sig": "table-properties.js",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableCreationTest.java",
+          "kind": "file",
+          "sig": "TableCreationTest.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableDesignerTest.java",
+          "kind": "file",
+          "sig": "TableDesignerTest.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableMetadataTest.java",
+          "kind": "file",
+          "sig": "TableMetadataTest.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableQueriesTest.java",
+          "kind": "file",
+          "sig": "TableQueriesTest.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-parsers/src/main/java/io/doindev/codegraph/parse/SymbolTable.java",
+          "kind": "file",
+          "sig": "SymbolTable.java",
+          "line": 1
+        },
+        {
+          "id": "java:code-graph-cli/src/main/java/io/doindev/codegraph/cli/CiReport.java#io.doindev.codegraph.cli.CiReport.factorTable/1",
+          "kind": "function",
+          "sig": "factorTable(List<BlastFormula.Factor> factors)",
+          "line": 188
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable.index/1",
+          "kind": "function",
+          "sig": "index(String value)",
+          "line": 203
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable.indexByValue/0",
+          "kind": "variable",
+          "sig": "indexByValue",
+          "line": 197
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable.intern/1",
+          "kind": "function",
+          "sig": "intern(String value)",
+          "line": 199
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable.readFrom/1",
+          "kind": "function",
+          "sig": "readFrom(DataInputStream in)",
+          "line": 214
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable.writeTo/1",
+          "kind": "function",
+          "sig": "writeTo(DataOutputStream out)",
+          "line": 207
+        },
+        {
+          "id": "java:code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java#io.doindev.codegraph.snapshot.SnapshotCodec.StringTable/0",
+          "kind": "type",
+          "sig": "StringTable",
+          "line": 196
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/CatalogScanner.java#io.doindev.codegraph.dba.CatalogScanner.stable/1",
+          "kind": "function",
+          "sig": "stable(JsonNode node)",
+          "line": 154
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/CatalogScanner.java#io.doindev.codegraph.dba.CatalogScanner.table/5",
+          "kind": "function",
+          "sig": "table(DatabaseMetaData m,ObjectNode o,String catalog,String schema,String name)",
+          "line": 85
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/DriverBundles.java#io.doindev.codegraph.dba.DriverBundles.stable/2",
+          "kind": "function",
+          "sig": "stable(String version,String template)",
+          "line": 41
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ExplainPlans.java#io.doindev.codegraph.dba.ExplainPlans.planTable/5",
+          "kind": "function",
+          "sig": "planTable(QueryJobs.Job job,Connection c,String kind,String sql,JsonNode values)",
+          "line": 91
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/MaterializedViewSchedules.java#io.doindev.codegraph.dba.MaterializedViewSchedules.stable/1",
+          "kind": "function",
+          "sig": "stable(JsonNode schedule)",
+          "line": 38
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectForms.java#io.doindev.codegraph.dba.ObjectForms.parentTable/1",
+          "kind": "function",
+          "sig": "parentTable(ObjectNode out)",
+          "line": 225
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.applyTableProperties/2",
+          "kind": "function",
+          "sig": "applyTableProperties(String owner,JsonNode input)",
+          "line": 622
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.tablePreparation/3",
+          "kind": "function",
+          "sig": "tablePreparation(String owner,String id,JsonNode input)",
+          "line": 326
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.tableProperties/4",
+          "kind": "function",
+          "sig": "tableProperties(String owner,String id,JsonNode input,boolean prepare)",
+          "line": 606
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.tablePropertyDetails/3",
+          "kind": "function",
+          "sig": "tablePropertyDetails(String owner,String id,JsonNode input)",
+          "line": 618
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java#io.doindev.codegraph.dba.QueryJobs.tableQuery/5",
+          "kind": "function",
+          "sig": "tableQuery(String owner,String id,String sql,JsonNode parameters,String database)",
+          "line": 309
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/ReusableOperation.java#io.doindev.codegraph.dba.ReusableOperation.Parser.table/0",
+          "kind": "function",
+          "sig": "table()",
+          "line": 136
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/SqlScript.java#io.doindev.codegraph.dba.SqlScript.executable/1",
+          "kind": "function",
+          "sig": "executable(String sql)",
+          "line": 73
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java#io.doindev.codegraph.dba.TableCreation.absent/3",
+          "kind": "function",
+          "sig": "absent(Connection c,String schema,String name)",
+          "line": 24
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java#io.doindev.codegraph.dba.TableCreation.initialize/3",
+          "kind": "function",
+          "sig": "initialize(Connection c,JsonNode target,boolean generic)",
+          "line": 10
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java#io.doindev.codegraph.dba.TableCreation.prepare/3",
+          "kind": "function",
+          "sig": "prepare(Connection c,ObjectNode baseline,JsonNode request)",
+          "line": 29
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java#io.doindev.codegraph.dba.TableCreation/0",
+          "kind": "type",
+          "sig": "TableCreation",
+          "line": 9
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.MAX_COLUMNS/0",
+          "kind": "variable",
+          "sig": "MAX_COLUMNS",
+          "line": 12
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.MAX_OPERATIONS/0",
+          "kind": "variable",
+          "sig": "MAX_OPERATIONS",
+          "line": 12
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.TableDesigner/0",
+          "kind": "function",
+          "sig": "TableDesigner()",
+          "line": 143
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.add/3",
+          "kind": "function",
+          "sig": "add(ArrayNode commands,String sql,boolean risky)",
+          "line": 59
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.columnList/1",
+          "kind": "function",
+          "sig": "columnList(JsonNode list)",
+          "line": 133
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.details/4",
+          "kind": "function",
+          "sig": "details(QueryJobs.Job job,Connection c,ObjectNode snapshot,String category)",
+          "line": 134
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.expression/1",
+          "kind": "function",
+          "sig": "expression(String input)",
+          "line": 58
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.find/2",
+          "kind": "function",
+          "sig": "find(JsonNode list,String id)",
+          "line": 131
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.hash/1",
+          "kind": "function",
+          "sig": "hash(JsonNode n)",
+          "line": 16
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.literal/1",
+          "kind": "function",
+          "sig": "literal(String s)",
+          "line": 15
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.load/4",
+          "kind": "function",
+          "sig": "load(QueryJobs.Job job,Connection c,ObjectNode selection,boolean generic)",
+          "line": 24
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.objectChange/5",
+          "kind": "function",
+          "sig": "objectChange(ObjectNode current,JsonNode change,ArrayNode commands,String target,boolean pg)",
+          "line": 96
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.pgIdentifier/1",
+          "kind": "function",
+          "sig": "pgIdentifier(String value)",
+          "line": 132
+        },
+        {
+          "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java#io.doindev.codegraph.dba.TableDesigner.prepare/2",
+          "kind": "function",
+          "sig": "prepare(ObjectNode current,JsonNode request)",
+          "line": 60
+        }
+      ],
+      "total": 222,
+      "truncated": true,
+      "omitted": 172,
+      "requestedCount": 50,
+      "returnedCount": 50,
+      "pageEndReason": "item_limit"
+    },
+    "javascript-grid": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.actionSection/0",
+          "kind": "function",
+          "sig": "actionSection()",
+          "line": 127
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.applyQueryAction/3",
+          "kind": "function",
+          "sig": "applyQueryAction(action,column=null,extra={})",
+          "line": 144
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginColumnResize.move/1",
+          "kind": "function",
+          "sig": "move()",
+          "line": 246
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginColumnResize.up/1",
+          "kind": "function",
+          "sig": "up()",
+          "line": 246
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginColumnResize/3",
+          "kind": "function",
+          "sig": "beginColumnResize(event,handle,id)",
+          "line": 246
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginViewerResize.move/1",
+          "kind": "function",
+          "sig": "move()",
+          "line": 132
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginViewerResize.up/1",
+          "kind": "function",
+          "sig": "up()",
+          "line": 132
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.beginViewerResize/2",
+          "kind": "function",
+          "sig": "beginViewerResize(event,handle)",
+          "line": 132
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.buildDialog.onclick/0",
+          "kind": "function",
+          "sig": "onclick()",
+          "line": 249
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.buildDialog.onclick/0~2645",
+          "kind": "function",
+          "sig": "onclick()",
+          "line": 249
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.buildDialog.onclick/0~4964",
+          "kind": "function",
+          "sig": "onclick()",
+          "line": 249
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.buildDialog.onclick/0~f30b",
+          "kind": "function",
+          "sig": "onclick()",
+          "line": 249
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.buildDialog/0",
+          "kind": "function",
+          "sig": "buildDialog()",
+          "line": 249
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.clearDrop/0",
+          "kind": "function",
+          "sig": "clearDrop()",
+          "line": 245
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.clearSelection/1",
+          "kind": "function",
+          "sig": "clearSelection(result)",
+          "line": 91
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.closeColumnMenu/1",
+          "kind": "function",
+          "sig": "closeColumnMenu(focus=false)",
+          "line": 135
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.closeMenu/0",
+          "kind": "function",
+          "sig": "closeMenu()",
+          "line": 129
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.closeRefreshMenu/1",
+          "kind": "function",
+          "sig": "closeRefreshMenu(focus=false)",
+          "line": 120
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.closeViewer/0",
+          "kind": "function",
+          "sig": "closeViewer()",
+          "line": 131
+        },
+        {
+          "id": "js:code-graph-dba/src/main/resources/codegraph/dba/data-grid.js#DataGridView.columnHeader/1",
+          "kind": "function",
+          "sig": "columnHeader(column)",
+          "line": 225
+        }
+      ],
+      "total": 70,
+      "truncated": true,
+      "omitted": 50,
+      "requestedCount": 20,
+      "returnedCount": 20,
+      "pageEndReason": "item_limit"
+    },
+    "javascript-function": {
+      "inventoryComplete": true,
+      "symbols": [],
+      "total": 0,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 0,
+      "pageEndReason": "complete"
+    },
+    "file-name": {
+      "inventoryComplete": true,
+      "symbols": [
+        {
+          "id": "file:code-graph-index/src/main/java/io/doindev/codegraph/index/Watcher.java",
+          "kind": "file",
+          "sig": "Watcher.java",
+          "line": 1
+        },
+        {
+          "id": "file:code-graph-index/src/test/java/io/doindev/codegraph/index/WatcherTest.java",
+          "kind": "file",
+          "sig": "WatcherTest.java",
+          "line": 1
+        }
+      ],
+      "total": 2,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 2,
+      "pageEndReason": "complete"
+    },
+    "missing-name": {
+      "inventoryComplete": true,
+      "symbols": [],
+      "total": 0,
+      "truncated": false,
+      "omitted": 0,
+      "requestedCount": 20,
+      "returnedCount": 0,
+      "pageEndReason": "complete"
+    }
+  },
+  "builds": {
+    "baseline": {
+      "runs": [
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 260.0515000000014,
+            "p95Ms": 260.0515000000014,
+            "p99Ms": 260.0515000000014,
+            "meanMs": 260.0515000000014,
+            "queriesPerSecond": 3.8453921627062124,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 92.982600000003,
+            "p95Ms": 104.5743000000075,
+            "p99Ms": 133.48360000000685,
+            "meanMs": 95.21422499999971,
+            "queriesPerSecond": 10.502632353516535,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 91.18309999999474,
+            "p95Ms": 95.36810000000696,
+            "p99Ms": 98.71340000000782,
+            "meanMs": 91.62006666666736,
+            "queriesPerSecond": 10.914639514924232,
+            "meanResponseBytes": 1112
+          }
+        },
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 167.30449999996927,
+            "p95Ms": 167.30449999996927,
+            "p99Ms": 167.30449999996927,
+            "meanMs": 167.30449999996927,
+            "queriesPerSecond": 5.977125540557389,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 89.50010000000475,
+            "p95Ms": 93.85430000000633,
+            "p99Ms": 102.33379999996396,
+            "meanMs": 89.81855833332763,
+            "queriesPerSecond": 11.133556567328524,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 88.8972000000067,
+            "p95Ms": 94.48780000000261,
+            "p99Ms": 96.92759999999544,
+            "meanMs": 89.41781166666381,
+            "queriesPerSecond": 11.183454183914161,
+            "meanResponseBytes": 1112
+          }
+        },
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 336.7877000000444,
+            "p95Ms": 336.7877000000444,
+            "p99Ms": 336.7877000000444,
+            "meanMs": 336.7877000000444,
+            "queriesPerSecond": 2.9692295769705015,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 89.01080000004731,
+            "p95Ms": 96.68170000001555,
+            "p99Ms": 104.01799999998184,
+            "meanMs": 89.6343799999983,
+            "queriesPerSecond": 11.156433502413014,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 87.96210000000428,
+            "p95Ms": 93.7954000000027,
+            "p99Ms": 102.92749999999069,
+            "meanMs": 88.64319666666464,
+            "queriesPerSecond": 11.281181609011877,
+            "meanResponseBytes": 1112
+          }
+        }
+      ],
+      "pooled": {
+        "first": {
+          "count": 3,
+          "p50Ms": 260.0515000000014,
+          "p95Ms": 336.7877000000444,
+          "p99Ms": 336.7877000000444,
+          "meanMs": 254.7145666666717,
+          "queriesPerSecond": 3.925963140178923,
+          "meanResponseBytes": 1110
+        },
+        "mixed": {
+          "count": 360,
+          "p50Ms": 90.45870000001742,
+          "p95Ms": 100.72239999999874,
+          "p99Ms": 110.82789999998931,
+          "meanMs": 91.55572111110854,
+          "queriesPerSecond": 10.92231034679349,
+          "meanResponseBytes": 7100.575
+        },
+        "repeated": {
+          "count": 180,
+          "p50Ms": 89.78599999996368,
+          "p95Ms": 94.91589999999269,
+          "p99Ms": 98.71340000000782,
+          "meanMs": 89.89369166666528,
+          "queriesPerSecond": 11.124251117732479,
+          "meanResponseBytes": 1112
+        }
+      },
+      "byQuery": {
+        "qualified-java-function": {
+          "count": 30,
+          "p50Ms": 89.76729999999225,
+          "p95Ms": 103.26320000000123,
+          "p99Ms": 133.8191000000079,
+          "meanMs": 92.65061999999938,
+          "queriesPerSecond": 10.79323592222056,
+          "meanResponseBytes": 1111.4
+        },
+        "java-class": {
+          "count": 30,
+          "p50Ms": 88.93589999998221,
+          "p95Ms": 102.3058999999921,
+          "p99Ms": 110.82789999998931,
+          "meanMs": 90.84730999999059,
+          "queriesPerSecond": 11.007480573724237,
+          "meanResponseBytes": 1059.4
+        },
+        "storage-class": {
+          "count": 30,
+          "p50Ms": 89.63120000000345,
+          "p95Ms": 101.06390000000829,
+          "p99Ms": 106.0911000000051,
+          "meanMs": 91.07351666666655,
+          "queriesPerSecond": 10.980140403055348,
+          "meanResponseBytes": 2983.4
+        },
+        "indexer-method": {
+          "count": 30,
+          "p50Ms": 90.66070000000764,
+          "p95Ms": 100.28299999999581,
+          "p99Ms": 100.30989999999292,
+          "meanMs": 91.33891666666555,
+          "queriesPerSecond": 10.948235828649294,
+          "meanResponseBytes": 1657.4
+        },
+        "ambiguous-resolve": {
+          "count": 30,
+          "p50Ms": 90.4036000000051,
+          "p95Ms": 101.32229999999981,
+          "p99Ms": 104.01799999998184,
+          "meanMs": 92.23975333332831,
+          "queriesPerSecond": 10.84131259963677,
+          "meanResponseBytes": 12570.4
+        },
+        "common-close": {
+          "count": 30,
+          "p50Ms": 90.67549999999756,
+          "p95Ms": 100.72239999999874,
+          "p99Ms": 102.33379999996396,
+          "meanMs": 91.05122999999875,
+          "queriesPerSecond": 10.982828018907748,
+          "meanResponseBytes": 9679.4
+        },
+        "broad-get": {
+          "count": 30,
+          "p50Ms": 91.38479999999981,
+          "p95Ms": 103.14259999999194,
+          "p99Ms": 104.54469999999856,
+          "meanMs": 92.037456666668,
+          "queriesPerSecond": 10.865141608831058,
+          "meanResponseBytes": 23354.4
+        },
+        "broad-table": {
+          "count": 30,
+          "p50Ms": 90.61249999998836,
+          "p95Ms": 103.04780000000028,
+          "p99Ms": 104.9088000000047,
+          "meanMs": 92.30595000000079,
+          "queriesPerSecond": 10.833537816359526,
+          "meanResponseBytes": 22039.4
+        },
+        "javascript-grid": {
+          "count": 30,
+          "p50Ms": 90.88829999999143,
+          "p95Ms": 101.61329999996815,
+          "p99Ms": 112.49160000000848,
+          "meanMs": 92.17773666665889,
+          "queriesPerSecond": 10.848606574234802,
+          "meanResponseBytes": 8203.4
+        },
+        "javascript-function": {
+          "count": 30,
+          "p50Ms": 88.8179999999702,
+          "p95Ms": 108.51430000003893,
+          "p99Ms": 133.48360000000685,
+          "meanMs": 91.85352999999887,
+          "queriesPerSecond": 10.88689786881367,
+          "meanResponseBytes": 663.4
+        },
+        "file-name": {
+          "count": 30,
+          "p50Ms": 89.56030000001192,
+          "p95Ms": 95.04630000000179,
+          "p99Ms": 100.18329999998969,
+          "meanMs": 90.36612000000022,
+          "queriesPerSecond": 11.066094239743805,
+          "meanResponseBytes": 1221.4
+        },
+        "missing-name": {
+          "count": 30,
+          "p50Ms": 90.07989999995334,
+          "p95Ms": 96.76850000000559,
+          "p99Ms": 99.17099999997299,
+          "meanMs": 90.72651333332664,
+          "queriesPerSecond": 11.022136344268278,
+          "meanResponseBytes": 663.5
+        }
+      }
+    },
+    "candidate": {
+      "runs": [
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 179.21080000000075,
+            "p95Ms": 179.21080000000075,
+            "p99Ms": 179.21080000000075,
+            "meanMs": 179.21080000000075,
+            "queriesPerSecond": 5.580020846957861,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 90.25289999999222,
+            "p95Ms": 99.29920000000857,
+            "p99Ms": 136.22159999998985,
+            "meanMs": 90.97526583333408,
+            "queriesPerSecond": 10.991998658536394,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 89.85130000000936,
+            "p95Ms": 97.32949999999255,
+            "p99Ms": 121.80230000001029,
+            "meanMs": 90.97045000000071,
+            "queriesPerSecond": 10.99258055775246,
+            "meanResponseBytes": 1112
+          }
+        },
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 178.4979999999632,
+            "p95Ms": 178.4979999999632,
+            "p99Ms": 178.4979999999632,
+            "meanMs": 178.4979999999632,
+            "queriesPerSecond": 5.602303667269135,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 88.73719999997411,
+            "p95Ms": 100.75870000000577,
+            "p99Ms": 118.33930000005057,
+            "meanMs": 90.54094666666643,
+            "queriesPerSecond": 11.044726577485193,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 86.39789999998175,
+            "p95Ms": 94.38869999995222,
+            "p99Ms": 118.90529999998398,
+            "meanMs": 86.41971666666699,
+            "queriesPerSecond": 11.571433447961196,
+            "meanResponseBytes": 1112
+          }
+        },
+        {
+          "first": {
+            "count": 1,
+            "p50Ms": 191.6021999999648,
+            "p95Ms": 191.6021999999648,
+            "p99Ms": 191.6021999999648,
+            "meanMs": 191.6021999999648,
+            "queriesPerSecond": 5.21914675301319,
+            "meanResponseBytes": 1110
+          },
+          "mixed": {
+            "count": 120,
+            "p50Ms": 90.17800000007264,
+            "p95Ms": 99.98040000000037,
+            "p99Ms": 120.00620000006165,
+            "meanMs": 91.59753333333744,
+            "queriesPerSecond": 10.917324556774329,
+            "meanResponseBytes": 7100.575
+          },
+          "repeated": {
+            "count": 60,
+            "p50Ms": 88.71739999996498,
+            "p95Ms": 98.67780000006314,
+            "p99Ms": 135.87899999995716,
+            "meanMs": 90.64972166667188,
+            "queriesPerSecond": 11.031473474095158,
+            "meanResponseBytes": 1112
+          }
+        }
+      ],
+      "pooled": {
+        "first": {
+          "count": 3,
+          "p50Ms": 179.21080000000075,
+          "p95Ms": 191.6021999999648,
+          "p99Ms": 191.6021999999648,
+          "meanMs": 183.1036666666429,
+          "queriesPerSecond": 5.461387083092072,
+          "meanResponseBytes": 1110
+        },
+        "mixed": {
+          "count": 360,
+          "p50Ms": 89.70059999998193,
+          "p95Ms": 99.98040000000037,
+          "p99Ms": 126.4269000000204,
+          "meanMs": 91.03791527777932,
+          "queriesPerSecond": 10.984434309032137,
+          "meanResponseBytes": 7100.575
+        },
+        "repeated": {
+          "count": 180,
+          "p50Ms": 88.7210999999661,
+          "p95Ms": 97.32949999999255,
+          "p99Ms": 121.80230000001029,
+          "meanMs": 89.34662944444652,
+          "queriesPerSecond": 11.192364012139649,
+          "meanResponseBytes": 1112
+        }
+      },
+      "byQuery": {
+        "qualified-java-function": {
+          "count": 30,
+          "p50Ms": 88.90169999998761,
+          "p95Ms": 93.86239999998361,
+          "p99Ms": 96.67849999997998,
+          "meanMs": 89.2993399999997,
+          "queriesPerSecond": 11.198291051199297,
+          "meanResponseBytes": 1111.4
+        },
+        "java-class": {
+          "count": 30,
+          "p50Ms": 87.80409999995027,
+          "p95Ms": 92.30549999998766,
+          "p99Ms": 94.03879999998026,
+          "meanMs": 87.9153133333263,
+          "queriesPerSecond": 11.374582676041346,
+          "meanResponseBytes": 1059.4
+        },
+        "storage-class": {
+          "count": 30,
+          "p50Ms": 87.83620000001974,
+          "p95Ms": 116.50910000002477,
+          "p99Ms": 120.00620000006165,
+          "meanMs": 89.7394000000039,
+          "queriesPerSecond": 11.14337737938917,
+          "meanResponseBytes": 2983.4
+        },
+        "indexer-method": {
+          "count": 30,
+          "p50Ms": 88.7381999999925,
+          "p95Ms": 99.73919999998179,
+          "p99Ms": 112.2151999999769,
+          "meanMs": 89.9701466666748,
+          "queriesPerSecond": 11.114797930749654,
+          "meanResponseBytes": 1657.4
+        },
+        "ambiguous-resolve": {
+          "count": 30,
+          "p50Ms": 90.4326000000001,
+          "p95Ms": 126.7666999999783,
+          "p99Ms": 137.92110000000685,
+          "meanMs": 94.35763333334471,
+          "queriesPerSecond": 10.597976704939393,
+          "meanResponseBytes": 12570.4
+        },
+        "common-close": {
+          "count": 30,
+          "p50Ms": 90.34010000003036,
+          "p95Ms": 99.98040000000037,
+          "p99Ms": 106.70600000000559,
+          "meanMs": 91.23871666666818,
+          "queriesPerSecond": 10.960259378191422,
+          "meanResponseBytes": 9679.4
+        },
+        "broad-get": {
+          "count": 30,
+          "p50Ms": 90.46369999996386,
+          "p95Ms": 101.15189999999711,
+          "p99Ms": 102.91609999997308,
+          "meanMs": 91.59016333333663,
+          "queriesPerSecond": 10.918203042837286,
+          "meanResponseBytes": 23354.4
+        },
+        "broad-table": {
+          "count": 30,
+          "p50Ms": 91.26549999997951,
+          "p95Ms": 98.7725999999966,
+          "p99Ms": 116.59269999997923,
+          "meanMs": 92.80858333332483,
+          "queriesPerSecond": 10.77486547131605,
+          "meanResponseBytes": 22039.4
+        },
+        "javascript-grid": {
+          "count": 30,
+          "p50Ms": 91.1585999999661,
+          "p95Ms": 97.74499999999534,
+          "p99Ms": 136.22159999998985,
+          "meanMs": 92.6773500000049,
+          "queriesPerSecond": 10.790122937265116,
+          "meanResponseBytes": 8203.4
+        },
+        "javascript-function": {
+          "count": 30,
+          "p50Ms": 89.18460000003688,
+          "p95Ms": 118.33930000005057,
+          "p99Ms": 120.95120000001043,
+          "meanMs": 91.49790333333075,
+          "queriesPerSecond": 10.929212184862394,
+          "meanResponseBytes": 663.4
+        },
+        "file-name": {
+          "count": 30,
+          "p50Ms": 89.12489999999525,
+          "p95Ms": 99.29920000000857,
+          "p99Ms": 103.97329999998328,
+          "meanMs": 90.16117666667463,
+          "queriesPerSecond": 11.091248328501683,
+          "meanResponseBytes": 1221.4
+        },
+        "missing-name": {
+          "count": 30,
+          "p50Ms": 89.19739999997546,
+          "p95Ms": 104.11280000000261,
+          "p99Ms": 126.4269000000204,
+          "meanMs": 91.19925666666241,
+          "queriesPerSecond": 10.965001651878012,
+          "meanResponseBytes": 663.5
+        }
+      }
+    }
+  }
+}

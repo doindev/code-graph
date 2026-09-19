@@ -81,11 +81,13 @@ No Docker containers or images were needed or created for this resolver work.
 
 ## Remaining efficiency and freshness follow-ups
 
-- Hybrid changes still rebuild a complete staged project generation. The watcher
+- Hybrid updates are now addressed by [bounded copy-on-write indexing](hybrid-incremental-delivery.md).
+  Ordinary edits reuse disk fragments; broad inventory changes retain rebuild fallbacks.
+  Historical evidence before this change: hybrid changes rebuilt a complete staged project generation. The watcher
   debounce is only 250 ms; it is not a completion promise. The frozen 501-file
   benchmark at 32 MiB measured median rebuild/index times of 51.93 s baseline and
-  60.58 s candidate. A bounded disk-delta/index reuse design is a separate future
-  optimization, not implemented or benchmarked as part of module resolution.
+  60.58 s candidate. Those full-repository measurements belong to the earlier module-resolution
+  study and must not be compared directly with the new 74-file incremental workload.
 - Module/config inventory capture includes bounded JSON reads to support local
   configuration inheritance. Profile parsing, inventory capture and resolution
   separately before attributing the measured indexing increase to one cause.

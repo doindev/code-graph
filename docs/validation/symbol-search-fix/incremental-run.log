@@ -1,0 +1,72 @@
+baseline 1: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+  required: Map<String,Object>
+baseline 1:   found:    Map
+baseline 1: 1 warning
+baseline 1: initial 5647ms parsed=74
+baseline 1: unchanged-save 4635ms parsed=74
+baseline 1: body-edit 4443ms parsed=74
+baseline 1: declaration-edit 4207ms parsed=74
+baseline 1: config-edit 4195ms parsed=74
+baseline 1 passed
+candidate 1: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+candidate 1:   required: Map<String,Object>
+  found:    Map
+candidate 1: 1 warning
+candidate 1: initial 6256ms parsed=74
+candidate 1: unchanged-save 13ms parsed=0
+candidate 1: body-edit 22ms parsed=1
+candidate 1: declaration-edit 890ms parsed=1
+candidate 1: config-edit 721ms parsed=0
+candidate 1 passed
+candidate 2: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+candidate 2:   required: Map<String,Object>
+  found:    Map
+candidate 2: 1 warning
+candidate 2: initial 6393ms parsed=74
+candidate 2: unchanged-save 14ms parsed=0
+candidate 2: body-edit 22ms parsed=1
+candidate 2: declaration-edit 967ms parsed=1
+candidate 2: config-edit 723ms parsed=0
+candidate 2 passed
+baseline 2: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+baseline 2:                                                                 ^
+  required: Map<String,Object>
+  found:    Map
+baseline 2: 1 warning
+baseline 2: initial 5536ms parsed=74
+baseline 2: unchanged-save 4572ms parsed=74
+baseline 2: body-edit 4325ms parsed=74
+baseline 2: declaration-edit 4109ms parsed=74
+baseline 2: config-edit 4083ms parsed=74
+baseline 2 passed
+baseline 3: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+  required: Map<String,Object>
+baseline 3:   found:    Map
+baseline 3: 1 warning
+baseline 3: initial 5525ms parsed=74
+baseline 3: unchanged-save 4588ms parsed=74
+baseline 3: body-edit 4368ms parsed=74
+baseline 3: declaration-edit 4334ms parsed=74
+baseline 3: config-edit 4094ms parsed=74
+baseline 3 passed
+candidate 3: C:\Users\timhj\eclipse-workspace\code-graph\scripts\IncrementalBenchmark.java:31: warning: [unchecked] unchecked conversion
+            return result == null ? Map.of() : JSON.convertValue(result,Map.class);
+                                                                ^
+candidate 3:   required: Map<String,Object>
+  found:    Map
+candidate 3: 1 warning
+candidate 3: initial 6620ms parsed=74
+candidate 3: unchanged-save 11ms parsed=0
+candidate 3: body-edit 21ms parsed=1
+candidate 3: declaration-edit 991ms parsed=1
+candidate 3: config-edit 704ms parsed=0
+candidate 3 passed

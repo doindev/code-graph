@@ -117,7 +117,8 @@ not total-process RAM limits.
 
 Import/export/config changes, additions, deletions and moves invalidate dependent
 resolution even when declarations have not changed. Memory mode re-resolves
-affected evidence; hybrid mode retains staged rebuild/publication. A fresh index
+affected evidence; hybrid mode now reuses disk fragments through
+[atomic copy-on-write updates](hybrid-incremental-delivery.md). A fresh index
 is necessary when deploying over old fragments lacking module evidence.
 
 ## File-change latency
@@ -130,14 +131,15 @@ eligibility. These are internal constants, not exposed startup settings.
 This is a start delay, not an indexing-completion guarantee. The worker executes
 batches serially. Memory mode reparses changed files and re-resolves affected
 references (potentially all files after declaration/module/config changes).
-Hybrid mode currently stages a full disk-backed project rebuild, then publishes
-one complete generation. Events during a build wait for a subsequent batch;
+Hybrid mode parses changed files and re-resolves affected disk fragments, then publishes
+one complete generation; broad inventory changes retain full-rebuild fallbacks. Events during a build wait for a subsequent batch;
 neither the 250 ms nor 1,000 ms value bounds that wait.
 
 Use index_status state/generation/lastIndexedAt and the pending-change indicator
-together when freshness matters. A zero pending count alone is insufficient:
-the watcher removes a batch from its queue before executing it. Keep prior
-generation results distinct from newly published evidence.
+together when freshness matters. The watcher includes its active batch in the
+pending-work count. A zero count still cannot prove that no OS event is in transit
+or that a manually requested reindex has completed. Keep prior-generation results
+distinct from newly published evidence.
 
 ## Reproduction and honest measurement
 

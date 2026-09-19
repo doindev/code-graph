@@ -67,23 +67,25 @@ public final class IncrementalIndexer {
         return graph;
     }
 
-    boolean boundedRebuild() { return hybrid != null; }
+    /** Last successful hybrid operation; counters describe work, not total graph size. */
+    public record HybridUpdate(String mode, int parsedFiles, int resolvedFiles, int changedFiles,
+                               long elapsedMillis, long generation) { }
+    public HybridUpdate lastHybridUpdate() { return hybrid == null ? null : hybrid.lastUpdate(); }
 
     /** Full (from-scratch) index; resets all bookkeeping. */
     public FullIndexer.Result fullIndex() {
         synchronized (lock) {
             if (hybrid != null) return hybrid.index();
-            fragments.clear();
             resolvedBySource.clear();
             resolvedInto.clear();
             withPending.clear();
 
             List<Path> files = fullIndexer.scan(root);
-            List<String> changed = new ArrayList<>(files.size());
+            Set<String> changed = new LinkedHashSet<>(fragments.keySet());
             for (Path file : files) {
                 changed.add(FullIndexer.relativize(root, file));
             }
-            return applyBatch(changed, true);
+            return applyBatch(List.copyOf(changed), true);
         }
     }
 
@@ -91,7 +93,13 @@ public final class IncrementalIndexer {
     public void applyChanges(Collection<String> relPaths) {
         synchronized (lock) {
             if (hybrid != null) {
-                if (!relPaths.isEmpty()) hybrid.index();
+                hybrid.applyChanges(relPaths);
+                return;
+            }
+            if (relPaths.contains("*") || relPaths.stream().anyMatch(p -> p.equals(".gitignore")
+                    || p.endsWith("/.gitignore") || Files.isDirectory(root.resolve(p))
+                    || fragments.keySet().stream().anyMatch(f -> f.startsWith(p+"/")))) {
+                fullIndex();
                 return;
             }
             applyBatch(List.copyOf(relPaths), false);
@@ -107,7 +115,10 @@ public final class IncrementalIndexer {
         List<String> failed = new ArrayList<>();
         List<String> toExtract = new ArrayList<>();
         for (String relPath : candidatePaths) {
-            if (Files.isRegularFile(root.resolve(relPath))) {
+            boolean eligible;
+            try { eligible = fullIndexer.eligible(root,root.resolve(relPath),false); }
+            catch (IOException e) { throw new java.io.UncheckedIOException(e); }
+            if (eligible) {
                 toExtract.add(relPath);
             } else {
                 FileFragment previous=fragments.remove(relPath);
@@ -141,7 +152,7 @@ public final class IncrementalIndexer {
                     continue;
                 }
                 FileFragment previous = fragments.get(relPath);
-                if (previous != null && previous.contentHash().equals(fragment.contentHash())) {
+                if (!initial && previous != null && previous.contentHash().equals(fragment.contentHash())) {
                     continue; // touch-only event
                 }
                 fragments.put(relPath, fragment);

@@ -1,0 +1,100 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-storage                                                 [jar]
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                 [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-core >---------------------
+[INFO] Building code-graph-core 0.0.1-SNAPSHOT                            [2/4]
+[INFO]   from code-graph-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-core\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-core\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-core ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-parsers >--------------------
+[INFO] Building code-graph-parsers 0.0.1-SNAPSHOT                         [3/4]
+[INFO]   from code-graph-parsers\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-parsers\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-parsers\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-parsers ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-storage >--------------------
+[INFO] Building code-graph-storage 0.0.1-SNAPSHOT                         [4/4]
+[INFO]   from code-graph-storage\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-storage\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-storage ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\search-fix\code-graph-storage\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-storage ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-storage ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.storage.PagedGraphTest
+HYBRID_STRESS indexingMs=265294 updates25Ms=168 p50Ns=63700 p95Ns=126500 p99Ns=410300 stats={mode=hybrid, budgetBytes=33554432, cacheCapacityBytes=15728640, cacheUsedBytesEstimate=7760, peakCacheUsedBytesEstimate=7760, cacheHits=599, cacheMisses=302, cacheEvictions=0, enginePageCacheBytes=0, activeAndStagedStores=1, metadataReserveBytes=1048576, temporaryReserveBytes=16777216, peakUnsavedBytesEstimate=1079771, unsavedBytesEstimate=0, cacheOverCapacityBytesEstimate=0, peakDirtyThresholdOvershootBytesEstimate=31195, accountingComplete=false, hardProcessMemoryLimit=false, heapMaxBytes=268435456, heapUsedBytes=181489576, diskBytes=700743680, note=Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds.}
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 266.3 s -- in io.doindev.codegraph.storage.PagedGraphTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph ......................................... SUCCESS [  0.003 s]
+[INFO] code-graph-core .................................... SUCCESS [  0.995 s]
+[INFO] code-graph-parsers ................................. SUCCESS [  0.250 s]
+[INFO] code-graph-storage ................................. SUCCESS [04:27 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  04:29 min
+[INFO] Finished at: 2026-09-18T23:21:55-05:00
+[INFO] ------------------------------------------------------------------------

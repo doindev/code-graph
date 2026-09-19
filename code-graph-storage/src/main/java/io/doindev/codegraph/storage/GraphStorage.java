@@ -177,7 +177,7 @@ public final class GraphStorage implements AutoCloseable {
         long disk = 0;
         for (Path file : files) { try { if (Files.exists(file)) disk += Files.size(file); } catch (IOException ignored) { } }
         result.put("diskBytes", disk);
-        result.put("note", "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds.");
+        result.put("note", "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds.");
         return result;
     }
     public Path directory() { return directory; }
