@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-18",
+  "dataset": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab",
+  "baselinePackage": "C:/Users/timhj/AppData/Local/Temp/cgraph-native-build-ab52a11f5b9248bca688795fea3907d2/code-graph-mcp-http/target",
+  "candidatePackage": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab/code-graph-mcp-http/target",
+  "entryPoint": "io.doindev.codegraph.mcp.http.HttpMain",
+  "arguments": ["-Xmx768m", "--enable-native-access=ALL-UNNAMED", "--graph-storage", "hybrid", "--graph-memory", "32m"],
+  "baselinePort": 13001,
+  "candidatePort": 13002,
+  "indexedFiles": 471,
+  "projectGenerationPerServer": 1,
+  "runOrder": ["candidate-1", "baseline-1", "baseline-2", "candidate-2", "candidate-3", "baseline-3"],
+  "cacheState": "Warm application and OS file caches; new MCP session for each run; no cross-task evidence cache",
+  "setupFailures": "Initial installed-launcher defaults collided with the existing UI port. Raw graph-only launchers were used for final runs. These attempts are not measurement samples.",
+  "pilot": "Preserved separately; fixed scope handling before final runs so JavaScript uncertainty outside a production-Java question does not force source review",
+  "logs": "C:/Users/timhj/AppData/Local/Temp/cgraph-agent-workflow-10e83a5867cc4bc7987d07ffef8e359e",
+  "cleanup": {
+    "isolatedProjectsRemoved": true,
+    "baselineProcess30676Stopped": true,
+    "candidateProcess30096Stopped": true,
+    "ownedEmptyStoreDirectoriesRemoved": true,
+    "originalAppProcess18624Preserved": true,
+    "originalGraphHttpStatus": 200,
+    "originalDbaHttpStatus": 200,
+    "dockerUsed": false
+  }
+}

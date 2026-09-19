@@ -1,0 +1,341 @@
+[
+  {
+    "run": 1,
+    "elapsedMs": 6073,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"root\":0,\"direction\":\"up\",\"depth\":1,\"nodes\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\"],\"sigs\":[\"bytes(JsonNode command,int index)\",\"key(JsonNode command,int index)\",\"validate(JsonNode command)\",\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\"],\"up\":[[1,0],[2,0],[3,0],[3,0]],\"down\":[],\"truncated\":false,\"omittedNodes\":0,\"risk\":{\"target\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"score\":71,\"band\":\"high\",\"threshold\":70,\"gate\":\"fail\",\"factors\":[{\"name\":\"reach\",\"raw\":2415.0,\"normalized\":1.0,\"weight\":0.4,\"points\":40.0},{\"name\":\"fanin\",\"raw\":4.0,\"normalized\":0.349,\"weight\":0.25,\"points\":8.7},{\"name\":\"spread\",\"raw\":36.0,\"normalized\":1.0,\"weight\":0.2,\"points\":20.0},{\"name\":\"lang\",\"raw\":2.0,\"normalized\":0.5,\"weight\":0.05,\"points\":2.5},{\"name\":\"untested\",\"raw\":0.0,\"normalized\":0.0,\"weight\":0.1,\"points\":0.0}],\"topDependents\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1\"],\"explanation\":\"2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references\",\"note\":\"MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code.\"}}"
+        }
+      ],
+      "structuredContent": {
+        "data": {
+          "root": 0,
+          "direction": "up",
+          "depth": 1,
+          "nodes": [
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+            "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0"
+          ],
+          "sigs": [
+            "bytes(JsonNode command,int index)",
+            "key(JsonNode command,int index)",
+            "validate(JsonNode command)",
+            "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()"
+          ],
+          "up": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "down": [],
+          "truncated": false,
+          "omittedNodes": 0,
+          "risk": {
+            "target": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "score": 71,
+            "band": "high",
+            "threshold": 70,
+            "gate": "fail",
+            "factors": [
+              {
+                "name": "reach",
+                "raw": 2415,
+                "normalized": 1,
+                "weight": 0.4,
+                "points": 40
+              },
+              {
+                "name": "fanin",
+                "raw": 4,
+                "normalized": 0.349,
+                "weight": 0.25,
+                "points": 8.7
+              },
+              {
+                "name": "spread",
+                "raw": 36,
+                "normalized": 1,
+                "weight": 0.2,
+                "points": 20
+              },
+              {
+                "name": "lang",
+                "raw": 2,
+                "normalized": 0.5,
+                "weight": 0.05,
+                "points": 2.5
+              },
+              {
+                "name": "untested",
+                "raw": 0,
+                "normalized": 0,
+                "weight": 0.1,
+                "points": 0
+              }
+            ],
+            "topDependents": [
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1"
+            ],
+            "explanation": "2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references",
+            "note": "MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code."
+          }
+        },
+        "meta": {
+          "contractVersion": 1,
+          "tool": "get_call_graph",
+          "invocationState": "returned",
+          "completeness": "unknown",
+          "truncated": false
+        }
+      },
+      "isError": false
+    }
+  },
+  {
+    "run": 2,
+    "elapsedMs": 27721,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"root\":0,\"direction\":\"up\",\"depth\":1,\"nodes\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\"],\"sigs\":[\"bytes(JsonNode command,int index)\",\"key(JsonNode command,int index)\",\"validate(JsonNode command)\",\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\"],\"up\":[[1,0],[2,0],[3,0],[3,0]],\"down\":[],\"truncated\":false,\"omittedNodes\":0,\"risk\":{\"target\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"score\":71,\"band\":\"high\",\"threshold\":70,\"gate\":\"fail\",\"factors\":[{\"name\":\"reach\",\"raw\":2415.0,\"normalized\":1.0,\"weight\":0.4,\"points\":40.0},{\"name\":\"fanin\",\"raw\":4.0,\"normalized\":0.349,\"weight\":0.25,\"points\":8.7},{\"name\":\"spread\",\"raw\":36.0,\"normalized\":1.0,\"weight\":0.2,\"points\":20.0},{\"name\":\"lang\",\"raw\":2.0,\"normalized\":0.5,\"weight\":0.05,\"points\":2.5},{\"name\":\"untested\",\"raw\":0.0,\"normalized\":0.0,\"weight\":0.1,\"points\":0.0}],\"topDependents\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1\"],\"explanation\":\"2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references\",\"note\":\"MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code.\"}}"
+        }
+      ],
+      "structuredContent": {
+        "data": {
+          "root": 0,
+          "direction": "up",
+          "depth": 1,
+          "nodes": [
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+            "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0"
+          ],
+          "sigs": [
+            "bytes(JsonNode command,int index)",
+            "key(JsonNode command,int index)",
+            "validate(JsonNode command)",
+            "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()"
+          ],
+          "up": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "down": [],
+          "truncated": false,
+          "omittedNodes": 0,
+          "risk": {
+            "target": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "score": 71,
+            "band": "high",
+            "threshold": 70,
+            "gate": "fail",
+            "factors": [
+              {
+                "name": "reach",
+                "raw": 2415,
+                "normalized": 1,
+                "weight": 0.4,
+                "points": 40
+              },
+              {
+                "name": "fanin",
+                "raw": 4,
+                "normalized": 0.349,
+                "weight": 0.25,
+                "points": 8.7
+              },
+              {
+                "name": "spread",
+                "raw": 36,
+                "normalized": 1,
+                "weight": 0.2,
+                "points": 20
+              },
+              {
+                "name": "lang",
+                "raw": 2,
+                "normalized": 0.5,
+                "weight": 0.05,
+                "points": 2.5
+              },
+              {
+                "name": "untested",
+                "raw": 0,
+                "normalized": 0,
+                "weight": 0.1,
+                "points": 0
+              }
+            ],
+            "topDependents": [
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1"
+            ],
+            "explanation": "2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references",
+            "note": "MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code."
+          }
+        },
+        "meta": {
+          "contractVersion": 1,
+          "tool": "get_call_graph",
+          "invocationState": "returned",
+          "completeness": "unknown",
+          "truncated": false
+        }
+      },
+      "isError": false
+    }
+  },
+  {
+    "run": 3,
+    "elapsedMs": 5692,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"root\":0,\"direction\":\"up\",\"depth\":1,\"nodes\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\"],\"sigs\":[\"bytes(JsonNode command,int index)\",\"key(JsonNode command,int index)\",\"validate(JsonNode command)\",\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\"],\"up\":[[1,0],[2,0],[3,0],[3,0]],\"down\":[],\"truncated\":false,\"omittedNodes\":0,\"risk\":{\"target\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"score\":71,\"band\":\"high\",\"threshold\":70,\"gate\":\"fail\",\"factors\":[{\"name\":\"reach\",\"raw\":2415.0,\"normalized\":1.0,\"weight\":0.4,\"points\":40.0},{\"name\":\"fanin\",\"raw\":4.0,\"normalized\":0.349,\"weight\":0.25,\"points\":8.7},{\"name\":\"spread\",\"raw\":36.0,\"normalized\":1.0,\"weight\":0.2,\"points\":20.0},{\"name\":\"lang\",\"raw\":2.0,\"normalized\":0.5,\"weight\":0.05,\"points\":2.5},{\"name\":\"untested\",\"raw\":0.0,\"normalized\":0.0,\"weight\":0.1,\"points\":0.0}],\"topDependents\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1\"],\"explanation\":\"2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references\",\"note\":\"MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code.\"}}"
+        }
+      ],
+      "structuredContent": {
+        "data": {
+          "root": 0,
+          "direction": "up",
+          "depth": 1,
+          "nodes": [
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+            "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+            "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0"
+          ],
+          "sigs": [
+            "bytes(JsonNode command,int index)",
+            "key(JsonNode command,int index)",
+            "validate(JsonNode command)",
+            "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()"
+          ],
+          "up": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "down": [],
+          "truncated": false,
+          "omittedNodes": 0,
+          "risk": {
+            "target": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+            "score": 71,
+            "band": "high",
+            "threshold": 70,
+            "gate": "fail",
+            "factors": [
+              {
+                "name": "reach",
+                "raw": 2415,
+                "normalized": 1,
+                "weight": 0.4,
+                "points": 40
+              },
+              {
+                "name": "fanin",
+                "raw": 4,
+                "normalized": 0.349,
+                "weight": 0.25,
+                "points": 8.7
+              },
+              {
+                "name": "spread",
+                "raw": 36,
+                "normalized": 1,
+                "weight": 0.2,
+                "points": 20
+              },
+              {
+                "name": "lang",
+                "raw": 2,
+                "normalized": 0.5,
+                "weight": 0.05,
+                "points": 2.5
+              },
+              {
+                "name": "untested",
+                "raw": 0,
+                "normalized": 0,
+                "weight": 0.1,
+                "points": 0
+              }
+            ],
+            "topDependents": [
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java#io.doindev.codegraph.dba.Profiles.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Linux.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Windows.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java#io.doindev.codegraph.dba.NativeVault.Mac.put/2",
+              "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1"
+            ],
+            "explanation": "2415 transitive dependents across 36 module(s) and 2 language(s); 4 direct callers/refs; has test references",
+            "note": "MANDATORY RISK REVIEW: blast score 71 >= gating threshold 70. Review the factor table and top dependents before modifying this code."
+          }
+        },
+        "meta": {
+          "contractVersion": 1,
+          "tool": "get_call_graph",
+          "invocationState": "returned",
+          "completeness": "unknown",
+          "truncated": false
+        }
+      },
+      "isError": false
+    }
+  }
+]

@@ -8,6 +8,21 @@ import java.util.Set;
 final class DbaInputSchemas {
     static void enrich(String operation, ObjectNode schema) {
         ObjectNode props = schema.withObject("properties");
+        if(operation.equals("dba_request_native_command")){
+            ObjectNode command=props.putObject("command").put("description","Bounded BSON Extended JSON command document or Redis argument vector. Redis keys/values may be {base64: canonical-padded-base64}; command names, flags, cursors, patterns and numbers must be strings. 128 KiB aggregate input limit; binary values at most 64 KiB, keys/fields 8 KiB.");
+            var alternatives=command.putArray("oneOf");
+            alternatives.addObject().put("type","object").put("minProperties",1).put("maxProperties",64);
+            var redisArguments=alternatives.addObject().put("type","array").put("minItems",1).put("maxItems",1024).putObject("items").putArray("oneOf");
+            redisArguments.addObject().put("type","string").put("maxLength",131072);
+            var binary=redisArguments.addObject().put("type","object").put("additionalProperties",false);
+            binary.putArray("required").add("base64");
+            binary.putObject("properties").putObject("base64").put("type","string").put("contentEncoding","base64").put("maxLength",87384);
+            var targets=schema.putArray("oneOf");var bound=targets.addObject();bound.putArray("required").add("bindingId");
+            var excluded=bound.putObject("not").putArray("anyOf");
+            for(String key:List.of("connectionId","connectionName","database","schema"))excluded.addObject().putArray("required").add(key);
+            var standalone=targets.addObject();standalone.putArray("required").add("connectionId").add("connectionName").add("database");
+            standalone.putObject("not").putArray("required").add("bindingId");
+        }
         props.properties().forEach(entry -> {
             ObjectNode value = (ObjectNode) entry.getValue();
             if (value.path("type").asText().equals("string")) value.put("maxLength", 256);
@@ -57,6 +72,13 @@ final class DbaInputSchemas {
             for(String key:List.of("setupSql","fixtureSql"))props.withObject(key).put("maxLength",16384).put("description",key.equals("setupSql")?"Optional CREATE/COMMENT-only disposable-target setup SQL.":"Optional INSERT-only bounded synthetic fixtures; never copy application records.");
             ObjectNode checks=props.withObject("checks").put("maxItems",16).put("description","Read-only validation queries evaluated after the migration on the disposable target.");checks.putObject("items").put("type","string").put("minLength",1).put("maxLength",16384);
         }
+        if(Set.of("dba_request_connection_create","dba_request_connection_update").contains(operation)){
+            props.putObject("driverInstall").put("type","object");
+            bool(props,"testBeforeSave");bool(props,"saveUntested");bool(props,"confirmDriverEffects");
+            props.withObject("testBeforeSave").put("description","YOLO requires exactly one of testBeforeSave or saveUntested. Test the unchanged draft before saving; failure saves nothing.");
+            props.withObject("saveUntested").put("description","Explicitly save without connectivity validation; required configuration and vault checks still apply.");
+        }
+        if(operation.equals("dba_request_connection_test"))bool(props,"confirmDriverEffects");
         if (props.has("profile")) profile(props.withObject("profile"), operation.endsWith("_create"));
         if (props.has("binding")) binding(props.withObject("binding"), operation);
         if (props.has("driverInstall")) driver(props.withObject("driverInstall"), true);
@@ -83,16 +105,32 @@ final class DbaInputSchemas {
     }
     private static void profile(ObjectNode node, boolean create) {
         ObjectNode props = object(node);
-        if (create) node.putArray("required").add("name").add("url").add("driverClass");
+        if (create) {
+            node.putArray("required").add("name").add("url");
+            var choices=node.putArray("anyOf");
+            var nativeProfile=choices.addObject();nativeProfile.putArray("required").add("templateId");
+            nativeProfile.putObject("properties").putObject("templateId").putArray("enum").add("mongodb-native").add("redis-native");
+            var jdbcProfile=choices.addObject();jdbcProfile.putArray("required").add("driverClass");
+            jdbcProfile.putObject("not").putObject("properties").putObject("templateId").putArray("enum").add("mongodb-native").add("redis-native");
+            jdbcProfile.withObject("not").putArray("required").add("templateId");
+        }
         text(props, "name", 120).put("minLength", 1);
         text(props, "templateId", 80).put("description", "Template ID from dba_list_templates; custom if omitted.");
-        text(props, "url", 8192).put("pattern", "^jdbc:").put("description", "JDBC URL with no credentials or private-key information.");
+        text(props, "url", 8192).put("pattern", "^(jdbc:|mongodb(?:\\+srv)?://|rediss?://)").put("description", "JDBC URL or native endpoint; never embed credentials or private-key information. Native endpoints accept hosts/ports only; set database and options separately.");
         text(props, "driverClass", 200).put("pattern", "^[A-Za-z_$][A-Za-z0-9_$.]+$");
         text(props, "username", 8192);
         text(props, "password", 32768).put("writeOnly", true).put("description", "Write-only; the MCP client transcript may retain this argument. Prefer human entry. Omission keeps an existing password.");
         bool(props, "removePassword"); bool(props, "replaceSecretProperties"); bool(props, "readOnly");
         text(props, "color", 11).put("pattern", "^(transparent|#[0-9a-fA-F]{6})$");
         text(props, "jar", 4096).put("description", "Existing server-local JDBC JAR path; jars is preferred.");
+        text(props,"transport",16).putArray("enum").add("jdbc").add("mongodb").add("redis");
+        ObjectNode nativeOptions=object(props.putObject("nativeOptions"));
+        text(nativeOptions,"database",256);text(nativeOptions,"authDatabase",256);text(nativeOptions,"replicaSet",256);
+        text(nativeOptions,"topology",32).putArray("enum").add("standalone").add("replica_set").add("sharded").add("srv");
+        text(nativeOptions,"authMechanism",32).putArray("enum").add("SCRAM-SHA-256").add("SCRAM-SHA-1");
+        text(nativeOptions,"readPreference",32).putArray("enum").add("primary").add("primaryPreferred").add("secondary").add("secondaryPreferred").add("nearest");
+        bool(nativeOptions,"tls");number(nativeOptions,"connectTimeoutMS",100,300000);number(nativeOptions,"socketTimeoutMS",100,300000);
+        number(nativeOptions,"maximumPoolSize",1,16);number(nativeOptions,"idleTimeoutMS",1000,3600000);
         var jars = props.putObject("jars").put("type", "array").put("minItems", 1).put("maxItems", 64);
         jars.putObject("items").put("type", "string").put("maxLength", 4096);
         driver(props.putObject("driverBundle"), false);
@@ -118,7 +156,7 @@ final class DbaInputSchemas {
         for (String name : List.of("groupId", "artifactId", "version")) text(props, name, 200);
         if (install) {
             node.putArray("required").add("groupId").add("artifactId");
-            props.withObject("version").put("default", "latest").put("description", "Human review resolves and pins the exact version before any installation.");
+            props.withObject("version").put("default", "latest").put("description", "Human review resolves and pins the version. YOLO requires an explicit exact version; latest is rejected.");
         } else for (String name : List.of("classifier", "source", "bundleId")) text(props, name, 200);
     }
     private static void binding(ObjectNode node, String operation) {

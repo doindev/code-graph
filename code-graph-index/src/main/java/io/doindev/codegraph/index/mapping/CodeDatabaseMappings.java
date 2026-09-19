@@ -48,7 +48,7 @@ public final class CodeDatabaseMappings implements LanguageAnalyzer {
         if(evidence.nodes.isEmpty())return fragment;
         var nodes=new ArrayList<>(fragment.declarations());nodes.addAll(evidence.nodes);
         var edges=new ArrayList<>(fragment.localEdges());edges.addAll(evidence.edges);
-        return new FileFragment(fragment.file(),fragment.lang(),fragment.contentHash(),nodes,edges,fragment.rawRefs(),fragment.imports());
+        return new FileFragment(fragment.file(),fragment.lang(),fragment.contentHash(),nodes,edges,fragment.rawRefs(),fragment.imports(),fragment.modules());
     }
     private FileFragment empty(SourceFile source){
         var file=new FileId(source.relPath());var node=new Node(file,NodeKind.FILE,source.relPath(),source.relPath(),new SourceSpan(source.relPath(),1,1,1,1),Metrics.NONE,Map.of("lang",languageId()));

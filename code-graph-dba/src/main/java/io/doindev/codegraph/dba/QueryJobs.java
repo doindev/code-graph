@@ -18,6 +18,7 @@ final class QueryJobs implements AutoCloseable {
         final int rowLimit,byteLimit;
         final long created=System.currentTimeMillis();
         volatile long started,finished,bytes;
+        volatile long reservation=JOB_RESERVATION;
         volatile String state="queued",error="";
         volatile Statement statement;
         volatile String progress="";
@@ -68,7 +69,7 @@ final class QueryJobs implements AutoCloseable {
         return submit(owner,connection,task,false,false);
     }
     private synchronized ObjectNode submit(String owner,String connection,Task task,boolean human,boolean autoCommit) {
-        reap();if(jobs.size()>=32 || (jobs.size()+1)*JOB_RESERVATION>config.memoryBytes())throw new IllegalArgumentException("DBA result allowance full; close results before submitting more work");
+        reap();if(jobs.size()>=32 || reservedBytes()+JOB_RESERVATION>config.memoryBytes())throw new IllegalArgumentException("DBA result allowance full; close results before submitting more work");
         Job job=new Job(owner,connection);jobs.put(job.id,job);
         try{workers.execute(()->{if(human)runHuman(job,task,autoCommit);else run(job,task);});}catch(RejectedExecutionException e){jobs.remove(job.id);throw new IllegalArgumentException("DBA queue full");}
         return job.json();
@@ -137,9 +138,20 @@ final class QueryJobs implements AutoCloseable {
     synchronized ObjectNode local(String owner,LocalTask task,Runnable cleanup){
         return local(owner,"",task,cleanup);
     }
-    private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup){
-        reap();if(jobs.size()>=32||(jobs.size()+1)*JOB_RESERVATION>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs");}
-        Job job=new Job(owner,connection);jobs.put(job.id,job);
+    /** Draft tests have no saved profile; reserve native decoding before opening their client. */
+    synchronized void reserveNative(Job job){
+        if(jobs.get(job.id)!=job||job.finished!=0||job.cancelled||!alive.test(job.owner))
+            throw new CancellationException("Connection test no longer owns an active job");
+        long required=64L<<20;
+        if(job.reservation>=required)return;
+        if(reservedBytes()+required-job.reservation>config.memoryBytes())
+            throw new IllegalArgumentException("DBA allowance full; native connection tests require 64 MiB including temporary decoding. Release completed jobs or increase the DBA allowance.");
+        job.reservation=required;
+    }
+    synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup){
+        long reservation=!connection.isEmpty()&&DatabaseTransport.of(connections.profile(connection))!=DatabaseTransport.JDBC?64L<<20:JOB_RESERVATION;
+        reap();if(jobs.size()>=32||reservedBytes()+reservation>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs (native operations reserve 64 MiB including temporary decoding)");}
+        Job job=new Job(owner,connection);job.reservation=reservation;jobs.put(job.id,job);
         try{workers.execute(()->{
             job.started=System.currentTimeMillis();job.state="running";job.thread=Thread.currentThread();
             var deadline=timer.schedule(()->cancel(job),config.timeoutSeconds(),TimeUnit.SECONDS);
@@ -147,7 +159,7 @@ final class QueryJobs implements AutoCloseable {
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();byte[] bytes=Profiles.JSON.writeValueAsBytes(result);
                 if(bytes.length>job.byteLimit)throw new IllegalArgumentException("Setup result too large");job.bytes=bytes.length;job.result=result;job.state="complete";
             }catch(Exception e){job.state=job.cancelled?"cancelled":"failed";job.error=job.cancelled?"Cancelled or deadline exceeded; a driver may take time to stop":e instanceof IllegalArgumentException?e.getMessage():"Connection setup failed; check driver, network, credentials and vault availability";job.exception=exceptionInfo(e);}
-            finally{deadline.cancel(false);job.thread=null;Thread.interrupted();cleanup.run();job.finished=System.currentTimeMillis();}
+            finally{deadline.cancel(false);job.thread=null;Thread.interrupted();try{cleanup.run();}finally{job.reservation=JOB_RESERVATION;job.finished=System.currentTimeMillis();}}
         });}catch(RejectedExecutionException e){jobs.remove(job.id);cleanup.run();throw new IllegalArgumentException("DBA queue full");}return job.json();
     }
     /** Only ApprovalQueue calls this after an authenticated human consumes a stored request. */
@@ -778,7 +790,14 @@ final class QueryJobs implements AutoCloseable {
     }
     synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&j.retainedUses==0&&(!alive.test(j.owner)||now-j.finished>300_000));}
     synchronized void configure(DbaConfig next){int n=next.concurrency();if(n>workers.getMaximumPoolSize()){workers.setMaximumPoolSize(n);workers.setCorePoolSize(n);}else{workers.setCorePoolSize(n);workers.setMaximumPoolSize(n);}config=next;}
-    synchronized ObjectNode telemetry(){return Profiles.JSON.createObjectNode().put("memoryBudget",config.memoryBytes()).put("reservedBytes",jobs.size()*JOB_RESERVATION).put("retainedResultBytes",jobs.values().stream().mapToLong(j->j.bytes).sum()).put("activeJobs",workers.getActiveCount()).put("queuedJobs",workers.getQueue().size()).put("retainedJobs",jobs.size()).put("concurrency",config.concurrency()).put("heapUsed",Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()).put("hardProcessLimit",false);}
+    private long auxiliaryBytes;
+    synchronized Runnable reserveRetained(long bytes){
+        if(bytes<1||reservedBytes()+bytes>config.memoryBytes())throw new IllegalArgumentException("DBA allowance full; release retained results/reviews");
+        auxiliaryBytes+=bytes;var released=new java.util.concurrent.atomic.AtomicBoolean();
+        return ()->{if(released.compareAndSet(false,true))synchronized(QueryJobs.this){auxiliaryBytes-=bytes;}};
+    }
+    private long reservedBytes(){return auxiliaryBytes+jobs.values().stream().mapToLong(job->job.reservation).sum();}
+    synchronized ObjectNode telemetry(){return Profiles.JSON.createObjectNode().put("memoryBudget",config.memoryBytes()).put("reservedBytes",reservedBytes()).put("retainedResultBytes",jobs.values().stream().mapToLong(j->j.bytes).sum()).put("activeJobs",workers.getActiveCount()).put("queuedJobs",workers.getQueue().size()).put("retainedJobs",jobs.size()).put("concurrency",config.concurrency()).put("heapUsed",Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()).put("hardProcessLimit",false);}
     private static long safeSize(JsonNode value){try{return Profiles.JSON.writeValueAsBytes(value).length;}catch(Exception ignored){return 0;}}
     public void close(){synchronized(this){jobs.values().forEach(this::cancel);}workers.shutdownNow();timer.shutdownNow();try{workers.awaitTermination(5,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}}
 }

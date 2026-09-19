@@ -82,7 +82,7 @@ public final class Main {
         registry.lifecycle().start();
         System.err.println("code-graph: project idle TTL " + projectTtl);
         try (workspace; registry;
-             CodeGraphMcpServer ignored = CodeGraphMcpServer.serveStdio("code-graph", "0.0.1", tools)) {
+             CodeGraphMcpServer ignored = CodeGraphMcpServer.serveStdio("code-graph", BuildIdentity.version(), tools)) {
             System.err.println("code-graph: watching onboarded projects for changes; serving MCP over stdio");
             ignored.awaitStdioTermination();
         } finally {

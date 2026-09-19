@@ -1,0 +1,68 @@
+{
+  "baseline": {
+    "suites": [
+      {
+        "run": 1,
+        "acquisitionMs": 562.360299999993,
+        "responseBytes": 13548,
+        "counts": {
+          "mcp": 10,
+          "filesystem_search": 5,
+          "discovery_read": 5
+        }
+      },
+      {
+        "run": 2,
+        "acquisitionMs": 536.3494999999821,
+        "responseBytes": 13548,
+        "counts": {
+          "mcp": 10,
+          "filesystem_search": 5,
+          "discovery_read": 5
+        }
+      },
+      {
+        "run": 3,
+        "acquisitionMs": 529.1879999999655,
+        "responseBytes": 13548,
+        "counts": {
+          "mcp": 10,
+          "filesystem_search": 5,
+          "discovery_read": 5
+        }
+      }
+    ],
+    "medianAcquisitionMs": 536.3494999999821,
+    "medianResponseBytes": 13548
+  },
+  "candidate": {
+    "suites": [
+      {
+        "run": 1,
+        "acquisitionMs": 474.1918000000005,
+        "responseBytes": 20176,
+        "counts": {
+          "mcp": 10
+        }
+      },
+      {
+        "run": 2,
+        "acquisitionMs": 460.53979999999865,
+        "responseBytes": 20176,
+        "counts": {
+          "mcp": 10
+        }
+      },
+      {
+        "run": 3,
+        "acquisitionMs": 474.39079999999376,
+        "responseBytes": 20176,
+        "counts": {
+          "mcp": 10
+        }
+      }
+    ],
+    "medianAcquisitionMs": 474.1918000000005,
+    "medianResponseBytes": 20176
+  }
+}

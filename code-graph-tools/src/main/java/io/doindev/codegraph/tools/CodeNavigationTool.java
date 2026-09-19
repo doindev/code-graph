@@ -60,9 +60,10 @@ final class CodeNavigationTool implements GraphTool {
         long generation=graph.status().generation();
         String scope=ToolSupport.JSON.createArrayNode().add(operation.name).add(target).add(line).add(column).add(confidence).toString();
         var position=cursors.read(args.path("cursor").asText(""),scope,generation);
-        var collector=new Page(limit,position.key());
-        var referencesAtPosition=new Page(limit,position.key());
+        var collector=new BoundedPage(limit,position.key(),config.limits().maxResponseBytes());
+        var referencesAtPosition=new BoundedPage(limit,position.key(),config.limits().maxResponseBytes());
         boolean[] resolvedReference={false};
+        long[] positionOrdinal={0};
         if(isFile()){
             String file=target;
             graph.scanNodes(SYMBOLS,node->{
@@ -72,6 +73,7 @@ final class CodeNavigationTool implements GraphTool {
                 if(operation==Operation.POSITION)row.put("resolution","containing_symbol_only");
                 collector.accept(key(node),row);
                 if(operation==Operation.POSITION)graph.scanEdges(node.id(),Direction.OUT,REFERENCES,edge->{
+                    long ordinal=positionOrdinal[0]++;
                     var attrs=edge.attrs();
                     if(!Set.of("reference_expression","identifier_token").contains(attrs.getOrDefault("referencePrecision",""))||!file.equals(attrs.get("referencePath")))return;
                     try{
@@ -79,8 +81,9 @@ final class CodeNavigationTool implements GraphTool {
                         if(!contains(span,line,column))return;
                         Node definition=graph.node(edge.to()).orElse(null);if(definition==null)return;
                         var candidate=symbol(definition).put("resolution","reference_expression_candidate").put("locationPrecision",attrs.get("referencePrecision")).put("confidence",edge.confidence()).put("relationship",edge.kind().name().toLowerCase(Locale.ROOT)).put("viaSymbolId",node.id().value());
+                        resolutionEvidence(candidate,edge);
                         candidate.putObject("occurrence").put("path",file).put("startLine",span.startLine()).put("startColumn",span.startCol()).put("endLine",span.endLine()).put("endColumn",span.endCol()).put("rangeConvention","1-based UTF-16; inclusive end");
-                        resolvedReference[0]=true;referencesAtPosition.accept(String.format(Locale.ROOT,"%010d/%010d/",span.startLine(),span.startCol())+definition.id().value(),candidate);
+                        resolvedReference[0]=true;referencesAtPosition.accept(String.format(Locale.ROOT,"%010d/%010d/",span.startLine(),span.startCol())+definition.id().value()+"/"+node.id().value()+"/"+ordinal,candidate);
                     }catch(NumberFormatException ignored){}
                 });
             });
@@ -95,6 +98,7 @@ final class CodeNavigationTool implements GraphTool {
                 Node source=graph.node(edge.from()).orElse(null);
                 if(source==null)return;
                 ObjectNode row=symbol(source).put("relationship",edge.kind().name().toLowerCase(Locale.ROOT)).put("confidence",edge.confidence());
+                resolutionEvidence(row,edge);
                 row.put("targetId",id.value()).put("locationPrecision","containing_symbol");
                 String callLine=edge.attrs().getOrDefault("referenceStartLine",edge.attrs().getOrDefault("callSiteLine",edge.attrs().get("site")));
                 if(callLine!=null&&source.relPath()!=null)try{
@@ -117,19 +121,29 @@ final class CodeNavigationTool implements GraphTool {
         if(graph.status().generation()!=generation)throw new IllegalArgumentException("stale_cursor: index changed during navigation; restart without cursor");
         var out=ToolSupport.JSON.createObjectNode().put("generation",generation).put("state","complete");
         out.putObject("target").put(isFile()?"file":"symbolId",target);
-        Page chosen=resolvedReference[0]?referencesAtPosition:collector;
-        var rows=out.putArray("symbols");var page=chosen.rows.stream().sorted(Comparator.comparing(Item::key)).toList();
-        page.forEach(item->rows.add(item.value()));
-        long seen=position.seen()+page.size(),remaining=Math.max(0,chosen.total-seen);
-        out.put("total",chosen.total).put("truncated",remaining>0).put("omitted",remaining).put("inventoryComplete",false);
+        if(isFile())graph.node(new FileId(target)).ifPresent(file->{
+            if(file.attrs().containsKey("moduleResolutionVersion")) {
+                var evidence=out.putObject("moduleResolutionCoverage");
+                file.attrs().entrySet().stream().filter(e->e.getKey().startsWith("module")).sorted(Map.Entry.comparingByKey())
+                        .forEach(e->evidence.put(e.getKey(),e.getValue()));
+            }
+        });
+        BoundedPage chosen=resolvedReference[0]?referencesAtPosition:collector;
+        out.put("inventoryComplete",false);
         out.put("coverage",operation==Operation.IMPLEMENTATIONS?"Direct indexed type relationships only; indirect implementations and method overrides require additional analysis":"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent");
+        out.put("referenceCompleteness","not_guaranteed");
         if(operation==Operation.POSITION)out.put("resolution",resolvedReference[0]?"reference_expression_candidates":"containing_symbol_only").put("exactIdentifierResolved",false);
-        if(remaining>0&&!page.isEmpty())out.put("nextCursor",cursors.issue(scope,generation,new GenerationCursor.Position(page.getLast().key(),seen,position.expiresAt())));
-        return ToolSupport.finish(out,config);
+        return chosen.finish(out,cursors,scope,generation,position,config);
     }
     private static boolean contains(SourceSpan span,int line,int column){
         return (line>span.startLine()||line==span.startLine()&&column>=span.startCol())
                 &&(line<span.endLine()||line==span.endLine()&&column<=span.endCol());
+    }
+    private static void resolutionEvidence(ObjectNode row,Edge edge) {
+        var evidence=row.putObject("resolutionEvidence");
+        for(String key:List.of("resolution","resolutionStatus","dispatch","candidateCount","omittedCandidates","moduleSpecifier","modulePath","exportedName","localAlias","importKind"))
+            if(edge.attrs().containsKey(key))evidence.put(key,edge.attrs().get(key));
+        if(!evidence.has("resolutionStatus"))evidence.put("resolutionStatus","heuristic");
     }
     private static String key(Node node){
         var span=node.span();return String.format(Locale.ROOT,"%010d/%010d/",span==null?0:span.startLine(),span==null?0:span.startCol())+node.id().value();
@@ -139,20 +153,5 @@ final class CodeNavigationTool implements GraphTool {
         if(node.relPath()!=null)row.put("path",node.relPath());
         if(node.span()!=null){var span=node.span();row.putObject("declarationSpan").put("startLine",span.startLine()).put("startColumn",span.startCol()).put("endLine",span.endLine()).put("endColumn",span.endCol());}
         return row;
-    }
-    private record Item(String key,ObjectNode value,long bytes){}
-    private final class Page {
-        final int limit;final String after;long total,bytes;
-        final PriorityQueue<Item> rows=new PriorityQueue<>(Comparator.comparing(Item::key).reversed());
-        Page(int limit,String after){this.limit=limit;this.after=after;}
-        void accept(String key,ObjectNode row){
-            if(Thread.currentThread().isInterrupted())throw new IllegalArgumentException("Navigation cancelled");
-            total++;
-            if(key.compareTo(after)<=0||rows.size()==limit&&key.compareTo(rows.peek().key())>=0)return;
-            long size=row.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length+2L*key.length()+128;
-            if(rows.size()==limit)bytes-=rows.remove().bytes();
-            rows.add(new Item(key,row,size));bytes+=size;
-            if(bytes>config.limits().maxResponseBytes())throw new IllegalArgumentException("Navigation page exceeds memory bound; lower limit or narrow the target");
-        }
     }
 }

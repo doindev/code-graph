@@ -55,7 +55,7 @@ public final class CodeGraphTools {
                 new SearchSymbolsTool(graph, effective),
                 new RiskGate(new GetSymbolTool(graph, effective), blastScore, effective, "symbol_id"),
                 new RiskGate(new GetImpactRadiusTool(graph, effective), blastScore, effective, "target"),
-                new RiskGate(new GetCallGraphTool(graph, effective), blastScore, effective, "function"),
+                new GetCallGraphTool(graph, effective),
                 new GetBlastScoreTool(blastScore, effective),
                 new FindDeadCodeTool(deadCode, effective),
                 new FindCodeSmellsTool(graph, effective, repoRoot),

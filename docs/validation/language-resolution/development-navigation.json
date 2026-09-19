@@ -1,0 +1,60 @@
+{
+  "scope": "Instrumented subset of development MCP discovery only; not a complete filesystem/tool-call audit. The workflow benchmark logs all acquisition operations separately.",
+  "records": [
+    {
+      "type": "mcp",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "LanguageAnalyzer",
+        "kind": "function",
+        "lang": "java",
+        "limit": 10
+      },
+      "reason": "Find the analyzer SPI for a bounded lookup stress fixture",
+      "elapsedMs": 4004,
+      "isError": false
+    },
+    {
+      "type": "mcp",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "NativeResults.add",
+        "kind": "class",
+        "lang": "java",
+        "limit": 5
+      },
+      "reason": "Check a suspected class-filter schema mismatch observed during discovery; diagnostic only",
+      "elapsedMs": 3865,
+      "isError": false
+    },
+    {
+      "type": "mcp",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "NativeResults.add",
+        "kind": "class",
+        "lang": "java",
+        "limit": 5
+      },
+      "reason": "Confirm whether the advertised class filter is enforced; no source search needed.",
+      "elapsedMs": 3390,
+      "isError": false
+    },
+    {
+      "type": "mcp",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "EcmaAnalyzer.importsOf",
+        "limit": 5
+      },
+      "reason": "Locate import-resolution handling to distinguish remaining module ambiguity from the language-family fix.",
+      "elapsedMs": 4697,
+      "isError": false
+    }
+  ],
+  "filesystemUsage": "Targeted reads of MCP-located implementation files; known build/skill files; exhaustive SKILL.md inventory and test-entry-point inventory. These were not duplicate symbol searches."
+}

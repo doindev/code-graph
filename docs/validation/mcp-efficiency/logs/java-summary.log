@@ -1,0 +1,46 @@
+{
+  "referenceTasks": {
+    "baseline": {
+      "ms": 566.575899999938,
+      "bytes": 126925,
+      "counts": {
+        "mcp": 33
+      },
+      "perRun": 11
+    },
+    "candidate": {
+      "ms": 593.3811999999889,
+      "bytes": 128451,
+      "counts": {
+        "mcp": 33
+      },
+      "perRun": 11
+    }
+  },
+  "allTasks": {
+    "baseline": {
+      "ms": 943.6957999999868,
+      "bytes": 214285,
+      "counts": {
+        "mcp": 48,
+        "implementation_read": 3,
+        "filesystem_search": 3,
+        "discovery_read": 3
+      },
+      "perRun": 19
+    },
+    "candidate": {
+      "ms": 1005.5507999999973,
+      "bytes": 216501,
+      "counts": {
+        "mcp": 48,
+        "implementation_read": 3,
+        "filesystem_search": 3,
+        "discovery_read": 3
+      },
+      "perRun": 19
+    }
+  },
+  "candidateMcpAnswersCorrect": 15,
+  "gradedTasks": 30
+}

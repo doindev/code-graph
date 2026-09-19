@@ -20,6 +20,12 @@ See [JDK 25 packaging overview](https://docs.oracle.com/en/java/javase/25/jpacka
 
 ## Quick start
 
+For automatic local-agent database authority, start the installed application with
+`cgraph --yolo`; use `cgraph --no-ui --yolo` for a headless instance. This skips
+desktop approval defaults but preserves database validation and limits. It is
+never enabled by installation or saved configuration. See [the risks and exact
+startup contract](yolo.md).
+
 Download/review the installer script from a trusted published revision, then run it. Do not pipe
 an unreviewed remote script into a shell. By default the script clones
 `https://github.com/doindev/code-graph.git`, branch `main`, into a unique temporary directory.
@@ -199,6 +205,84 @@ installation never kills a process occupying a desired port.
 spaces appropriately and never store credentials in launcher scripts. User DBA profiles/vault
 records remain outside the application installation; see [DBA configuration](dba.md).
 
+## Optional global agent skills
+
+The Windows, macOS/Linux, and JDK installers offer the same optional skill selection:
+**all**, a comma-separated subset of **codex,copilot,claude,windsurf**, or **none**.
+Interactive terminal installs ask once, with **none** as the default. Without a console,
+or with `-NonInteractive` / `--non-interactive`, skills are skipped unless explicitly
+selected. Check-only mode never copies skills. Build-only mode skips the prompt and
+rejects a nonempty skill selection.
+
+```powershell
+# Windows: install the application plus all four current-user skills
+.\install.ps1 -SourceDir . -Skills all
+# Or choose only the clients you use (no prompt needed)
+.\install.ps1 -SourceDir . -Skills 'codex,claude' -NonInteractive
+# Explicit opt-out
+.\install.ps1 -SourceDir . -Skills none
+```
+
+```bash
+# macOS / Linux
+bash ./install.sh --source-dir "$PWD" --skills all
+bash ./install.sh --source-dir "$PWD" --skills codex,claude --non-interactive
+# The shared JDK installer also accepts --skills with the same values.
+```
+
+“Global” means the **current OS user's account**, not every user on the computer.
+Run the installer as your normal account, not with sudo/administrator elevation.
+The JDK installer needs no Node/npm dependency to copy skills.
+
+| Client | Current-user destination |
+|---|---|
+| Codex | `~/.agents/skills/code-graph` |
+| GitHub Copilot | `~/.copilot/skills/code-graph` |
+| Claude Code | `~/.claude/skills/code-graph` |
+| Windsurf | `~/.codeium/windsurf/skills/code-graph` |
+
+These paths follow the official [Codex](https://learn.chatgpt.com/docs/build-skills),
+[Copilot](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills),
+[Claude Code](https://code.claude.com/docs/en/skills), and
+[Windsurf](https://docs.windsurf.com/windsurf/cascade/skills) guidance. On Windows `~`
+means your user profile directory. Documented absolute overrides are honored:
+[`COPILOT_HOME`](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference)
+and [`CLAUDE_CONFIG_DIR`](https://code.claude.com/docs/en/claude-directory).
+Codex uses the shared `.agents/skills` user directory, independent of `CODEX_HOME`.
+Client versions/surfaces control discovery; these locations do not enable skills in
+every hosted product. Some clients also discover shared `.agents` skills, so copies
+for multiple clients can be redundant; selection is not a permission boundary.
+
+The skill remains **optional guidance**: prefer code-graph only when its MCP server
+is available and useful for the task; otherwise use ordinary tools. Installation
+does not require a running server, start one, edit MCP configuration, or grant any
+tool/database permissions. Cloud-hosted agents still cannot reach your local
+loopback endpoint merely by installing a skill.
+
+One maintained source (`skills/code-graph`) and all supporting references are copied.
+Identical copies are a no-op. Differing existing copies—including customized references—
+are preserved and reported for manual merging, never overwritten or deleted.
+Linked destinations are refused. A conflict for one client does not prevent the
+other explicitly selected clients from being installed. Skills are copied only after
+the application installation succeeds; optional skill failures are reported as a
+partial installation with a nonzero exit, not as a failed application build.
+Rerunning with `none` does not uninstall previously selected skills.
+
+To install skills separately, without rebuilding the application, use the optional
+Node.js helper from a checkout. It requires explicit scope and never downloads anything:
+
+```text
+node skills/install-skill.mjs --client all --global --dry-run
+node skills/install-skill.mjs --client all --global
+node skills/install-skill.mjs --client codex,claude --global
+node skills/install-skill.mjs --client codex --project PATH
+```
+
+Project installation remains supported: Codex `.agents/skills`, Copilot
+`.github/skills`, Claude `.claude/skills`, Windsurf `.windsurf/skills`.
+`--global` and `--project` are mutually exclusive. Restart/reload the relevant
+client if necessary to discover installed skills; no code-graph server restart is needed.
+
 ## Updates, distribution and removal
 
 Rerun the installer with the desired source/ref. It builds and verifies a new versioned release
@@ -224,14 +308,19 @@ before cleanup; `-KeepBuild` / `--keep-build` retains them intentionally.
 From the repository, with JDK 25:
 
 ```text
-javac -d target/installer-tests installer/CgraphInstaller.java installer/CgraphInstallerTest.java installer/NativeSmokeTest.java installer/ProxySmokeTest.java
+javac -d target/installer-tests installer/SkillInstaller.java installer/CgraphInstaller.java installer/CgraphInstallerTest.java installer/SkillInstallerTest.java installer/NativeSmokeTest.java installer/ProxySmokeTest.java
 java -cp target/installer-tests CgraphInstallerTest
+java -cp target/installer-tests SkillInstallerTest
+node --test skills/install-skill.test.mjs
 java -cp target/installer-tests ProxySmokeTest PATH-TO-GIT PATH-TO-MAVEN
 ```
 
 ```powershell
 # Full build/test + packaging, isolated installation, no PATH changes
 powershell -NoProfile -ExecutionPolicy Bypass -File installer/Test-Bootstrap.ps1
+# Optional forwarding tests (Node + JDK 25); only temporary fixtures are used
+$env:CGRAPH_JAVA_HOME = 'PATH-TO-JDK-25'
+node --test installer/skill-bootstrap.test.mjs
 .\install.ps1 -SourceDir . -InstallDir "$env:TEMP\cgraph-manual-test" -NoPath -NonInteractive
 # Use the exact native EXE path printed by installation, not the .cmd wrapper:
 java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' desktop
@@ -240,6 +329,7 @@ java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' desktop
 ```bash
 bash -n install.sh
 bash installer/test-bootstrap.sh
+CGRAPH_JAVA_HOME=/path/to/jdk-25 node --test installer/skill-bootstrap.test.mjs
 bash ./install.sh --source-dir "$PWD" --install-dir /tmp/cgraph-manual-test --no-path --non-interactive
 java -cp target/installer-tests NativeSmokeTest /path/to/native/cgraph none
 ```
@@ -259,3 +349,14 @@ safe replacement and cleanup. Bash syntax is checked on Git Bash; **native macOS
 PATH registration, package-manager installs, enterprise proxy authentication/TLS and signing remain
 unverified** on actual environments. Conditional DBA integration/desktop tests are not made passed
 merely by a successful headless Maven build. `--skip-tests` is explicit and not the default.
+
+Optional-skill validation (2026-09-18): 34 installer and 50 JDK skill-copy/selection
+checks, nine Node skill tests, two end-to-end bootstrap forwarding tests, skill
+frontmatter/reference validation, PowerShell 5.1/7 checks, and Git Bash syntax plus
+mocked Linux/macOS checks pass using disposable user homes. Coverage includes complete
+reference copying, all/subset/none, prompt default/EOF, unattended opt-out, documented
+configuration overrides, idempotence, conflicts, linked paths, and unchanged client
+settings. Bootstrap forwarding runs the real scripts with a harmless Java fixture
+instead of Maven/jpackage; it also verifies partial-install failure reporting.
+Actual macOS/Linux installers and discovery inside all four client UIs
+remain unverified; filesystem tests are not claims of native-client certification.

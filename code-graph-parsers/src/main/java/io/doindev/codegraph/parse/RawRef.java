@@ -16,7 +16,14 @@ import io.doindev.codegraph.model.SourceSpan;
  * @param site         where the reference occurs
  */
 public record RawRef(NodeId from, RefKind kind, String name, String receiverHint, int arity,
-                     SourceSpan site, String locationPrecision) {
+                     SourceSpan site, String locationPrecision, CallContext context, String resolutionStatus) {
+    public RawRef(NodeId from,RefKind kind,String name,String receiverHint,int arity,SourceSpan site,String locationPrecision,CallContext context) {
+        this(from,kind,name,receiverHint,arity,site,locationPrecision,context,null);
+    }
+    public RawRef unresolved(String reason) { return new RawRef(from,kind,name,receiverHint,arity,site,locationPrecision,context,reason); }
+    public RawRef(NodeId from,RefKind kind,String name,String receiverHint,int arity,SourceSpan site,String locationPrecision){
+        this(from,kind,name,receiverHint,arity,site,locationPrecision,null);
+    }
     public RawRef(NodeId from,RefKind kind,String name,String receiverHint,int arity,SourceSpan site){
         this(from,kind,name,receiverHint,arity,site,kind==RefKind.CALL?"reference_expression":"containing_declaration");
     }

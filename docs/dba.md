@@ -1,5 +1,10 @@
 # DBA implementation status and preview
 
+**Startup override:** explicitly launching with `--dba --yolo` (or `cgraph --yolo`)
+automatically authorizes local-agent operations without existing grants or review.
+All normal approval descriptions below assume YOLO is off. Validation, audit,
+resource limits and browser confirmations still apply; see [YOLO setup and recovery](yolo.md).
+
 The `/dba` JDBC administration plan is **not fully implemented**. This change delivers an
 opt-in, authenticated UI and a restricted-read foundation. It must not be presented as the
 completed administration/agent suite. Authenticated restricted-read DBA MCP tools are enabled;
@@ -9,6 +14,10 @@ JDBC DDL/DML and statement-aware scripts with savepoint-backed error decisions, 
 or explicit auto-commit; see [execution behavior and limitations](dba-connections.md#script-files-and-execution-targets).
 
 ## Available now
+
+Native MongoDB/Redis transport coverage and SQL Server additions are documented
+separately in [native databases](native-databases.md). They do not inherit JDBC-only
+schema tools or SQL permissions; the full native administration plan remains incomplete.
 
 - `/dba` on the existing native Java UI server; existing graph routes and transports remain.
 - Empty graph workspaces work. DBA startup does not connect saved database profiles.

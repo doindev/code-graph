@@ -1,0 +1,170 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'b'
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'a'
+code-graph: expired idle project 'beta'
+code-graph: expired idle project 'alpha'
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[Fatal Error] :1:10: DOCTYPE is disallowed when the feature "http://apache.org/xml/features/disallow-doctype-decl" set to true.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+code-graph: expired idle project 'demo'
+code-graph: expired idle project 'demo'
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+code-graph: graph storage {mode=hybrid, budgetBytes=67108864, cacheCapacityBytes=50331648, cacheUsedBytesEstimate=0, peakCacheUsedBytesEstimate=0, cacheHits=0, cacheMisses=0, cacheEvictions=0, enginePageCacheBytes=0, activeAndStagedStores=0, metadataReserveBytes=0, temporaryReserveBytes=16777216, peakUnsavedBytesEstimate=0, unsavedBytesEstimate=0, cacheOverCapacityBytesEstimate=0, peakDirtyThresholdOvershootBytesEstimate=0, accountingComplete=false, hardProcessMemoryLimit=false, heapMaxBytes=4125097984, heapUsedBytes=21432640, diskBytes=0, note=Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds.}
+code-graph: expired idle project 'junit-226048463668779959'
+code-graph: expired idle project 'junit-226048463668779959'
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+SLF4J: Failed to load class "org.slf4j.impl.StaticMDCBinder".
+SLF4J: Defaulting to no-operation MDCAdapter implementation.
+SLF4J: See http://www.slf4j.org/codes.html#no_static_mdc_binder for further details.
+Sep 18, 2026 4:32:48 PM org.neo4j.driver.internal.logging.SystemLogger info
+INFO: Driver instance 368727462 created for server uri 'bolt://localhost:64931'
+Sep 18, 2026 4:32:53 PM org.neo4j.driver.internal.logging.SystemLogger info
+INFO: Closing driver instance 368727462
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+SLF4J: Failed to load class "org.slf4j.impl.StaticMDCBinder".
+SLF4J: Defaulting to no-operation MDCAdapter implementation.
+SLF4J: See http://www.slf4j.org/codes.html#no_static_mdc_binder for further details.
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::allocateMemory has been called by io.netty.util.internal.PlatformDependent0$2 (file:/C:/Users/timhj/.m2/repository/io/netty/netty-common/4.1.125.Final/netty-common-4.1.125.Final.jar)
+WARNING: Please consider reporting this to the maintainers of class io.netty.util.internal.PlatformDependent0$2
+WARNING: sun.misc.Unsafe::allocateMemory will be removed in a future release
+code-graph-http: 0 project(s) ready in 3 ms
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56633/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56635/mcp
+code-graph-http: viz on http://127.0.0.1:56636/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56639/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: [junit-2667509716089156674] indexed 1 files, 2 symbols, 1 edges
+code-graph-http: 1 project(s) ready in 48 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56644/mcp
+code-graph-http: viz on http://127.0.0.1:56645/ (actions enabled)
+code-graph-http: project idle TTL PT1S
+code-graph: expired idle project 'junit-2667509716089156674'
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56696/mcp
+code-graph-http: viz on http://127.0.0.1:56697/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56719/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: [junit-8256702035466586000] indexed 1 files, 3 symbols, 2 edges
+code-graph-http: 1 project(s) ready in 5 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56740/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56742/mcp
+code-graph-http: viz on http://127.0.0.1:56743/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56965/mcp
+code-graph-http: viz on http://127.0.0.1:56966/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56970/mcp
+code-graph-http: viz on http://127.0.0.1:56971/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: [junit-4948510194876925314] indexed 1 files, 3 symbols, 2 edges
+code-graph-http: 1 project(s) ready in 8 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56973/mcp
+code-graph-http: viz on http://127.0.0.1:56974/ (actions enabled)
+code-graph-http: project idle TTL PT2S
+code-graph: expired idle project 'junit-4948510194876925314'
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56977/mcp
+code-graph-http: viz on http://127.0.0.1:56978/ (read-only)
+code-graph-http: project idle TTL PT1H
+AWT blocker activation interrupted:
+java.lang.InterruptedException
+	at java.base/java.lang.Object.wait0(Native Method)
+	at java.base/java.lang.Object.wait(Object.java:389)
+	at java.base/java.lang.Object.wait(Object.java:351)
+	at java.desktop/sun.awt.AWTAutoShutdown.activateBlockerThread(AWTAutoShutdown.java:342)
+	at java.desktop/sun.awt.AWTAutoShutdown.setToolkitBusy(AWTAutoShutdown.java:256)
+	at java.desktop/sun.awt.AWTAutoShutdown.notifyToolkitThreadBusy(AWTAutoShutdown.java:142)
+	at java.desktop/sun.awt.windows.WToolkit.<init>(WToolkit.java:215)
+	at java.desktop/sun.awt.PlatformGraphicsInfo.createToolkit(PlatformGraphicsInfo.java:54)
+	at java.desktop/java.awt.Toolkit.getDefaultToolkit(Toolkit.java:580)
+	at java.desktop/java.awt.Desktop.isDesktopSupported(Desktop.java:316)
+	at io.doindev.codegraph.dba.DesktopApprovals.browse(DesktopApprovals.java:44)
+	at io.doindev.codegraph.dba.ApprovalBroker.lambda$tick$5(ApprovalBroker.java:203)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56981/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56983/mcp
+code-graph-http: viz on http://127.0.0.1:56984/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:56987/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:63741/mcp
+code-graph-http: viz on http://127.0.0.1:63742/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:63745/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:63747/mcp
+code-graph-http: viz on http://127.0.0.1:63748/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:63751/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+code-graph-http: DBA direct local browser access enabled
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:59554/mcp
+code-graph-http: viz on http://127.0.0.1:59555/ (read-only)
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:59557/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: 0 project(s) ready in 0 ms
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:59559/mcp
+code-graph-http: project idle TTL PT1H

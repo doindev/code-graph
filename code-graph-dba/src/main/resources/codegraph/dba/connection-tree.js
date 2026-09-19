@@ -52,9 +52,9 @@ export class ConnectionTree {
   item(menu,label,name,action,disabled=false){const b=control(label,name,()=>{this.closeMenu();this.cb.select(this.target);Promise.resolve().then(action).catch(e=>this.cb.notice(e.message));});b.removeAttribute('aria-label');b.setAttribute('role','menuitem');b.disabled=disabled;const text=document.createElement('span');text.textContent=label;b.append(text);menu.append(b);return b;}
   divider(menu){const line=document.createElement('div');line.className='connection-menu-divider';line.setAttribute('role','separator');menu.append(line);}
   async openMenu(id,anchor){if(this.anchor===anchor){this.closeMenu();return;}this.closeMenu();this.anchor=anchor;this.target=id;anchor.setAttribute('aria-expanded','true');const state=await this.sync(id);if(this.anchor!==anchor)return;if(!state){this.closeMenu();return;}const e=this.rows.get(id),menu=document.createElement('div');menu.className='connection-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','Actions for '+e.p.name);this.menu=menu;this.menuKeys(menu);
-    const sql=control('SQL Editor','sql',()=>this.openSqlMenu(sql,id));sql.setAttribute('role','menuitem');sql.setAttribute('aria-haspopup','menu');sql.setAttribute('aria-expanded','false');const text=document.createElement('span');text.textContent='SQL Editor';sql.append(text,icon('right'));sql.addEventListener('pointerenter',()=>this.openSqlMenu(sql,id));sql.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();this.openSqlMenu(sql,id,true);}});menu.append(sql);this.divider(menu);
+    const sql=control('SQL Editor','sql',()=>this.openSqlMenu(sql,id));sql.setAttribute('role','menuitem');sql.setAttribute('aria-haspopup','menu');sql.setAttribute('aria-expanded','false');const text=document.createElement('span');text.textContent='SQL Editor';sql.append(text,icon('right'));sql.addEventListener('pointerenter',()=>this.openSqlMenu(sql,id));sql.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();this.openSqlMenu(sql,id,true);}});menu.append(sql);if(e.p.transport&&e.p.transport!=='jdbc'){sql.replaceWith(this.item(menu,'Native workspace','sql',()=>this.cb.native(id)));sql.disabled=true;sql.tabIndex=-1;}this.divider(menu);
     this.item(menu,'Edit Connection','edit',()=>this.cb.edit(e.p),state.busy);this.divider(menu);
-    this.item(menu,'Connect','connect',()=>this.lifecycle(id,'connect'),state.busy||state.connected);
+    if(e.p.transport&&e.p.transport!=='jdbc')this.item(menu,'Test connection','connect',()=>this.cb.test(e.p),state.busy);else this.item(menu,'Connect','connect',()=>this.lifecycle(id,'connect'),state.busy||state.connected);
     this.item(menu,'Invalidate/Reconnect','reconnect',()=>this.lifecycle(id,'reconnect'),state.busy||!state.connected);
     this.item(menu,'Disconnect','disconnect',()=>this.lifecycle(id,'disconnect'),state.busy||!state.connected);this.divider(menu);
     this.item(menu,'Copy','copy',()=>copyObjectName(e.p.name));
@@ -63,7 +63,7 @@ export class ConnectionTree {
     this.item(menu,'Refresh','refresh',async()=>{e.loaded=false;if(!e.children.hidden)await this.toggle(id,true);else await this.sync(id);},state.busy);
     this.divider(menu);const order=[...this.rows.keys()],position=order.indexOf(id);this.item(menu,'Move up','up',()=>this.move(id,-1),this.orderBusy||position===0);this.item(menu,'Move down','down',()=>this.move(id,1),this.orderBusy||position===order.length-1);
     menu.addEventListener('pointerover',event=>{if(event.target.closest('button')!==sql){this.submenu?.remove();this.submenu=null;sql.setAttribute('aria-expanded','false');}});
-    this.position(menu,anchor);sql.focus();
+    this.position(menu,anchor);menu.querySelector('button:not(:disabled)')?.focus();
   }
   async openMetadataMenu(id,anchor,refresh,object,group){
     if(this.anchor===anchor){this.closeMenu();return;}this.closeMenu();this.anchor=anchor;this.target=id;anchor.setAttribute('aria-expanded','true');

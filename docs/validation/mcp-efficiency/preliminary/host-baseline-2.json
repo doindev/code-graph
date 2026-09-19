@@ -1,0 +1,32 @@
+{
+  "endpoint": "http://127.0.0.1:50695/mcp",
+  "indexAndStartupMs": 52470.8137,
+  "storage": {
+    "mode": "hybrid",
+    "budgetBytes": 33554432,
+    "cacheCapacityBytes": 15728640,
+    "cacheUsedBytesEstimate": 11668,
+    "peakCacheUsedBytesEstimate": 11668,
+    "cacheHits": 2,
+    "cacheMisses": 10,
+    "cacheEvictions": 0,
+    "enginePageCacheBytes": 0,
+    "activeAndStagedStores": 1,
+    "metadataReserveBytes": 1048576,
+    "temporaryReserveBytes": 16777216,
+    "peakUnsavedBytesEstimate": 1067230,
+    "unsavedBytesEstimate": 0,
+    "cacheOverCapacityBytesEstimate": 0,
+    "peakDirtyThresholdOvershootBytesEstimate": 18654,
+    "accountingComplete": false,
+    "hardProcessMemoryLimit": false,
+    "heapMaxBytes": 805306368,
+    "heapUsedBytes": 68678880,
+    "diskBytes": 56795136,
+    "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds."
+  },
+  "heapUsedBytes": 68060288,
+  "heapPoolPeaksBytes": 175716416,
+  "gcCount": 106,
+  "gcTimeMs": 212
+}

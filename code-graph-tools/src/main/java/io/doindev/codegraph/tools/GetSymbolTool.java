@@ -75,6 +75,11 @@ final class GetSymbolTool implements GraphTool {
         if (doc != null) {
             out.put("doc", doc);
         }
+        if(node.attrs().containsKey("moduleResolutionVersion")) {
+            var evidence=out.putObject("moduleResolutionCoverage");
+            node.attrs().entrySet().stream().filter(e->e.getKey().startsWith("module")).sorted(java.util.Map.Entry.comparingByKey())
+                    .forEach(e->evidence.put(e.getKey(),e.getValue()));
+        }
 
         ObjectNode counts = out.putObject("counts");
         counts.put("callers", graph.edges(id, Direction.IN, Set.of(EdgeKind.CALLS)).size());

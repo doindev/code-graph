@@ -4,6 +4,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DbaToolSchemaTest {
+    @Test void nativeConnectionAndCommandSchemasDoNotRequireJdbc()throws Exception{
+        var mapper=new ObjectMapper();var tools=DbaMcpTools.tools(null,()->null);
+        var create=mapper.readTree(tools.stream().filter(t->t.spec().name().equals("dba_request_connection_create")).findFirst().orElseThrow().spec().inputSchemaJson()).path("properties").path("profile");
+        assertFalse(create.path("required").toString().contains("driverClass"));
+        assertTrue(create.path("anyOf").get(0).toString().contains("mongodb-native"));
+        assertTrue(create.path("anyOf").get(1).path("required").toString().contains("driverClass"));
+        String pattern=create.path("properties").path("url").path("pattern").asText();
+        for(String url:List.of("mongodb://localhost:27017","mongodb+srv://example.org","redis://localhost:6379","rediss://localhost:6379","jdbc:h2:mem:test"))assertTrue(java.util.regex.Pattern.compile(pattern).matcher(url).find(),url);
+        var command=mapper.readTree(tools.stream().filter(t->t.spec().name().equals("dba_request_native_command")).findFirst().orElseThrow().spec().inputSchemaJson());
+        assertEquals(2,command.path("properties").path("command").path("oneOf").size());
+        var binary=command.path("properties").path("command").path("oneOf").get(1).path("items").path("oneOf").get(1);
+        assertFalse(binary.path("additionalProperties").asBoolean(true));
+        assertEquals("base64",binary.path("required").get(0).asText());
+        assertEquals(87384,binary.path("properties").path("base64").path("maxLength").asInt());
+        assertTrue(command.path("oneOf").get(1).path("required").toString().contains("database"));
+        assertTrue(command.path("oneOf").get(0).path("required").toString().contains("bindingId"));
+        assertFalse(command.path("properties").has("approved"));
+    }
     @Test void connectionDraftsAndParametersAreFullyDescribed() throws Exception {
         var mapper = new ObjectMapper();
         var schemas = new HashMap<String,com.fasterxml.jackson.databind.JsonNode>();

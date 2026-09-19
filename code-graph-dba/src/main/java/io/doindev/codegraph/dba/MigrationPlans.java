@@ -21,9 +21,13 @@ final class MigrationPlans implements AutoCloseable {
         final ObjectNode value,sourceRequest,sourceScope;
         final Runnable release;
         boolean consumed;
+        String mcpSession;
         Plan(String owner,ObjectNode value,ObjectNode request,ObjectNode scope,Runnable release){this.owner=owner;this.value=value;this.sourceRequest=request;this.sourceScope=scope;this.release=release;}
     }
     private final Map<String,Plan> plans=new LinkedHashMap<>();
+    synchronized ObjectNode bindSession(String owner,ObjectNode value,String session){require(owner,value.path("id").asText()).mcpSession=session;return value;}
+    synchronized Plan requireSession(String owner,String id,String session){Plan plan=require(owner,id);if(plan.mcpSession!=null&&!plan.mcpSession.equals(session))throw new SecurityException("Migration belongs to another MCP session");return plan;}
+    synchronized void sessionEnded(String session){var it=plans.values().iterator();while(it.hasNext()){Plan plan=it.next();if(session.equals(plan.mcpSession)&&!plan.consumed){plan.release.run();it.remove();}}}
 
     synchronized ObjectNode prepare(String owner,QueryJobs.Job snapshot,JsonNode input,Runnable release){
         reap();

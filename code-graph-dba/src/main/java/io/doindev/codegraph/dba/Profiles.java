@@ -108,7 +108,7 @@ public final class Profiles implements AutoCloseable {
     }
     public static ObjectNode publicProfile(JsonNode p){ObjectNode result=p.deepCopy();result.remove(List.of("credentialRef","credentialRefs"));result.put("color",p.path("color").asText("transparent"));result.put("hasCredential",!SecretRecords.refs(p).isEmpty());return result;}
     static ObjectNode agentProfile(JsonNode p){
-        ObjectNode result=JSON.createObjectNode();for(String key:List.of("id","name","templateId","url","driverClass","username","readOnly","color","validationStatus","driverBundle","hashes","pool","keyValidation","agentProvenance"))if(p.has(key))result.set(key,p.path(key).deepCopy());
+        ObjectNode result=JSON.createObjectNode();for(String key:List.of("id","name","templateId","transport","nativeOptions","url","driverClass","username","readOnly","color","validationStatus","driverBundle","hashes","pool","keyValidation","agentProvenance"))if(p.has(key))result.set(key,p.path(key).deepCopy());
         ObjectNode properties=result.putObject("properties");Set<String> hidden=new HashSet<>();p.path("secretPropertyNames").forEach(n->hidden.add(n.asText()));p.path("properties").fields().forEachRemaining(e->{String key=e.getKey().toLowerCase(Locale.ROOT);if(!hidden.contains(e.getKey())&&!key.contains("password")&&!key.contains("secret")&&!key.contains("token")&&!key.contains("private_key")&&!key.contains("privatekey"))properties.set(e.getKey(),e.getValue().deepCopy());});
         ArrayNode secretNames=result.putArray("writeOnlyPropertyNames");hidden.stream().sorted().forEach(secretNames::add);result.put("hasCredential",!SecretRecords.refs(p).isEmpty());return result;
     }

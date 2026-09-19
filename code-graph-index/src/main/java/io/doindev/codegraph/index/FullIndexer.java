@@ -67,15 +67,19 @@ public final class FullIndexer {
         List<FileFragment> fragments = extractAll(root, files, failed);
 
         // freeze the symbol table, then pass 2 — parallel resolution
-        SymbolTable table = SymbolTable.of(fragments);
+        SymbolTable table = SymbolTable.of(fragments, ModuleConfigurations.capture(this,root));
         List<Node> nodes = new ArrayList<>();
         List<Edge> edges = new ArrayList<>();
         List<RawRef> pending = new ArrayList<>();
         Map<String, Integer> filesPerLang = new HashMap<>();
         List<List<Edge>> resolvedPerFragment = resolveAll(fragments, table, pending);
+        Map<String,List<RawRef>> pendingByFile=new HashMap<>();
+        for(RawRef ref:pending)if(ref.site()!=null)pendingByFile.computeIfAbsent(ref.site().relPath(),p->new ArrayList<>()).add(ref);
         for (int i = 0; i < fragments.size(); i++) {
             FileFragment fragment = fragments.get(i);
             nodes.addAll(fragment.declarations());
+            Node evidence=NameResolver.resolutionNode(fragment,pendingByFile.getOrDefault(fragment.file().relPath(),List.of()));
+            if(evidence!=null)nodes.add(evidence);
             edges.addAll(fragment.localEdges());
             edges.addAll(resolvedPerFragment.get(i));
             filesPerLang.merge(fragment.lang(), 1, Integer::sum);
@@ -96,6 +100,12 @@ public final class FullIndexer {
     }
 
     void scan(Path root, java.util.function.Consumer<Path> visitor) {
+        scan(root,visitor,false);
+    }
+    void scanConfigurations(Path root, java.util.function.Consumer<Path> visitor) {
+        scan(root,visitor,true);
+    }
+    private void scan(Path root, java.util.function.Consumer<Path> visitor, boolean configurations) {
         List<String> include = config.paths().include();
         List<String> exclude = config.paths().exclude();
         List<List<GitIgnore.Rule>> ruleStack = new ArrayList<>();
@@ -124,10 +134,11 @@ public final class FullIndexer {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     String relPath = relativize(root, file);
-                    if (analyzers.forPath(relPath) == null || attrs.size() > MAX_FILE_BYTES) {
+                    if (attrs.isSymbolicLink() || (configurations ? !ModuleConfigurations.candidate(relPath)
+                            : analyzers.forPath(relPath) == null || attrs.size() > MAX_FILE_BYTES)) {
                         return FileVisitResult.CONTINUE;
                     }
-                    if (!include.isEmpty() && !Globs.matchesAny(include, relPath)) {
+                    if (!configurations && !include.isEmpty() && !Globs.matchesAny(include, relPath)) {
                         return FileVisitResult.CONTINUE;
                     }
                     if (Globs.matchesAny(exclude, relPath) || GitIgnore.ignored(relPath, ruleStack)) {
@@ -144,6 +155,9 @@ public final class FullIndexer {
 
     /** Extract one file — shared with the incremental indexer. */
     static FileFragment extractFile(Path root, Path file, Analyzers analyzers) throws IOException {
+        if(!file.toAbsolutePath().normalize().startsWith(root.toAbsolutePath().normalize())
+                ||Files.isSymbolicLink(file)||!file.toRealPath().startsWith(root.toRealPath()))
+            throw new IOException("Source target is outside the indexed root or is a symbolic link");
         String relPath = relativize(root, file);
         LanguageAnalyzer analyzer = analyzers.forPath(relPath);
         if (analyzer == null) {

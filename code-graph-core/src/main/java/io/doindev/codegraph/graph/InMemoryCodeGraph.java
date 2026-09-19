@@ -55,6 +55,14 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
     }
 
     private volatile State state = State.EMPTY;
+    private final ThreadLocal<State> readState = new ThreadLocal<>();
+    private State snapshot() { State current = readState.get(); return current == null ? state : current; }
+
+    @Override public <T> T read(java.util.function.Supplier<T> query) {
+        if (readState.get() != null) return query.get();
+        readState.set(state);
+        try { return query.get(); } finally { readState.remove(); }
+    }
     private volatile int dirtyPending;
     private volatile Map<String, Integer> filesPerLang = Map.of();
 
@@ -105,7 +113,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     /** Stream the current graph, e.g. into a snapshot writer or a rehydrating mirror. */
     public void export(GraphSink sink) {
-        State s = state;
+        State s = snapshot();
         for (Node n : s.nodes().values()) {
             sink.node(n);
         }
@@ -120,7 +128,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     /** Generation of the currently published graph. */
     public long generation() {
-        return state.generation();
+        return snapshot().generation();
     }
 
     /** Set by the incremental indexer: watched files changed but not yet re-indexed. */
@@ -137,14 +145,14 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     @Override
     public void scanNodes(Set<NodeKind> kinds, java.util.function.Consumer<Node> visitor) {
-        State snapshot = state;
+        State snapshot = snapshot();
         for (Node node : snapshot.nodes().values())
             if (kinds == null || kinds.isEmpty() || kinds.contains(node.kind())) visitor.accept(node);
     }
 
     @Override
     public Optional<Node> node(NodeId id) {
-        return Optional.ofNullable(state.nodes().get(id));
+        return Optional.ofNullable(snapshot().nodes().get(id));
     }
 
     @Override
@@ -156,7 +164,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
             throw new IllegalArgumentException("limit must be > 0");
         }
         String needle = pattern.toLowerCase();
-        return state.nodes().values().stream()
+        return snapshot().nodes().values().stream()
                 .filter(n -> kinds == null || kinds.isEmpty() || kinds.contains(n.kind()))
                 .filter(n -> lang == null || lang.equals(n.lang()))
                 .filter(n -> matches(n, needle))
@@ -174,7 +182,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     @Override
     public List<Edge> edges(NodeId id, Direction direction, Set<EdgeKind> kinds) {
-        State s = state;
+        State s = snapshot();
         List<Edge> result = new ArrayList<>();
         if (direction == Direction.OUT || direction == Direction.BOTH) {
             collect(s.out().get(id), kinds, result);
@@ -187,7 +195,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     @Override
     public void scanEdges(NodeId id, Direction direction, Set<EdgeKind> kinds, java.util.function.Consumer<Edge> visitor) {
-        State snapshot = state;
+        State snapshot = snapshot();
         for (Direction side : List.of(Direction.OUT, Direction.IN)) {
             if (direction != Direction.BOTH && direction != side) continue;
             Map<EdgeKind,List<Edge>> adjacency = (side == Direction.OUT ? snapshot.out() : snapshot.in()).get(id);
@@ -206,7 +214,7 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
         if (nodeLimit < 1) {
             throw new IllegalArgumentException("nodeLimit must be >= 1");
         }
-        State s = state;
+        State s = snapshot();
         List<ClosureHit> hits = new ArrayList<>();
         Set<NodeId> visited = new HashSet<>();
         visited.add(start);
@@ -250,14 +258,14 @@ public final class InMemoryCodeGraph implements io.doindev.codegraph.store.Manag
 
     @Override
     public List<Node> allNodes(Set<NodeKind> kinds) {
-        return state.nodes().values().stream()
+        return snapshot().nodes().values().stream()
                 .filter(n -> kinds == null || kinds.isEmpty() || kinds.contains(n.kind()))
                 .toList();
     }
 
     @Override
     public IndexStatus status() {
-        State s = state;
+        State s = snapshot();
         int symbols = (int) s.nodes().values().stream().filter(node -> node.id() instanceof SymbolId && node.kind()!=NodeKind.DATABASE_MAPPING).count();
         String stateName = s.generation() == 0 ? "empty" : "ready";
         return new IndexStatus(stateName, s.generation(), s.ownedByFile().size(), symbols,

@@ -135,7 +135,7 @@ class IncrementalIndexerTest {
     }
     @Test
     void overloadAmbiguityAndUnicodeReferencePositionsAreExplicit() throws IOException {
-        String line="  void call() { String emoji = \"🙂\"; pick(1); }";
+        String line="  void call() { String emoji = \"🙂\"; pick(unknown); }";
         write("Overloads.java","class Overloads {\n void pick(int x) {}\n void pick(String x) {}\n"+line+"\n}");
         indexer.applyChanges(List.of("Overloads.java"));
         var caller=graph.findSymbols("Overloads.call",null,"java",10).getFirst();

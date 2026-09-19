@@ -9,6 +9,7 @@ import java.util.*;
 record ConnectionDraft(ObjectNode profile,ObjectNode secret) {
     @Override public String toString(){return "ConnectionDraft[redacted]";}
     static ConnectionDraft create(JsonNode input,ObjectNode oldSecret)throws Exception {
+        if(DatabaseTransport.of(input)!=DatabaseTransport.JDBC)return NativeProfile.create(input,oldSecret);
         String template=input.path("templateId").asText("custom");DatabaseCatalog.get(template);
         String url=Profiles.text(input,"url",8192),driver=Profiles.text(input,"driverClass",200);
         if(!url.startsWith("jdbc:")||url.matches("(?is).*(password|passwd|pwd|secret|token|credential|user|privatekey|private_key_base64)=.*"))throw new IllegalArgumentException("JDBC URL must not contain credentials; use the credential/property controls");

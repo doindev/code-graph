@@ -1,0 +1,52 @@
+{
+  "files": {
+    "alias/right.js": "80ce4b25e57d45a675bc7363fea9656fcc12ccae1431d4a3338e3e460a38e173",
+    "alias/wrong.js": "fea9d723be5fdb20f93dc5f6a2d1e0e015b493d6d2e60edf63622915ecb1918d",
+    "alias/use.js": "421fa850e26cd4a411630d83bce19f83d094541d4404588f3857b3143b5ebb4b",
+    "default/right.js": "27cd34f28004008ca30a98afb3b7a02460fd272b9cabc8bff4d291e9d47baeaf",
+    "default/wrong.js": "0c3dc0c88e1ff6b9ab903fc2353586727f9eda70a1e2dbe107efe78d3bd5155f",
+    "default/use.js": "10b7885988102022b18f0422f31b977bf8d7b9ff06d82f14232e657158fcdfa4",
+    "namespace/right.js": "bfd556895aaf11d07cce0d9a5dae5a05e4cf4c2fcbab1acb632fbda2fec28663",
+    "namespace/wrong.js": "bfd556895aaf11d07cce0d9a5dae5a05e4cf4c2fcbab1acb632fbda2fec28663",
+    "namespace/use.js": "b051755b22770a84dda6f64c4a07ad1e66692e6c94b2bb5ca7f0a6bf2ccf030b",
+    "barrel/right.js": "a7cc413c3081e4f8a4c07cb7a32fc9b185d4b0348401a3a2f0c170e4f437b77b",
+    "barrel/wrong.js": "b41c534f50eb305b954bd14429c9686a06e5c7b0e91895403c2ed0450670fbe0",
+    "barrel/barrel.js": "8eac7abb1718cc1ccaa73eb9fc1ee8147a1de92547aad2fc346e7dbc8d329c8c",
+    "barrel/use.js": "f0115243c7e244a5a0c847641d3e1d127be46d08e6f4ea68722b1199cfe1f26f",
+    "common/right.cjs": "3eb216b41067eb97d77fef25f6908fae7a74f8bd643b9697919f9bb9bdd52cf3",
+    "common/wrong.cjs": "908ead7738f47df3d968fbef29078593febf959884d346348e6d7f573c8900c1",
+    "common/use.cjs": "09dd6ce419c20aee8e37f673d7c69e7ae90c2d14230f9d8a0c48f027967e3283"
+  },
+  "oracle": [
+    {
+      "name": "aliasTarget",
+      "target": "efficiency-fixtures/alias/right.js",
+      "caller": "efficiency-fixtures/alias/use.js",
+      "line": 2
+    },
+    {
+      "name": "defaultTarget",
+      "target": "efficiency-fixtures/default/right.js",
+      "caller": "efficiency-fixtures/default/use.js",
+      "line": 2
+    },
+    {
+      "name": "namespaceTarget",
+      "target": "efficiency-fixtures/namespace/right.js",
+      "caller": "efficiency-fixtures/namespace/use.js",
+      "line": 2
+    },
+    {
+      "name": "barrelTarget",
+      "target": "efficiency-fixtures/barrel/right.js",
+      "caller": "efficiency-fixtures/barrel/use.js",
+      "line": 2
+    },
+    {
+      "name": "commonTarget",
+      "target": "efficiency-fixtures/common/right.cjs",
+      "caller": "efficiency-fixtures/common/use.cjs",
+      "line": 2
+    }
+  ]
+}

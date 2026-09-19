@@ -1,0 +1,472 @@
+{
+  "method" : "Independent JDK javac semantic attribution; production DBA Java sources only",
+  "root" : "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\\dataset",
+  "compiler" : "25+36-3489",
+  "errors" : [ ],
+  "references" : {
+    "NativeReadExecutor.key" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 109,
+      "column" : 49,
+      "endLine" : 109,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 109,
+      "identifierColumn" : 49
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 119,
+      "column" : 116,
+      "endLine" : 119,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 119,
+      "identifierColumn" : 116
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 120,
+      "column" : 116,
+      "endLine" : 120,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 120,
+      "identifierColumn" : 116
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 121,
+      "column" : 118,
+      "endLine" : 121,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 121,
+      "identifierColumn" : 118
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 122,
+      "column" : 122,
+      "endLine" : 122,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 122,
+      "identifierColumn" : 122
+    } ],
+    "NativeRedisArguments.bytes" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+      "line" : 156,
+      "column" : 64,
+      "endLine" : 156,
+      "caller" : "NativeMutations.bytes",
+      "identifierLine" : 156,
+      "identifierColumn" : 85
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 152,
+      "column" : 74,
+      "endLine" : 152,
+      "caller" : "NativeReadExecutor.key",
+      "identifierLine" : 152,
+      "identifierColumn" : 95
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+      "line" : 22,
+      "column" : 32,
+      "endLine" : 22,
+      "caller" : "NativeRedisArguments.validate",
+      "identifierLine" : 22,
+      "identifierColumn" : 32
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 97,
+      "column" : 68,
+      "endLine" : 97,
+      "caller" : "NativeRedisReads.bytes",
+      "identifierLine" : 97,
+      "identifierColumn" : 89
+    } ],
+    "NativeRedisArguments.validate" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeCommand.java",
+      "line" : 119,
+      "column" : 9,
+      "endLine" : 119,
+      "caller" : "NativeCommand.redis",
+      "identifierLine" : 119,
+      "identifierColumn" : 30
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMetadataTree.java",
+      "line" : 61,
+      "column" : 13,
+      "endLine" : 61,
+      "caller" : "NativeMetadataTree.keyNode",
+      "identifierLine" : 61,
+      "identifierColumn" : 34
+    } ],
+    "NativeResults.add" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 95,
+      "column" : 20,
+      "endLine" : 96,
+      "caller" : "NativeReadExecutor.addDocument",
+      "identifierLine" : 95,
+      "identifierColumn" : 27
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 98,
+      "column" : 16,
+      "endLine" : 98,
+      "caller" : "NativeReadExecutor.addDocument",
+      "identifierLine" : 98,
+      "identifierColumn" : 23
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 111,
+      "column" : 44,
+      "endLine" : 111,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 111,
+      "identifierColumn" : 51
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 116,
+      "column" : 25,
+      "endLine" : 116,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 116,
+      "identifierColumn" : 32
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 119,
+      "column" : 51,
+      "endLine" : 119,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 119,
+      "identifierColumn" : 58
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 120,
+      "column" : 50,
+      "endLine" : 120,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 120,
+      "identifierColumn" : 57
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 121,
+      "column" : 51,
+      "endLine" : 121,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 121,
+      "identifierColumn" : 58
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 122,
+      "column" : 53,
+      "endLine" : 122,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 122,
+      "identifierColumn" : 60
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 123,
+      "column" : 53,
+      "endLine" : 123,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 123,
+      "identifierColumn" : 60
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 124,
+      "column" : 51,
+      "endLine" : 124,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 124,
+      "identifierColumn" : 58
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 131,
+      "column" : 73,
+      "endLine" : 131,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 131,
+      "identifierColumn" : 80
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 35,
+      "column" : 17,
+      "endLine" : 35,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 35,
+      "identifierColumn" : 21
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 37,
+      "column" : 46,
+      "endLine" : 37,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 37,
+      "identifierColumn" : 50
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 38,
+      "column" : 48,
+      "endLine" : 38,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 38,
+      "identifierColumn" : 52
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 43,
+      "column" : 88,
+      "endLine" : 43,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 43,
+      "identifierColumn" : 92
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 46,
+      "column" : 64,
+      "endLine" : 46,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 46,
+      "identifierColumn" : 68
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 60,
+      "column" : 29,
+      "endLine" : 60,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 60,
+      "identifierColumn" : 33
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 64,
+      "column" : 78,
+      "endLine" : 64,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 64,
+      "identifierColumn" : 82
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 67,
+      "column" : 75,
+      "endLine" : 67,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 67,
+      "identifierColumn" : 79
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 88,
+      "column" : 25,
+      "endLine" : 88,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 88,
+      "identifierColumn" : 29
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 96,
+      "column" : 67,
+      "endLine" : 96,
+      "caller" : "NativeRedisReads.scalar",
+      "identifierLine" : 96,
+      "identifierColumn" : 74
+    } ],
+    "NativeResults.binary" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 115,
+      "column" : 42,
+      "endLine" : 115,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 115,
+      "identifierColumn" : 56
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 131,
+      "column" : 84,
+      "endLine" : 131,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 131,
+      "identifierColumn" : 98
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 35,
+      "column" : 25,
+      "endLine" : 35,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 35,
+      "identifierColumn" : 39
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 37,
+      "column" : 54,
+      "endLine" : 37,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 37,
+      "identifierColumn" : 68
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 38,
+      "column" : 56,
+      "endLine" : 38,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 38,
+      "identifierColumn" : 70
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 43,
+      "column" : 96,
+      "endLine" : 43,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 43,
+      "identifierColumn" : 110
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 59,
+      "column" : 43,
+      "endLine" : 59,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 59,
+      "identifierColumn" : 57
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 59,
+      "column" : 104,
+      "endLine" : 59,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 59,
+      "identifierColumn" : 118
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 64,
+      "column" : 86,
+      "endLine" : 64,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 64,
+      "identifierColumn" : 100
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 85,
+      "column" : 72,
+      "endLine" : 85,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 85,
+      "identifierColumn" : 86
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 85,
+      "column" : 133,
+      "endLine" : 85,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 85,
+      "identifierColumn" : 147
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 95,
+      "column" : 169,
+      "endLine" : 95,
+      "caller" : "NativeRedisReads.scored",
+      "identifierLine" : 95,
+      "identifierColumn" : 183
+    } ],
+    "NativeResults.finish" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+      "line" : 86,
+      "column" : 35,
+      "endLine" : 86,
+      "caller" : "NativeMutations.execute",
+      "identifierLine" : 86,
+      "identifierColumn" : 43
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 75,
+      "column" : 20,
+      "endLine" : 75,
+      "caller" : "NativeReadExecutor.mongo",
+      "identifierLine" : 75,
+      "identifierColumn" : 27
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 87,
+      "column" : 16,
+      "endLine" : 87,
+      "caller" : "NativeReadExecutor.documents",
+      "identifierLine" : 87,
+      "identifierColumn" : 23
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 132,
+      "column" : 36,
+      "endLine" : 132,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 132,
+      "identifierColumn" : 43
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 139,
+      "column" : 37,
+      "endLine" : 139,
+      "caller" : "NativeReadExecutor.redis",
+      "identifierLine" : 139,
+      "identifierColumn" : 44
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 69,
+      "column" : 35,
+      "endLine" : 69,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 69,
+      "identifierColumn" : 39
+    }, {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "line" : 93,
+      "column" : 33,
+      "endLine" : 93,
+      "caller" : "NativeRedisReads.execute",
+      "identifierLine" : 93,
+      "identifierColumn" : 37
+    } ]
+  },
+  "declarations" : {
+    "NativeReadExecutor.key" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "line" : 152,
+      "column" : 5,
+      "endLine" : 152,
+      "caller" : "NativeReadExecutor.key",
+      "signature" : "key(com.fasterxml.jackson.databind.JsonNode,int)"
+    } ],
+    "NativeRedisArguments.bytes" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+      "line" : 34,
+      "column" : 5,
+      "endLine" : 50,
+      "caller" : "NativeRedisArguments.bytes",
+      "signature" : "bytes(com.fasterxml.jackson.databind.JsonNode,int)"
+    } ],
+    "NativeRedisArguments.validate" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+      "line" : 16,
+      "column" : 5,
+      "endLine" : 28,
+      "caller" : "NativeRedisArguments.validate",
+      "signature" : "validate(com.fasterxml.jackson.databind.JsonNode)"
+    } ],
+    "NativeResults.add" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java",
+      "line" : 21,
+      "column" : 5,
+      "endLine" : 30,
+      "caller" : "NativeResults.add",
+      "signature" : "add(com.fasterxml.jackson.databind.JsonNode)"
+    } ],
+    "NativeResults.binary" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java",
+      "line" : 35,
+      "column" : 5,
+      "endLine" : 45,
+      "caller" : "NativeResults.binary",
+      "signature" : "binary(byte[],int)"
+    } ],
+    "NativeResults.finish" : [ {
+      "path" : "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java",
+      "line" : 33,
+      "column" : 5,
+      "endLine" : 33,
+      "caller" : "NativeResults.finish",
+      "signature" : "finish()"
+    } ]
+  }
+}

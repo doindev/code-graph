@@ -8,6 +8,14 @@ registration. Token-free clients share the built-in local identity, but database
 changes still require reviewed permissions/approvals. Optional named tokens remain available
 for separate identities. See [DBA access](../dba.md).
 
+The explicit startup-only [`--yolo` mode](../yolo.md) automatically authorizes local
+MCP DBA operations, including writes and administration, without creating policies.
+It still requires live sessions and exact targets, preserves restricted read-tool
+semantics and limits, and returns automatic-authorization metadata. Connection
+setup must explicitly choose `testBeforeSave` or `saveUntested`; driver installation
+must be explicitly requested with a pinned version. Do not infer permission for
+an agent task merely from the server running in this mode.
+
 ## Registering with Claude Code
 
 ```
@@ -20,6 +28,21 @@ or `CODE_GRAPH_ROOT`, startup leaves the workspace empty; onboard with `add_proj
 Progress goes to stderr; stdout belongs to the protocol.
 
 ## Tool reference
+
+### Dependency precision and coverage
+
+Java call binding now uses explicit receivers, lexical types, imports, declared inheritance,
+and bounded overload analysis. Unresolved external receivers do not fall back to unrelated
+same-file methods. Full, incremental and hybrid indexing share this resolver.
+
+Use search_symbols to obtain an ID, then find_references for occurrence spans and
+resolutionEvidence (binding basis, resolved/candidate status, dispatch caveat and omitted
+candidates). get_call_graph remains a compact navigation summary. Neither tool claims that
+unresolved, dynamic, external-library or unindexed references are absent. A resolved virtual
+call identifies its declared receiver target, not every overriding runtime implementation.
+
+See [precision scope, validation and benchmarks](../dependency-precision.md). No new startup
+flag is required. Reindex existing projects after installing the new resolver.
 
 ### Agent skill for Copilot, Claude Code, Codex, and Windsurf
 
@@ -43,7 +66,19 @@ node skills/install-skill.mjs --client codex --project C:/repos/my-app --dry-run
 node skills/install-skill.mjs --client codex --project C:/repos/my-app
 ```
 
-Choose one of `codex`, `copilot`, `claude`, or `windsurf`. The helper does not
+For optional current-user/global installation, select all four or a subset:
+
+```text
+node skills/install-skill.mjs --client all --global --dry-run
+node skills/install-skill.mjs --client codex,claude --global
+```
+
+The application installers also offer `-Skills` / `--skills` selection without requiring
+Node. See [global locations and installer behavior](../installation.md#optional-global-agent-skills).
+The skill is conditional guidance, not a dependency: use MCP when available and useful,
+otherwise continue with ordinary tools.
+
+Choose `all`, `none`, or selected `codex`, `copilot`, `claude`, `windsurf` clients. The helper does not
 configure MCP, start the server, broaden tool permissions, or overwrite an
 existing differing skill. Identical installed copies are a no-op; merge customized
 copies manually. It rejects linked destination directories. Install only the
@@ -55,7 +90,7 @@ Connect the MCP server separately using the agent's normal configuration. Skill
 selection remains host-controlled; the file guides applicable tasks, not every
 shell operation. See the official [Copilot skill guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills),
 [Claude Code skill guide](https://code.claude.com/docs/en/skills),
-[Codex skill guide](https://developers.openai.com/docs/build-skills), and
+[Codex skill guide](https://learn.chatgpt.com/docs/build-skills), and
 [Windsurf skill guide](https://docs.windsurf.com/windsurf/cascade/skills).
 Discovery depends on client version, surface and workspace trust. Installing a
 skill in a cloud checkout does not make your machine's loopback MCP reachable;
@@ -108,7 +143,8 @@ With DBA enabled:
 | Tool | Behavior |
 |---|---|
 | `dba_list_templates` | Public recipes/property descriptors; `templateId`, `limit` (1–50, default 10), `cursor`; never downloads or connects |
-| `dba_get_capabilities` | Exact binding or connection ID/name; cached observation by default; `live: true` submits a bounded JDBC metadata job requiring catalog permission |
+| `dba_get_capabilities` | Exact binding or connection ID/name; cached description by default; `live: true` submits bounded JDBC metadata or native server-version observation requiring scoped permission |
+| `dba_request_native_command` | Exact native MongoDB/Redis binding or UUID/name/database, optional Mongo collection, structured command, requestId and purpose; one-time approval or startup YOLO, asynchronous bounded results; unavailable in reduced approval-disabled mode |
 | `dba_refresh_catalog` | Requests/coalesces an authorized binding scan under existing single-scanner limits; no database writes |
 | `dba_scan_status` | Passive status; optional `afterGeneration` and `waitMillis` (0–5000), at most four concurrent waiters |
 | `dba_capture_schema` | Asynchronous, capped catalog observation for an exact binding or standalone UUID/name/database/schema; requires existing catalog permission |
@@ -269,11 +305,15 @@ reaches `gating.threshold` — an agent about to edit high-risk code always sees
 ## Token frugality guarantees
 
 - Hard caps: `limits.maxResults` (default 50) per list, `limits.maxResponseBytes`
-  (default 32 768) per response; oversized responses become an error asking the agent to narrow
-  the query — never a silent dump.
+  (default 32 768) per tool JSON. Symbol/navigation pages automatically shorten to
+  fit and return signed generation-bound cursors. A single oversized record fails
+  explicitly; no records are silently skipped. Other oversized responses fail.
 - Every truncated list carries `"truncated": true` plus an `omitted` count.
 - **No tool ever returns file contents** — signatures, IDs and counts only.
 - Call graphs are node-array + `[callerIdx, calleeIdx]` pairs, so each ID string appears once.
+  Pairs aggregate distinct relationships with parallel occurrence counts and
+  completeness flags. See [precision contracts](../mcp-precision-efficiency.md)
+  for work limits, pagination, build/catalog identity and resolver coverage.
 
 ## Security posture
 

@@ -1,5 +1,10 @@
 # Compare, prepare and rehearse
 
+With startup YOLO active, retained plans are automatically authorized once instead
+of opening human review; their session ownership, target and schema-fingerprint
+checks are unchanged. Never treat automatic authorization as permission to expand
+the requested migration or bypass uncertain-outcome reconciliation.
+
 These workflows require the corresponding tools to be advertised and verified
 for the target. Do not emulate missing tools by silently running database writes
 through a shell. Use the agent's ordinary file tools to save returned SQL and

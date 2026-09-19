@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AgentRequestsTest {
     @TempDir Path directory;
-    Profiles profiles;Connections connections;ConnectionSetup setup;AgentAccess agents;ProjectContexts contexts;QueryJobs jobs;AgentRequests requests;
+    Profiles profiles;Connections connections;ConnectionSetup setup;AgentAccess agents;ProjectContexts contexts;QueryJobs jobs;AgentRequests requests;NativeOperations nativeOperations;
     String principal,project,connection;
     ArrayNode projects=Profiles.JSON.createArrayNode();
     @BeforeEach void start()throws Exception{
@@ -21,7 +21,54 @@ class AgentRequestsTest {
         contexts.attach(new ProjectContextHost(){public JsonNode projects(){return projects;}public DocumentStore documents(){return DocumentStore.memory(16L<<20);}});
         jobs=new QueryJobs(connections,new DbaConfig(directory,64L<<20,2,100,100,5),agents::alive);setup=new ConnectionSetup(profiles,jobs);requests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);
     }
-    @AfterEach void stop()throws Exception{requests.close();contexts.close();jobs.close();connections.close();profiles.close();}
+    @AfterEach void stop()throws Exception{requests.close();contexts.close();jobs.close();if(nativeOperations!=null)nativeOperations.close();connections.close();profiles.close();}
+    @Test void nativeReadsRequireExactReviewAndRejectStaleTargetsOrForgedPersistentChoices()throws Exception{
+        nativeOperations=new NativeOperations(profiles,jobs);requests.nativeOperations(nativeOperations);
+        ObjectNode nativeProfile=Profiles.JSON.createObjectNode().put("name","Native local").put("templateId","redis-native").put("url","redis://127.0.0.1:1");
+        String id=profiles.put(null,nativeProfile).path("id").asText();
+        ObjectNode input=request("native-1","Inspect local Redis only").put("connectionId",id).put("connectionName","Native local").put("database","0");
+        input.putArray("command").add("PING");
+        JsonNode pending=requests.request(principal,"native_command",input);
+        assertEquals("awaiting_approval",pending.path("state").asText());assertFalse(pending.path("mutation").asBoolean());
+        assertEquals(0,nativeOperations.telemetry().path("clients").asInt());assertFalse(pending.has("jobId"));
+        assertThrows(IllegalArgumentException.class,()->requests.decide("human",pending.path("id").asText(),"always_allow",true,Profiles.JSON.createObjectNode()));
+        assertEquals("awaiting_approval",requests.get(principal,pending.path("id").asText()).path("state").asText());
+        profiles.rename(id,Profiles.JSON.createObjectNode().put("name","Renamed native").put("expectedName","Native local"));
+        assertThrows(IllegalArgumentException.class,()->requests.decide("human",pending.path("id").asText(),"approve_once",true,Profiles.JSON.createObjectNode()));
+        assertEquals(0,nativeOperations.telemetry().path("clients").asInt());
+    }
+    @Test void nativeBindingsFixEnvironmentDatabaseAndRejectRevisionsOrOverrides()throws Exception{
+        nativeOperations=new NativeOperations(profiles,jobs,contexts);requests.nativeOperations(nativeOperations);principal=agents.trustedLocal();
+        connection=profiles.put(null,Profiles.JSON.createObjectNode().put("name","Native bound").put("templateId","redis-native").put("url","redis://127.0.0.1:1")).path("id").asText();
+        ObjectNode relation=binding("cache").put("database","0");String bindingId=contexts.save(relation).path("id").asText();
+        assertFalse(contexts.state().path("bindings").get(0).path("scanSupported").asBoolean(true));
+        assertThrows(IllegalArgumentException.class,()->contexts.scanNow(bindingId));
+        ObjectNode input=request("native-bound","Inspect bound cache").put("bindingId",bindingId);input.putArray("command").add("PING");
+        JsonNode pending=requests.request(principal,"native_command",input);
+        assertEquals("dev",pending.path("target").path("environment").asText());assertEquals("cache",pending.path("target").path("role").asText());
+        var observed=nativeOperations.observationScope(Profiles.JSON.createObjectNode().put("bindingId",bindingId));
+        assertEquals("cache",observed.path("role").asText());assertEquals("0",observed.path("database").asText());
+        assertFalse(observed.path("profileRevision").asText().isEmpty());assertFalse(observed.path("bindingRevision").asText().isEmpty());
+        assertThrows(IllegalArgumentException.class,()->nativeOperations.observationScope(input.deepCopy().put("database","1")));
+        assertEquals("0",pending.path("target").path("database").asText());
+        assertThrows(IllegalArgumentException.class,()->requests.request(principal,"native_command",input.deepCopy().put("requestId","override").put("database","1")));
+        assertThrows(IllegalArgumentException.class,()->contexts.save(relation.deepCopy().put("role","bad").put("schema","public")));
+        contexts.save(contexts.binding(bindingId).put("purpose","Changed purpose"));
+        assertNotEquals(observed,nativeOperations.observationScope(input));
+        assertThrows(IllegalArgumentException.class,()->requests.decide("human",pending.path("id").asText(),"approve_once",true,Profiles.JSON.createObjectNode()));
+        assertEquals(0,nativeOperations.telemetry().path("clients").asInt());
+    }
+    @Test void nativeProfileProposalsRemainWriteOnlyAndHaveNoAutomaticAccess()throws Exception{
+        ObjectNode proposed=Profiles.JSON.createObjectNode().put("templateId","mongodb-native").put("url","mongodb://localhost:27017").put("name","Native proposal").put("username","worker").put("password","never-publish-native");
+        proposed.putObject("nativeOptions").put("authDatabase","admin").put("database","app");
+        ObjectNode input=request("native-create","Propose native connection");input.set("profile",proposed);
+        JsonNode pending=requests.request(principal,"connection_create",input);
+        assertFalse(pending.toString().contains("never-publish-native"));assertEquals("mongodb",pending.path("after").path("transport").asText());
+        JsonNode saved=requests.decide("human",pending.path("id").asText(),"approve_once",true,Profiles.JSON.createObjectNode().put("saveUntested",true));
+        String id=saved.path("result").path("id").asText();assertFalse(saved.path("result").path("creatorReceivesAccess").asBoolean());
+        Properties secrets=profiles.credentials(profiles.get(id));try{assertEquals("never-publish-native",secrets.getProperty("password"));}finally{secrets.clear();}
+        assertFalse(Files.readString(directory.resolve("agent-administration-approvals.jsonl")).contains("never-publish-native"));
+    }
     ObjectNode binding(String role){return Profiles.JSON.createObjectNode().put("projectId",project).put("connectionId",connection).put("database","sample").put("environment","dev").put("role",role).put("purpose",role+" database").put("scanIntervalSeconds",60).put("idleTimeoutSeconds",120).put("enabled",true);}
     ObjectNode request(String id,String purpose){return Profiles.JSON.createObjectNode().put("requestId",id).put("purpose",purpose);}
     @Test void trustedLocalCreationAndTestsStillNeedHumanApproval()throws Exception{

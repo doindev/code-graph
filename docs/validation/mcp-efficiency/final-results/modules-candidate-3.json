@@ -1,0 +1,332 @@
+{
+  "phase": "candidate",
+  "run": 3,
+  "methodology": "Adaptive deterministic harness, not an LLM timing trial. Source fallback only for missing/uncertain evidence; authored oracle is graded afterward.",
+  "results": [
+    {
+      "task": "aliasTarget",
+      "target": "js:efficiency-fixtures/alias/right.js#aliasTarget/0",
+      "outcome": "mcp_sufficient",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/alias/use.js",
+          "name": "use.js",
+          "kind": "file",
+          "signature": "use.js",
+          "path": "efficiency-fixtures/alias/use.js",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 12
+          },
+          "relationship": "calls",
+          "confidence": 1,
+          "resolutionEvidence": {
+            "resolution": "module-binding",
+            "resolutionStatus": "resolved",
+            "candidateCount": "1",
+            "omittedCandidates": "0",
+            "moduleSpecifier": "./right.js",
+            "modulePath": "efficiency-fixtures/alias/right.js",
+            "exportedName": "aliasTarget",
+            "localAlias": "aliasCall",
+            "importKind": "named"
+          },
+          "targetId": "js:efficiency-fixtures/alias/right.js#aliasTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/alias/use.js",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 1,
+              "endLine": 2,
+              "endColumn": 9
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 89.72519999998622,
+          "responseBytes": 894,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 4.2726000000257045,
+          "responseBytes": 3040,
+          "generation": 1
+        }
+      ],
+      "acquisitionMs": 94.02619999996386
+    },
+    {
+      "task": "defaultTarget",
+      "target": "js:efficiency-fixtures/default/right.js#defaultTarget/0",
+      "outcome": "mcp_sufficient",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/default/use.js",
+          "name": "use.js",
+          "kind": "file",
+          "signature": "use.js",
+          "path": "efficiency-fixtures/default/use.js",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 14
+          },
+          "relationship": "calls",
+          "confidence": 1,
+          "resolutionEvidence": {
+            "resolution": "module-binding",
+            "resolutionStatus": "resolved",
+            "candidateCount": "1",
+            "omittedCandidates": "0",
+            "moduleSpecifier": "./right.js",
+            "modulePath": "efficiency-fixtures/default/right.js",
+            "exportedName": "default",
+            "localAlias": "defaultCall",
+            "importKind": "default"
+          },
+          "targetId": "js:efficiency-fixtures/default/right.js#defaultTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/default/use.js",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 1,
+              "endLine": 2,
+              "endColumn": 11
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 89.41080000001239,
+          "responseBytes": 906,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 5.95319999998901,
+          "responseBytes": 3078,
+          "generation": 1
+        }
+      ],
+      "acquisitionMs": 95.40450000000419
+    },
+    {
+      "task": "namespaceTarget",
+      "target": "js:efficiency-fixtures/namespace/right.js#namespaceTarget/0",
+      "outcome": "mcp_sufficient",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/namespace/use.js",
+          "name": "use.js",
+          "kind": "file",
+          "signature": "use.js",
+          "path": "efficiency-fixtures/namespace/use.js",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 22
+          },
+          "relationship": "calls",
+          "confidence": 1,
+          "resolutionEvidence": {
+            "resolution": "module-binding",
+            "resolutionStatus": "resolved",
+            "candidateCount": "1",
+            "omittedCandidates": "0",
+            "moduleSpecifier": "./right.js",
+            "modulePath": "efficiency-fixtures/namespace/right.js",
+            "exportedName": "namespaceTarget",
+            "localAlias": "api",
+            "importKind": "namespace"
+          },
+          "targetId": "js:efficiency-fixtures/namespace/right.js#namespaceTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/namespace/use.js",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 5,
+              "endLine": 2,
+              "endColumn": 19
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 90.47669999999925,
+          "responseBytes": 1176,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 4.173899999994319,
+          "responseBytes": 3118,
+          "generation": 1
+        }
+      ],
+      "acquisitionMs": 94.68100000004051
+    },
+    {
+      "task": "barrelTarget",
+      "target": "js:efficiency-fixtures/barrel/right.js#barrelTarget/0",
+      "outcome": "mcp_sufficient",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/barrel/use.js",
+          "name": "use.js",
+          "kind": "file",
+          "signature": "use.js",
+          "path": "efficiency-fixtures/barrel/use.js",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 13
+          },
+          "relationship": "calls",
+          "confidence": 1,
+          "resolutionEvidence": {
+            "resolution": "module-binding",
+            "resolutionStatus": "resolved",
+            "candidateCount": "1",
+            "omittedCandidates": "0",
+            "moduleSpecifier": "./barrel.js",
+            "modulePath": "efficiency-fixtures/barrel/barrel.js",
+            "exportedName": "execute",
+            "localAlias": "barrelCall",
+            "importKind": "named"
+          },
+          "targetId": "js:efficiency-fixtures/barrel/right.js#barrelTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/barrel/use.js",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 1,
+              "endLine": 2,
+              "endColumn": 10
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 92.24169999995502,
+          "responseBytes": 900,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 4.419500000018161,
+          "responseBytes": 3059,
+          "generation": 1
+        }
+      ],
+      "acquisitionMs": 96.68499999999767
+    },
+    {
+      "task": "commonTarget",
+      "target": "js:efficiency-fixtures/common/right.cjs#commonTarget/0",
+      "outcome": "mcp_sufficient",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/common/use.cjs",
+          "name": "use.cjs",
+          "kind": "file",
+          "signature": "use.cjs",
+          "path": "efficiency-fixtures/common/use.cjs",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 13
+          },
+          "relationship": "calls",
+          "confidence": 1,
+          "resolutionEvidence": {
+            "resolution": "module-binding",
+            "resolutionStatus": "resolved",
+            "candidateCount": "1",
+            "omittedCandidates": "0",
+            "moduleSpecifier": "./right.cjs",
+            "modulePath": "efficiency-fixtures/common/right.cjs",
+            "exportedName": "commonTarget",
+            "localAlias": "commonCall",
+            "importKind": "commonjs_named"
+          },
+          "targetId": "js:efficiency-fixtures/common/right.cjs#commonTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/common/use.cjs",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 1,
+              "endLine": 2,
+              "endColumn": 10
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 90.01679999998305,
+          "responseBytes": 903,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 3.553699999989476,
+          "responseBytes": 3102,
+          "generation": 1
+        }
+      ],
+      "acquisitionMs": 93.59409999998752
+    }
+  ]
+}

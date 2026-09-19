@@ -9,15 +9,15 @@ export function approvalHeaders(path=''){
   return headers;
 }
 export class ApprovalClient {
-  constructor({api,changed,offer,unavailable}){
-    this.api=api;this.changed=changed;this.offer=offer;this.unavailable=unavailable;
+  constructor({api,changed,offer,unavailable,reviewOnly=false}){
+    this.reviewOnly=reviewOnly;this.api=api;this.changed=changed;this.offer=offer;this.unavailable=unavailable;
     this.tabId=crypto.randomUUID();this.leases=new Map();this.active=null;this.closed=false;this.focused=false;current=this;
     this.visibility=()=>this.heartbeat(false);this.focus=()=>this.heartbeat(true);
     document.addEventListener('visibilitychange',this.visibility);window.addEventListener('focus',this.focus);
     this.leave=()=>this.dispose();window.addEventListener('pagehide',this.leave);
     this.ready=this.start();
   }
-  async start(){await this.heartbeat(document.hasFocus());if(this.closed)return;this.connect();this.timer=setInterval(()=>{if(!document.hidden)this.heartbeat(false);},10000);this.renewTimer=setInterval(()=>this.renew(),10000);}
+  async start(){const settings=this.reviewOnly?{}:await this.api('/settings');if(settings.yolo){this.changed?.(0,{automatic:true});this.dispose();return;}await this.heartbeat(document.hasFocus());if(this.closed)return;this.connect();this.timer=setInterval(()=>{if(!document.hidden)this.heartbeat(false);},10000);this.renewTimer=setInterval(()=>this.renew(),10000);}
   connect(){
     if(this.closed||typeof EventSource==='undefined')return;
     this.events=new EventSource('/api/dba/approvals/events?tabId='+encodeURIComponent(this.tabId));

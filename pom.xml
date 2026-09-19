@@ -81,6 +81,8 @@
   </modules>
 
   <properties>
+    <!-- Extra test-JVM options for opt-in resource gates; normal tests stay unchanged. -->
+    <test.jvm.args></test.jvm.args>
     <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -138,7 +140,7 @@
           <configuration>
             <!-- tree-sitter-ng loads native grammar libraries via System::load; future JDKs
                  block restricted native access unless it is enabled explicitly -->
-            <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+            <argLine>--enable-native-access=ALL-UNNAMED ${test.jvm.args}</argLine>
           </configuration>
         </plugin>
       </plugins>

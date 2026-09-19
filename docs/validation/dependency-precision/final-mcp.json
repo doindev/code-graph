@@ -1,0 +1,70 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"root\":0,\"direction\":\"up\",\"depth\":1,\"nodes\":[\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2\",\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\"],\"sigs\":[\"bytes(JsonNode command,int index)\",\"bytes(JsonNode command,int i)\",\"key(JsonNode command,int index)\",\"validate(JsonNode command)\",\"bytes(JsonNode command,int i)\",\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\"],\"up\":[[1,0],[2,0],[3,0],[4,0],[5,0],[5,0]],\"down\":[],\"truncated\":false,\"omittedNodes\":0,\"referenceCompleteness\":\"not_guaranteed\",\"coverage\":\"Indexed call bindings; Java virtual calls identify declared targets, not all runtime overrides. Dynamic, external and unresolved references may be absent. Use find_references for occurrence-level confidence and resolution evidence.\"}"
+    }
+  ],
+  "structuredContent": {
+    "data": {
+      "root": 0,
+      "direction": "up",
+      "depth": 1,
+      "nodes": [
+        "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2",
+        "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+        "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+        "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2",
+        "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0"
+      ],
+      "sigs": [
+        "bytes(JsonNode command,int index)",
+        "bytes(JsonNode command,int i)",
+        "key(JsonNode command,int index)",
+        "validate(JsonNode command)",
+        "bytes(JsonNode command,int i)",
+        "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()"
+      ],
+      "up": [
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "down": [],
+      "truncated": false,
+      "omittedNodes": 0,
+      "referenceCompleteness": "not_guaranteed",
+      "coverage": "Indexed call bindings; Java virtual calls identify declared targets, not all runtime overrides. Dynamic, external and unresolved references may be absent. Use find_references for occurrence-level confidence and resolution evidence."
+    },
+    "meta": {
+      "contractVersion": 1,
+      "tool": "get_call_graph",
+      "invocationState": "returned",
+      "completeness": "unknown",
+      "truncated": false
+    }
+  },
+  "isError": false
+}

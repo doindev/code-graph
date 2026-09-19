@@ -21,6 +21,7 @@ public final class CgraphMain {
     }
 
     static String[] effectiveArguments(String[] args) {
+        io.doindev.codegraph.dba.DbaConfig.validateYoloFlag(args);
         List<String> normalized = new ArrayList<>();
         for (String arg : args) {
             int equals = arg.startsWith("--") ? arg.indexOf('=') : -1;
@@ -33,7 +34,7 @@ public final class CgraphMain {
         boolean dba = !normalized.contains("--no-dba");
         if (!ui && normalized.contains("--viz")) throw new IllegalArgumentException("Choose --no-ui or --viz, not both");
         if (!admin && normalized.contains("--viz-admin")) throw new IllegalArgumentException("Choose --no-admin or --viz-admin, not both");
-        if (!dba && normalized.stream().anyMatch(a -> a.equals("--dba") || a.startsWith("--dba-")))
+        if (!dba && normalized.stream().anyMatch(a -> a.equals("--yolo") || a.equals("--dba") || a.startsWith("--dba-")))
             throw new IllegalArgumentException("DBA settings cannot be used with --no-dba");
         List<String> result = new ArrayList<>();
         for (String arg : normalized) if (!Set.of("--no-defaults", "--no-ui", "--no-admin", "--no-dba", "--print-config").contains(arg)) result.add(arg);
@@ -43,8 +44,9 @@ public final class CgraphMain {
             defaultValue(result, "--graph-storage", "hybrid");
             defaultValue(result, "--graph-memory", "1g");
             if (ui) { defaultValue(result, "--viz", "8137"); if (admin && !result.contains("--viz-admin")) result.add("--viz-admin"); }
-            if (dba) { if (!result.contains("--dba")) result.add("--dba"); defaultValue(result, "--dba-approval-mode", "desktop"); }
+            if (dba) { if (!result.contains("--dba")) result.add("--dba"); if(!result.contains("--yolo")) defaultValue(result, "--dba-approval-mode", "desktop"); }
         }
+        if(result.contains("--yolo")&&!result.contains("--dba")) throw new IllegalArgumentException("--yolo requires --dba (or cgraph defaults)");
         return result.toArray(String[]::new);
     }
 
@@ -65,6 +67,7 @@ public final class CgraphMain {
           --graph-memory 512m|1g|2g   Graph/cache budget, NOT a total RAM or JVM heap cap
           --graph-storage MODE       hybrid (default) or memory
           --dba-approval-mode MODE   desktop (default), auto, browser, none
+          --yolo                    DANGER: automatically authorize local MCP DBA operations; requires DBA
           --dba-dir PATH             DBA profiles/settings directory
           --root PATH                Explicitly onboard a project; repeatable
           --project-ttl 10m|1h        Idle project lifetime

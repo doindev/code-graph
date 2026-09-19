@@ -9,6 +9,20 @@
   <name>code-graph-mcp</name>
   <description>stdio MCP server exposing the code-graph tool set (official MCP Java SDK, quarantined to this module)</description>
 
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes><include>code-graph-build.properties</include></includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes><exclude>code-graph-build.properties</exclude></excludes>
+      </resource>
+    </resources>
+  </build>
   <dependencies>
     <dependency>
       <groupId>io.doindev</groupId>

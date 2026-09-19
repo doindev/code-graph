@@ -1,0 +1,12 @@
+{
+  "pid": 18624,
+  "dbaHttp": 200,
+  "approvalMode": "desktop",
+  "graphBudgetBytes": 1073741824,
+  "adminUi": true,
+  "logs": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-precision-final-2d1bb4495b5443959c93e052bb608669",
+  "graphHttp": 200,
+  "mcpInitializeHttp": 200,
+  "storage": "hybrid",
+  "dba": true
+}

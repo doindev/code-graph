@@ -1,0 +1,102 @@
+{
+  "method": "Median of three independent fresh-JVM/application-store runs per build. OS file cache was not cleared.",
+  "units": {
+    "timing": "milliseconds",
+    "memory": "bytes",
+    "throughput": "measured in-process query sequences/second"
+  },
+  "builds": {
+    "baseline": {
+      "indexMs": 51933.4466,
+      "queryP50Ms": 0.7231,
+      "queryP95Ms": 1.6294,
+      "queryP99Ms": 1.7571,
+      "heapUsedBytes": 78622448,
+      "heapPoolPeaksBytes": 174908040,
+      "sampledPeakWorkingSetBytes": 352419840,
+      "gcCount": 88,
+      "gcTimeMs": 167,
+      "querySequencesPerSecond": 1117.8596713492568,
+      "storage": {
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 50344,
+        "peakCacheUsedBytesEstimate": 50344,
+        "cacheHits": 610,
+        "cacheMisses": 19,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1067230,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 18654,
+        "diskBytes": 56795136
+      },
+      "index": {
+        "generation": 1,
+        "files": 501,
+        "symbols": 5980,
+        "edges": 24153,
+        "engine": "hybrid-mvstore-1"
+      },
+      "environment": {
+        "java": "25",
+        "os": "Windows 11 amd64",
+        "processors": 8,
+        "maxHeapBytes": 805306368,
+        "cacheAllowanceBytes": 33554432
+      },
+      "jarSha256": "7e6950bd6e6ae6c91618dbe738ef5d7f95011e2cd4c530f1de5f353f1251cdc4"
+    },
+    "candidate": {
+      "indexMs": 60577.7343,
+      "queryP50Ms": 0.658,
+      "queryP95Ms": 1.1863,
+      "queryP99Ms": 1.9194,
+      "heapUsedBytes": 96893096,
+      "heapPoolPeaksBytes": 203084480,
+      "sampledPeakWorkingSetBytes": 348561408,
+      "gcCount": 91,
+      "gcTimeMs": 186,
+      "querySequencesPerSecond": 1272.3077967021782,
+      "storage": {
+        "budgetBytes": 33554432,
+        "cacheCapacityBytes": 15728640,
+        "cacheUsedBytesEstimate": 50344,
+        "peakCacheUsedBytesEstimate": 50344,
+        "cacheHits": 610,
+        "cacheMisses": 19,
+        "cacheEvictions": 0,
+        "enginePageCacheBytes": 0,
+        "metadataReserveBytes": 1048576,
+        "temporaryReserveBytes": 16777216,
+        "peakUnsavedBytesEstimate": 1128275,
+        "cacheOverCapacityBytesEstimate": 0,
+        "peakDirtyThresholdOvershootBytesEstimate": 79699,
+        "diskBytes": 67846144
+      },
+      "index": {
+        "generation": 1,
+        "files": 501,
+        "symbols": 6362,
+        "edges": 25867,
+        "engine": "hybrid-mvstore-1"
+      },
+      "environment": {
+        "java": "25",
+        "os": "Windows 11 amd64",
+        "processors": 8,
+        "maxHeapBytes": 805306368,
+        "cacheAllowanceBytes": 33554432
+      },
+      "jarSha256": "0667679f29cfe76d14c6296a04d74cb7c3c915de0413071c0dde2b0b761ebf4b"
+    }
+  },
+  "limitations": [
+    "Heap is a post-workload sample, not measured retained size. Pool peaks need not occur simultaneously.",
+    "Sampled process working set is not a hard total-memory ceiling. Driver/native/OS allocations are not fully accounted.",
+    "Query sequence throughput is not MCP/network throughput. Three runs and 30 timed sequences per run are a small sample.",
+    "Hybrid staged rebuilds have dirty-buffer overshoot estimates; zero cache overshoot does not mean total RAM is capped."
+  ]
+}

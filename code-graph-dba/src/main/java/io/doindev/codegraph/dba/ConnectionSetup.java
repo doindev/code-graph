@@ -29,11 +29,23 @@ final class ConnectionSetup {
             default -> throw new IllegalArgumentException("Unsupported connection setup operation");
         },snapshot::removeAll);
     }
-    private ObjectNode test(String owner,ObjectNode input,QueryJobs.Job job)throws Exception {
+    ObjectNode test(String owner,ObjectNode input,QueryJobs.Job job)throws Exception {
         String id=input.hasNonNull("connectionId")?input.path("connectionId").asText():null;
         ConnectionDraft draft=profiles.draft(id,input);
         try{
             job.progress="Validating configuration and key file";String fingerprint=draft.fingerprint();
+            if(DatabaseTransport.of(draft.profile())!=DatabaseTransport.JDBC){
+                jobs.reserveNative(job);
+                job.progress="Connecting native client and reading server version";
+                if(job.cancelled)throw new java.util.concurrent.CancellationException();
+                ObjectNode result=NativeConnections.testDraft(draft);
+                if(job.cancelled)throw new java.util.concurrent.CancellationException();
+                ConnectionDraft fresh=profiles.draft(id,input);
+                try{if(!fingerprint.equals(fresh.fingerprint()))throw new IllegalArgumentException("Native configuration changed during test; test again");}finally{fresh.clear();}
+                result.put("receipt",receipt(owner,id,fingerprint)).put("stage","connected")
+                    .put("elapsedMillis",System.currentTimeMillis()-job.started);
+                return result;
+            }
             String url=Profiles.expand(draft.profile().path("url").asText());
             // Driver initialization is arbitrary trusted code; embedded URLs can create files on connect.
             if(!input.path("confirmDriverEffects").asBoolean()&&(url.matches("(?is)jdbc:(h2|hsqldb|sqlite|duckdb):.*")||url.matches("(?is).*(INIT|RUNSCRIPT)=.*")||draft.properties().stringPropertyNames().stream().anyMatch(n->n.toLowerCase(Locale.ROOT).contains("init"))))
@@ -71,7 +83,8 @@ final class ConnectionSetup {
             boolean tested=receipt!=null&&receipt.owner.equals(owner)&&Objects.equals(receipt.connection,id)&&receipt.fingerprint.equals(fingerprint);
             if(!tested&&!input.path("saveUntested").asBoolean())throw new IllegalArgumentException("Test this unchanged draft first, or explicitly confirm Save untested");
             // Even Save untested must load a genuine driver and validate required key settings.
-            try(var loader=Connections.loader(draft.profile())){if(!Connections.driver(loader,draft.profile()).acceptsURL(Profiles.expand(draft.profile().path("url").asText())))throw new IllegalArgumentException("Driver does not accept URL");}
+            if(DatabaseTransport.of(draft.profile())!=DatabaseTransport.JDBC)NativeConnections.validateSupported(draft.profile());
+            else try(var loader=Connections.loader(draft.profile())){if(!Connections.driver(loader,draft.profile()).acceptsURL(Profiles.expand(draft.profile().path("url").asText())))throw new IllegalArgumentException("Driver does not accept URL");}
             ObjectNode saved=profiles.saveDraft(id,draft,tested?"tested":"untested");receipts.remove(input.path("receipt").asText());return saved;
         }finally{draft.clear();}
     }

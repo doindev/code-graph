@@ -5,7 +5,8 @@ import java.util.*;
 
 /** Explicit opt-in. Limits govern retained application records, not driver/native allocations. */
 public record DbaConfig(Path directory, long memoryBytes, int concurrency, int uiRows,
-                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds, String approvalMode) {
+                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds, String approvalMode, boolean yolo) {
+    public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds,String approvalMode){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,approvalMode,false);}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,"auto");}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,60);}
     public DbaConfig {
@@ -17,7 +18,10 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
             throw new IllegalArgumentException("Invalid DBA limits (memory >=32m, jobs 1..16, UI rows 1..10000, agent rows 1..1000, timeout 1..300s, decision timeout 10..600s)");
     }
     public static Optional<DbaConfig> parse(String[] args) {
+        validateYoloFlag(args);
         boolean enabled = Arrays.asList(args).contains("--dba");
+        boolean yolo = Arrays.asList(args).contains("--yolo");
+        if(yolo && (!enabled || Arrays.asList(args).contains("--no-dba"))) throw new IllegalArgumentException("--yolo requires --dba and cannot be combined with --no-dba");
         Map<String,String> values = new HashMap<>();
         for (int i=0; i<args.length; i++) if (args[i].startsWith("--dba-")) {
             String key=args[i];
@@ -30,13 +34,21 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
             if (!values.isEmpty()) throw new IllegalArgumentException("DBA settings require --dba");
             return Optional.empty();
         }
+        if(yolo && values.containsKey("--dba-approval-mode")) System.err.println("WARNING: --dba-approval-mode is ignored while --yolo is active");
         return Optional.of(new DbaConfig(Path.of(values.getOrDefault("--dba-dir", Path.of(System.getProperty("user.home"),".code-graph","dba").toString())),
                 budget(values.getOrDefault("--dba-memory","256m")),
                 Integer.parseInt(values.getOrDefault("--dba-concurrency","4")),
                 Integer.parseInt(values.getOrDefault("--dba-ui-rows","1000")),
                 Integer.parseInt(values.getOrDefault("--dba-agent-rows","100")),
                 Integer.parseInt(values.getOrDefault("--dba-timeout","30")),
-                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60")),values.getOrDefault("--dba-approval-mode","auto")));
+                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60")),values.getOrDefault("--dba-approval-mode","auto"),yolo));
+    }
+    public static void validateYoloFlag(String[] args) {
+        for(int i=0;i<args.length;i++) {
+            String arg=args[i];
+            if(arg.toLowerCase(Locale.ROOT).startsWith("--yolo") && !arg.equals("--yolo")) throw new IllegalArgumentException("Use the case-sensitive standalone --yolo flag, without a value");
+            if(arg.equals("--yolo") && i+1<args.length && !args[i+1].startsWith("--")) throw new IllegalArgumentException("--yolo does not accept a value");
+        }
     }
     public static long budget(String value) {
         if (!value.matches("(?i)[0-9]+[mg]")) throw new IllegalArgumentException("Use whole MiB/GiB, e.g. 256m");

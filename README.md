@@ -34,12 +34,22 @@ large text codebases into a queryable **code property graph** so AI agents can a
   pauses catalog scans when MCP activity stops, and provides human approval for live agent SQL across all connection templates.
   The [approval broker](docs/approval-broker.md) routes requests to an active DBA browser or a
   JDK-only desktop consent prompt, with a restricted temporary browser editor for complex reviews.
+  [Native MongoDB and Redis](docs/native-databases.md) add separate non-JDBC profiles,
+  typed command workspaces, bounded reads and reviewed CRUD. SQL Server gains bounded
+  catalog DDL inspection and disposable live-test coverage. Advanced native topology and
+  administration remain incomplete; see the [delivery checklist](docs/native-database-delivery.md).
 - **Tree-sitter AST parsing** for the top-10 languages: Java, JavaScript, TypeScript (+TSX),
   Python, C#, Go, Rust, C, C++, PHP — plus Ruby and Kotlin. New languages plug in behind a
   `LanguageAnalyzer` SPI.
 - **Unified code property graph**: files, types, functions and variables connected by
   CONTAINS / IMPORTS / CALLS / REFERENCES / EXTENDS / IMPLEMENTS / READS / WRITES edges, every
   cross-file edge carrying a resolution **confidence** score.
+  [Java dependency precision](docs/dependency-precision.md) uses receiver/owner types, imports,
+  lexical variables, inheritance and argument evidence instead of same-name guessing.
+  Reference results disclose uncertainty; runtime dispatch and unresolved code still require care.
+  [Language-isolated resolution and MCP-first validation](docs/language-resolution.md)
+  prevent unrelated language symbols from consuming candidate/lookup budgets, while
+  retaining JavaScript/TypeScript interoperability and explicit coverage limitations.
 - **Fast in-memory queries by default**: lock-free reads via generation-swapped immutable state.
   Opt-in [hybrid graph storage](docs/hybrid-graph-storage.md) pages graph records from session-only
   disk storage using a shared bounded cache. H2 SQL, Neo4j and ArangoDB remain separate mirrors.
@@ -149,6 +159,13 @@ does not start, stop, or restart a server.
 [installation guide](docs/installation.md) for authenticated proxies, certificates,
 prerequisite checks, updates, native distribution, and validation limits.
 
+Optional global agent skills are offered during installation. Use `-Skills all`
+(Windows) or `--skills all` (macOS/Linux), a subset such as `codex,claude`, or
+`none`. Unattended installs default to none. The skill recommends code-graph only
+when its MCP tools are available and useful; otherwise agents use their normal
+tools. Existing customized skills and MCP settings are left untouched.
+See [global skill paths and standalone installation](docs/installation.md#optional-global-agent-skills).
+
 ## Build
 
 Requires JDK 25 and Maven 3.9+.
@@ -241,6 +258,7 @@ rejected, so verify startup logs and `/api/server` rather than relying on typo d
 | `--graph-memory SIZE` | HTTP, stdio | `1g` | Shared graph/cache allowance in hybrid mode, **not per project**. Accepted but does not bound the pure in-memory backend. |
 | `--dba-decision-timeout N` | HTTP, stdio with `--dba` | `60` | Seconds to wait for a human script-error decision; valid range 10–600. Other DBA flags are documented in [the DBA guide](docs/dba.md#start-explicit). |
 | `--dba-approval-mode MODE` | HTTP, stdio with `--dba` | `auto` | Human approval channel: `auto`, `browser`, `desktop`, or `none`. Browser mode requires the UI; desktop mode requires an interactive desktop. See [routing, security and validation](docs/approval-broker.md). |
+| `--yolo` | HTTP, stdio with `--dba`; installed `cgraph` | Off | DANGER: automatically authorize validated local MCP database operations, including writes and administration. Overrides approval routing; preserves validation, auditing, limits and browser confirmations. Startup-only, no value. See [exact targeting, setup and recovery](docs/yolo.md). |
 
 For listener ports, use `1–65535`; `0` requests an OS-assigned port, reported in startup logs.
 MCP and UI need separate available ports. HTTP MCP and its UI bind strictly to `127.0.0.1`;
@@ -683,6 +701,12 @@ currently provides dependency scaffolding, not a configurable server backend. No
 mirror URL/password settings exist in the standard server's JSON, environment or UI.
 
 ## Development-only benchmark configuration
+
+The [MCP precision/efficiency guide](docs/mcp-precision-efficiency.md) documents
+build/catalog diagnostics, byte-aware navigation pages, distinct call graphs,
+static JS/TS module resolution, adaptive workflow benchmarks, and optional agent
+skill guidance. Current acceptance evidence is in the
+[delivery checklist](docs/mcp-efficiency-delivery.md).
 
 The `storage-benchmark` Maven profile opts into the isolated
 `code-graph-storage-benchmark` module; its experimental dependencies are not included in the

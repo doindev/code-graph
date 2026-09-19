@@ -1,4 +1,5 @@
 import {approvalHeaders} from './approval-client.js';
+import {renderNativeConnection,nativeConnectionDraft} from './native-connection-editor.js';
 // Drafts and secrets live only in this dialog's memory; never local/session storage.
 export function connectionEditor({api,toast,saved,csrf}) {
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -28,13 +29,18 @@ export function connectionEditor({api,toast,saved,csrf}) {
   function renderPicker(){const q=$('ce-search').value.toLowerCase(),grid=$('ce-databases');grid.replaceChildren();for(const t of templates.filter(t=>(t.name+' '+(t.aliases??'')).toLowerCase().includes(q))){const b=el('button',null,'database-tile');b.dataset.database=t.id;b.setAttribute('aria-label',t.name);const icon=el('img');icon.src=t.icon;icon.alt='';b.append(icon,el('strong',t.name));b.onclick=action(()=>choose(t));grid.append(b);}const buttons=[...grid.children];buttons.forEach((b,i)=>b.onkeydown=e=>{let to=i;const columns=Math.max(1,Math.round(grid.clientWidth/(b.getBoundingClientRect().width+12)));if(e.key==='ArrowRight')to++;else if(e.key==='ArrowLeft')to--;else if(e.key==='ArrowDown')to+=columns;else if(e.key==='ArrowUp')to-=columns;else if(e.key==='Home')to=0;else if(e.key==='End')to=buttons.length-1;else return;e.preventDefault();buttons[Math.max(0,Math.min(buttons.length-1,to))]?.focus();});}
   $('ce-search').oninput=renderPicker;
   $('ce-change').onclick=()=>{if(busy){toast('Cancel the current operation first.');return;}if(dirty&&!confirm('Changing database type discards this draft’s incompatible settings. Continue?'))return;$('ce-picker').hidden=false;$('ce-editor').hidden=true;$('ce-title').textContent='Choose your database';$('ce-search').focus();};
-  async function choose(t){template=t;profile=null;props={};secretEdits={};bundle=null;descriptors=t.properties;receipt='';revision++;dirty=false;settingsChanged=false;renderEditor();if(t.id!=='custom')await checkDriver();}
+  async function choose(t){template=t;profile=null;props={};secretEdits={};bundle=null;descriptors=t.properties;receipt='';revision++;dirty=false;settingsChanged=false;renderEditor();if(t.id!=='custom'&&(!t.transport||t.transport==='jdbc'))await checkDriver();}
   function renderEditor(){fields={};$('ce-picker').hidden=true;$('ce-editor').hidden=false;$('ce-title').textContent=(profile?'Edit ':'New ')+template.name+' connection';$('ce-capability').textContent=template.advancedMcp?'JDBC + PostgreSQL analysis':'JDBC · advanced MCP analysis not certified';
     if(proposal)$('ce-title').textContent='Review agent '+template.name+' connection proposal';
     const panels=$('ce-panels'),nav=$('ce-tabs');panels.replaceChildren();nav.replaceChildren();for(const category of categories){const b=el('button',category);b.setAttribute('role','tab');b.id='ce-tab-'+categories.indexOf(category);b.onclick=()=>selectTab(category);nav.append(b);const panel=el('section',null,'settings-panel');panel.dataset.category=category;panel.id='ce-panel-'+categories.indexOf(category);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);b.setAttribute('aria-controls',panel.id);panels.append(panel);}
     const panel=name=>panels.querySelector(`[data-category="${name}"]`),general=panel('General');
     general.append(el('p',template.notes??'','muted'));field(general,'name','Connection name',profile?.name??'',{required:true,placeholder:template.name+' connection'});
     shade=profile?.color??'transparent';renderAppearance(general);
+    if(template.transport&&template.transport!=='jdbc'){
+      $('ce-capability').textContent='Native '+template.name+' · bounded reads · advanced workflows in development';
+      renderNativeConnection({template,profile,panel,field,el});
+      selectTab('General');updateButtons();return;
+    }
     if(template.id==='snowflake'){
       field(general,'account','Account identifier or hostname','',{placeholder:'organization-account.snowflakecomputing.com',oninput:generateUrl});
       for(const k of ['warehouse','db','schema','role'])field(general,'sf-'+k,k==='db'?'Database':k[0].toUpperCase()+k.slice(1),props[k]??'',{oninput:v=>{if(v)props[k]=v;else delete props[k];}});
@@ -76,7 +82,7 @@ export function connectionEditor({api,toast,saved,csrf}) {
     const custom=el('label','Custom shade');custom.append(picker);picker.oninput=()=>apply(picker.value);choices.append(custom);
     function render(){for(const b of controls)b.setAttribute('aria-pressed',String(b.dataset.color===shade));preview.dataset.color=shade;preview.style.backgroundColor=shade==='transparent'?'transparent':`color-mix(in srgb, ${shade} 24%, transparent)`;preview.textContent=shade==='transparent'?'Transparent · no color shade':shade.toUpperCase()+' · connection row preview';if(shade!=='transparent')picker.value=shade;}
     box.append(choices,preview,el('small','An identification aid, not an execution safeguard. Always verify the Script connection before running SQL.','muted'));parent.append(box);render();}
-  function draft(){const result={templateId:template.id,name:get('name'),color:shade,url:get('url'),driverClass:get('driverClass'),jars:get('jars').split('\n').map(s=>s.trim()).filter(Boolean),username:get('username'),readOnly:true,properties:{...props},secretProperties:{...secretEdits},pool:{}};if(profile)result.connectionId=profile.id;if(bundle)result.driverBundle=bundle;
+  function draft(){if(template.transport&&template.transport!=='jdbc')return nativeConnectionDraft({template,profile,get,shade});const result={templateId:template.id,name:get('name'),color:shade,url:get('url'),driverClass:get('driverClass'),jars:get('jars').split('\n').map(s=>s.trim()).filter(Boolean),username:get('username'),readOnly:true,properties:{...props},secretProperties:{...secretEdits},pool:{}};if(profile)result.connectionId=profile.id;if(bundle)result.driverBundle=bundle;
     if(get('password-action')==='Remove')result.removePassword=true;else if(get('password')||get('password-action')==='Replace'&&profile)result.password=get('password');
     for(const key of ['maximumPoolSize','minimumIdle','connectionTimeout','validationTimeout','idleTimeout','maxLifetime'])if(get('pool-'+key)!=='')result.pool[key]=Number(get('pool-'+key));return result;}
   async function browse(kind){const r=await job('file-select',{kind});if(!r.available){toast(r.message);return;}if(!r.paths.length)return;if(kind==='key'){fields['key-file'].value=r.paths[0];props.private_key_file=r.paths[0];$('ce-key-status').textContent='Not validated';changed();}else{fields.jars.value=r.paths.join('\n');changed();await inspectDriver();}}

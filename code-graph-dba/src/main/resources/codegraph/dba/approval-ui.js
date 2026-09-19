@@ -9,7 +9,7 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
   const list=el('div'),close=el('button','Close');close.onclick=()=>dialog.close();
   dialog.append(title,el('p','Review the exact request and target. Dangerous and administrative operations require one-time approval.'),error,list,close);document.body.append(dialog);
   let active=null,opening=false,editing=false,requests=[],queued=[],refreshing=false;const deferred=new Set();
-  const client=new ApprovalClient({api,changed:count=>{if(button)button.textContent=count?'Approvals ('+count+')':'Approvals';},offer:id=>{if((!only||only===id)&&!deferred.has(id)&&!queued.includes(id)&&active!==id)queued.push(id);void present();},unavailable:e=>{error.textContent=e.message;for(const b of list.querySelectorAll('button'))b.disabled=true;}});
+  const client=new ApprovalClient({api,reviewOnly:!!only,changed:(count,mode)=>{if(button){button.hidden=!!mode?.automatic;button.textContent=count?'Approvals ('+count+')':'Approvals';}},offer:id=>{if((!only||only===id)&&!deferred.has(id)&&!queued.includes(id)&&active!==id)queued.push(id);void present();},unavailable:e=>{error.textContent=e.message;for(const b of list.querySelectorAll('button'))b.disabled=true;}});
   const safely=fn=>async()=>{try{error.textContent='';await fn();}catch(e){error.textContent=e.message;}};
   const json=(name,value)=>{const detail=el('details');detail.open=true;detail.append(el('summary',name),el('pre',JSON.stringify(value,null,2)));return detail;};
   function render(request){

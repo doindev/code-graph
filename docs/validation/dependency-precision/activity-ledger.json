@@ -1,0 +1,193 @@
+{
+  "scope": "Instrumented navigation calls during this implementation; not a complete transcript or server filesystem audit. Benchmark harness calls are logged separately in navigation-before/after.json. Builds, process management and uninstrumented diagnostics are not included in search comparisons.",
+  "entries": [
+    {
+      "category": "filesystem_inventory",
+      "purpose": "Locate instructions, worktree changes and running process",
+      "commands": 3
+    },
+    {
+      "category": "mcp_setup",
+      "tool": "add_project",
+      "elapsedMs": 39660
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 4,
+      "purpose": "Extractor and incremental resolution source"
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "search_symbols",
+      "query": "NameResolver",
+      "elapsedMs": 3856
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "search_symbols",
+      "query": "SymbolTable",
+      "elapsedMs": 3023
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "search_symbols",
+      "query": "JavaAnalyzer",
+      "elapsedMs": 4325
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "search_symbols",
+      "query": "HybridIndexer",
+      "elapsedMs": 3526
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "search_symbols",
+      "query": "find_references",
+      "elapsedMs": 3788
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 5,
+      "purpose": "Build, codec and indexing test interfaces"
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Baseline known same-name caller defect",
+      "elapsedMs": 6073
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Baseline known same-name caller defect",
+      "elapsedMs": 27721
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Baseline known same-name caller defect",
+      "elapsedMs": 5692
+    },
+    {
+      "category": "filesystem_search",
+      "commands": 2,
+      "purpose": "Baseline caller oracle; MCP literal-name search returned no symbol"
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 1,
+      "purpose": "Hybrid test fixture"
+    },
+    {
+      "category": "build_test",
+      "purpose": "Compile resolver foundation"
+    },
+    {
+      "category": "build_test",
+      "purpose": "Focused Java precision and indexing tests"
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "CodeNavigationTool",
+        "limit": 12
+      },
+      "purpose": "Locate reference-result evidence handling",
+      "elapsedMs": 3640
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 2,
+      "purpose": "MCP-located navigation response source"
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 4,
+      "purpose": "Failing test and graph-delta diagnosis"
+    },
+    {
+      "category": "filesystem_search",
+      "commands": 1,
+      "purpose": "Locate navigation response tests"
+    },
+    {
+      "category": "filesystem_targeted_read",
+      "files": 4,
+      "purpose": "Verification and benchmark interfaces"
+    },
+    {
+      "category": "mcp_setup",
+      "tool": "add_project",
+      "phase": "after",
+      "elapsedMs": 60236
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Post-restart known caller verification",
+      "elapsedMs": 4174
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Post-restart known caller verification",
+      "elapsedMs": 3615
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__get_call_graph",
+      "args": {
+        "project": "code-graph",
+        "function": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+        "depth": 1,
+        "direction": "up"
+      },
+      "purpose": "Post-restart known caller verification",
+      "elapsedMs": 3360
+    },
+    {
+      "category": "mcp_symbol_query",
+      "tool": "mcp__code_graph__search_symbols",
+      "args": {
+        "project": "code-graph",
+        "query": "JavaCallResolver.type",
+        "limit": 3
+      },
+      "purpose": "Final indexed resolver review",
+      "elapsedMs": 3726
+    }
+  ]
+}

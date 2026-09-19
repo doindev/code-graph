@@ -55,6 +55,7 @@ public final class DbaMcpTools {
 
         boolean approvals=runtime==null||runtime.approvalsEnabled();
         if(approvals){
+            tools.add(tool(runtime,stdioPrincipal,"dba_request_native_command","Request an exact bounded native MongoDB/Redis read or supported single-target CRUD mutation. Supply either bindingId or an explicit standalone native connection UUID/name/database, and for collection commands the exact MongoDB collection. A binding fixes the connection and database. Commands are BSON Extended JSON objects (MongoDB) or argument arrays (Redis), including explicit base64 key/value objects; command names and control arguments stay text. No shell syntax, JDBC translation, default target, implicit read grant, or automatic write retry. Unsupported commands fail explicitly. Uses the existing one-time approval and async job lifecycle.",List.of("requestId","purpose","command"),Map.of("collection","string","bindingId","string","connectionId","string","connectionName","string","database","string")));
             tools.add(tool(runtime,stdioPrincipal,"dba_request_apply_migration","Request exact one-time human review and asynchronous application of a retained migration or rehearsal plan. Reusable SQL policies never authorize it; execution rechecks target revision and schema fingerprint and never retries uncertain writes.",List.of("requestId","purpose","planId"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_get_connection_details","Get an allowlisted non-secret profile by bindingId, or stable connectionId plus exact connectionName. Returns immediately with permission or creates a read approval request.",List.of("requestId","purpose"),Map.of("bindingId","string","connectionId","string","connectionName","string")));
             tools.add(tool(runtime,stdioPrincipal,"dba_request_connection_create","Propose a connection profile, optional application binding, and optional explicit Maven driver installation. Password and secretProperties are write-only arguments that the MCP client/task transcript may retain; prefer human entry when possible. Creation grants no access.",List.of("requestId","purpose","profile"),Map.of("binding","object","driverInstall","object")));
@@ -97,6 +98,7 @@ public final class DbaMcpTools {
             var standalone=choices.addObject();standalone.putArray("required").add("connectionId").add("connectionName");standalone.putObject("not").putArray("required").add("bindingId");
         }
         DbaInputSchemas.enrich(name,schema);
+        description+=" With startup --yolo, approval-dependent operations are automatically authorized once for validated local sessions; exact targets and all validation remain required. Standalone execution then requires connectionId, exact connectionName, database and applicable schema. Read tools remain read-only.";
         return new AgentTool(runtime,stdio,new ToolSpec(name,description,schema.toString()));
     }
     static final class AgentTool implements GraphTool {

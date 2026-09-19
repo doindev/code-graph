@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-18",
+  "scope": "Language-isolated resolver and MCP-first skill changes",
+  "maven": {
+    "command": "mvn -q -f <isolated-build>/pom.xml verify",
+    "exitCode": 0,
+    "suites": 135,
+    "reported": 692,
+    "passed": 651,
+    "skipped": 41,
+    "failures": 0,
+    "errors": 0
+  },
+  "newTests": {
+    "resolver": 8,
+    "beforeFixFailures": 7,
+    "integration": 4
+  },
+  "node": {
+    "tests": 8,
+    "failed": 0,
+    "areas": [
+      "adaptive evidence gate",
+      "all four skill installations and full reference copies",
+      "idempotence",
+      "customized destination protection",
+      "symlink/junction protection",
+      "Markdown references"
+    ]
+  },
+  "skillValidation": {
+    "validator": "skill-creator/scripts/quick_validate.py",
+    "status": "valid",
+    "dependency": "PyYAML 6.0.2 in owned temporary directory; no system installation"
+  },
+  "browser": {
+    "suite": "core",
+    "status": "passed",
+    "pageErrors": 0,
+    "initialSetupFailure": "Missing test-lib Jackson dependency; supplied the candidate packaged runtime libraries and reran successfully"
+  },
+  "deployment": {
+    "pid": 30660,
+    "mcpPort": 3000,
+    "uiPort": 8137,
+    "admin": true,
+    "dba": true,
+    "approvalMode": "desktop",
+    "graphStorage": "hybrid",
+    "graphBudgetBytes": 1073741824,
+    "uiRootHttpStatus": 200,
+    "dbaHttpStatus": 200,
+    "mcpInitializeHttpStatus": 200,
+    "project": "code-graph",
+    "onboarding": "explicit MCP request; no startup root",
+    "liveReferenceCount": 21,
+    "liveReferencePages": 2,
+    "liveNonJavaReferences": 0,
+    "temporaryBenchmarkStoresRemoved": true
+  },
+  "limitations": [
+    "Opt-in vendor/vault/Swing/GitHub and large-stress tests remain skipped, not passed.",
+    "Independent client discovery/LLM skill behavior not exercised by packaging tests.",
+    "No Docker resources were created."
+  ],
+  "baselineBuild": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab",
+  "candidateBuild": "C:/Users/timhj/AppData/Local/Temp/cgraph-language-build-03286a492641425ea8efc8d0219224da"
+}

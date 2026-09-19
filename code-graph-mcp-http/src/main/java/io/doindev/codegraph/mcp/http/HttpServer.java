@@ -136,7 +136,7 @@ public final class HttpServer implements AutoCloseable {
                                     io.doindev.codegraph.mcp.DbaMcpTools.SESSION,
                                     java.util.Objects.toString(request.getAttribute(io.doindev.codegraph.mcp.DbaMcpTools.SESSION),""))))
                             .build();
-            mcp = CodeGraphMcpServer.serve("code-graph", "0.0.1", tools, transport);
+            mcp = CodeGraphMcpServer.serve("code-graph", io.doindev.codegraph.mcp.BuildIdentity.version(), tools, transport);
 
             // dispatch requests onto virtual threads — tool calls block on graph queries
             QueuedThreadPool threadPool = new QueuedThreadPool();

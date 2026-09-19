@@ -13,7 +13,12 @@ final class AgentAccess {
     static final String TRUSTED_LOCAL_ID=UUID.nameUUIDFromBytes("code-graph:trusted-local-agents".getBytes(StandardCharsets.UTF_8)).toString();
     private final Path file;
     private ObjectNode entries;
+    final AgentAuthorization authorization;
     AgentAccess(Path directory) throws IOException {
+        this(directory,new AgentAuthorization(false,directory));
+    }
+    AgentAccess(Path directory,AgentAuthorization authorization) throws IOException {
+        this.authorization=authorization;
         file=directory.resolve("agents.json");
         if(Files.exists(file)) {
             if(Files.size(file)>1_048_576)throw new IOException("Agent configuration too large");
@@ -80,6 +85,7 @@ final class AgentAccess {
     }
     synchronized void requireContext(String id,ObjectNode binding,boolean live){
         if(!entries.has(id))throw new SecurityException("Agent revoked");
+        if(authorization.automatic)return;
         // Permission to ask the human is not permission to execute SQL or read cached data.
         if(live&&isTrustedLocal(id))return;
         for(JsonNode grant:entries.path(id).path("contextGrants"))if(grant.path("bindingId").asText().equals(binding.path("id").asText())&&(!live||grant.path("requestLive").asBoolean()))return;
@@ -93,7 +99,7 @@ final class AgentAccess {
             if(scope.equals("connection")&&policy.path("connectionId").asText().equals(binding.path("connectionId").asText()))return true;
         }return false;
     }
-    synchronized ArrayNode effectiveForBinding(String id,JsonNode binding){ArrayNode out=Profiles.JSON.createArrayNode();for(String capability:List.of("catalog","connection_details","connection_test","metadata","ddl","query","plan"))if(permitsRead(id,capability,binding))out.add(capability);return out;}
+    synchronized ArrayNode effectiveForBinding(String id,JsonNode binding){ArrayNode out=Profiles.JSON.createArrayNode();for(String capability:List.of("catalog","connection_details","connection_test","metadata","ddl","query","plan"))if(authorization.automatic&&alive("agent:"+id)||permitsRead(id,capability,binding))out.add(capability);return out;}
     synchronized ObjectNode permissions(String id,ProjectContexts contexts){ObjectNode out=Profiles.JSON.createObjectNode();ObjectNode a=agent(id);out.put("agentId",id).put("agentName",a.path("name").asText()).put("sharedLocalIdentity",isTrustedLocal(id));out.set("legacyGrants",a.path("grants").deepCopy());out.set("bindingGrants",a.path("contextGrants").deepCopy());out.set("readPolicies",a.path("readPolicies").deepCopy());ArrayNode effective=out.putArray("effectiveBindings");for(JsonNode b:contexts.state().path("bindings")){ArrayNode allowed=effectiveForBinding(id,b);if(!allowed.isEmpty())effective.addObject().put("bindingId",b.path("id").asText()).put("projectId",b.path("projectId").asText()).put("environment",b.path("environment").asText()).put("role",b.path("role").asText()).set("capabilities",allowed);}return out;}
     synchronized ObjectNode grantRead(String id,String action,String capability,JsonNode target)throws IOException{
         if(!entries.has(id))throw new SecurityException("Agent revoked");if(!Set.of("always_binding_read","always_environment_read","always_connection_read").contains(action))throw new IllegalArgumentException("Unsupported persistent read decision");

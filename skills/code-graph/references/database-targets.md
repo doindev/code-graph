@@ -15,7 +15,7 @@ When several bindings match, resolve the ambiguity before submitting work.
 `dba_list_templates` returns recipes, not proof a driver is installed or an
 operation is verified. `dba_get_capabilities` distinguishes cached observations
 from unknown servers. `live: true`, when advertised and authorized, returns a job
-for one target's actual JDBC metadata. A PostgreSQL-compatible product is not
+for one target's actual JDBC metadata or native server version. A PostgreSQL-compatible product is not
 automatically certified for all PostgreSQL administration.
 
 Catalog data is cached, scoped and potentially incomplete. Inspect generation,
@@ -30,3 +30,35 @@ its stable ID through the creation result/created-connections tool. Driver
 installation and secret submission require the advertised review workflow.
 Prefer human credential entry: write-only MCP arguments can remain in the host's
 task transcript. Never ask the server to return credentials or private-key files.
+
+## Native MongoDB and Redis
+
+Distinguish native templates (`mongodb-native`, `redis-native`) from legacy
+Mongo SQL Interface/Redis Calcite JDBC profiles. Discover capabilities first;
+do not send SQL, JavaScript shell snippets, or redis-cli command strings to native
+connections. Native clients are bundled and require no JDBC driver installation.
+
+When advertised, `dba_request_native_command` accepts an Extended JSON command
+object for MongoDB or a string-argument array for Redis. Supply the exact binding
+or standalone UUID/name/database; add `collection` matching Mongo collection
+commands. Native bindings have no SQL schema. A database or collection discovered
+in metadata does not grant permission to use it.
+
+Native operations currently use exact one-time review, or automatic authorization
+only when the server was started with YOLO. Existing reusable SQL permissions do
+not authorize native commands. Read-only profiles still prohibit writes under
+YOLO. Follow the returned request/job IDs for status, cancellation and release.
+
+Preserve BSON Extended JSON types: do not round `$numberLong` values through
+JavaScript numbers or flatten missing/null into the same value. Redis base64
+previews may be truncated; do not write a preview back as if it were a complete
+value. Use projections, ranges or supported scans to keep results bounded.
+SCAN is live and may repeat entries; a truncated page without a continuation
+requires refinement rather than guessing a cursor.
+
+Conditional Redis SET reports `applied: false` when its condition did not match.
+That is not a transport failure and should not trigger an unconditional retry.
+Native writes are not an atomic script. On partial/unknown outcomes, reconcile
+with authorized reads before requesting another mutation. Native snapshots,
+reusable policies, transactions and infrastructure capabilities must not be
+assumed merely because a native profile connects successfully.

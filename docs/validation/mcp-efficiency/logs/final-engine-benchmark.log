@@ -1,0 +1,6 @@
+baseline run 1: index 51933 ms; 6 caller occurrences; peak working set 350224384 bytes
+candidate run 1: index 60578 ms; 6 caller occurrences; peak working set 349257728 bytes
+candidate run 2: index 60537 ms; 6 caller occurrences; peak working set 348561408 bytes
+baseline run 2: index 51969 ms; 6 caller occurrences; peak working set 352419840 bytes
+baseline run 3: index 51712 ms; 6 caller occurrences; peak working set 360636416 bytes
+candidate run 3: index 60670 ms; 6 caller occurrences; peak working set 345694208 bytes

@@ -11,10 +11,55 @@ import java.util.Set;
 
 /**
  * Shared JavaScript/TypeScript/TSX extraction; the concrete subclasses differ only in grammar,
- * language id and extensions. Known v1 gap: arrow functions bound to consts are not extracted
- * as declarations (their bodies are still scanned for calls).
+ * language id and extensions. Static module evidence and named arrow/function expressions
+ * are extracted without executing project code or changing existing declaration identities.
  */
 abstract class EcmaAnalyzer extends TreeWalkAnalyzer {
+    @Override protected io.doindev.codegraph.parse.SemanticHints semanticHints(TSNode root,Src src) {
+        return new io.doindev.codegraph.parse.SemanticHints() {
+            @Override public java.util.Map<String,String> declaration(TSNode node) {
+                boolean typeOnly=Set.of("interface_declaration","function_signature","method_signature","abstract_method_signature").contains(node.getType());
+                for(TSNode parent=node.getParent();EcmaModules.present(parent);parent=parent.getParent())
+                    if(parent.getType().equals("ambient_declaration"))typeOnly=true;
+                return typeOnly?java.util.Map.of("ecmaRuntime","false"):java.util.Map.of();
+            }
+        };
+    }
+    @Override protected io.doindev.codegraph.parse.ModuleEvidence modulesOf(TSNode root, Src src) {
+        return EcmaModules.extract(root,src);
+    }
+    private static boolean functionValue(TSNode n) {
+        return EcmaModules.present(n) && Set.of("arrow_function","function_expression","generator_function").contains(n.getType());
+    }
+    @Override protected boolean isFunctionDeclaration(TSNode n) {
+        if(super.isFunctionDeclaration(n))return true;
+        if(n.getType().equals("variable_declarator"))return functionValue(n.getChildByFieldName("value"));
+        return functionValue(n) && EcmaModules.present(n.getParent()) &&
+                Set.of("export_statement","pair","assignment_expression").contains(n.getParent().getType());
+    }
+    @Override protected String nameOf(TSNode n, Src src) {
+        String name=super.nameOf(n,src);
+        if(name!=null)return name;
+        TSNode parent=n.getParent();
+        if(EcmaModules.present(parent))switch(parent.getType()) {
+            case "export_statement" -> {return "default";}
+            case "pair" -> {return src.text(parent.getChildByFieldName("key"));}
+            case "assignment_expression" -> {
+                String left=src.text(parent.getChildByFieldName("left"));
+                return left.equals("module.exports")?"default":left.substring(left.lastIndexOf('.')+1);
+            }
+        }
+        return null;
+    }
+    @Override protected int arityOf(TSNode n, Src src) {
+        if(n.getType().equals("variable_declarator"))n=n.getChildByFieldName("value");
+        if(EcmaModules.present(n.getChildByFieldName("parameter")))return 1;
+        return super.arityOf(n,src);
+    }
+    @Override protected String signatureOf(TSNode n,String name,Src src) {
+        if(n.getType().equals("variable_declarator"))n=n.getChildByFieldName("value");
+        return super.signatureOf(n,name,src);
+    }
 
     @Override
     protected Set<String> typeDeclarationTypes() {
@@ -54,7 +99,7 @@ abstract class EcmaAnalyzer extends TreeWalkAnalyzer {
             int arity = args == null || args.isNull() ? 0 : args.getNamedChildCount();
             String name = src.text(constructor);
             int lastDot = name.lastIndexOf('.');
-            return new CallSite(lastDot >= 0 ? name.substring(lastDot + 1) : name, null, arity);
+            return new CallSite(lastDot >= 0 ? name.substring(lastDot + 1) : name, lastDot >= 0 ? name.substring(0,lastDot) : null, arity);
         }
         return super.callOf(call, src);
     }

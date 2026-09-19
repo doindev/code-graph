@@ -1,0 +1,5 @@
+source=js:ui/use.js#caller/0 expected=js:lib/right.js#helper/1
+actual=js:lib/wrong.js#helper/1 confidence=0.25 evidence={referenceStartColumn=58, resolution=import-ambiguous, referenceStartLine=1, site=1, referenceEndColumn=63, referenceEndLine=1, referencePrecision=identifier_token, referencePath=ui/use.js}
+actual=js:lib/right.js#helper/1 confidence=0.25 evidence={referenceStartColumn=58, resolution=import-ambiguous, referenceStartLine=1, site=1, referenceEndColumn=63, referenceEndLine=1, referencePrecision=identifier_token, referencePath=ui/use.js}
+source=js:ui/alias.js#aliased/0 expected=js:lib/right.js#helper/1
+actual=js:lib/wrong.js#renamed/1 confidence=1.0 evidence={referenceStartColumn=70, resolution=import, referenceStartLine=1, site=1, referenceEndColumn=76, referenceEndLine=1, referencePrecision=identifier_token, referencePath=ui/alias.js}

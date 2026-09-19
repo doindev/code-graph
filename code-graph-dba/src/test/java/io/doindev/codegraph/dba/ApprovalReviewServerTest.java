@@ -50,6 +50,8 @@ class ApprovalReviewServerTest {
     @Test void unauthorizedBootstrapAndUnrelatedApisFailClosed()throws Exception{
         var handoff=review.open(requestId);base="http://127.0.0.1:"+handoff.uri().getPort();
         assertEquals(200,send("/dba/review","GET",null,false).statusCode());
+        assertEquals(200,send("/dba/native-connection-editor.js","GET",null,false).statusCode());
+        assertEquals(403,send("/dba/native-workspace.js","GET",null,false).statusCode());
         assertEquals(403,send("/api/dba/bootstrap","POST",Profiles.JSON.createObjectNode(),false).statusCode());
         assertEquals(403,send("/api/dba/connections","GET",null,false).statusCode());
         for(int i=0;i<5;i++)assertEquals(403,send("/api/dba/review-bootstrap","POST",Profiles.JSON.createObjectNode().put("code","wrong"),false).statusCode());
@@ -64,6 +66,8 @@ class ApprovalReviewServerTest {
         var list=send("/api/dba/approvals","GET",null,true);assertEquals(200,list.statusCode());assertFalse(list.body().contains("never-return-this"));assertEquals(1,Profiles.JSON.readTree(list.body()).size());
         for(String path:List.of("/api/dba/connections","/api/dba/agents","/api/dba/workspace","/api/dba/approvals/"+UUID.randomUUID()+"/draft","/dba/app.js"))assertEquals(403,send(path,"GET",null,true).statusCode(),path);
         assertEquals(403,send("/api/dba/query/execute","POST",Profiles.JSON.createObjectNode().put("sql","DROP TABLE X"),true).statusCode());
+        for(String path:List.of("/api/dba/native/prepare","/api/dba/native/execute","/api/dba/native/apply"))
+            assertEquals(403,send(path,"POST",Profiles.JSON.createObjectNode(),true).statusCode(),path);
         assertEquals(403,send("/api/dba/setup/driver-install","POST",Profiles.JSON.createObjectNode(),true).statusCode());
     }
     @Test void pairingCodeRequiresCorrectOrigin(){

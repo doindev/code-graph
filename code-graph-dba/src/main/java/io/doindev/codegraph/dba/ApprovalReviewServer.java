@@ -40,7 +40,7 @@ final class ApprovalReviewServer implements AutoCloseable {
         return new ApprovalBroker.Handoff(URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/dba/review#"+token),code);
     }
     boolean alive(String session){return scopes.containsKey(session)&&auth.alive(session);}
-    static boolean assetAllowed(String path){return Set.of("/dba/review","/dba/approval-review.js","/dba/approval-client.js","/dba/approval-ui.js","/dba/connection-editor.js","/dba/style.css","/dba/tree-icons.js","/dba/database.svg").contains(path);}
+    static boolean assetAllowed(String path){return Set.of("/dba/review","/dba/approval-review.js","/dba/approval-client.js","/dba/approval-ui.js","/dba/connection-editor.js","/dba/native-connection-editor.js","/dba/style.css","/dba/tree-icons.js","/dba/database.svg").contains(path);}
     static void requireRoute(String path,String method,String scope){
         String prefix="/api/dba/approvals/"+scope;
         if(path.equals("/api/dba/approvals")&&method.equals("GET"))return;

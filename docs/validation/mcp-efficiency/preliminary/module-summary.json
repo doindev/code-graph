@@ -1,0 +1,373 @@
+{
+  "methodology": "Five authored module-binding questions; independent expected references are graded after adaptive acquisition. Three fresh hosts per build. No model/reasoning or semantic source-review time is measured.",
+  "summary": {
+    "baseline": {
+      "suites": [
+        {
+          "run": 1,
+          "acquisitionMs": 555.2901000000056,
+          "responseBytes": 13548,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          }
+        },
+        {
+          "run": 2,
+          "acquisitionMs": 537.7195999999822,
+          "responseBytes": 13548,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          }
+        },
+        {
+          "run": 3,
+          "acquisitionMs": 771.7673999999533,
+          "responseBytes": 13548,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          }
+        }
+      ],
+      "medianAcquisitionMs": 555.2901000000056,
+      "medianResponseBytes": 13548
+    },
+    "candidate": {
+      "suites": [
+        {
+          "run": 1,
+          "acquisitionMs": 477.00089999997,
+          "responseBytes": 20176,
+          "counts": {
+            "mcp": 10
+          }
+        },
+        {
+          "run": 2,
+          "acquisitionMs": 470.52350000001024,
+          "responseBytes": 20176,
+          "counts": {
+            "mcp": 10
+          }
+        },
+        {
+          "run": 3,
+          "acquisitionMs": 572.7422999999253,
+          "responseBytes": 20176,
+          "counts": {
+            "mcp": 10
+          }
+        }
+      ],
+      "medianAcquisitionMs": 477.00089999997,
+      "medianResponseBytes": 20176
+    }
+  },
+  "grades": [
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "aliasTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "defaultTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "namespaceTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "barrelTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "commonTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "aliasTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "defaultTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "namespaceTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "barrelTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "commonTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "aliasTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "defaultTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "namespaceTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "barrelTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "commonTarget",
+      "outcome": "source_review",
+      "correctMcpAnswer": false,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 1,
+      "fallbackAcquiredCaller": true
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "aliasTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "defaultTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "namespaceTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "barrelTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "commonTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "aliasTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "defaultTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "namespaceTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "barrelTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "commonTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "aliasTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "defaultTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "namespaceTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "barrelTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "commonTarget",
+      "outcome": "mcp_sufficient",
+      "correctMcpAnswer": true,
+      "falsePositiveReferences": 0,
+      "falseNegativeReferences": 0,
+      "fallbackAcquiredCaller": false
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "server": {
+    "name": "code-graph",
+    "version": "0.0.1"
+  },
+  "freshCount": 68,
+  "fingerprint": "1c8b43c0f8397cddc8aa31b7985d39dc0956904d86f179bf45c28a0449e3c757",
+  "comparisons": {
+    "client": {
+      "missingFromClient": [
+        "get_file_outline",
+        "resolve_symbol_at_position",
+        "find_references",
+        "find_implementations",
+        "analyze_change",
+        "find_affected_tests",
+        "dba_capture_schema",
+        "dba_compare_schemas",
+        "dba_prepare_migration",
+        "dba_validate_migration",
+        "dba_prepare_migration_rehearsal",
+        "validate_database_contracts",
+        "compare_query_plans",
+        "dba_get_capabilities",
+        "get_workspace_context",
+        "dba_list_templates",
+        "dba_get_my_permissions",
+        "dba_list_my_created_connections",
+        "dba_refresh_catalog",
+        "dba_pair_editor",
+        "dba_list_editor_documents",
+        "dba_get_editor_document",
+        "dba_create_editor_draft",
+        "dba_apply_editor_edit",
+        "dba_request_native_command",
+        "dba_request_apply_migration",
+        "dba_get_connection_details",
+        "dba_request_connection_create",
+        "dba_request_connection_update",
+        "dba_request_connection_delete",
+        "dba_request_connection_test",
+        "dba_request_binding_create",
+        "dba_request_binding_update",
+        "dba_request_binding_delete",
+        "dba_request_status",
+        "dba_cancel_request"
+      ],
+      "missingFromServer": [],
+      "differentDefinitions": []
+    }
+  },
+  "guidance": "If fresh sessions agree but the client differs, refresh/reconnect the client. Check client filtering separately from missing server registration. This diagnostic does not modify client configuration."
+}

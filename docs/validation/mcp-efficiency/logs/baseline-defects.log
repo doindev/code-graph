@@ -1,0 +1,252 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-lang-sql                                                [jar]
+[INFO] code-graph-analysis                                                [jar]
+[INFO] code-graph-rules                                                   [jar]
+[INFO] code-graph-smells                                                  [jar]
+[INFO] code-graph-tools                                                   [jar]
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                 [1/8]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-core >---------------------
+[INFO] Building code-graph-core 0.0.1-SNAPSHOT                            [2/8]
+[INFO]   from code-graph-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-core\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-core\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-core ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-parsers >--------------------
+[INFO] Building code-graph-parsers 0.0.1-SNAPSHOT                         [3/8]
+[INFO]   from code-graph-parsers\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-parsers\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-parsers\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-parsers ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-parsers ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-sql >-------------------
+[INFO] Building code-graph-lang-sql 0.0.1-SNAPSHOT                        [4/8]
+[INFO]   from code-graph-lang-sql\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-sql ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-sql ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-sql ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-lang-sql\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-sql ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-sql ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-analysis >-------------------
+[INFO] Building code-graph-analysis 0.0.1-SNAPSHOT                        [5/8]
+[INFO]   from code-graph-analysis\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-analysis ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-analysis\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-analysis ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-analysis ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-analysis\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-analysis ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-analysis ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-rules >---------------------
+[INFO] Building code-graph-rules 0.0.1-SNAPSHOT                           [6/8]
+[INFO]   from code-graph-rules\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-rules ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-rules\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-rules ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-rules ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-rules\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-rules ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-rules ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-smells >--------------------
+[INFO] Building code-graph-smells 0.0.1-SNAPSHOT                          [7/8]
+[INFO]   from code-graph-smells\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-smells ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-smells\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-smells ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-smells ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-smells\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-smells ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-smells ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-tools >---------------------
+[INFO] Building code-graph-tools 0.0.1-SNAPSHOT                           [8/8]
+[INFO]   from code-graph-tools\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-tools ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-tools\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-tools ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-tools ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-tools\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-tools ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 9 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-tools ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.tools.EfficiencyRegressionTest
+[ERROR] Tests run: 5, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 0.563 s <<< FAILURE! -- in io.doindev.codegraph.tools.EfficiencyRegressionTest
+[ERROR] io.doindev.codegraph.tools.EfficiencyRegressionTest.automaticBytePagesPreserveAllUnicodeRecordsWithoutSmallerLimitRetries -- Time elapsed: 0.471 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: {"error":"Search page exceeds memory/response bound; lower limit or narrow the query"} ==> expected: <false> but was: <true>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+	at org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+	at org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+	at io.doindev.codegraph.tools.EfficiencyRegressionTest.automaticBytePagesPreserveAllUnicodeRecordsWithoutSmallerLimitRetries(EfficiencyRegressionTest.java:50)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[ERROR] io.doindev.codegraph.tools.EfficiencyRegressionTest.repeatedOccurrencesDoNotConsumeDistinctNeighborCapacity -- Time elapsed: 0.038 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: expected: <4> but was: <20>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:145)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:531)
+	at io.doindev.codegraph.tools.EfficiencyRegressionTest.repeatedOccurrencesDoNotConsumeDistinctNeighborCapacity(EfficiencyRegressionTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[ERROR] io.doindev.codegraph.tools.EfficiencyRegressionTest.workCapReportsLowerBoundAndCancellationRemainsAnError -- Time elapsed: 0.008 s <<< FAILURE!
+java.lang.AssertionError: Must stream
+	at io.doindev.codegraph.tools.EfficiencyRegressionTest.lambda$workCapReportsLowerBoundAndCancellationRemainsAnError$0(EfficiencyRegressionTest.java:88)
+	at jdk.proxy2/jdk.proxy2.$Proxy8.edges(Unknown Source)
+	at io.doindev.codegraph.tools.GetCallGraphTool.bfs(GetCallGraphTool.java:119)
+	at io.doindev.codegraph.tools.GetCallGraphTool.call(GetCallGraphTool.java:82)
+	at io.doindev.codegraph.tools.EfficiencyRegressionTest.workCapReportsLowerBoundAndCancellationRemainsAnError(EfficiencyRegressionTest.java:93)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[ERROR] io.doindev.codegraph.tools.EfficiencyRegressionTest.oversizedFirstRecordIsNeverSkipped -- Time elapsed: 0.004 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: {"error":"Search page exceeds memory/response bound; lower limit or narrow the query"} ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at io.doindev.codegraph.tools.EfficiencyRegressionTest.oversizedFirstRecordIsNeverSkipped(EfficiencyRegressionTest.java:67)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   EfficiencyRegressionTest.automaticBytePagesPreserveAllUnicodeRecordsWithoutSmallerLimitRetries:50 {"error":"Search page exceeds memory/response bound; lower limit or narrow the query"} ==> expected: <false> but was: <true>
+[ERROR]   EfficiencyRegressionTest.oversizedFirstRecordIsNeverSkipped:67 {"error":"Search page exceeds memory/response bound; lower limit or narrow the query"} ==> expected: <true> but was: <false>
+[ERROR]   EfficiencyRegressionTest.repeatedOccurrencesDoNotConsumeDistinctNeighborCapacity:32 expected: <4> but was: <20>
+[ERROR]   EfficiencyRegressionTest.workCapReportsLowerBoundAndCancellationRemainsAnError:93->lambda$workCapReportsLowerBoundAndCancellationRemainsAnError$0:88 Must stream
+[INFO] 
+[ERROR] Tests run: 5, Failures: 4, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph ......................................... SUCCESS [  0.003 s]
+[INFO] code-graph-core .................................... SUCCESS [  1.064 s]
+[INFO] code-graph-parsers ................................. SUCCESS [  0.154 s]
+[INFO] code-graph-lang-sql ................................ SUCCESS [  0.103 s]
+[INFO] code-graph-analysis ................................ SUCCESS [  0.061 s]
+[INFO] code-graph-rules ................................... SUCCESS [  0.065 s]
+[INFO] code-graph-smells .................................. SUCCESS [  0.081 s]
+[INFO] code-graph-tools ................................... FAILURE [  3.513 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  5.401 s
+[INFO] Finished at: 2026-09-18T19:25:14-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test (default-test) on project code-graph-tools: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\baseline\code-graph-tools\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :code-graph-tools

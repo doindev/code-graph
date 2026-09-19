@@ -22,12 +22,18 @@ import java.util.List;
  */
 public record FileFragment(FileId file, String lang, String contentHash,
                            List<Node> declarations, List<Edge> localEdges,
-                           List<RawRef> rawRefs, List<String> imports) {
+                           List<RawRef> rawRefs, List<String> imports, ModuleEvidence modules) {
+
+    public FileFragment(FileId file, String lang, String contentHash, List<Node> declarations,
+                        List<Edge> localEdges, List<RawRef> rawRefs, List<String> imports) {
+        this(file, lang, contentHash, declarations, localEdges, rawRefs, imports, ModuleEvidence.EMPTY);
+    }
 
     public FileFragment {
         declarations = List.copyOf(declarations);
         localEdges = List.copyOf(localEdges);
         rawRefs = List.copyOf(rawRefs);
         imports = List.copyOf(imports);
+        modules = modules == null ? ModuleEvidence.EMPTY : modules;
     }
 }

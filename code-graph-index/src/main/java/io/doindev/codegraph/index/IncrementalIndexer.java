@@ -102,13 +102,16 @@ public final class IncrementalIndexer {
         // 1. re-extract candidates in parallel (deleted files simply lose their fragment)
         Set<String> removed = new LinkedHashSet<>();
         Set<String> reExtracted = new LinkedHashSet<>();
+        boolean declarationsChanged = false;
+        boolean configurationChanged=candidatePaths.stream().anyMatch(ModuleConfigurations::candidate);
         List<String> failed = new ArrayList<>();
         List<String> toExtract = new ArrayList<>();
         for (String relPath : candidatePaths) {
             if (Files.isRegularFile(root.resolve(relPath))) {
                 toExtract.add(relPath);
-            } else if (fragments.remove(relPath) != null) {
-                removed.add(relPath);
+            } else {
+                FileFragment previous=fragments.remove(relPath);
+                if(previous!=null) {removed.add(relPath);declarationsChanged=true;}
             }
         }
         java.util.concurrent.Semaphore permits = new java.util.concurrent.Semaphore(
@@ -133,6 +136,8 @@ public final class IncrementalIndexer {
             for (String relPath : toExtract) {
                 FileFragment fragment = futures.get(relPath).join();
                 if (fragment == null) {
+                    // A failed/unsupported replacement cannot retain stale exact module bindings.
+                    if(fragments.remove(relPath)!=null){removed.add(relPath);declarationsChanged=true;}
                     continue;
                 }
                 FileFragment previous = fragments.get(relPath);
@@ -140,20 +145,26 @@ public final class IncrementalIndexer {
                     continue; // touch-only event
                 }
                 fragments.put(relPath, fragment);
+                if(previous==null||!declarationShape(previous).equals(declarationShape(fragment))
+                        ||!previous.modules().equals(fragment.modules())) declarationsChanged=true;
                 reExtracted.add(relPath);
             }
         }
-        if (removed.isEmpty() && reExtracted.isEmpty()) {
+        if (removed.isEmpty() && reExtracted.isEmpty() && !configurationChanged) {
             return new FullIndexer.Result(0, 0, 0, List.of(), failed);
         }
 
         // 2. rebuild the symbol table and decide which files must re-resolve
-        SymbolTable table = SymbolTable.of(fragments.values());
+        SymbolTable table = SymbolTable.of(fragments.values(),ModuleConfigurations.capture(fullIndexer,root));
         Set<String> affected = new LinkedHashSet<>(reExtracted);
         for (String changed : union(removed, reExtracted)) {
             affected.addAll(resolvedInto.getOrDefault(changed, Set.of()));
         }
         affected.addAll(withPending);
+        // Return types, fields, inheritance and newly introduced overloads can change resolution
+        // even when no old edge pointed at the edited file. Re-resolve without reparsing unchanged
+        // files on declaration changes; ordinary method-body edits retain narrow invalidation.
+        if(declarationsChanged||configurationChanged)affected.addAll(fragments.keySet());
         affected.retainAll(fragments.keySet());
 
         // 3. build ONE atomic delta
@@ -175,6 +186,8 @@ public final class IncrementalIndexer {
             FileFragment fragment = fragments.get(relPath);
             List<RawRef> pending = new ArrayList<>();
             List<Edge> resolved = NameResolver.resolve(fragment, table, pending);
+            Node evidence=NameResolver.resolutionNode(fragment,pending);
+            if(evidence!=null)addNodes.add(evidence);
             addEdges.addAll(resolved);
             updateBookkeeping(relPath, resolved, pending);
         }
@@ -247,5 +260,10 @@ public final class IncrementalIndexer {
         Set<String> union = new LinkedHashSet<>(a);
         union.addAll(b);
         return union;
+    }
+
+    private static List<String> declarationShape(FileFragment fragment) {
+        return fragment.declarations().stream().filter(n->n.id() instanceof io.doindev.codegraph.model.SymbolId)
+                .map(n->n.id().value()+"|"+n.kind()+"|"+new java.util.TreeMap<>(n.attrs())).sorted().toList();
     }
 }

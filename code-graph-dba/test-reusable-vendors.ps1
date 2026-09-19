@@ -1,4 +1,4 @@
-param([string]$BuildRoot=(Split-Path $PSScriptRoot), [string[]]$Vendors=@('postgresql','mysql','mariadb'))
+param([string]$BuildRoot=(Split-Path $PSScriptRoot), [string[]]$Vendors=@('postgresql','mysql','mariadb'), [switch]$Yolo)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'test-docker-resources.ps1')
 $ownedRun='cgraph-reusable-qa-'+[guid]::NewGuid().ToString('N')
@@ -51,11 +51,13 @@ try {
         }
         $env:DBA_REUSABLE_JAR=Join-Path $env:USERPROFILE ".m2/repository/$jar"
         if(!(Test-Path -LiteralPath $env:DBA_REUSABLE_JAR)){throw "Install the test-only JDBC dependency first: $jar"}
-        & mvn -f (Join-Path $BuildRoot 'pom.xml') -pl code-graph-dba -am test '-Dtest=ReusableVendorIntegrationTest,WorkflowVendorIntegrationTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true'
+        $testNames=if($Yolo){'ReusableVendorIntegrationTest,WorkflowVendorIntegrationTest,YoloVendorIntegrationTest'}else{'ReusableVendorIntegrationTest,WorkflowVendorIntegrationTest'}
+        & mvn -q -f (Join-Path $BuildRoot 'pom.xml') -pl code-graph-dba -am test ('-Dtest='+$testNames) '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true'
         if($LASTEXITCODE -ne 0){throw "Reusable integration tests failed for $vendor"}
         $reportDir=Join-Path $BuildRoot 'code-graph-dba/target/surefire-reports'
         Copy-Item -LiteralPath (Join-Path $reportDir 'io.doindev.codegraph.dba.ReusableVendorIntegrationTest.txt') -Destination (Join-Path $reportDir ("reusable-$vendor.txt"))
         Copy-Item -LiteralPath (Join-Path $reportDir 'io.doindev.codegraph.dba.WorkflowVendorIntegrationTest.txt') -Destination (Join-Path $reportDir ("workflow-$vendor.txt"))
+        if($Yolo){Copy-Item -LiteralPath (Join-Path $reportDir 'io.doindev.codegraph.dba.YoloVendorIntegrationTest.txt') -Destination (Join-Path $reportDir ("yolo-$vendor.txt"))}
         Write-Output "Reusable approval verification passed: $vendor"
         } finally { Remove-CgraphDockerResources -Scope $fixtureScope }
     }

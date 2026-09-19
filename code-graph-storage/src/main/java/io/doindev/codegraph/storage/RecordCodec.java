@@ -19,15 +19,20 @@ public final class RecordCodec {
         E(Edge e) { this(e.from().value(), e.to().value(), e.kind(), e.confidence(), e.attrs()); }
         Edge edge() { return new Edge(NodeId.parse(from), NodeId.parse(to), kind, confidence, attrs); }
     }
-    public record R(String from, RefKind kind, String name, String receiverHint, int arity, SourceSpan site, String locationPrecision) {
-        R(RawRef r) { this(r.from().value(), r.kind(), r.name(), r.receiverHint(), r.arity(), r.site(),r.locationPrecision()); }
-        RawRef ref() { return new RawRef(NodeId.parse(from), kind, name, receiverHint, arity, site,locationPrecision); }
+    public record R(String from, RefKind kind, String name, String receiverHint, int arity, SourceSpan site, String locationPrecision, CallContext context, String resolutionStatus) {
+        R(RawRef r) { this(r.from().value(), r.kind(), r.name(), r.receiverHint(), r.arity(), r.site(),r.locationPrecision(),r.context(),r.resolutionStatus()); }
+        RawRef ref() { return new RawRef(NodeId.parse(from), kind, name, receiverHint, arity, site,locationPrecision,context,resolutionStatus); }
     }
-    public record F(String path, String lang, String hash, List<N> nodes, List<E> edges, List<R> refs, List<String> imports) {
+    public record F(String path, String lang, String hash, List<N> nodes, List<E> edges, List<R> refs, List<String> imports, ModuleEvidence modules) {
         public F(FileFragment f) { this(f.file().relPath(), f.lang(), f.contentHash(), f.declarations().stream().map(N::new).toList(),
-                f.localEdges().stream().map(E::new).toList(), f.rawRefs().stream().map(R::new).toList(), f.imports()); }
+                f.localEdges().stream().map(E::new).toList(), f.rawRefs().stream().map(R::new).toList(), f.imports(), f.modules()); }
         public FileFragment fragment() { return new FileFragment(new FileId(path), lang, hash, nodes.stream().map(N::node).toList(),
-                edges.stream().map(E::edge).toList(), refs.stream().map(R::ref).toList(), imports); }
+                edges.stream().map(E::edge).toList(), refs.stream().map(R::ref).toList(), imports, modules); }
+    }
+    public record M(String path, ModuleEvidence evidence, List<N> declarations) {
+        public M(FileFragment fragment) { this(fragment.file().relPath(),fragment.modules(),
+                fragment.declarations().stream().filter(n->n.id() instanceof SymbolId && n.kind()!=NodeKind.DATABASE_MAPPING).map(N::new).toList()); }
+        public ModuleFile module() { return new ModuleFile(path,evidence,declarations.stream().map(N::node).map(SymbolTable.Entry::of).toList()); }
     }
     public static byte[] encode(Object value) {
         try { return JSON.writeValueAsBytes(value); } catch (IOException e) { throw new UncheckedIOException(e); }

@@ -96,6 +96,13 @@ class RiskGateAndScoreToolTest {
         JsonNode out = JSON.readTree(response.json());
         assertNull(out.get("risk"));
     }
+    @Test void callGraphRetainsMandatoryRiskWithinItsStreamingBudget()throws Exception {
+        var response=tool("get_call_graph").call(JSON.createObjectNode().put("function",hot.value()));
+        assertFalse(response.error(),response.json());
+        var out=JSON.readTree(response.json());
+        assertEquals("fail",out.path("risk").path("gate").asText());
+        assertTrue(out.path("edgeVisits").asInt()<=100000);
+    }
 
     @Test
     void deadCodeToolCarriesCaveats() throws Exception {

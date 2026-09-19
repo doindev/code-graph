@@ -1,0 +1,857 @@
+{
+  "phase": "after",
+  "createdAt": "2026-09-18T21:43:11.209Z",
+  "root": "C:\\Users\\timhj\\eclipse-workspace\\code-graph",
+  "endpoint": "http://localhost:3000/mcp",
+  "project": "code-graph",
+  "measurements": "Warm server samples; OS file cache not cleared. No productivity baseline is inferred.",
+  "counts": {
+    "mcp_protocol": 1,
+    "mcp_symbol_query": 6,
+    "filesystem_search": 3
+  },
+  "events": [
+    {
+      "category": "mcp_protocol",
+      "method": "initialize",
+      "elapsedMs": 71.5214,
+      "responseBytes": 178
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "search_symbols",
+      "elapsedMs": 139.2002,
+      "responseBytes": 972
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "find_references",
+      "elapsedMs": 22.99860000000004,
+      "responseBytes": 14653
+    },
+    {
+      "category": "filesystem_search",
+      "pattern": "NativeRedisArguments\\.bytes\\(",
+      "paths": [
+        "code-graph-dba/src/main/java",
+        "code-graph-dba/src/test/java"
+      ],
+      "elapsedMs": 46.031600000000026,
+      "responseBytes": 1146,
+      "matchingLines": 5
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "search_symbols",
+      "elapsedMs": 124.2543,
+      "responseBytes": 972
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "find_references",
+      "elapsedMs": 8.856899999999996,
+      "responseBytes": 14653
+    },
+    {
+      "category": "filesystem_search",
+      "pattern": "NativeRedisArguments\\.bytes\\(",
+      "paths": [
+        "code-graph-dba/src/main/java",
+        "code-graph-dba/src/test/java"
+      ],
+      "elapsedMs": 36.269300000000044,
+      "responseBytes": 1146,
+      "matchingLines": 5
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "search_symbols",
+      "elapsedMs": 95.27640000000002,
+      "responseBytes": 972
+    },
+    {
+      "category": "mcp_symbol_query",
+      "method": "tools/call",
+      "tool": "find_references",
+      "elapsedMs": 8.295100000000048,
+      "responseBytes": 14653
+    },
+    {
+      "category": "filesystem_search",
+      "pattern": "NativeRedisArguments\\.bytes\\(",
+      "paths": [
+        "code-graph-dba/src/main/java",
+        "code-graph-dba/src/test/java"
+      ],
+      "elapsedMs": 33.8112000000001,
+      "responseBytes": 1146,
+      "matchingLines": 5
+    }
+  ],
+  "results": [
+    {
+      "run": 1,
+      "symbol": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+      "callers": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"generation\":1,\"state\":\"complete\",\"target\":{\"symbolId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\"},\"symbols\":[{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"name\":\"validate\",\"kind\":\"function\",\"signature\":\"validate(JsonNode command)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"declarationSpan\":{\"startLine\":16,\"startColumn\":5,\"endLine\":28,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"line\":22,\"span\":{\"startLine\":22,\"startColumn\":32,\"endLine\":22,\"endColumn\":36},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"declarationSpan\":{\"startLine\":97,\"startColumn\":5,\"endLine\":97,\"endColumn\":224},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"line\":97,\"span\":{\"startLine\":97,\"startColumn\":89,\"endLine\":97,\"endColumn\":93},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"name\":\"key\",\"kind\":\"function\",\"signature\":\"key(JsonNode command,int index)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"declarationSpan\":{\"startLine\":152,\"startColumn\":5,\"endLine\":152,\"endColumn\":227},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"line\":152,\"span\":{\"startLine\":152,\"startColumn\":95,\"endLine\":152,\"endColumn\":99},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":156,\"endColumn\":102},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"line\":156,\"span\":{\"startLine\":156,\"startColumn\":85,\"endLine\":156,\"endColumn\":89},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":160,\"span\":{\"startLine\":160,\"startColumn\":72,\"endLine\":160,\"endColumn\":76},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":161,\"span\":{\"startLine\":161,\"startColumn\":74,\"endLine\":161,\"endColumn\":78},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}}],\"total\":6,\"truncated\":false,\"omitted\":0,\"inventoryComplete\":false,\"coverage\":\"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent\",\"referenceCompleteness\":\"not_guaranteed\"}"
+          }
+        ],
+        "isError": false,
+        "structuredContent": {
+          "data": {
+            "generation": 1,
+            "state": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "symbols": [
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+                "name": "validate",
+                "kind": "function",
+                "signature": "validate(JsonNode command)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                "declarationSpan": {
+                  "startLine": 16,
+                  "startColumn": 5,
+                  "endLine": 28,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                  "line": 22,
+                  "span": {
+                    "startLine": 22,
+                    "startColumn": 32,
+                    "endLine": 22,
+                    "endColumn": 36
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                "declarationSpan": {
+                  "startLine": 97,
+                  "startColumn": 5,
+                  "endLine": 97,
+                  "endColumn": 224
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                  "line": 97,
+                  "span": {
+                    "startLine": 97,
+                    "startColumn": 89,
+                    "endLine": 97,
+                    "endColumn": 93
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+                "name": "key",
+                "kind": "function",
+                "signature": "key(JsonNode command,int index)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                "declarationSpan": {
+                  "startLine": 152,
+                  "startColumn": 5,
+                  "endLine": 152,
+                  "endColumn": 227
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                  "line": 152,
+                  "span": {
+                    "startLine": 152,
+                    "startColumn": 95,
+                    "endLine": 152,
+                    "endColumn": 99
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 156,
+                  "endColumn": 102
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                  "line": 156,
+                  "span": {
+                    "startLine": 156,
+                    "startColumn": 85,
+                    "endLine": 156,
+                    "endColumn": 89
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 160,
+                  "span": {
+                    "startLine": 160,
+                    "startColumn": 72,
+                    "endLine": 160,
+                    "endColumn": 76
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 161,
+                  "span": {
+                    "startLine": 161,
+                    "startColumn": 74,
+                    "endLine": 161,
+                    "endColumn": 78
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              }
+            ],
+            "total": 6,
+            "truncated": false,
+            "omitted": 0,
+            "inventoryComplete": false,
+            "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent",
+            "referenceCompleteness": "not_guaranteed"
+          },
+          "meta": {
+            "contractVersion": 1,
+            "tool": "find_references",
+            "invocationState": "returned",
+            "completeness": "partial",
+            "operationState": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "generation": 1,
+            "truncated": false
+          }
+        }
+      },
+      "textMatches": "code-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:160:        assertArrayEquals(new byte[]{(byte)255,0},NativeRedisArguments.bytes(command,1));\ncode-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:161:        assertArrayEquals(new byte[]{0,(byte)255,1},NativeRedisArguments.bytes(command,2));\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeReadExecutor.java:152:    private static byte[] key(JsonNode command,int index) { byte[] value=NativeRedisArguments.bytes(command,index);if(value.length>8192)throw new IllegalArgumentException(\"Key exceeds interactive key allowance\");return value; }\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeMutations.java:156:    private static byte[] bytes(JsonNode command,int i){return NativeRedisArguments.bytes(command,i);}\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeRedisReads.java:97:    private static byte[] bytes(JsonNode command,int i){byte[] out=NativeRedisArguments.bytes(command,i);if(out.length>8192)throw new IllegalArgumentException(\"Key/field exceeds 8192-byte interactive allowance\");return out;}\n"
+    },
+    {
+      "run": 2,
+      "symbol": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+      "callers": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"generation\":1,\"state\":\"complete\",\"target\":{\"symbolId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\"},\"symbols\":[{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"name\":\"validate\",\"kind\":\"function\",\"signature\":\"validate(JsonNode command)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"declarationSpan\":{\"startLine\":16,\"startColumn\":5,\"endLine\":28,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"line\":22,\"span\":{\"startLine\":22,\"startColumn\":32,\"endLine\":22,\"endColumn\":36},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"declarationSpan\":{\"startLine\":97,\"startColumn\":5,\"endLine\":97,\"endColumn\":224},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"line\":97,\"span\":{\"startLine\":97,\"startColumn\":89,\"endLine\":97,\"endColumn\":93},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"name\":\"key\",\"kind\":\"function\",\"signature\":\"key(JsonNode command,int index)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"declarationSpan\":{\"startLine\":152,\"startColumn\":5,\"endLine\":152,\"endColumn\":227},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"line\":152,\"span\":{\"startLine\":152,\"startColumn\":95,\"endLine\":152,\"endColumn\":99},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":156,\"endColumn\":102},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"line\":156,\"span\":{\"startLine\":156,\"startColumn\":85,\"endLine\":156,\"endColumn\":89},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":160,\"span\":{\"startLine\":160,\"startColumn\":72,\"endLine\":160,\"endColumn\":76},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":161,\"span\":{\"startLine\":161,\"startColumn\":74,\"endLine\":161,\"endColumn\":78},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}}],\"total\":6,\"truncated\":false,\"omitted\":0,\"inventoryComplete\":false,\"coverage\":\"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent\",\"referenceCompleteness\":\"not_guaranteed\"}"
+          }
+        ],
+        "isError": false,
+        "structuredContent": {
+          "data": {
+            "generation": 1,
+            "state": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "symbols": [
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+                "name": "validate",
+                "kind": "function",
+                "signature": "validate(JsonNode command)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                "declarationSpan": {
+                  "startLine": 16,
+                  "startColumn": 5,
+                  "endLine": 28,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                  "line": 22,
+                  "span": {
+                    "startLine": 22,
+                    "startColumn": 32,
+                    "endLine": 22,
+                    "endColumn": 36
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                "declarationSpan": {
+                  "startLine": 97,
+                  "startColumn": 5,
+                  "endLine": 97,
+                  "endColumn": 224
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                  "line": 97,
+                  "span": {
+                    "startLine": 97,
+                    "startColumn": 89,
+                    "endLine": 97,
+                    "endColumn": 93
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+                "name": "key",
+                "kind": "function",
+                "signature": "key(JsonNode command,int index)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                "declarationSpan": {
+                  "startLine": 152,
+                  "startColumn": 5,
+                  "endLine": 152,
+                  "endColumn": 227
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                  "line": 152,
+                  "span": {
+                    "startLine": 152,
+                    "startColumn": 95,
+                    "endLine": 152,
+                    "endColumn": 99
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 156,
+                  "endColumn": 102
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                  "line": 156,
+                  "span": {
+                    "startLine": 156,
+                    "startColumn": 85,
+                    "endLine": 156,
+                    "endColumn": 89
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 160,
+                  "span": {
+                    "startLine": 160,
+                    "startColumn": 72,
+                    "endLine": 160,
+                    "endColumn": 76
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 161,
+                  "span": {
+                    "startLine": 161,
+                    "startColumn": 74,
+                    "endLine": 161,
+                    "endColumn": 78
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              }
+            ],
+            "total": 6,
+            "truncated": false,
+            "omitted": 0,
+            "inventoryComplete": false,
+            "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent",
+            "referenceCompleteness": "not_guaranteed"
+          },
+          "meta": {
+            "contractVersion": 1,
+            "tool": "find_references",
+            "invocationState": "returned",
+            "completeness": "partial",
+            "operationState": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "generation": 1,
+            "truncated": false
+          }
+        }
+      },
+      "textMatches": "code-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:160:        assertArrayEquals(new byte[]{(byte)255,0},NativeRedisArguments.bytes(command,1));\ncode-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:161:        assertArrayEquals(new byte[]{0,(byte)255,1},NativeRedisArguments.bytes(command,2));\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeReadExecutor.java:152:    private static byte[] key(JsonNode command,int index) { byte[] value=NativeRedisArguments.bytes(command,index);if(value.length>8192)throw new IllegalArgumentException(\"Key exceeds interactive key allowance\");return value; }\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeMutations.java:156:    private static byte[] bytes(JsonNode command,int i){return NativeRedisArguments.bytes(command,i);}\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeRedisReads.java:97:    private static byte[] bytes(JsonNode command,int i){byte[] out=NativeRedisArguments.bytes(command,i);if(out.length>8192)throw new IllegalArgumentException(\"Key/field exceeds 8192-byte interactive allowance\");return out;}\n"
+    },
+    {
+      "run": 3,
+      "symbol": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+      "callers": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"generation\":1,\"state\":\"complete\",\"target\":{\"symbolId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\"},\"symbols\":[{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1\",\"name\":\"validate\",\"kind\":\"function\",\"signature\":\"validate(JsonNode command)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"declarationSpan\":{\"startLine\":16,\"startColumn\":5,\"endLine\":28,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java\",\"line\":22,\"span\":{\"startLine\":22,\"startColumn\":32,\"endLine\":22,\"endColumn\":36},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"declarationSpan\":{\"startLine\":97,\"startColumn\":5,\"endLine\":97,\"endColumn\":224},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java\",\"line\":97,\"span\":{\"startLine\":97,\"startColumn\":89,\"endLine\":97,\"endColumn\":93},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2\",\"name\":\"key\",\"kind\":\"function\",\"signature\":\"key(JsonNode command,int index)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"declarationSpan\":{\"startLine\":152,\"startColumn\":5,\"endLine\":152,\"endColumn\":227},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java\",\"line\":152,\"span\":{\"startLine\":152,\"startColumn\":95,\"endLine\":152,\"endColumn\":99},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2\",\"name\":\"bytes\",\"kind\":\"function\",\"signature\":\"bytes(JsonNode command,int i)\",\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":156,\"endColumn\":102},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java\",\"line\":156,\"span\":{\"startLine\":156,\"startColumn\":85,\"endLine\":156,\"endColumn\":89},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":160,\"span\":{\"startLine\":160,\"startColumn\":72,\"endLine\":160,\"endColumn\":76},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}},{\"id\":\"java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0\",\"name\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments\",\"kind\":\"function\",\"signature\":\"redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()\",\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"declarationSpan\":{\"startLine\":156,\"startColumn\":5,\"endLine\":182,\"endColumn\":5},\"relationship\":\"calls\",\"confidence\":1.0,\"resolutionEvidence\":{\"resolution\":\"java-bound\",\"resolutionStatus\":\"resolved\",\"dispatch\":\"static-binding\",\"candidateCount\":\"1\",\"omittedCandidates\":\"0\"},\"targetId\":\"java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2\",\"locationPrecision\":\"identifier_token\",\"occurrence\":{\"path\":\"code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java\",\"line\":161,\"span\":{\"startLine\":161,\"startColumn\":74,\"endLine\":161,\"endColumn\":78},\"rangeConvention\":\"1-based UTF-16; inclusive end\"}}],\"total\":6,\"truncated\":false,\"omitted\":0,\"inventoryComplete\":false,\"coverage\":\"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent\",\"referenceCompleteness\":\"not_guaranteed\"}"
+          }
+        ],
+        "isError": false,
+        "structuredContent": {
+          "data": {
+            "generation": 1,
+            "state": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "symbols": [
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.validate/1",
+                "name": "validate",
+                "kind": "function",
+                "signature": "validate(JsonNode command)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                "declarationSpan": {
+                  "startLine": 16,
+                  "startColumn": 5,
+                  "endLine": 28,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+                  "line": 22,
+                  "span": {
+                    "startLine": 22,
+                    "startColumn": 32,
+                    "endLine": 22,
+                    "endColumn": 36
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java#io.doindev.codegraph.dba.NativeRedisReads.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                "declarationSpan": {
+                  "startLine": 97,
+                  "startColumn": 5,
+                  "endLine": 97,
+                  "endColumn": 224
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+                  "line": 97,
+                  "span": {
+                    "startLine": 97,
+                    "startColumn": 89,
+                    "endLine": 97,
+                    "endColumn": 93
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java#io.doindev.codegraph.dba.NativeReadExecutor.key/2",
+                "name": "key",
+                "kind": "function",
+                "signature": "key(JsonNode command,int index)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                "declarationSpan": {
+                  "startLine": 152,
+                  "startColumn": 5,
+                  "endLine": 152,
+                  "endColumn": 227
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+                  "line": 152,
+                  "span": {
+                    "startLine": 152,
+                    "startColumn": 95,
+                    "endLine": 152,
+                    "endColumn": 99
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java#io.doindev.codegraph.dba.NativeMutations.bytes/2",
+                "name": "bytes",
+                "kind": "function",
+                "signature": "bytes(JsonNode command,int i)",
+                "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 156,
+                  "endColumn": 102
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+                  "line": 156,
+                  "span": {
+                    "startLine": 156,
+                    "startColumn": 85,
+                    "endLine": 156,
+                    "endColumn": 89
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 160,
+                  "span": {
+                    "startLine": 160,
+                    "startColumn": 72,
+                    "endLine": 160,
+                    "endColumn": 76
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              },
+              {
+                "id": "java:code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java#io.doindev.codegraph.dba.NativeFoundationTest.redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments/0",
+                "name": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments",
+                "kind": "function",
+                "signature": "redisBinaryValuesAreExplicitBoundedAndCannotReplaceControlArguments()",
+                "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                "declarationSpan": {
+                  "startLine": 156,
+                  "startColumn": 5,
+                  "endLine": 182,
+                  "endColumn": 5
+                },
+                "relationship": "calls",
+                "confidence": 1,
+                "resolutionEvidence": {
+                  "resolution": "java-bound",
+                  "resolutionStatus": "resolved",
+                  "dispatch": "static-binding",
+                  "candidateCount": "1",
+                  "omittedCandidates": "0"
+                },
+                "targetId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2",
+                "locationPrecision": "identifier_token",
+                "occurrence": {
+                  "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+                  "line": 161,
+                  "span": {
+                    "startLine": 161,
+                    "startColumn": 74,
+                    "endLine": 161,
+                    "endColumn": 78
+                  },
+                  "rangeConvention": "1-based UTF-16; inclusive end"
+                }
+              }
+            ],
+            "total": 6,
+            "truncated": false,
+            "omitted": 0,
+            "inventoryComplete": false,
+            "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent",
+            "referenceCompleteness": "not_guaranteed"
+          },
+          "meta": {
+            "contractVersion": 1,
+            "tool": "find_references",
+            "invocationState": "returned",
+            "completeness": "partial",
+            "operationState": "complete",
+            "target": {
+              "symbolId": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java#io.doindev.codegraph.dba.NativeRedisArguments.bytes/2"
+            },
+            "generation": 1,
+            "truncated": false
+          }
+        }
+      },
+      "textMatches": "code-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:160:        assertArrayEquals(new byte[]{(byte)255,0},NativeRedisArguments.bytes(command,1));\ncode-graph-dba/src/test/java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java:161:        assertArrayEquals(new byte[]{0,(byte)255,1},NativeRedisArguments.bytes(command,2));\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeMutations.java:156:    private static byte[] bytes(JsonNode command,int i){return NativeRedisArguments.bytes(command,i);}\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeRedisReads.java:97:    private static byte[] bytes(JsonNode command,int i){byte[] out=NativeRedisArguments.bytes(command,i);if(out.length>8192)throw new IllegalArgumentException(\"Key/field exceeds 8192-byte interactive allowance\");return out;}\ncode-graph-dba/src/main/java\\io\\doindev\\codegraph\\dba\\NativeReadExecutor.java:152:    private static byte[] key(JsonNode command,int index) { byte[] value=NativeRedisArguments.bytes(command,index);if(value.length>8192)throw new IllegalArgumentException(\"Key exceeds interactive key allowance\");return value; }\n"
+    }
+  ]
+}

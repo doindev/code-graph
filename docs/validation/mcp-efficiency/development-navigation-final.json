@@ -1,0 +1,167 @@
+{
+  "note": "Instrumented subset of implementation navigation, not a complete tool-call audit. Discovery and necessary implementation reads are distinct.",
+  "entries": [
+    {
+      "timestamp": "2026-09-19T00:16:46.249Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__index_status",
+      "purpose": "Check indexed generation before discovery",
+      "durationMs": 3974,
+      "responseBytes": 687,
+      "generation": 16
+    },
+    {
+      "timestamp": "2026-09-19T00:16:50.223Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Find fragment model and serialization entry points",
+      "durationMs": 3027,
+      "responseBytes": 799,
+      "generation": 16
+    },
+    {
+      "timestamp": "2026-09-19T00:16:53.250Z",
+      "category": "source_read",
+      "operation": "exec_command",
+      "purpose": "Read exact implementation for edits; indexed signatures do not contain method bodies",
+      "durationMs": 4651,
+      "responseBytes": 21472,
+      "generation": null
+    },
+    {
+      "timestamp": "2026-09-19T00:19:51.330Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate config record after module-path assumption failed",
+      "durationMs": 3692,
+      "responseBytes": 3045,
+      "generation": 17
+    },
+    {
+      "timestamp": "2026-09-19T00:25:53.673Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate parser extension hooks for module evidence",
+      "durationMs": 3663,
+      "responseBytes": 2783,
+      "generation": 22
+    },
+    {
+      "timestamp": "2026-09-19T00:25:57.336Z",
+      "category": "source_read",
+      "operation": "exec_command",
+      "purpose": "Read parser bodies for module-aware extraction edits",
+      "durationMs": 3349,
+      "responseBytes": 21547,
+      "generation": null
+    },
+    {
+      "timestamp": "2026-09-19T00:44:47.658Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate the new resolver entry point through the live index",
+      "durationMs": 5230,
+      "responseBytes": 861,
+      "generation": 35
+    },
+    {
+      "timestamp": "2026-09-19T01:01:27.812Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate the resolver configuration class without filesystem discovery.",
+      "durationMs": 4348,
+      "responseBytes": 2820,
+      "generation": 44
+    },
+    {
+      "timestamp": "2026-09-19T01:03:13.653Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate import/export extractor.",
+      "durationMs": 4209,
+      "responseBytes": 755,
+      "generation": 44
+    },
+    {
+      "timestamp": "2026-09-19T01:03:17.862Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate module-binding regression tests.",
+      "durationMs": 4105,
+      "responseBytes": 791,
+      "generation": 45
+    },
+    {
+      "timestamp": "2026-09-19T01:05:34.244Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate incremental invalidation and root-boundary handling.",
+      "durationMs": 3691,
+      "responseBytes": 250,
+      "generation": null
+    },
+    {
+      "timestamp": "2026-09-19T01:14:47.630Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__get_call_graph",
+      "purpose": "Recheck the deployed duplicate-edge defect without redeploying the candidate.",
+      "durationMs": 4559,
+      "responseBytes": 364,
+      "generation": null
+    },
+    {
+      "timestamp": "2026-09-19T01:15:11.002Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Obtain the required symbol ID after the deployed call-graph endpoint rejected a display name.",
+      "durationMs": 3353,
+      "responseBytes": 817,
+      "generation": 51
+    },
+    {
+      "timestamp": "2026-09-19T01:15:34.939Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__get_call_graph",
+      "purpose": "Retain live duplicate-pair diagnostic evidence using the indexed symbol ID.",
+      "durationMs": 3172,
+      "responseBytes": 2857,
+      "generation": null
+    },
+    {
+      "timestamp": "2026-09-19T01:16:06.861Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Check whether shared risk metadata adds unbounded traversal to compact call graphs.",
+      "durationMs": 3611,
+      "responseBytes": 2551,
+      "generation": 52
+    },
+    {
+      "timestamp": "2026-09-19T01:26:57.888Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__index_status",
+      "purpose": "Confirm the unchanged live server has finished observing source edits before uncontended final measurements.",
+      "durationMs": 5142,
+      "responseBytes": 687,
+      "generation": 57
+    },
+    {
+      "timestamp": "2026-09-19T01:42:43.140Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate the file-change scheduling implementation to answer indexing-delay question.",
+      "durationMs": 5067,
+      "responseBytes": 3173,
+      "generation": 58
+    },
+    {
+      "timestamp": "2026-09-19T01:46:24.550Z",
+      "category": "mcp",
+      "operation": "mcp__code_graph__search_symbols",
+      "purpose": "Locate debounce and indexing scheduling source for the user's timing question.",
+      "durationMs": 3540,
+      "responseBytes": 3173,
+      "generation": 59
+    }
+  ]
+}

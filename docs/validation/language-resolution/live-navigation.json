@@ -1,0 +1,12 @@
+{
+  "symbol": "java:code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java#io.doindev.codegraph.dba.NativeResults.add/1",
+  "pages": 2,
+  "references": 21,
+  "nonJava": 0,
+  "generations": [
+    1,
+    1
+  ],
+  "truncated": false,
+  "referenceCompleteness": "not_guaranteed"
+}

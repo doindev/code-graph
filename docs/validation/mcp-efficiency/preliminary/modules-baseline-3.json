@@ -1,0 +1,261 @@
+{
+  "phase": "baseline",
+  "run": 3,
+  "methodology": "Adaptive deterministic harness, not an LLM timing trial. Source fallback only for missing/uncertain evidence; authored oracle is graded afterward.",
+  "results": [
+    {
+      "task": "aliasTarget",
+      "target": "js:efficiency-fixtures/alias/right.js#aliasTarget/0",
+      "outcome": "source_review",
+      "references": [],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 91.12380000000121,
+          "responseBytes": 756,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 7.5499999999883585,
+          "responseBytes": 1148,
+          "generation": 1
+        },
+        {
+          "category": "filesystem_search",
+          "operation": "rg --files",
+          "purpose": "Missing or uncertain module binding requires checking import/export source",
+          "durationMs": 25.119299999962095,
+          "responseBytes": 103
+        },
+        {
+          "category": "discovery_read",
+          "operation": "bounded source read",
+          "purpose": "Review module specifiers and exported/local names",
+          "durationMs": 31.897999999986496,
+          "responseBytes": 302,
+          "files": [
+            "efficiency-fixtures/alias\\wrong.js",
+            "efficiency-fixtures/alias\\use.js",
+            "efficiency-fixtures/alias\\right.js"
+          ]
+        }
+      ],
+      "acquisitionMs": 155.749599999981
+    },
+    {
+      "task": "defaultTarget",
+      "target": "js:efficiency-fixtures/default/right.js#defaultTarget/0",
+      "outcome": "source_review",
+      "references": [],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 94.43800000002375,
+          "responseBytes": 768,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 3.917299999971874,
+          "responseBytes": 1160,
+          "generation": 1
+        },
+        {
+          "category": "filesystem_search",
+          "operation": "rg --files",
+          "purpose": "Missing or uncertain module binding requires checking import/export source",
+          "durationMs": 23.911599999992177,
+          "responseBytes": 109
+        },
+        {
+          "category": "discovery_read",
+          "operation": "bounded source read",
+          "purpose": "Review module specifiers and exported/local names",
+          "durationMs": 28.068400000047404,
+          "responseBytes": 307,
+          "files": [
+            "efficiency-fixtures/default\\wrong.js",
+            "efficiency-fixtures/default\\use.js",
+            "efficiency-fixtures/default\\right.js"
+          ]
+        }
+      ],
+      "acquisitionMs": 150.39259999996284
+    },
+    {
+      "task": "namespaceTarget",
+      "target": "js:efficiency-fixtures/namespace/right.js#namespaceTarget/0",
+      "outcome": "source_review",
+      "references": [
+        {
+          "id": "file:efficiency-fixtures/namespace/use.js",
+          "name": "use.js",
+          "kind": "file",
+          "signature": "use.js",
+          "path": "efficiency-fixtures/namespace/use.js",
+          "declarationSpan": {
+            "startLine": 1,
+            "startColumn": 1,
+            "endLine": 2,
+            "endColumn": 22
+          },
+          "relationship": "calls",
+          "confidence": 0.25,
+          "resolutionEvidence": {
+            "resolution": "same-dir-ambiguous",
+            "resolutionStatus": "heuristic"
+          },
+          "targetId": "js:efficiency-fixtures/namespace/right.js#namespaceTarget/0",
+          "locationPrecision": "identifier_token",
+          "occurrence": {
+            "path": "efficiency-fixtures/namespace/use.js",
+            "line": 2,
+            "span": {
+              "startLine": 2,
+              "startColumn": 5,
+              "endLine": 2,
+              "endColumn": 19
+            },
+            "rangeConvention": "1-based UTF-16; inclusive end"
+          }
+        }
+      ],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 94.16130000003614,
+          "responseBytes": 1038,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 5.203799999959301,
+          "responseBytes": 2550,
+          "generation": 1
+        },
+        {
+          "category": "filesystem_search",
+          "operation": "rg --files",
+          "purpose": "Missing or uncertain module binding requires checking import/export source",
+          "durationMs": 23.919499999959953,
+          "responseBytes": 115
+        },
+        {
+          "category": "discovery_read",
+          "operation": "bounded source read",
+          "purpose": "Review module specifiers and exported/local names",
+          "durationMs": 23.304899999988265,
+          "responseBytes": 316,
+          "files": [
+            "efficiency-fixtures/namespace\\wrong.js",
+            "efficiency-fixtures/namespace\\use.js",
+            "efficiency-fixtures/namespace\\right.js"
+          ]
+        }
+      ],
+      "acquisitionMs": 146.66300000000047
+    },
+    {
+      "task": "barrelTarget",
+      "target": "js:efficiency-fixtures/barrel/right.js#barrelTarget/0",
+      "outcome": "source_review",
+      "references": [],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 100.48719999997411,
+          "responseBytes": 762,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 4.964700000011362,
+          "responseBytes": 1155,
+          "generation": 1
+        },
+        {
+          "category": "filesystem_search",
+          "operation": "rg --files",
+          "purpose": "Missing or uncertain module binding requires checking import/export source",
+          "durationMs": 23.28119999996852,
+          "responseBytes": 143
+        },
+        {
+          "category": "discovery_read",
+          "operation": "bounded source read",
+          "purpose": "Review module specifiers and exported/local names",
+          "durationMs": 39.07870000001276,
+          "responseBytes": 418,
+          "files": [
+            "efficiency-fixtures/barrel\\wrong.js",
+            "efficiency-fixtures/barrel\\use.js",
+            "efficiency-fixtures/barrel\\right.js",
+            "efficiency-fixtures/barrel\\barrel.js"
+          ]
+        }
+      ],
+      "acquisitionMs": 167.87329999997746
+    },
+    {
+      "task": "commonTarget",
+      "target": "js:efficiency-fixtures/common/right.cjs#commonTarget/0",
+      "outcome": "source_review",
+      "references": [],
+      "events": [
+        {
+          "category": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Find exact module-qualified definition",
+          "durationMs": 94.02780000003986,
+          "responseBytes": 765,
+          "generation": 1
+        },
+        {
+          "category": "mcp",
+          "operation": "find_references",
+          "purpose": "Obtain reference locations and binding evidence",
+          "durationMs": 4.6450999999651685,
+          "responseBytes": 1158,
+          "generation": 1
+        },
+        {
+          "category": "filesystem_search",
+          "operation": "rg --files",
+          "purpose": "Missing or uncertain module binding requires checking import/export source",
+          "durationMs": 25.01569999998901,
+          "responseBytes": 109
+        },
+        {
+          "category": "discovery_read",
+          "operation": "bounded source read",
+          "purpose": "Review module specifiers and exported/local names",
+          "durationMs": 27.337500000023283,
+          "responseBytes": 366,
+          "files": [
+            "efficiency-fixtures/common\\wrong.cjs",
+            "efficiency-fixtures/common\\use.cjs",
+            "efficiency-fixtures/common\\right.cjs"
+          ]
+        }
+      ],
+      "acquisitionMs": 151.08890000003157
+    }
+  ]
+}

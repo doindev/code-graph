@@ -13,6 +13,8 @@ const [base,jar,schema='']=process.argv.slice(2);
     try{const r=await context.request.get(base+'/api/dba/session');if(r.ok()){const s=await r.json();await context.request.post(base+'/api/dba/logout',{headers:{Origin:base,'X-Dba-CSRF':s.csrf}});}}finally{await close(...options);}
   };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='native'){await require('./browser-native.cjs')(browser,base);return;}
+    if(process.env.DBA_BROWSER_SUITE==='yolo'){await require('./browser-yolo.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='tree-context'){await require('./browser-tree-context.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='approval-review'){await require('./browser-approval-review.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='approvals'){await require('./browser-approvals.cjs')(browser,base,jar);return;}

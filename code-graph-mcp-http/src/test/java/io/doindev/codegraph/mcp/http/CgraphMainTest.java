@@ -5,6 +5,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CgraphMainTest {
+    @Test void yoloHasNoImplicitDesktopAndRequiresDba(){
+        var args=List.of(CgraphMain.effectiveArguments(new String[]{"--yolo","--no-ui"}));
+        assertTrue(args.contains("--dba"));assertFalse(args.contains("--dba-approval-mode"));
+        for(String[] invalid:List.of(new String[]{"--yolo=false"},new String[]{"--yolo=true"},new String[]{"--yolo","false"},new String[]{"--no-dba","--yolo"},new String[]{"--no-defaults","--yolo"}))
+            assertThrows(IllegalArgumentException.class,()->CgraphMain.effectiveArguments(invalid));
+    }
     @Test void defaultsMatchDesktopInstallAndDoNotOnboardTheCurrentDirectory() {
         var args=List.of(CgraphMain.effectiveArguments(new String[0]));
         assertEquals("3000",value(args,"--port")); assertEquals("8137",value(args,"--viz"));

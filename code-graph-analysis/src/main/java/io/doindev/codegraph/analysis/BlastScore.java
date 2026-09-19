@@ -39,10 +39,20 @@ public final class BlastScore {
 
     private final GraphQuery graph;
     private final CodeGraphConfig config;
+    private final Runnable edgeVisit;
 
     public BlastScore(GraphQuery graph, CodeGraphConfig config) {
+        this(graph,config,null);
+    }
+    private BlastScore(GraphQuery graph,CodeGraphConfig config,Runnable edgeVisit) {
         this.graph = graph;
         this.config = config.withDefaults();
+        this.edgeVisit=edgeVisit;
+    }
+
+    /** Streaming variant sharing its caller's work/cancellation budget. No complete adjacency lists. */
+    public Scored computeBounded(NodeId target,Runnable edgeVisit) {
+        return new BlastScore(graph,config,java.util.Objects.requireNonNull(edgeVisit)).compute(target);
     }
 
     public Scored compute(NodeId target) {
@@ -53,7 +63,7 @@ public final class BlastScore {
         if (node.kind() == NodeKind.FILE || node.kind() == NodeKind.TYPE) {
             // max over contained symbols (including the container itself for direct references)
             Scored best = scoreSymbol(target);
-            ClosureResult members = graph.closure(target, Direction.OUT,
+            ClosureResult members = closure(target, Direction.OUT,
                     Set.of(EdgeKind.CONTAINS), 3, 500, 0f);
             for (ClosureHit member : members.hits()) {
                 NodeKind kind = member.node().kind();
@@ -76,10 +86,10 @@ public final class BlastScore {
     }
 
     private Scored scoreSymbol(NodeId target) {
-        ClosureResult closure = graph.closure(target, Direction.IN, IMPACT_KINDS, MAX_DEPTH, NODE_CAP, 0f);
+        ClosureResult closure = closure(target, Direction.IN, IMPACT_KINDS, MAX_DEPTH, NODE_CAP, 0f);
         List<ClosureHit> hits = closure.hits();
 
-        long fanIn = graph.edges(target, Direction.IN, Set.of(EdgeKind.CALLS, EdgeKind.REFERENCES)).size();
+        long fanIn = degree(target,Set.of(EdgeKind.CALLS, EdgeKind.REFERENCES));
         Set<String> modules = new TreeSet<>();
         Set<String> langs = new HashSet<>();
         boolean tested = false;
@@ -105,11 +115,13 @@ public final class BlastScore {
                 langs.size(), untested, config.scoring());
 
         List<String> top = new ArrayList<>(TOP_DEPENDENTS);
+        var degrees=new java.util.HashMap<NodeId,Long>();
+        if(edgeVisit!=null)for(var hit:hits)degrees.computeIfAbsent(hit.node().id(),id->degree(id,IMPACT_KINDS));
         hits.stream()
                 .map(h -> h.node().id())
                 .distinct()
-                .sorted(Comparator.comparingInt(
-                        (NodeId id) -> graph.edges(id, Direction.IN, IMPACT_KINDS).size()).reversed())
+                .sorted(Comparator.comparingLong(
+                        (NodeId id) -> edgeVisit==null?degree(id,IMPACT_KINDS):degrees.get(id)).reversed())
                 .limit(TOP_DEPENDENTS)
                 .forEach(id -> top.add(id.value()));
 
@@ -118,5 +130,36 @@ public final class BlastScore {
                 + (untested ? "no test references" : "has test references");
         return new Scored(target, result.score(), result.band(), result.factors(), top,
                 explanation, closure.truncated());
+    }
+
+    private long degree(NodeId id,Set<EdgeKind> kinds) {
+        if(edgeVisit==null)return graph.edges(id,Direction.IN,kinds).size();
+        long[] count={0};
+        graph.scanEdges(id,Direction.IN,kinds,e->{edgeVisit.run();count[0]++;});
+        return count[0];
+    }
+    private ClosureResult closure(NodeId start,Direction direction,Set<EdgeKind> kinds,int depth,int limit,float confidence) {
+        if(edgeVisit==null)return graph.closure(start,direction,kinds,depth,limit,confidence);
+        record Step(NodeId id,int depth){}
+        var pending=new java.util.ArrayDeque<Step>();pending.add(new Step(start,0));
+        var seen=new HashSet<NodeId>();seen.add(start);var hits=new ArrayList<ClosureHit>();
+        try {
+            while(!pending.isEmpty()) {
+                Step current=pending.removeFirst();if(current.depth()>=depth)continue;
+                graph.scanEdges(current.id(),direction,kinds,e->{
+                    edgeVisit.run();
+                    if(e.confidence()<confidence)return;
+                    NodeId next=direction==Direction.IN?e.from():e.to();
+                    if(seen.contains(next))return;
+                    if(hits.size()>=limit)throw new NodeLimit();
+                    seen.add(next);Node node=graph.node(next).orElse(null);if(node==null)return;
+                    hits.add(new ClosureHit(node,current.depth()+1,e));pending.addLast(new Step(next,current.depth()+1));
+                });
+            }
+        }catch(NodeLimit reached){return new ClosureResult(hits,true);}
+        return new ClosureResult(hits,false);
+    }
+    private static final class NodeLimit extends RuntimeException {
+        NodeLimit(){super(null,null,false,false);}
     }
 }

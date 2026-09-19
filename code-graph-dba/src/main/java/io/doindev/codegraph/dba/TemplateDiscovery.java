@@ -13,7 +13,7 @@ final class TemplateDiscovery {
         if (template.length() > 80) throw new IllegalArgumentException("templateId is too long");
         int limit = args.path("limit").asInt(10);
         if (limit < 1 || limit > 50) throw new IllegalArgumentException("limit must be 1..50");
-        if (!template.isEmpty()) DatabaseCatalog.get(template);
+        if (!template.isEmpty()&&!NativeCatalog.IDS.contains(template)) DatabaseCatalog.get(template);
         var templates = DatabaseCatalog.json();
         String fingerprint = CatalogScanner.hash(templates.toString());
         long generation = Long.parseUnsignedLong(fingerprint.substring(0,16),16);

@@ -12,12 +12,14 @@ import java.util.*;
 public final class DbaRuntime implements AutoCloseable {
     private static final int MAX_WORKSPACE_BYTES=16<<20,MAX_SCRIPT_BYTES=1<<20,MAX_SCRIPT_TABS=12;
     private volatile DbaConfig config;
+    private final AgentAuthorization authorization;
     private final Profiles profiles;
     private final BrowserAuth auth;
     private final AgentAccess agents;
     private final Connections connections;
     private final QueryJobs jobs;
     private final ConnectionSetup setup;
+    private final NativeOperations nativeOperations;
     private final ProjectContexts contexts;
     private final ApprovalQueue approvals;
     private final MigrationPlans migrations;
@@ -32,26 +34,32 @@ public final class DbaRuntime implements AutoCloseable {
     public DbaRuntime(DbaConfig config)throws IOException {this(config,Vault.system(),true);}
     public DbaRuntime(DbaConfig config,boolean ui)throws IOException {this(config,Vault.system(),ui);}
     public DbaRuntime(DbaConfig config,Vault vault)throws IOException {this(config,vault,true);}
-    public DbaRuntime(DbaConfig config,Vault vault,boolean ui)throws IOException {this(config,vault,ui,new DesktopApprovals());}
+    public DbaRuntime(DbaConfig config,Vault vault,boolean ui)throws IOException {this(config,vault,ui,config.yolo()?ApprovalBroker.NO_DESKTOP:new DesktopApprovals());}
     DbaRuntime(DbaConfig config,Vault vault,boolean ui,ApprovalBroker.Desktop desktop)throws IOException {
         this.config=config;this.uiEnabled=ui;
-        if(config.approvalMode().equals("browser")&&!ui)throw new IllegalArgumentException("Browser approval mode requires --viz");
-        if(config.approvalMode().equals("desktop")&&!desktop.available())throw new IllegalArgumentException("Desktop approval mode requires a usable graphical session");
+        authorization=new AgentAuthorization(config.yolo(),config.directory());
+        if(config.yolo())System.err.println(AgentAuthorization.WARNING);
+        if(!config.yolo()&&config.approvalMode().equals("browser")&&!ui)throw new IllegalArgumentException("Browser approval mode requires --viz");
+        if(!config.yolo()&&config.approvalMode().equals("desktop")&&!desktop.available())throw new IllegalArgumentException("Desktop approval mode requires a usable graphical session");
         profiles=new Profiles(config.directory(),vault);
-        try{agents=new AgentAccess(profiles.directory());agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
+        try{agents=new AgentAccess(profiles.directory(),authorization);agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         setup=new ConnectionSetup(profiles,jobs);
-        contexts=new ProjectContexts(profiles,connections,agents);migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
+        contexts=new ProjectContexts(profiles,connections,agents);nativeOperations=new NativeOperations(profiles,jobs,contexts);
+        migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
+        authorization.sessions(approvals.reusable.sessions);
+        agentRequests.sessions(approvals.reusable.sessions);
+        agentRequests.nativeOperations(nativeOperations);
         editorPairings=ui?new EditorPairings(auth,(session,principal)->approvals.reusable.sessions.alive(session,principal)):null;
-        broker=new ApprovalBroker(config.approvalMode(),ui,new ApprovalBroker.Requests(){
+        broker=new ApprovalBroker(config.yolo()?"none":config.approvalMode(),ui,new ApprovalBroker.Requests(){
             public JsonNode list(){return approvalList();}
             public JsonNode decide(String reviewer,String id,String action,boolean acknowledged,JsonNode options){return agentRequests.has(id)?agentRequests.decide(reviewer,id,action,acknowledged,options):approvals.decide(reviewer,id,action,acknowledged);}
-        },desktop,this::ownerAlive);
+        },config.yolo()?ApprovalBroker.NO_DESKTOP:desktop,this::ownerAlive);
         reviewServer=new ApprovalReviewServer(this,broker,config.directory());
         broker.detailed(id->{if(uiEnabled&&browserAddress!=null)return new ApprovalBroker.Handoff(browserAddress.resolve("/dba#approval="+id),"");return reviewServer.open(id);});
         approvals.onPending(broker::published);agentRequests.onPending(broker::published);
-        profiles.onAuthorizationChange(approvals.reusable::invalidateConnection);contexts.onAuthorizationChange(approvals.reusable::invalidateBinding);
-        contextTimer.scheduleWithFixedDelay(()->{try{approvals.tick();agentRequests.tick();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
+        profiles.onAuthorizationChange(id->{approvals.reusable.invalidateConnection(id);nativeOperations.invalidate(id);});contexts.onAuthorizationChange(approvals.reusable::invalidateBinding);
+        contextTimer.scheduleWithFixedDelay(()->{try{approvals.tick();agentRequests.tick();nativeOperations.reap();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
         shutdownHook=new Thread(this::close,"dba-shutdown");Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
     private volatile java.net.URI browserAddress;
@@ -129,7 +137,7 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/templates")&&method.equals("GET")){json(x,200,DatabaseCatalog.json());return;}
             if(path.startsWith("/api/dba/setup/")&&method.equals("POST")){json(x,202,setup.operation(session.id(),path.substring("/api/dba/setup/".length()),body(x)));return;}
             if(path.equals("/api/dba/session")&&method.equals("GET")){json(x,200,settings().put("csrf",session.csrf()));return;}
-            if(path.equals("/api/dba/logout")&&method.equals("POST")){jobs.cancelOwner(session.id());broker.forgetSession(session.id());auth.logout(session.id());json(x,200,Map.of("ok",true));return;}
+            if(path.equals("/api/dba/logout")&&method.equals("POST")){jobs.cancelOwner(session.id());nativeOperations.forgetOwner(session.id());broker.forgetSession(session.id());auth.logout(session.id());json(x,200,Map.of("ok",true));return;}
             if(path.equals("/api/dba/workspace")){
                 if(method.equals("GET")){
                     BrowserAuth.WorkspaceState current=auth.workspaceState(session.id());ObjectNode state=(ObjectNode)Profiles.JSON.readTree(current.state());state.put("workspaceRevision",current.revision());json(x,200,state);
@@ -153,7 +161,7 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/editor/ack")&&method.equals("POST")){json(x,200,editorPairings.acknowledge(session.id(),body(x).path("eventId").asLong()));return;}
             if(path.equals("/api/dba/editor/events")&&method.equals("GET")){long after=0;String header=x.getRequestHeaders().getFirst("Last-Event-ID");if(header!=null&&!header.isBlank())try{after=Long.parseLong(header);}catch(NumberFormatException ignored){}ArrayNode events=editorPairings.events(session.id(),after);x.getResponseHeaders().set("Content-Type","text/event-stream; charset=utf-8");x.getResponseHeaders().set("Cache-Control","no-cache");x.sendResponseHeaders(200,0);try(var writer=new OutputStreamWriter(x.getResponseBody(),StandardCharsets.UTF_8)){if(events.isEmpty())writer.write(": heartbeat\n\n");for(JsonNode event:events){writer.write("id: "+event.path("eventId").asLong()+"\n");writer.write("event: editor\n");writer.write("data: "+event.toString().replace("\n","")+"\n\n");}}return;}
             if(path.equals("/api/dba/settings")){
-                if(method.equals("PUT")){JsonNode b=body(x);DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode());jobs.configure(next);config=next;}
+                if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo());jobs.configure(next);config=next;}
                 else if(!method.equals("GET"))throw new IllegalArgumentException("Unsupported settings method");
                 json(x,200,settings());return;
             }
@@ -185,7 +193,11 @@ public final class DbaRuntime implements AutoCloseable {
                 else if(method.equals("GET"))json(x,200,Profiles.publicProfile(profiles.get(id)));
                 else throw new IllegalArgumentException("Unsupported connection method");return;
             }
-            if(path.equals("/api/dba/connections/test")&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.test(session.id(),Profiles.text(b,"connectionId",36)));return;}
+            if(path.equals("/api/dba/connections/test")&&method.equals("POST")){JsonNode b=body(x);String id=Profiles.text(b,"connectionId",36);json(x,202,DatabaseTransport.of(profiles.get(id))==DatabaseTransport.JDBC?jobs.test(session.id(),id):setup.operation(session.id(),"draft-test",b));return;}
+            if(path.equals("/api/dba/native/execute")&&method.equals("POST")){JsonNode b=body(x);ObjectNode review=nativeOperations.prepare(b);if(review.path("mutation").asBoolean())throw new IllegalArgumentException("Native mutations require Prepare, explicit browser review and Apply");json(x,202,nativeOperations.submit(session.id(),review,b,()->{}));return;}
+            if(path.equals("/api/dba/native/tree")&&method.equals("POST")){json(x,202,nativeOperations.tree(session.id(),body(x)));return;} if(path.equals("/api/dba/native/prepare")&&method.equals("POST")){json(x,200,nativeOperations.prepareBrowser(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/native/apply")&&method.equals("POST")){json(x,202,nativeOperations.applyBrowser(session.id(),Profiles.text(body(x),"planId",36)));return;}
+            if(path.startsWith("/api/dba/native/reviews/")&&method.equals("DELETE")){nativeOperations.discardBrowser(session.id(),path.substring("/api/dba/native/reviews/".length()));json(x,200,Map.of("released",true));return;}
             if(path.equals("/api/dba/metadata/node")&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.metadata(session.id(),Profiles.text(b,"connectionId",36),optional(b,"schema"),optional(b,"table")));return;}
             if(path.equals("/api/dba/metadata/tree")&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.metadataTree(session.id(),Profiles.text(b,"connectionId",36),b));return;}
             if(path.equals("/api/dba/query-builder/compile")&&method.equals("POST")){JsonNode b=body(x,2<<20);profiles.get(Profiles.text(b,"connectionId",36));json(x,200,VisualQuery.compile(b));return;}
@@ -221,17 +233,18 @@ public final class DbaRuntime implements AutoCloseable {
         finally{x.close();}
     }
     private static String optional(JsonNode n,String key){return n.hasNonNull(key)?n.get(key).asText():null;}
-    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",false).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");return n;}
+    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
     public String authenticateAgent(String token){return agents.authenticate(token);}
     /** Only loopback-validated HTTP and local stdio transports may establish this identity. */
     public String trustedLocalAgent(){return agents.trustedLocal();}
     public boolean agentAlive(String id){return id!=null&&agents.alive("agent:"+id);}
-    public boolean approvalsEnabled(){return broker.enabled();}
+    public boolean approvalsEnabled(){return authorization.automatic||broker.enabled();}
+    private void requireApprovalAvailable(){if(!authorization.automatic)broker.requireAvailable();}
     public boolean editorPairingEnabled(){return editorPairings!=null;}
-    private ObjectNode permissions(String principal){ObjectNode out=agents.permissions(principal,contexts);out.set("reusablePolicies",approvals.reusable.list(principal));return out;}
+    private ObjectNode permissions(String principal){ObjectNode out=agents.permissions(principal,contexts);out.set("reusablePolicies",approvals.reusable.list(principal));return authorization.describe(out);}
     /** Only trusted transports register the logical SDK session, never tool arguments. */
     public void registerMcpSession(String id,String principal,long expires){if(!agentAlive(principal))throw new SecurityException("Agent revoked");approvals.reusable.sessions.register(id,principal,expires);}
-    public void endMcpSession(String id){if(editorPairings!=null)editorPairings.sessionEnded(id);approvals.sessionEnded(id);}
+    public void endMcpSession(String id){if(editorPairings!=null)editorPairings.sessionEnded(id);approvals.sessionEnded(id);agentRequests.sessionEnded(id);migrations.sessionEnded(id);}
     /** Called only with a principal established by the transport, never with an ID from tool arguments. */
     public JsonNode agentCall(String principal,String operation,JsonNode args){
         return agentCall(principal,null,operation,args);
@@ -239,6 +252,15 @@ public final class DbaRuntime implements AutoCloseable {
     private final TemplateDiscovery templateDiscovery = new TemplateDiscovery();
     private final WorkspaceDiscovery workspaceDiscovery = new WorkspaceDiscovery();
     public JsonNode agentCall(String principal,String mcpSession,String operation,JsonNode args){
+        if(!agentAlive(principal))throw new SecurityException("Agent revoked");
+        if(args==null||!args.isObject()||args.toString().length()>65_536)throw new IllegalArgumentException("Bounded JSON object required");
+        authorization.requireSession(principal,mcpSession);
+        authorization.audit(principal,mcpSession,operation,args);
+        JsonNode result=agentCallInternal(principal,mcpSession,operation,args);
+        if(authorization.automatic&&result instanceof ObjectNode out){AgentAuthorization.approved(out);authorization.describe(out);}
+        return result;
+    }
+    private JsonNode agentCallInternal(String principal,String mcpSession,String operation,JsonNode args){
         if(!agentAlive(principal))throw new SecurityException("DBA agent authentication required");
         if(args==null||!args.isObject()||args.toString().length()>65_536)throw new IllegalArgumentException("Bounded JSON object required");
         String owner="agent:"+principal;
@@ -273,10 +295,10 @@ public final class DbaRuntime implements AutoCloseable {
             WorkflowTargets.Target target=resolver.catalog(principal,mcpSession,snapshot.schemaRequest);
             if(!target.scope().equals(snapshot.schemaScope))throw new IllegalArgumentException("Snapshot target changed; capture again before planning");
             Runnable release=jobs.retainResults(owner,List.of(snapshotId));
-            try{return migrations.prepare(owner,snapshot,args,release);}catch(RuntimeException failure){release.run();throw failure;}
+            try{return migrations.bindSession(owner,migrations.prepare(owner,snapshot,args,release),authorization.automatic?mcpSession:null);}catch(RuntimeException failure){release.run();throw failure;}
         }
         if(operation.equals("dba_validate_migration")){
-            MigrationPlans.Plan plan=migrations.require(owner,Profiles.text(args,"planId",36));
+            MigrationPlans.Plan plan=migrations.requireSession(owner,Profiles.text(args,"planId",36),mcpSession);
             WorkflowTargets resolver=new WorkflowTargets(profiles,agents,contexts,approvals.reusable);
             WorkflowTargets.Target target=resolver.catalog(principal,mcpSession,plan.sourceRequest);
             if(!target.scope().equals(plan.sourceScope))throw new IllegalArgumentException("Migration target changed; prepare a new plan");
@@ -286,7 +308,7 @@ public final class DbaRuntime implements AutoCloseable {
             });
         }
         if(operation.equals("dba_prepare_migration_rehearsal")){
-            MigrationPlans.Plan source=migrations.require(owner,Profiles.text(args,"planId",36));
+            MigrationPlans.Plan source=migrations.requireSession(owner,Profiles.text(args,"planId",36),mcpSession);
             QueryJobs.Job snapshot=jobs.require(owner,Profiles.text(args,"rehearsalSnapshotId",36));
             if(!snapshot.state.equals("complete")||snapshot.schemaRequest==null||snapshot.schemaScope==null)throw new IllegalArgumentException("Use a completed retained dba_capture_schema job for the rehearsal target");
             WorkflowTargets resolver=new WorkflowTargets(profiles,agents,contexts,approvals.reusable);WorkflowTargets.Target target=resolver.catalog(principal,mcpSession,snapshot.schemaRequest);
@@ -294,10 +316,10 @@ public final class DbaRuntime implements AutoCloseable {
             boolean sameScope=target.scope().equals(source.sourceScope);String sourceUrl=sourceUrl(profiles.get(source.sourceScope.path("connectionId").asText())),targetUrl=sourceUrl(target.profile());
             boolean sameAlias=sourceUrl.equals(targetUrl)&&source.sourceScope.path("database").asText().equals(target.scope().path("database").asText())&&source.sourceScope.path("schema").asText().equals(target.scope().path("schema").asText());
             if(sameScope||sameAlias)throw new IllegalArgumentException("Rehearsal target must be a distinct disposable database/schema and cannot alias the source target");
-            Runnable release=jobs.retainResults(owner,List.of(snapshot.id));try{return migrations.prepareRehearsal(owner,source,snapshot,args,release);}catch(RuntimeException failure){release.run();throw failure;}
+            Runnable release=jobs.retainResults(owner,List.of(snapshot.id));try{return migrations.bindSession(owner,migrations.prepareRehearsal(owner,source,snapshot,args,release),authorization.automatic?mcpSession:null);}catch(RuntimeException failure){release.run();throw failure;}
         }
         if(operation.equals("dba_request_apply_migration")){
-            broker.requireAvailable();MigrationPlans.Plan plan=migrations.require(owner,Profiles.text(args,"planId",36));
+            requireApprovalAvailable();JsonNode duplicate=approvals.existingMigration(principal,mcpSession,args);if(duplicate!=null)return broker.decorate(duplicate);MigrationPlans.Plan plan=migrations.requireSession(owner,Profiles.text(args,"planId",36),mcpSession);
             WorkflowTargets.Target current=new WorkflowTargets(profiles,agents,contexts,approvals.reusable).catalog(principal,mcpSession,plan.sourceRequest);
             if(!current.scope().equals(plan.sourceScope))throw new IllegalArgumentException("Migration target changed; prepare a new plan");
             return broker.decorate(approvals.migration(principal,mcpSession,args,plan));
@@ -322,16 +344,17 @@ public final class DbaRuntime implements AutoCloseable {
         if(operation.equals("get_workspace_context"))return workspaceDiscovery.page(principal,args,contexts.projects(),
                 agentCall(principal,mcpSession,"dba_list_connections",Profiles.JSON.createObjectNode()),
                 contexts.agent(principal,"dba_list_project_databases",Profiles.JSON.createObjectNode()));
-        if(operation.equals("dba_request_live_sql")){broker.requireAvailable();return broker.decorate(approvals.request(principal,mcpSession,args));}
+        if(operation.equals("dba_request_live_sql")){requireApprovalAvailable();return broker.decorate(approvals.request(principal,mcpSession,args));}
         if(operation.equals("dba_cancel_live_request"))return approvals.cancel(principal,Profiles.text(args,"approvalId",36));
         if(operation.equals("dba_live_request_status"))return broker.decorate(approvals.get(principal,Profiles.text(args,"approvalId",36)));
         if(operation.equals("dba_get_my_permissions"))return permissions(principal);
         if(operation.equals("dba_list_my_created_connections")){ArrayNode out=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())if(p.path("agentProvenance").path("agentId").asText().equals(principal)){ObjectNode row=Profiles.JSON.createObjectNode().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("requestId",p.path("agentProvenance").path("requestId").asText()).put("createdAt",p.path("agentProvenance").path("createdAt").asLong()).put("creatorReceivesAccess",false);row.set("bindings",contexts.bindingsForConnection(p.path("id").asText()));out.add(row);}return out;}
+        if(operation.equals("dba_request_native_command")){requireApprovalAvailable();return broker.decorate(agentRequests.request(principal,mcpSession,"native_command",args));}
         if(operation.equals("dba_request_status")){String id=Profiles.text(args,"requestId",36);return broker.decorate(agentRequests.has(id)?agentRequests.get(principal,id):approvals.get(principal,id));}
         if(operation.equals("dba_cancel_request")){String id=Profiles.text(args,"requestId",36);return agentRequests.has(id)?agentRequests.cancel(principal,id):approvals.cancel(principal,id);}
-        if(operation.equals("dba_get_connection_details")){broker.requireAvailable();JsonNode result=agentRequests.maybeRead(principal,"connection_details",args);return result.has("state")?broker.decorate(result):result;}
-        if(operation.equals("dba_request_connection_test")){broker.requireAvailable();return broker.decorate(agentRequests.maybeRead(principal,"connection_test",args));}
-        if(operation.startsWith("dba_request_connection_")||operation.startsWith("dba_request_binding_")){broker.requireAvailable();String type=operation.substring("dba_request_".length());return broker.decorate(agentRequests.request(principal,type,args));}
+        if(operation.equals("dba_get_connection_details")){requireApprovalAvailable();JsonNode result=agentRequests.maybeRead(principal,mcpSession,"connection_details",args);return result.has("state")?broker.decorate(result):result;}
+        if(operation.equals("dba_request_connection_test")){requireApprovalAvailable();return broker.decorate(agentRequests.maybeRead(principal,mcpSession,"connection_test",args));}
+        if(operation.startsWith("dba_request_connection_")||operation.startsWith("dba_request_binding_")){requireApprovalAvailable();String type=operation.substring("dba_request_".length());return broker.decorate(agentRequests.request(principal,mcpSession,type,args));}
         if(Set.of("dba_list_project_databases","dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies","dba_find_code_references","dba_scan_status","dba_refresh_catalog").contains(operation)){
             var matched=new java.util.concurrent.atomic.AtomicReference<ObjectNode>();
             java.util.function.Consumer<ObjectNode> check=b->{
@@ -346,7 +369,7 @@ public final class DbaRuntime implements AutoCloseable {
             return result;
         }
 
-        if(operation.equals("dba_list_connections")){ArrayNode result=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())try{if(!agents.isTrustedLocal(principal))agents.requireName(principal,p.path("id").asText(),p.path("name").asText());result.addObject().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("readOnly",true);}catch(SecurityException denied){}return result;}
+        if(operation.equals("dba_list_connections")){ArrayNode result=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())try{if(!authorization.automatic&&!agents.isTrustedLocal(principal))agents.requireName(principal,p.path("id").asText(),p.path("name").asText());result.addObject().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("readOnly",!authorization.automatic);}catch(SecurityException denied){}return result;}
         if(Set.of("dba_job_status","dba_cancel_job","dba_release_job").contains(operation)){
             // Ownership authorizes lifecycle access to already admitted jobs (including standalone
             // human-approved SQL/tests); it does not grant a new database operation.
@@ -362,15 +385,15 @@ public final class DbaRuntime implements AutoCloseable {
         String connectionName=bindingTarget==null?Profiles.text(args,"connectionName",120):profiles.get(bindingTarget.path("connectionId").asText()).path("name").asText(),connection=bindingTarget==null?args.path("connectionId").asText(""):bindingTarget.path("connectionId").asText();
         if(connection.isEmpty()){List<String> matches=new ArrayList<>();for(JsonNode p:profiles.list())if(Profiles.nameKey(p.path("name").asText()).equals(Profiles.nameKey(connectionName)))matches.add(p.path("id").asText());if(matches.size()!=1)throw new SecurityException("Unknown or ambiguous connection name");connection=matches.get(0);}
         ObjectNode profile=profiles.get(connection);if(!Profiles.nameKey(profile.path("name").asText()).equals(Profiles.nameKey(connectionName)))throw new SecurityException("Connection name does not match ID");
-        if(readCall&&(bindingTarget!=null||!legacyReadAuthorized(principal,connection,connectionName,operation,args))){
+        if(readCall&&(authorization.automatic||bindingTarget!=null||!legacyReadAuthorized(principal,connection,connectionName,operation,args))){
             if(mcpSession==null)throw new SecurityException("No existing read grant; a validated MCP session is required for scoped approval");
             if(bindingTarget==null&&!args.has("connectionId"))throw new IllegalArgumentException("Reusable or one-time access requires stable connectionId plus exact connectionName");
-            if(approvalsEnabled())broker.requireAvailable();
+            if(approvalsEnabled())requireApprovalAvailable();
             ObjectNode input=Profiles.JSON.createObjectNode().put("requestId",UUID.randomUUID().toString()).put("purpose",operation);
             if(bindingTarget==null)input.put("connectionId",connection).put("connectionName",connectionName);else input.put("bindingId",bindingTarget.path("id").asText());
             if(args.has("database"))input.set("database",args.path("database"));if(args.has("schema"))input.set("schema",args.path("schema"));
             if(operation.equals("dba_get_metadata")||operation.equals("dba_get_object_ddl")){
-                ObjectNode scope=ApprovalScope.resolve(profile,bindingTarget==null?Profiles.JSON.createObjectNode():bindingTarget,input);var query=TrustedCatalogRead.prepare(operation,scope,args);
+                ObjectNode scope=authorization.scope(profile,bindingTarget==null?Profiles.JSON.createObjectNode():bindingTarget,input);var query=TrustedCatalogRead.prepare(operation,scope,args);
                 input.put("sql",query.sql());input.set("parameters",query.parameters());return broker.decorate(approvals.readTool(principal,mcpSession,input,true,approvalsEnabled()));
             }
             String sql=Profiles.text(args,"sql",16384);SqlReadGuard.validate(sql);
@@ -401,6 +424,7 @@ public final class DbaRuntime implements AutoCloseable {
     }
     private JsonNode agentCapabilities(String principal,String mcpSession,JsonNode args,boolean authorizeOnly){
         if(!agentAlive(principal))throw new SecurityException("Agent revoked");
+        authorization.requireSession(principal,mcpSession);
         boolean live=args.path("live").asBoolean(false);
         ObjectNode binding=Profiles.JSON.createObjectNode(),profile;
         boolean allowed=false;
@@ -415,7 +439,24 @@ public final class DbaRuntime implements AutoCloseable {
             ObjectNode target=Profiles.JSON.createObjectNode().put("connectionId",profile.path("id").asText());
             allowed=agents.permitsRead(principal,live?"metadata":"connection_details",target)||agents.permitsRead(principal,"catalog",target)||legacyReadAuthorized(principal,profile.path("id").asText(),profile.path("name").asText(),"dba_get_metadata",args);
         }
-        ObjectNode scope=ApprovalScope.resolve(profile,binding,args);
+        if(DatabaseTransport.of(profile)!=DatabaseTransport.JDBC){
+            ObjectNode nativeScope=nativeOperations.observationScope(args);
+            NativeTarget nativeTarget=NativeTarget.resolve(profile,nativeScope);
+            if(!allowed&&!authorization.automatic)throw new SecurityException("Scoped profile/catalog read permission required; native capability descriptions are also available through dba_list_templates");
+            if(authorizeOnly)return nativeScope;
+            authorization.audit(principal,mcpSession,"dba_get_capabilities",nativeScope);
+            if(live){
+                ObjectNode submitted=args.deepCopy();
+                return nativeOperations.observe("agent:"+principal,nativeTarget,nativeScope,approvalsEnabled(),()->{
+                    JsonNode current=agentCapabilities(principal,mcpSession,submitted,true);
+                    if(!nativeScope.equals(current))throw new IllegalArgumentException("Native capability target changed");
+                });
+            }
+            ObjectNode described=NativeCatalog.describe(profile,nativeTarget,approvalsEnabled());
+            described.set("target",nativeScope);return authorization.describe(described);
+        }
+        ObjectNode scope=authorization.automatic&&live?authorization.scope(profile,binding,args):ApprovalScope.resolve(profile,binding,args);
+        if(authorization.automatic)allowed=true;
         ObjectNode matched=null;
         if(!allowed){
             ObjectNode request=Profiles.JSON.createObjectNode().put("sql","dba_get_capabilities").put("autoCommit",false);request.set("parameters",args);
@@ -450,12 +491,19 @@ public final class DbaRuntime implements AutoCloseable {
         ObjectNode result=Profiles.JSON.createObjectNode().put("version",1);ArrayNode output=result.putArray("tabs");Set<String> ids=new HashSet<>();long scriptBytes=0;
         for(JsonNode tab:input){
             if(!tab.isObject())throw new IllegalArgumentException("Each Script tab must be an object");String id=Profiles.text(tab,"id",36);UUID.fromString(id);if(!ids.add(id))throw new IllegalArgumentException("Duplicate Script tab ID");
-            String type=tab.path("type").asText("script");if(!Set.of("script","table","builder","object").contains(type))throw new IllegalArgumentException("Unknown workspace tab type");
+            String type=tab.path("type").asText("script");if(!Set.of("script","table","builder","object","native").contains(type))throw new IllegalArgumentException("Unknown workspace tab type");
             if(type.equals("object")){
                 String title=Profiles.text(tab,"title",2048),connection=Profiles.text(tab,"connection",36);UUID.fromString(connection);
                 ObjectNode selection=MetadataActions.request(tab.path("object"));if(!ObjectDesigner.GROUPS.contains(selection.path("parent").path("kind").asText()))throw new IllegalArgumentException("Invalid object tab identity");
                 String inner=tab.path("inner").asText("properties");if(!Set.of("properties","data","diagram").contains(inner)||!inner.equals("properties")&&!TableQueries.RELATIONS.contains(selection.path("parent").path("kind").asText()))throw new IllegalArgumentException("Invalid object view");
                 ObjectNode saved=output.addObject().put("type","object").put("id",id).put("title",title).put("connection",connection).put("inner",inner);saved.set("object",selection);if(tab.has("builderDraft"))saved.set("builderDraft",VisualQuery.validateDraft(tab.path("builderDraft")));continue;
+            }
+            if(type.equals("native")){
+                String title=Profiles.text(tab,"title",255),connection=Profiles.text(tab,"connection",36);UUID.fromString(connection);
+                String command=tab.path("commandText").asText("");
+                if(!tab.path("commandText").isTextual()||command.getBytes(StandardCharsets.UTF_8).length>131072)throw new IllegalArgumentException("Native command text exceeds 128 KiB");
+                ObjectNode saved=output.addObject().put("type","native").put("id",id).put("title",title).put("connection",connection).put("commandText",command);
+                for(String field:List.of("database","collection")){String value=tab.path(field).asText("");if(value.length()>256)throw new IllegalArgumentException("Invalid native workspace target");saved.put(field,value);}continue;
             }
             if(type.equals("table")){
                 String title=Profiles.text(tab,"title",2048),connection=Profiles.text(tab,"connection",36);UUID.fromString(connection);
@@ -495,7 +543,7 @@ public final class DbaRuntime implements AutoCloseable {
         }catch(SecurityException|IllegalArgumentException e){return false;}
     }
     static void asset(HttpExchange x,String path)throws IOException {
-        String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";default->null;};
+        String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/native-connection-editor.js"->"native-connection-editor.js";case "/dba/native-workspace.js"->"native-workspace.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";default->null;};
         if(file==null){json(x,404,Map.of("error","Asset not found"));return;}
         try(InputStream in=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+file)){
             if(in==null){json(x,404,Map.of("error","Asset not found"));return;}
@@ -505,5 +553,5 @@ public final class DbaRuntime implements AutoCloseable {
     }
     private static void json(HttpExchange x,int status,Object data)throws IOException{byte[] bytes=Profiles.JSON.writeValueAsBytes(data);x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");x.sendResponseHeaders(status,bytes.length);x.getResponseBody().write(bytes);}
     private static void jsonBytes(HttpExchange x,int status,byte[] bytes)throws IOException{try{x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");x.sendResponseHeaders(status,bytes.length);x.getResponseBody().write(bytes);}finally{Arrays.fill(bytes,(byte)0);}}
-    @Override public void close(){if(!closed.compareAndSet(false,true))return;contextTimer.shutdownNow();broker.close();reviewServer.close();if(editorPairings!=null)editorPairings.close();agentRequests.close();approvals.close();migrations.close();contexts.close();jobs.close();connections.close();if(auth!=null)auth.close();try{profiles.close();}catch(IOException ignored){}if(Thread.currentThread()!=shutdownHook)try{Runtime.getRuntime().removeShutdownHook(shutdownHook);}catch(IllegalStateException ignored){}}
+    @Override public void close(){if(!closed.compareAndSet(false,true))return;contextTimer.shutdownNow();broker.close();reviewServer.close();if(editorPairings!=null)editorPairings.close();agentRequests.close();approvals.close();migrations.close();contexts.close();jobs.close();nativeOperations.close();connections.close();if(auth!=null)auth.close();try{profiles.close();}catch(IOException ignored){}if(Thread.currentThread()!=shutdownHook)try{Runtime.getRuntime().removeShutdownHook(shutdownHook);}catch(IllegalStateException ignored){}}
 }

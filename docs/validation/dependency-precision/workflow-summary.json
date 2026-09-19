@@ -1,0 +1,912 @@
+{
+  "methodology": "Eight independent evidence-acquisition tasks, three fresh MCP sessions per engine, identical frozen source. Fixed adaptive rule, no cross-task source cache, no oracle input to acquisition. Warm OS/application caches. Not fresh LLM agents and not model-inclusive coding time.",
+  "oracle": {
+    "method": "Independent JDK javac semantic attribution; production DBA Java sources only",
+    "compiler": "25+36-3489",
+    "errors": 0
+  },
+  "references": {
+    "baseline": {
+      "suites": [
+        {
+          "run": 1,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          },
+          "filesystem": 10,
+          "discovery": 10,
+          "totalOperations": 20,
+          "acquiredSourceFiles": 24,
+          "responseBytes": 357328,
+          "discoveryBytes": 234509,
+          "elapsedMs": 648.2828,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          },
+          "filesystem": 10,
+          "discovery": 10,
+          "totalOperations": 20,
+          "acquiredSourceFiles": 24,
+          "responseBytes": 357328,
+          "discoveryBytes": 234509,
+          "elapsedMs": 608.0307,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "counts": {
+            "mcp": 10,
+            "filesystem_search": 5,
+            "discovery_read": 5
+          },
+          "filesystem": 10,
+          "discovery": 10,
+          "totalOperations": 20,
+          "acquiredSourceFiles": 24,
+          "responseBytes": 357328,
+          "discoveryBytes": 234509,
+          "elapsedMs": 657.8623,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            }
+          ]
+        }
+      ],
+      "medianAcquisitionMs": 648.2828,
+      "medianResponseBytes": 357328,
+      "totalCounts": {
+        "mcp": 30,
+        "filesystem_search": 15,
+        "discovery_read": 15
+      }
+    },
+    "candidate": {
+      "suites": [
+        {
+          "run": 1,
+          "counts": {
+            "mcp": 13
+          },
+          "filesystem": 0,
+          "discovery": 0,
+          "totalOperations": 13,
+          "acquiredSourceFiles": 0,
+          "responseBytes": 225184,
+          "discoveryBytes": 0,
+          "elapsedMs": 593.422,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "counts": {
+            "mcp": 13
+          },
+          "filesystem": 0,
+          "discovery": 0,
+          "totalOperations": 13,
+          "acquiredSourceFiles": 0,
+          "responseBytes": 225184,
+          "discoveryBytes": 0,
+          "elapsedMs": 541.4899,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "counts": {
+            "mcp": 13
+          },
+          "filesystem": 0,
+          "discovery": 0,
+          "totalOperations": 13,
+          "acquiredSourceFiles": 0,
+          "responseBytes": 225184,
+          "discoveryBytes": 0,
+          "elapsedMs": 561.5313000000001,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            }
+          ]
+        }
+      ],
+      "medianAcquisitionMs": 561.5313000000001,
+      "medianResponseBytes": 225184,
+      "totalCounts": {
+        "mcp": 39
+      }
+    }
+  },
+  "allTasks": {
+    "baseline": {
+      "suites": [
+        {
+          "run": 1,
+          "counts": {
+            "mcp": 15,
+            "filesystem_search": 6,
+            "discovery_read": 6,
+            "implementation_read": 1
+          },
+          "filesystem": 13,
+          "discovery": 12,
+          "totalOperations": 28,
+          "acquiredSourceFiles": 31,
+          "responseBytes": 439102,
+          "discoveryBytes": 295131,
+          "elapsedMs": 949.8683,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "counts": {
+            "mcp": 15,
+            "filesystem_search": 6,
+            "discovery_read": 6,
+            "implementation_read": 1
+          },
+          "filesystem": 13,
+          "discovery": 12,
+          "totalOperations": 28,
+          "acquiredSourceFiles": 31,
+          "responseBytes": 439102,
+          "discoveryBytes": 295131,
+          "elapsedMs": 881.4874,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "counts": {
+            "mcp": 15,
+            "filesystem_search": 6,
+            "discovery_read": 6,
+            "implementation_read": 1
+          },
+          "filesystem": 13,
+          "discovery": 12,
+          "totalOperations": 28,
+          "acquiredSourceFiles": 31,
+          "responseBytes": 439102,
+          "discoveryBytes": 295131,
+          "elapsedMs": 1034.1356,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "source_review"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "source_review"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        }
+      ],
+      "medianAcquisitionMs": 949.8683,
+      "medianResponseBytes": 439102,
+      "totalCounts": {
+        "mcp": 45,
+        "filesystem_search": 18,
+        "discovery_read": 18,
+        "implementation_read": 3
+      }
+    },
+    "candidate": {
+      "suites": [
+        {
+          "run": 1,
+          "counts": {
+            "mcp": 18,
+            "implementation_read": 1,
+            "filesystem_search": 1,
+            "discovery_read": 1
+          },
+          "filesystem": 3,
+          "discovery": 2,
+          "totalOperations": 21,
+          "acquiredSourceFiles": 7,
+          "responseBytes": 312544,
+          "discoveryBytes": 60622,
+          "elapsedMs": 999.9098,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "counts": {
+            "mcp": 18,
+            "implementation_read": 1,
+            "filesystem_search": 1,
+            "discovery_read": 1
+          },
+          "filesystem": 3,
+          "discovery": 2,
+          "totalOperations": 21,
+          "acquiredSourceFiles": 7,
+          "responseBytes": 312544,
+          "discoveryBytes": 60622,
+          "elapsedMs": 944.9093000000001,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "counts": {
+            "mcp": 18,
+            "implementation_read": 1,
+            "filesystem_search": 1,
+            "discovery_read": 1
+          },
+          "filesystem": 3,
+          "discovery": 2,
+          "totalOperations": 21,
+          "acquiredSourceFiles": 7,
+          "responseBytes": 312544,
+          "discoveryBytes": 60622,
+          "elapsedMs": 1028.0262,
+          "taskOutcomes": [
+            {
+              "id": "references:NativeRedisArguments.bytes",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeRedisArguments.validate",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.add",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.finish",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "references:NativeResults.binary",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "declaration",
+              "outcome": "mcp_sufficient"
+            },
+            {
+              "id": "implementation",
+              "outcome": "implementation_read_required"
+            },
+            {
+              "id": "exhaustiveness",
+              "outcome": "source_review"
+            }
+          ]
+        }
+      ],
+      "medianAcquisitionMs": 999.9098,
+      "medianResponseBytes": 312544,
+      "totalCounts": {
+        "mcp": 54,
+        "implementation_read": 3,
+        "filesystem_search": 3,
+        "discovery_read": 3
+      }
+    }
+  },
+  "grades": [
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "source_review",
+      "expected": 4,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "source_review",
+      "expected": 2,
+      "returnedProductionReferences": 9,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "references:NativeResults.add",
+      "outcome": "source_review",
+      "expected": 21,
+      "returnedProductionReferences": 8,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "references:NativeResults.finish",
+      "outcome": "source_review",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 1,
+      "task": "references:NativeResults.binary",
+      "outcome": "source_review",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "source_review",
+      "expected": 4,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "source_review",
+      "expected": 2,
+      "returnedProductionReferences": 9,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "references:NativeResults.add",
+      "outcome": "source_review",
+      "expected": 21,
+      "returnedProductionReferences": 8,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "references:NativeResults.finish",
+      "outcome": "source_review",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 2,
+      "task": "references:NativeResults.binary",
+      "outcome": "source_review",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "source_review",
+      "expected": 4,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "source_review",
+      "expected": 2,
+      "returnedProductionReferences": 9,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "references:NativeResults.add",
+      "outcome": "source_review",
+      "expected": 21,
+      "returnedProductionReferences": 8,
+      "mcpExactMatch": false,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "references:NativeResults.finish",
+      "outcome": "source_review",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "baseline",
+      "run": 3,
+      "task": "references:NativeResults.binary",
+      "outcome": "source_review",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": true,
+      "interpretation": "All compiler-grounded locations are in acquired source; semantic human review is still required and its time is not measured"
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "mcp_sufficient",
+      "expected": 4,
+      "returnedProductionReferences": 4,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "mcp_sufficient",
+      "expected": 2,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "references:NativeResults.add",
+      "outcome": "mcp_sufficient",
+      "expected": 21,
+      "returnedProductionReferences": 21,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "references:NativeResults.finish",
+      "outcome": "mcp_sufficient",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 1,
+      "task": "references:NativeResults.binary",
+      "outcome": "mcp_sufficient",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "mcp_sufficient",
+      "expected": 4,
+      "returnedProductionReferences": 4,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "mcp_sufficient",
+      "expected": 2,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "references:NativeResults.add",
+      "outcome": "mcp_sufficient",
+      "expected": 21,
+      "returnedProductionReferences": 21,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "references:NativeResults.finish",
+      "outcome": "mcp_sufficient",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 2,
+      "task": "references:NativeResults.binary",
+      "outcome": "mcp_sufficient",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "references:NativeRedisArguments.bytes",
+      "outcome": "mcp_sufficient",
+      "expected": 4,
+      "returnedProductionReferences": 4,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "references:NativeRedisArguments.validate",
+      "outcome": "mcp_sufficient",
+      "expected": 2,
+      "returnedProductionReferences": 2,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "references:NativeResults.add",
+      "outcome": "mcp_sufficient",
+      "expected": 21,
+      "returnedProductionReferences": 21,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "references:NativeResults.finish",
+      "outcome": "mcp_sufficient",
+      "expected": 7,
+      "returnedProductionReferences": 7,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    },
+    {
+      "phase": "candidate",
+      "run": 3,
+      "task": "references:NativeResults.binary",
+      "outcome": "mcp_sufficient",
+      "expected": 12,
+      "returnedProductionReferences": 12,
+      "mcpExactMatch": true,
+      "sourceEvidenceCoversExpected": null,
+      "interpretation": "Final MCP reference answer independently graded against javac"
+    }
+  ],
+  "caveats": [
+    "Five reference tasks share two helper classes in one Java subsystem; not representative of all languages or full coding sessions.",
+    "Filesystem counts are one rg invocation plus one bounded batched-source-read invocation per fallback, not one call per file.",
+    "Baseline source acquisition is not the same as a completed semantic answer; unmeasured source-review reasoning remains. Candidate MCP-only answers are independently graded.",
+    "Common-name non-Java noise remains. The explicit production-Java task scope allows ignoring it, but it still consumes pagination calls.",
+    "Indexing, setup, compiler grading, model reasoning and tool orchestration round-trip latency are excluded from acquisition timing.",
+    "Repeated tasks are fresh evidence acquisitions; real agents may reuse context and make fewer baseline calls."
+  ]
+}

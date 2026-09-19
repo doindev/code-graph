@@ -21,6 +21,7 @@ final class SqlScript {
             else scan(source,lineStart,i<source.length()?i+1:i,state,null);
             lineStart=i+1;
         }
+        if(state.mode!=Mode.NORMAL&&state.mode!=Mode.LINE)throw new IllegalArgumentException("Unterminated SQL quote, identifier, or comment; nothing was executed");
         List<String> pieces=new ArrayList<>();
         if(!markers.isEmpty()){
             int start=0;for(int[] marker:markers){pieces.add(source.substring(start,marker[0]));start=marker[1];}pieces.add(source.substring(start));

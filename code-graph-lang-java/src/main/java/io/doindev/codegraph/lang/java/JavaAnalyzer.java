@@ -15,6 +15,11 @@ import java.util.Set;
 public final class JavaAnalyzer extends TreeWalkAnalyzer {
 
     @Override
+    protected io.doindev.codegraph.parse.SemanticHints semanticHints(TSNode root, Src src) {
+        return new JavaSemanticHints(root, src, packagePrefix(root, src), importsOf(root, src));
+    }
+
+    @Override
     public String languageId() {
         return "java";
     }
@@ -91,13 +96,8 @@ public final class JavaAnalyzer extends TreeWalkAnalyzer {
             if (!child.getType().equals("import_declaration")) {
                 continue;
             }
-            int named = child.getNamedChildCount();
-            for (int j = 0; j < named; j++) {
-                TSNode part = child.getNamedChild(j);
-                if (part.getType().equals("scoped_identifier") || part.getType().equals("identifier")) {
-                    imports.add(src.text(part));
-                }
-            }
+            String declaration = src.text(child).replaceFirst("^import\\s+", "").replaceFirst(";\\s*$", "").trim();
+            imports.add(declaration);
         }
         return imports;
     }

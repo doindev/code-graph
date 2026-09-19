@@ -11,8 +11,19 @@ cgraph_offer(){ printf 'Check mode must not install packages\n' >&2;return 1; }
 (
   unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy CGRAPH_PROXY_USER CGRAPH_PROXY_PASSWORD
   cgraph_main --check --non-interactive
+  cgraph_main --check --non-interactive --skills all
+  cgraph_main --check --non-interactive --skills codex,claude
+  cgraph_main --check --build-only --skills none
+  uname(){ printf 'Darwin\n'; }
+  cgraph_main --check --non-interactive --skills all
   cgraph_main --check --non-interactive --proxy http://proxy.example:8080 --proxy-user 'domain\user'
 )
+for invalid in unknown all,claude codex,codex codex,;do
+  if (cgraph_main --check --skills "$invalid");then exit 1;fi
+done
+if (cgraph_main --check --skills all --build-only);then exit 1;fi
+if (cgraph_main --check --skills);then exit 1;fi
+if (cgraph_main --check --skills all --skills none);then exit 1;fi
 if (cgraph_main --check --non-interactive --proxy 'http://user:private_value@proxy.example:8080'); then exit 1;fi
 if (cgraph_main --check --non-interactive --proxy 'http://bad proxy:8080'); then exit 1;fi
 if (cgraph_main --check --non-interactive --proxy); then exit 1;fi

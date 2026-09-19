@@ -59,9 +59,28 @@ cgraph_cleanup() {
     else printf 'Temporary clone retained for diagnostics: %s\n' "$clone_dir" >&2; fi
   fi
 }
+cgraph_validate_skills() {
+  local selection=$1 only_build=$2 item seen=','
+  [[ -n "$selection" ]] || return 0
+  if [[ "$selection" != all && "$selection" != none ]]; then
+    [[ "$selection" =~ ^(codex|copilot|claude|windsurf)(,(codex|copilot|claude|windsurf))*$ ]] || {
+      printf 'Skills must be all, none, or comma-separated codex,copilot,claude,windsurf\n' >&2;return 1;
+    }
+    local items=()
+    IFS=',' read -r -a items <<< "$selection"
+    for item in "${items[@]}"; do
+      [[ "$seen" != *",$item,"* ]] || { printf 'Duplicate skill client: %s\n' "$item" >&2;return 1; }
+      seen+="$item,"
+    done
+  fi
+  [[ "$only_build" == 0 || "$selection" == none ]] || {
+    printf '%s\n' '--build-only cannot install skills; use --skills none or omit --skills' >&2;return 1;
+  }
+}
 cgraph_main() {
   local repository='https://github.com/doindev/code-graph.git' ref=main source_dir='' install_dir='' proxy='' proxy_user='' bypass_hosts='' git_ca='' settings=''
   local non_interactive=0 check_only=0 skip_tests=0 no_path=0 keep_build=0 build_only=0 clone_dir='' clone_parent='' success=0
+  local skills=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --repository|--ref|--source-dir|--install-dir|--proxy|--proxy-user|--no-proxy|--git-ca-file|--maven-settings)
@@ -69,10 +88,14 @@ cgraph_main() {
         case "$1" in --repository) repository=$2;; --ref) ref=$2;; --source-dir) source_dir=$2;; --install-dir) install_dir=$2;; --proxy) proxy=$2;; --proxy-user) proxy_user=$2;; --no-proxy) bypass_hosts=$2;; --git-ca-file) git_ca=$2;; --maven-settings) settings=$2;; esac
         shift 2;;
       --non-interactive) non_interactive=1;shift;; --check) check_only=1;shift;; --skip-tests) skip_tests=1;shift;; --no-path) no_path=1;shift;; --keep-build) keep_build=1;shift;; --build-only) build_only=1;shift;;
-      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\n';return;;
+      --skills)
+        [[ $# -ge 2 && -n "$2" && -z "$skills" ]] || { printf 'Expected one value for --skills\n' >&2;return 1; }
+        skills=$2;shift 2;;
+      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--skills all|none|codex,copilot,claude,windsurf]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\nSkills are optional current-user guidance, only useful when MCP is available; no MCP configuration is changed.\nInteractive installs ask; unattended installs default to none.\n';return;;
       *) printf 'Unknown installer option: %s\n' "$1" >&2;return 1;;
     esac
   done
+  cgraph_validate_skills "$skills" "$build_only" || return 1
   case $(uname -s) in Darwin) install_dir=${install_dir:-"$HOME/Library/Application Support/CodeGraph"};; Linux) install_dir=${install_dir:-"${XDG_DATA_HOME:-$HOME/.local/share}/code-graph"};; *) printf 'Use install.ps1 on Windows.\n' >&2;return 1;; esac
   proxy=${proxy:-${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}}
   if [[ -n "$proxy" ]]; then
@@ -125,12 +148,19 @@ cgraph_main() {
   source_dir=$(cd "$source_dir" && pwd -P)
   [[ -f "$source_dir/installer/CgraphInstaller.java" ]] || { printf 'Selected repository/ref does not yet contain the installer. Select a published ref or --source-dir with the updated checkout.\n' >&2;return 1; }
   local arguments=("$source_dir/installer/CgraphInstaller.java" --source "$source_dir" --install-dir "$install_dir" --maven "$maven")
+  [[ -z "$skills" ]] || arguments+=(--skills "$skills")
   [[ -z "$settings" ]] || arguments+=(--maven-settings "$settings")
   [[ -z "$proxy" ]] || arguments+=(--proxy "$proxy")
   [[ -z "$bypass_hosts" ]] || arguments+=(--no-proxy "$bypass_hosts")
   [[ $skip_tests == 0 ]] || arguments+=(--skip-tests);[[ $no_path == 0 ]] || arguments+=(--no-path)
   [[ $non_interactive == 0 ]] || arguments+=(--non-interactive);[[ $keep_build == 0 ]] || arguments+=(--keep-build);[[ $build_only == 0 ]] || arguments+=(--build-only)
-  "$jdk/bin/java" "${arguments[@]}"
+  local install_status=0
+  "$jdk/bin/java" "${arguments[@]}" || install_status=$?
+  if [[ $install_status == 2 ]]; then
+    success=1;cgraph_cleanup;trap - EXIT
+    printf 'Application installed, but optional skills were incomplete; existing skills were preserved. Resolve reported conflicts manually.\n' >&2
+    return 2
+  elif [[ $install_status != 0 ]]; then return "$install_status";fi
   success=1
   cgraph_cleanup;trap - EXIT
 }

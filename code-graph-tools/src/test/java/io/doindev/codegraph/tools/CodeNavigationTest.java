@@ -10,6 +10,21 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CodeNavigationTest {
+    @Test void referenceEvidenceAndCoverageAreExplicit()throws Exception {
+        var graph=graph();
+        var exact=new Edge(new SymbolId("java","src/Test.java","Base.b",0),
+                new SymbolId("java","src/Test.java","Base.a",0),EdgeKind.CALLS,1f,
+                Map.of("resolution","java-bound","resolutionStatus","resolved","dispatch","static-binding","candidateCount","1","omittedCandidates","0"));
+        graph.apply(new GraphDelta(2,List.of(),List.of(),List.of(exact),List.of()));
+        var response=call(tool(graph,"find_references"),"{\"symbol_id\":\"java:src/Test.java#Base.a/0\",\"limit\":20}");
+        assertEquals("not_guaranteed",response.path("referenceCompleteness").asText());
+        assertFalse(response.path("inventoryComplete").asBoolean());
+        boolean found=false;
+        for(var row:response.path("symbols"))if(row.path("resolutionEvidence").path("resolutionStatus").asText().equals("resolved")){
+            found=true;assertEquals("static-binding",row.path("resolutionEvidence").path("dispatch").asText());
+        }
+        assertTrue(found);
+    }
     static Node node(String name,NodeKind kind,int start,int end){
         return new Node(new SymbolId("java","src/Test.java",name,0),kind,name,name,
                 new SourceSpan("src/Test.java",start,1,end,20),Metrics.NONE,Map.of());

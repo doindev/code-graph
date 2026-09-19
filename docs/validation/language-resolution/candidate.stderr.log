@@ -1,0 +1,9 @@
+code-graph: graph storage {mode=hybrid, budgetBytes=33554432, cacheCapacityBytes=16777216, cacheUsedBytesEstimate=0, peakCacheUsedBytesEstimate=0, cacheHits=0, cacheMisses=0, cacheEvictions=0, enginePageCacheBytes=0, activeAndStagedStores=0, metadataReserveBytes=0, temporaryReserveBytes=16777216, peakUnsavedBytesEstimate=0, unsavedBytesEstimate=0, cacheOverCapacityBytesEstimate=0, peakDirtyThresholdOvershootBytesEstimate=0, accountingComplete=false, hardProcessMemoryLimit=false, heapMaxBytes=805306368, heapUsedBytes=26365488, diskBytes=0, note=Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid updates use staged rebuilds.}
+code-graph-http: [cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab] indexed 471 files, 8546 symbols, 23627 edges
+code-graph-http: 1 project(s) ready in 55375 ms
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+code-graph-http: serving local-only MCP (streamable HTTP) on http://127.0.0.1:13002/mcp
+code-graph-http: project idle TTL PT1H
+code-graph-http: watching onboarded projects for changes; Ctrl-C to stop

@@ -28,6 +28,7 @@ final class GetCallGraphTool implements GraphTool {
 
     private static final int NODE_CAP = 100;
     private static final int FAN_CAP = 20;
+    private static final int EDGE_VISIT_CAP = 100_000;
 
     private final GraphQuery graph;
     private final CodeGraphConfig config;
@@ -53,6 +54,11 @@ final class GetCallGraphTool implements GraphTool {
 
     @Override
     public ToolResponse call(JsonNode args) {
+        try { return graph.read(() -> query(args)); }
+        catch (IllegalArgumentException e) { return ToolResponse.fail(e.getMessage()); }
+    }
+
+    private ToolResponse query(JsonNode args) {
         String rawId = ToolSupport.stringArg(args, "function", null);
         if (rawId == null || rawId.isBlank()) {
             return ToolResponse.fail("function is required");
@@ -68,18 +74,19 @@ final class GetCallGraphTool implements GraphTool {
             return ToolResponse.fail("unknown function: " + rawId + " (use search_symbols to find valid IDs)");
         }
         String direction = ToolSupport.stringArg(args, "direction", "both");
+        if (!Set.of("up", "down", "both").contains(direction)) return ToolResponse.fail("Unknown direction");
         int depth = ToolSupport.intArg(args, "depth", 2, 1, 6);
 
         Map<NodeId, Integer> index = new LinkedHashMap<>();
         index.put(root, 0);
-        List<int[]> up = new ArrayList<>();
-        List<int[]> down = new ArrayList<>();
-        int omitted = 0;
+        Map<Pair, Integer> up = new LinkedHashMap<>();
+        Map<Pair, Integer> down = new LinkedHashMap<>();
+        Work work = new Work();
         if (direction.equals("up") || direction.equals("both")) {
-            omitted += bfs(root, Direction.IN, depth, index, up);
+            bfs(root, Direction.IN, depth, index, up, work);
         }
         if (direction.equals("down") || direction.equals("both")) {
-            omitted += bfs(root, Direction.OUT, depth, index, down);
+            bfs(root, Direction.OUT, depth, index, down, work);
         }
 
         ObjectNode out = JSON.createObjectNode();
@@ -92,65 +99,99 @@ final class GetCallGraphTool implements GraphTool {
             nodes.add(id.value());
             sigs.add(graph.node(id).map(Node::displaySignature).orElse(""));
         }
-        writeEdges(out.putArray("up"), up);
-        writeEdges(out.putArray("down"), down);
-        out.put("truncated", omitted > 0);
-        out.put("omittedNodes", omitted);
+        writeEdges(out, "up", up, !work.exhausted);
+        writeEdges(out, "down", down, !work.exhausted);
+        out.put("truncated", work.omitted || work.exhausted);
+        out.put("omittedNodes", work.omittedNode ? 1 : 0);
+        out.put("omittedNodesCountComplete", !work.omittedNode && !work.exhausted);
+        out.put("aggregation", "distinct_caller_callee");
+        out.put("countCompleteness", work.exhausted ? "lower_bound" : "complete_for_returned_relationships");
+        if(config.gating().attachRiskReport()) {
+            try {
+                var scored=new io.doindev.codegraph.analysis.BlastScore(graph,config).computeBounded(root,()->visit(work));
+                if(scored.score()>=config.gating().threshold()) {
+                    var risk=out.putObject("risk");GetBlastScoreTool.write(risk,scored,config);
+                    risk.put("note","MANDATORY RISK REVIEW: blast score "+scored.score()
+                            +" >= gating threshold "+config.gating().threshold()+". Review before modifying this code.");
+                }
+            }catch(WorkLimit exhausted) {
+                out.putObject("risk").put("gate","review_required").put("completeness","unavailable_work_limit")
+                        .put("note","MANDATORY RISK REVIEW: the shared inspection limit prevented complete risk scoring. Do not interpret an unavailable score as low risk.");
+            }
+        }
+        out.put("edgeVisits", work.visits).put("edgeVisitLimit", EDGE_VISIT_CAP);
+        out.put("workLimitReached", work.exhausted).put("generation", graph.status().generation());
+        out.put("referenceCompleteness", "not_guaranteed");
+        out.put("coverage", "Indexed call bindings; Java virtual calls identify declared targets, not all runtime overrides. Dynamic, external and unresolved references may be absent. Use find_references for occurrence-level confidence and resolution evidence.");
         return ToolSupport.finish(out, config);
     }
 
-    /** BFS collecting CALLS edges; returns count of nodes omitted by caps. */
-    private int bfs(NodeId root, Direction direction, int maxDepth,
-                    Map<NodeId, Integer> index, List<int[]> edges) {
-        int omitted = 0;
+    private record Pair(int from, int to) {}
+    private static final class Work {
+        int visits; boolean omitted, omittedNode, exhausted;
+    }
+    private static final class WorkLimit extends RuntimeException {
+        WorkLimit() { super(null, null, false, false); }
+    }
+    private static void visit(Work work) {
+        if(Thread.currentThread().isInterrupted())throw new IllegalArgumentException("Call graph cancelled");
+        if(work.visits==EDGE_VISIT_CAP){work.exhausted=true;throw new WorkLimit();}
+        work.visits++;
+    }
+    /** One bounded streaming pass per visited adjacency; repeated sites consume no fan capacity. */
+    private void bfs(NodeId root, Direction direction, int maxDepth,
+                     Map<NodeId, Integer> index, Map<Pair, Integer> edges, Work work) {
         record Frontier(NodeId id, int depth) {}
         ArrayDeque<Frontier> queue = new ArrayDeque<>();
         queue.add(new Frontier(root, 0));
         Set<NodeId> visited = new java.util.HashSet<>();
         visited.add(root);
 
-        while (!queue.isEmpty()) {
+        while (!queue.isEmpty() && !work.exhausted) {
             Frontier cur = queue.poll();
             if (cur.depth() == maxDepth) {
                 continue;
             }
-            List<Edge> step = graph.edges(cur.id(), direction, Set.of(EdgeKind.CALLS));
-            int taken = 0;
-            for (Edge e : step) {
+            Map<NodeId, Pair> admitted = new LinkedHashMap<>();
+            try { graph.scanEdges(cur.id(), direction, Set.of(EdgeKind.CALLS), e -> {
+                visit(work);
                 NodeId next = direction == Direction.IN ? e.from() : e.to();
-                if (taken >= FAN_CAP || index.size() >= NODE_CAP) {
-                    omitted++;
-                    continue;
+                Pair existing = admitted.get(next);
+                if (existing != null) { edges.merge(existing, 1, Integer::sum); return; }
+                if (admitted.size() >= FAN_CAP || !index.containsKey(next) && index.size() >= NODE_CAP) {
+                    work.omitted = true;
+                    if (!index.containsKey(next)) work.omittedNode = true;
+                    return;
                 }
                 Integer nextIdx = index.get(next);
                 if (nextIdx == null) {
                     if (graph.node(next).isEmpty()) {
-                        continue;
+                        return;
                     }
                     nextIdx = index.size();
                     index.put(next, nextIdx);
                 }
                 int curIdx = index.get(cur.id());
                 // edge pair is always [caller, callee]
-                if (direction == Direction.IN) {
-                    edges.add(new int[] {nextIdx, curIdx});
-                } else {
-                    edges.add(new int[] {curIdx, nextIdx});
-                }
-                taken++;
+                Pair pair = direction == Direction.IN ? new Pair(nextIdx, curIdx) : new Pair(curIdx, nextIdx);
+                admitted.put(next, pair);
+                edges.merge(pair, 1, Integer::sum);
                 if (visited.add(next)) {
                     queue.add(new Frontier(next, cur.depth() + 1));
                 }
-            }
+            }); } catch (WorkLimit limit) { /* Return explicitly incomplete occurrence counts. */ }
         }
-        return omitted;
     }
 
-    private static void writeEdges(ArrayNode into, List<int[]> edges) {
-        for (int[] pair : edges) {
+    private static void writeEdges(ObjectNode out, String name, Map<Pair, Integer> edges, boolean complete) {
+        ArrayNode into = out.putArray(name), counts = out.putArray(name + "Occurrences"),
+                completeness = out.putArray(name + "CountsComplete");
+        for (var entry : edges.entrySet()) {
+            Pair pair = entry.getKey();
             ArrayNode edge = into.addArray();
-            edge.add(pair[0]);
-            edge.add(pair[1]);
+            edge.add(pair.from());
+            edge.add(pair.to());
+            counts.add(entry.getValue()); completeness.add(complete);
         }
     }
 }

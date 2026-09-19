@@ -50,6 +50,7 @@ const shapes={
   "cpu": '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>',
   "workflow": '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
   "play": '<polygon points="6 3 20 12 6 21 6 3"/>',
+  "square": '<rect x="3" y="3" width="18" height="18" rx="2"/>',
   "redo-2": '<path d="m15 14 5-5-5-5"/><path d="M20 9H11a7 7 0 0 0 0 14"/>',
   "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6M11 8v6"/>',
   "zoom-out": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6"/>',

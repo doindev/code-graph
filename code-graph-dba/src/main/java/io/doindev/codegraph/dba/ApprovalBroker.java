@@ -26,6 +26,12 @@ final class ApprovalBroker implements AutoCloseable {
         default void handoff(URI uri,String code) {}
         default void close(){dismiss();}
     }
+    static final Desktop NO_DESKTOP=new Desktop(){
+        public boolean available(){return false;}
+        public boolean browse(URI uri){return false;}
+        public void show(JsonNode request,int waiting,Consumer<Decision> decide,Runnable detailed){throw new IllegalStateException("No interactive approval channel");}
+        public void dismiss(){}
+    };
     record Decision(String action,boolean acknowledged) {}
     record Handoff(URI uri,String code) {}
     static final class Unavailable extends IllegalStateException {
@@ -86,6 +92,7 @@ final class ApprovalBroker implements AutoCloseable {
         throw new IllegalArgumentException("Approval request expired or already consumed");
     }
     synchronized ObjectNode decorate(JsonNode request){
+        if(request.path("authorizationReason").asText().equals("startup_yolo"))return AgentAuthorization.approved(request.deepCopy());
         ObjectNode out=request.deepCopy();Delivery d=deliveries.get(request.path("id").asText());
         return out.put("approvalChannel",d==null?(enabled()?"pending":"none"):d.channel)
             .put("reviewAvailable",enabled()).put("deliveryStatus",d==null?"pending":d.state);

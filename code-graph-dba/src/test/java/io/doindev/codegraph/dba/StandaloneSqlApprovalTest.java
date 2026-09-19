@@ -57,7 +57,15 @@ class StandaloneSqlApprovalTest {
         profiles.rename(connection,Profiles.JSON.createObjectNode().put("expectedName","Standalone test").put("name","Renamed"));
         assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,"approve_once",true));assertEquals(1,count());
         ObjectNode changed=request("DELETE FROM PUBLIC.ITEMS").put("connectionName","Renamed");String removal=approvals.request(principal,changed).path("id").asText();
-        profiles.remove(connection);assertThrows(IllegalArgumentException.class,()->approvals.decide("human",removal,"approve_once",true));assertEquals(1,count());
+        // Retain an independent observer before removing the profile. A removed profile
+        // must not be usable to borrow a new pooled connection merely to inspect the fixture.
+        try(Connection observer=connections.open(connection)){
+            profiles.remove(connection);assertThrows(IllegalArgumentException.class,()->approvals.decide("human",removal,"approve_once",true));
+            assertThrows(IllegalArgumentException.class,()->connections.open(connection));
+            try(Statement statement=observer.createStatement();ResultSet rows=statement.executeQuery("SELECT COUNT(*) FROM PUBLIC.ITEMS")){
+                assertTrue(rows.next());assertEquals(1,rows.getLong(1));
+            }
+        }
     }
     @Test void requestIdsOwnershipExpiryCancellationAndRevocationRemainEnforced()throws Exception {
         ObjectNode input=request("DELETE FROM PUBLIC.ITEMS");String id=approvals.request(principal,input).path("id").asText();

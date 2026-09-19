@@ -1,0 +1,317 @@
+{
+  "createdAt": "2026-09-18T21:43:11.305Z",
+  "engines": {
+    "baseline": {
+      "indexMedianMs": 34139.7396,
+      "queryP50Ms": 0.968,
+      "queryP95Ms": 1.7896,
+      "queryP99Ms": 3.2042,
+      "sequenceThroughputPerSecond": 966.0435685649417,
+      "workingSetPeakMedianBytes": 303407104,
+      "heapAfterQueriesMedianBytes": 54747664,
+      "diskMedianBytes": 99061760,
+      "callerOccurrences": [
+        4,
+        4,
+        4
+      ],
+      "distinctCallers": [
+        3,
+        3,
+        3
+      ],
+      "fileCounts": [
+        471,
+        471,
+        471
+      ],
+      "symbolCounts": [
+        5876,
+        5876,
+        5876
+      ],
+      "edgeCounts": [
+        73337,
+        73337,
+        73337
+      ]
+    },
+    "candidate": {
+      "indexMedianMs": 51567.8107,
+      "queryP50Ms": 0.8781,
+      "queryP95Ms": 2.3702,
+      "queryP99Ms": 7.586,
+      "sequenceThroughputPerSecond": 866.9350954591868,
+      "workingSetPeakMedianBytes": 334667776,
+      "heapAfterQueriesMedianBytes": 59935624,
+      "diskMedianBytes": 59928576,
+      "callerOccurrences": [
+        6,
+        6,
+        6
+      ],
+      "distinctCallers": [
+        5,
+        5,
+        5
+      ],
+      "fileCounts": [
+        471,
+        471,
+        471
+      ],
+      "symbolCounts": [
+        5876,
+        5876,
+        5876
+      ],
+      "edgeCounts": [
+        26973,
+        26973,
+        26973
+      ]
+    }
+  },
+  "navigation": {
+    "before": {
+      "counts": {
+        "mcp_protocol": 1,
+        "mcp_symbol_query": 6,
+        "filesystem_search": 3
+      },
+      "events": [
+        {
+          "category": "mcp_protocol",
+          "method": "initialize",
+          "elapsedMs": 76.9278,
+          "responseBytes": 178
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 78.0046,
+          "responseBytes": 975
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 18.1199,
+          "responseBytes": 9156
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 47.80880000000002,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 82.67010000000002,
+          "responseBytes": 975
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 7.958100000000002,
+          "responseBytes": 9156
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 28.490200000000016,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 75.71069999999997,
+          "responseBytes": 975
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 6.593599999999981,
+          "responseBytes": 9156
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 32.056899999999985,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        }
+      ],
+      "results": [
+        {
+          "run": 1,
+          "occurrences": 4,
+          "distinctCallers": 3,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        },
+        {
+          "run": 2,
+          "occurrences": 4,
+          "distinctCallers": 3,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        },
+        {
+          "run": 3,
+          "occurrences": 4,
+          "distinctCallers": 3,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        }
+      ]
+    },
+    "after": {
+      "counts": {
+        "mcp_protocol": 1,
+        "mcp_symbol_query": 6,
+        "filesystem_search": 3
+      },
+      "events": [
+        {
+          "category": "mcp_protocol",
+          "method": "initialize",
+          "elapsedMs": 71.5214,
+          "responseBytes": 178
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 139.2002,
+          "responseBytes": 972
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 22.99860000000004,
+          "responseBytes": 14653
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 46.031600000000026,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 124.2543,
+          "responseBytes": 972
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 8.856899999999996,
+          "responseBytes": 14653
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 36.269300000000044,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "search_symbols",
+          "elapsedMs": 95.27640000000002,
+          "responseBytes": 972
+        },
+        {
+          "category": "mcp_symbol_query",
+          "method": "tools/call",
+          "tool": "find_references",
+          "elapsedMs": 8.295100000000048,
+          "responseBytes": 14653
+        },
+        {
+          "category": "filesystem_search",
+          "pattern": "NativeRedisArguments\\.bytes\\(",
+          "paths": [
+            "code-graph-dba/src/main/java",
+            "code-graph-dba/src/test/java"
+          ],
+          "elapsedMs": 33.8112000000001,
+          "responseBytes": 1146,
+          "matchingLines": 5
+        }
+      ],
+      "results": [
+        {
+          "run": 1,
+          "occurrences": 6,
+          "distinctCallers": 5,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        },
+        {
+          "run": 2,
+          "occurrences": 6,
+          "distinctCallers": 5,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        },
+        {
+          "run": 3,
+          "occurrences": 6,
+          "distinctCallers": 5,
+          "inventoryComplete": false,
+          "coverage": "Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent"
+        }
+      ]
+    }
+  },
+  "tests": {
+    "skipped": 41,
+    "failures": 0,
+    "errors": 0,
+    "tests": 680,
+    "suites": 133
+  },
+  "limitations": [
+    "Thirty warmed query sequences per fresh JVM; three JVMs per engine. OS file cache not cleared.",
+    "No unrelated database or UI workload included. Source-launch compiler overhead is included in process memory.",
+    "Heap-after-query values include collectible garbage and are not retained-heap measurements.",
+    "The fixed navigation workload deliberately uses equal tool counts; it does not prove an overall reduction in agent filesystem calls.",
+    "Correctness oracle is the reviewed six-call-site/five-caller helper and synthetic/unit fixtures, not a complete repository reference inventory."
+  ]
+}

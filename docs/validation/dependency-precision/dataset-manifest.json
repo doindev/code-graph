@@ -1,0 +1,1794 @@
+[
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\pom.xml",
+    "sha256": "FDCEDF496CAA03F47C6F8CDCCEBBFA1F0F401B68BA58E8685EC6CA7DA035C125"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\BlastFormula.java",
+    "sha256": "4AA2DFC342FA5EA68E691F573D80F15CC9D216F7A48347714AC739047BD16E01"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\BlastScore.java",
+    "sha256": "76D8839FB40753515E08FACD8B816DAE98D1876C0B2D9FEC976D77D72EA7FE1F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\DeadCode.java",
+    "sha256": "BB162AFDE44DE515F5334A517B611158F52D514DFC7177105D0FB300940B8026"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\main\\java\\io\\doindev\\codegraph\\analysis\\Tarjan.java",
+    "sha256": "B326AD49A5421E12C8D0A1C94782D827094133963450C38923B3E04E7359B91B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\BlastFormulaTest.java",
+    "sha256": "70FC47FADFF208B49E820F1CF61AFF3B1DB2D12649FD72301E3F4533DCDF21D6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\DeadCodeAndScoreTest.java",
+    "sha256": "49A28BE63349F5DD4BB2F0AFCE90ABD85E75A55A77081E5582C7627EA7FD306F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\DeadCodeHierarchyTest.java",
+    "sha256": "5CC7A04BFAEA7BF93B08FF187D9DECC0D7A2C4FE43A7F739CCF914DD6D10FFAE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-analysis\\src\\test\\java\\io\\doindev\\codegraph\\analysis\\TarjanTest.java",
+    "sha256": "A27CDBD555A525A6840FB7D8DB5ADB1BD1AF1E72823D51799BF0EAF89FFCFC62"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-bom\\pom.xml",
+    "sha256": "EB3B1008A216F210C7894AC497DD4791F33519F1DED86A30FAE0CA1EF5B05B32"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\pom.xml",
+    "sha256": "4EF44F1395B16640D65DD47C188373DEF3762987519E6A149C5CEB4A5B5EAC0B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Args.java",
+    "sha256": "2AA9B12442E1F3E6E1B62C978769A7EE958B4F4A0DC7EC3852F3E3B594A20C6E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CheckCommand.java",
+    "sha256": "1BE603837CEF03DC8190FE5E6965140B0E30E9D622094AE8CEF3C83137A8EB1E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CiCommand.java",
+    "sha256": "405F6DBBC970C537FC005000E9A5F5B2C4983769444149969D71097BB75CE8DD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\CiReport.java",
+    "sha256": "5A04C2C10DDDE1E7970262CB6EC42955073A25BAA2EBA80D5DD5AC84E5295A8B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Git.java",
+    "sha256": "BBEDACA7669EE45E6694E91D5100A97966CEFDEA2245714803D80D60D41145A3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\GithubPoster.java",
+    "sha256": "30031E048541C961C9273CA0309A3C89BEB14AB9F684455387DA51899EAA9ABB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\GitlabPoster.java",
+    "sha256": "C97E4849D1895159E06912C85F91DA2031A446B16CBDF17A9C00AB8810F52D1C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\IndexCommand.java",
+    "sha256": "AF74AFA37D4E95DFB5F1294C941F12A404D5074AC46BFF24BC6D244723F04D35"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Indexing.java",
+    "sha256": "50D00DEB689E00745156080865D2C687D00A6426BA7F62485A918B35761BB70E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Main.java",
+    "sha256": "0220ABF8B867890F61086AC9865429049E8C1AEC8F639F20588DD3391657CA0A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\PrCommentPoster.java",
+    "sha256": "0F6055691822C0B0C0CE547115787588D3FE6257250354848290CE1B21C4DEB2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\main\\java\\io\\doindev\\codegraph\\cli\\Snapshots.java",
+    "sha256": "55E1252259D2D654B8F55F779CFBF993E5289DA87BEB4F898716821B773C0E4D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\ArgsTest.java",
+    "sha256": "C74A80A75A80A5550E602F5556A1615DA62134F611313FB4E69273DD55F6FACF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\CiEndToEndTest.java",
+    "sha256": "2E64D6A7291E9333F820BDB546699317FA82EF215A073C51DE84FED8365381A5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\CiGitTest.java",
+    "sha256": "C4A67480368613B6700845A30664F8EEC75C6D0C711A06A00B122319E811FDA0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\GithubPosterLiveTest.java",
+    "sha256": "898D7A83F60805184685B84C69B451892568254CE75098FE58E1E7A125EE9DBF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\PosterTest.java",
+    "sha256": "9BF4C669C66EAF700DB47222A86DDACC2E0215BF56EDD3E4C4C72661D5CD5A98"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-cli\\src\\test\\java\\io\\doindev\\codegraph\\cli\\ReportTest.java",
+    "sha256": "91E286F1D31FA4E1A076623D10473EE1916397C2BD6405A525E05FD92FBB5CD2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-config\\pom.xml",
+    "sha256": "2EFB9D9A6BF62E4C115FEDC8BA04DD789495134A1A47176F691C3EDE7C953D1B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-config\\src\\main\\java\\io\\doindev\\codegraph\\config\\loader\\ConfigLoader.java",
+    "sha256": "EB9E728D2382BEAAA3D1349BDE28A893736DFB654A4C7AE89B3EDB3BF2773C6C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-config\\src\\test\\java\\io\\doindev\\codegraph\\config\\loader\\ConfigLoaderTest.java",
+    "sha256": "5CE24B4723630A67C0FA1CADC50BE77F8DA24B9991679889D67F5B72D3BB8540"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\pom.xml",
+    "sha256": "1AABE214C79CB846E464628AEABFBC33C7F964FAD38BE8CC121578C11E43C81A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\config\\CodeGraphConfig.java",
+    "sha256": "2990156608E1285C458A3CCAB95A0CFB4E274A17F471D88FD6F7EABA98AEA6B6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\graph\\InMemoryCodeGraph.java",
+    "sha256": "CEAAC2C07D8C3BE271603B3BF9949AD1695D21E1AB49FA09605B0C612559423C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\lifecycle\\ProjectLifecycle.java",
+    "sha256": "F42277F5105DD2D0811844AB99A0084E60664DE800AEF3B1ED815F3477EEFF3E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Direction.java",
+    "sha256": "B96F80DF14B4493C4A04A63D6B3135C62AB78910E809FA8117A8EFDE4DE76E34"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Edge.java",
+    "sha256": "6EB39D9155D5CD500C1D7B7A8DED50F2AA75B5A36549BBF9B198B14D4D0736CC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\EdgeKind.java",
+    "sha256": "995725777FEDBC1559391D78CA299A78DB493C69FE30B63C2C813479A6DF2083"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\FileId.java",
+    "sha256": "DB74F18148C33E01A3254F1712C2B2D0A35DB4583BDAA80DF254F2F80554778B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Metrics.java",
+    "sha256": "A20C35C2C22E5BAACCE738FAFD49BF4E4650FBBE3FF2E8230A14F21637EDEFB8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\ModuleId.java",
+    "sha256": "CE2580839AF2F7FE0005CF31DD98048808D2421FFFC01E4DBF018AD6EFB81651"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\Node.java",
+    "sha256": "F8BE0A2014E8E7409A80BD669982A56CC2F2AADC4FD6506ADAB6EDD98AF58203"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\NodeId.java",
+    "sha256": "0FC103C47667EDCA982C10E4BAFAB0D23A1853112920D3567240F685D4C63D19"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\NodeKind.java",
+    "sha256": "09C01F35834F634663ABB59B41B6E94BF43D0B8DD26CC362EA92B8F3C07AF119"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\RepoId.java",
+    "sha256": "9E5DDEFF9730F1E55E2CF8824A228004B7F2EADF1B5367D5DD41FCA85FB8616F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\SourceSpan.java",
+    "sha256": "987CC298CFB9ADB0603146C519A577EB6E9AF431B5CECBE3C033A597E4AB053D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\model\\SymbolId.java",
+    "sha256": "7F315780D666B6008EA4BFB8D245AE1352A528738FC16658CBBB6A01CFE88DB0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\ClosureHit.java",
+    "sha256": "55B6E0817A43ED7EE97816670B39406342939F8446F5E432580C71DF931D2A5E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\ClosureResult.java",
+    "sha256": "AB81271C80BEFA8ED009527267017404D2B9B9A0343706322F26E4985A1FA565"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\GenerationCursor.java",
+    "sha256": "6F62D74000038AA5ACF429E4040249B063F2B65F64E5DC03A8C416326E7C8878"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\GraphQuery.java",
+    "sha256": "CC82A0380975CC57FDF53CC0ACA74245910153AA507F15E51317FBF1C793DFFE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\query\\IndexStatus.java",
+    "sha256": "5F00DB87BD9825966E2033FA7D2BF08753D693A9D7573FAB40414C54568423D3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\DeltaCodec.java",
+    "sha256": "ACF42D607280AC530692A7D5E04B52E85FF5015B44A637023ABDF5E55961332E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\FileSnapshotStore.java",
+    "sha256": "9AE56CE5BB1C9AFDAD6515737A95D27E0059EEF8CAF7BA9D8E6BC9A7DD009596"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\SnapshotCodec.java",
+    "sha256": "81BF86193B8BAF4BF6A1D81C6D6B7ACECBE7169BFCAA39DB61086DF2F18731B5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\snapshot\\Varint.java",
+    "sha256": "92985B0A5B4E28C27E9EE3362707F4DB254410DD9CB6E9C91B633E2D43BF69DA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\DocumentStore.java",
+    "sha256": "11992621121DE419C669EEDB80FAD5D3BA0551DE2E9EA25D522F19A4712835B5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphDelta.java",
+    "sha256": "9FAAFD24D2E2B6DF3D7B0623F166E2668CCB03C7AD9454A0512DB921DADC85BA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphSink.java",
+    "sha256": "6E94126A84B899C3A7A7BBCD0C7C0179A366B6BD06B5EFC7CD7E47E8773A0E7B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\GraphStore.java",
+    "sha256": "35CFDAD702FEF1D3AE899EB926C4F8B8CE0B2D13B838911549F7852EC5F3AE9A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\store\\ManagedGraph.java",
+    "sha256": "8A0F2A0F4B52E7A0BD89D47442867349042CFE7E1D89E29A8D37CF56D2D99E7A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\main\\java\\io\\doindev\\codegraph\\util\\Globs.java",
+    "sha256": "1AAA1AED0C9CD8B572B6527FFC0B3E5294EF9E4DE439E799FE7472EED0BACABA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\graph\\EnginePerfTest.java",
+    "sha256": "F9BFBDFB87881546031A83FA060D5A3F66889971A44DA99E0F504805E6731075"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\graph\\InMemoryCodeGraphTest.java",
+    "sha256": "1D5DE8080897E05FA92811654AC9C7B89E3DB26D67B67E8B07E43C374E9B89B6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\lifecycle\\ProjectLifecycleTest.java",
+    "sha256": "AB0C12C56C91315D40E9A354BDFE2A651A7B1046601159F83DD9C29349A77847"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\model\\NodeIdTest.java",
+    "sha256": "431F0F538A92167268E90574A0D0B9DCD7D4E219717FEF54EF99ACABCAE3F99C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\query\\GenerationCursorTest.java",
+    "sha256": "92BCBDB07B097699EBABCD6E7E0FCBB9748AF728F07062C88ADDABA8FFE43F2C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-core\\src\\test\\java\\io\\doindev\\codegraph\\snapshot\\FileSnapshotStoreTest.java",
+    "sha256": "A656E0D90E5242CE8C9201AEE3904DEBB30CE7F939AC6A01BC1B80A69F123854"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\pom.xml",
+    "sha256": "3B86FD0017A3658EFBB0CC6A6E6B6FEF79065521A72E076D9F372F9BEBE45AAC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\qa\\LinuxVaultProbe.java",
+    "sha256": "3FEFE93EFCD30A6AACC52DA8FBF4C3624C0E6913FBCCE794386CDFD891B60D31"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\AgentAccess.java",
+    "sha256": "E218AEB858352DB780E2EB57B962A58ABB871327D4AF345DEE6FEC6F9830EFA2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\AgentAuthorization.java",
+    "sha256": "3DA52EF600E43D5B91BEF7032C340DAAB3145DADA7631607BC95E1598ECF77C3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\AgentRequests.java",
+    "sha256": "070241E1332B31AC78D650CC3A091CBF9C2BF7A0D4EA09B867C65717EEC81A46"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalBroker.java",
+    "sha256": "77CECA18220D0C7C9E77542749253F19D2B37546FA29B0216CCD94D7454FDC66"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalDetailsView.java",
+    "sha256": "C11F012B5669F44D31B6CA6F069900083F597F875A7C185DCC701B5509FD593D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalPresentation.java",
+    "sha256": "1C755F193BBB945C7642F4758FA16006B52B670A51993BCE6A32DE688F9C17D5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalQueue.java",
+    "sha256": "0B039ACA4B52656679779856F718FAF8B327E694A33CA29AF60A15331ADBF095"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalReviewServer.java",
+    "sha256": "A6158442D099BE1274C7EE5F7A5578C0BED88D1FD8E69041E854BF761D46C241"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalScope.java",
+    "sha256": "53761C4D342F7323460F5466A1DFDA554AF512AB54CC8E03A5331C4A4A1E5F8F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalTitleBar.java",
+    "sha256": "8AA04109B440DF9020F3E35FBFDD0360C090A35F26F133B85F51D628CE223FBD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ApprovalWindowSizing.java",
+    "sha256": "6DBFAA096A2CCD41AC8B0AE04763667BB6070E43D7555C608FC3DE8180411BD0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\BrowserAuth.java",
+    "sha256": "33C0378CE5AD916C80B9D0E4A71A4FBB8014A9C3A61809D6DF2E10F89C2E8A1F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\CatalogScanner.java",
+    "sha256": "71108D6310E25BFC0800031C9A13BA5A82554BA577F230320D732AEB0C6CD0EC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ConnectionDraft.java",
+    "sha256": "06D2E144E119F1A99576F945B390E03B051C75F85BFE4D3849B4A2FC12AD7652"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\Connections.java",
+    "sha256": "67CDFAF3E03880F7DF7A92FE9A1F7B0034A67BECA5C2203E2BBB15DED7A11A00"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ConnectionSetup.java",
+    "sha256": "6315064599D80C870B2C9D36E605FFCDAED19E0FA38D19B9EDBB2ADFBD8D112C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ContractValidation.java",
+    "sha256": "C231C5E9FA19A7644A8BFDC8D98633447947EE5FAD5658E41E5F8489BC9BFFF5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DatabaseCapabilities.java",
+    "sha256": "F8A6A25A95916ED16EB6BB85CC213375FFA73B15061DFBD22B9C66020104CB98"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DatabaseCatalog.java",
+    "sha256": "D4DFD625D63A72D519305A74B3D9F97B9DF358F8C0619730C17D4CA56C08568D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DatabaseTransport.java",
+    "sha256": "9A5C2F4B770C8CEF0DECFEFD1F7A442E70BB328801429BB58423A436EF8D4958"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DbaConfig.java",
+    "sha256": "FCBEB5E31670B99EFD13720FA2D833DBCBD2D8CB809D7BFC0EA7E6BDBE936181"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DbaRuntime.java",
+    "sha256": "7025C58C2CF0DC941941DD17A8112B7050201DCFC2A6A3CDFB672550151C009B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DesktopApprovals.java",
+    "sha256": "E8FA93C42949CD21264781396636E3A7136DA128A8E5D50219F11240ACABD195"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DriverBundles.java",
+    "sha256": "F9FE4284B20FAAE2278C33DDE20F5C8330CD12CC97BD4E84CE7B90377FEEF410"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\DriverCleanup.java",
+    "sha256": "7ABFA07259A0A767E332984385EB84AE4344CAB572F1ADCE9E51E86E7F0C65F9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\EditorPairings.java",
+    "sha256": "EC98591060851C8ACBFB4957E6DFF0576507A120E119FFDCFCAE77F685F6CBDB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ExplainPlans.java",
+    "sha256": "4B0EC27B8504A4C638E5DF1FB338D2F004A85B5D01F4C737A305CDD9E5AF25A8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\GridSql.java",
+    "sha256": "741D0B19087384FF5FE6F243C1ED0C3BABA1FAAFAB3B0AAA56C945630E76CBC5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\HumanSql.java",
+    "sha256": "BC8541D4943A76D54A7FA615B6CD99CE81C9635690240DEBF68D967BA69E9435"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\MaterializedViewChanges.java",
+    "sha256": "A6E838333E89D2BA9EF9705CD5796B3767913FBEA2B9BEF3BD24AD3C28327160"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\MaterializedViewSchedules.java",
+    "sha256": "322453009D8D4FA7F490C638A38CDCA7CCB132D9A78399852704EB347EF8EFFB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\McpSessions.java",
+    "sha256": "BF11600648FB4459E1419B850707FE6A0D329E4B08F1152727BC2F60FBE67A1F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\MetadataActions.java",
+    "sha256": "028F567C673419FEA1D018D880CABAE457BE5E52A0E9D73B663F04E11AF08C4A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\MetadataTree.java",
+    "sha256": "38ECF76032C9690A863406C8790BCE7B40EEC56C02118B0331EFD150DF23296B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\MigrationPlans.java",
+    "sha256": "6C8FBDD3DD35B32B77C1BDA4D80F34D626754B5FE06DF5FBD15BBD36DC3663EA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeCatalog.java",
+    "sha256": "941850B536F9CC8002BB7205367DD03967968D325BAEC88BF5916845873B67F5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeCommand.java",
+    "sha256": "9BF8A0498EAD51D7785FCCF1541E6D71E4F347E22E3A45655051ABF9FF0D68AF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeConnections.java",
+    "sha256": "5B318D83F0787E5237FE3083C090183861CE06B56F440F2366A907CC51311717"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeMetadataTree.java",
+    "sha256": "5CFAD546C44BD1E8AF0B48AEEC586A4948516EE30D34BF146797680B8CE4AE2D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeMutations.java",
+    "sha256": "BD4EDD5E8EDBC6ADD4670BE1D7458106687792D3BC98439EEFF86A0EC4E85E73"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeOperations.java",
+    "sha256": "C2C8586C837E69CD14D479464ABC117E9D6D6967466DB3842951D81C27330418"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeProfile.java",
+    "sha256": "879176B1F9715AD2073ACCD567B8A98280456E242FF439C5693306195CADF290"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeReadExecutor.java",
+    "sha256": "0FD11AF9B2D2698743C0FF20AB8159E387B890767BEF9636FD2A1EEB86E52142"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeRedisArguments.java",
+    "sha256": "A7F66EF07D423D411064D770E671C7EFBF2076BDA28A9A89F374F13DFD74D439"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeRedisReads.java",
+    "sha256": "9852229A65C8E5A16B91DC78F0D998D281AF734CE719EC4016927729EBB91D14"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeResults.java",
+    "sha256": "9F023048CD3E382B0F8278248B41E84B082EADF56B38DCBC043EFD1B09E2EF8B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeTarget.java",
+    "sha256": "12BF7F78D1FD3B2B55B3D1888DB347D274319E8B549A59E8F1F2E10FF82C0D46"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeVault.java",
+    "sha256": "32D0DEDC8B5AD56F43F77C3A50F7B33D869FD6B76323307F233D034D827D9DAC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\NativeWireBudget.java",
+    "sha256": "FEFC6E2DAA83026CF5C8174C7A8F667C9D6FBB4109C5B71FA0B8C6B652012B0F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ObjectCatalog.java",
+    "sha256": "80C1D085CA81D36CFD3E37EA38AEE9D5AB5A7A7065982BCFC9129CE25D053D9B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ObjectCreation.java",
+    "sha256": "EFF7D54497F2786B76C6F7D8B1DAC0824E00C194C690A366F8C1F7D908BE231C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ObjectDesigner.java",
+    "sha256": "5C472A1E3700FEB547EADDB176DB8FA744054077AD8CF29D83D6964751A0F540"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ObjectForms.java",
+    "sha256": "C22F2168598F694D2619D832162E2EE5CCFB4FAA95491D437D98BAADDBBC8B9C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\OpenSearchExplain.java",
+    "sha256": "813B52C08D5C409F25934CAC1FFDE46B897124EE85F49FEF23E7A0649CE8E394"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\PlanObservations.java",
+    "sha256": "8E9951C68B0FDC13C0B7B1A240765666C8A7AFE94CEDC7B099850A77394BD0DD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\Profiles.java",
+    "sha256": "E6FC41C94F5E54FE1EC7CB316BB9824D7DF152CA158ECEC7AAB2ECF284CBCC68"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ProjectContextHost.java",
+    "sha256": "B248B05FCCB1CAE2FAA7C7C852B3F2915EE9652095E3DE474A391EC051FA68EF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ProjectContexts.java",
+    "sha256": "C9A564CBE910C505B2E1DB08F3BA12A87070F60D5B931A1A81A547791179DECA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\QueryBuilder.java",
+    "sha256": "9D1F89E4A6CEF13D168A70F8B2AD5FD7ABC87CC5BD5F7E726385CF09CC5B0148"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\QueryJobs.java",
+    "sha256": "46164C79F6E2E916677C8CA75668AA760C1962032F3DC7155F7B9F6DB8862B00"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\QueryPlanAnalysis.java",
+    "sha256": "FBD86CB4870E40FBBFCB9E41DEEBEC8011BD117F1DCAD38CB26D245D5714C8F4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\RequestLedger.java",
+    "sha256": "8477F65C69BE5A967A4CA3189CCF493982C51DE28744B543670E8776DBB2C5AD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ReusableApprovals.java",
+    "sha256": "F1305D61DAF9EAF8E6B97F36D5684048AE47E0182278D7A8DA9F252D71DD4FC0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\ReusableOperation.java",
+    "sha256": "0CF9D8553DB5782BBA6926A37BA4223711EA59C3AB7DCB38797405133D558F4A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\SchemaSnapshots.java",
+    "sha256": "776BFD66D956C7375BC514C7A9A6FE8D10FEB67DCDDFE06D9A5ED7285F047DF2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\SecretRecords.java",
+    "sha256": "DE46460837EE03B8AE712C8A87197120DE6A726A9752CB1BC8699C82D5EF8772"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\SnowflakeKeys.java",
+    "sha256": "6D09CA175D8A359236E89425D02ECD90D4C651BE58F4AAE434EBF627AC155AC3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\SqlReadGuard.java",
+    "sha256": "2256AC3AC3709404A0AB88325E3705C6CFA18E52B18E6C421628748EF40C5507"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\SqlScript.java",
+    "sha256": "8DF3AB3C1755344308CE7D48B18BEFF42CE3597FFF21935E523AF89D3E3C3004"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TableCreation.java",
+    "sha256": "0D6BC0D5171F48B0962F9DC9A7FA6B4B3F8B6EAF51F7DBF4ACBC60BCF5674F4A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TableDesigner.java",
+    "sha256": "AEA9B046B4234D4C7E7A93018B1AC00AD216E6C2718B640DCA4ECC6790B965B9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TableMetadata.java",
+    "sha256": "51E37865929E4E8C1768E99D9724085E3DFD3B80066AE9CE2BE1A4A2BB3D38BE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TableQueries.java",
+    "sha256": "9F1B004D632E205570648DFD69B298AB7DD270D0877122B8BEA4E34865966BE9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TemplateDiscovery.java",
+    "sha256": "E48B800042210274213B5FC9D115BA51BE52C6BB89028B004F8BDE455C8DC571"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\TrustedCatalogRead.java",
+    "sha256": "8937DAB93FD03DA3BCD8CBACABED6803852904FD81E221BFA1DC9F685CBCE3AD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\Vault.java",
+    "sha256": "D704607426CDBEFC9745533E0AD90AC69B435E70A3E13D731E3698C603B2B59F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\VendorMetadata.java",
+    "sha256": "3C314C6A6364C9E6FE43AB0114AF0F2FD38D8B44DFAECD8210FBC5B5FFA0B11D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\VisualFunctions.java",
+    "sha256": "52380DF305F0E1EFDDA98C5D279BBDDE27CCD93650DFD4D740656842EA11FCDA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\VisualQuery.java",
+    "sha256": "918C17D0A496058E819EFC4011805EB30A0B68C5D5711435F56655B9B41F2083"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\VisualQueryImport.java",
+    "sha256": "9F5884622D40C2FF511C409C4BE4208C906C23595E3DF052DC0126143D5F211E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\WorkflowTargets.java",
+    "sha256": "8CAF775E11A82103E49172124DCFC1EEC5DAA15DA1A1F6D8CABFE0EF889FBEE8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\java\\io\\doindev\\codegraph\\dba\\WorkspaceDiscovery.java",
+    "sha256": "4DFA6E24F441A961399EB54637B56720E1956BC74F33A25BBAE7E673B613467B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\app.js",
+    "sha256": "64FD00AC47169027505CDD7F1C9ADAE35C68BC2B40DF20CE325B898890DE7271"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\approval-client.js",
+    "sha256": "6920BEAFD015C8302D34D3A60735FEDF575C0D74EDA6F2AC69636BFEC16427FD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\approval-review.js",
+    "sha256": "B20E8BDF1E41433DE6ECDCC857C62AAEC69E2C0C8F552F933B90A640B2092BEE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\approval-ui.js",
+    "sha256": "733A04C90E77C23657C903AF266607D08ED935D8444C60B228BE5D8D309305BB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\connection-editor.js",
+    "sha256": "61C7C8AF59A67D899FD1E743C2A7F3216DB7FB301FEC495E92DFB37616A56B97"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\connection-tree.js",
+    "sha256": "1DDBDE49EF14961DFD164C84A3EF5F9DD283764E2665E3C1B411DE96F85450C2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\data-grid.js",
+    "sha256": "C7AB5EA24DA8A185FD5E5A617E4F90C6015A3ABEA7A0DF0EFD4B02588A621741"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\metadata-tree.js",
+    "sha256": "8F576CF83D6DAC9EA01CEBADDD2550519854472D805BD055AA3AD11575548EF3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\native-connection-editor.js",
+    "sha256": "3038DC617590E6FC13CA3843107D7D960EDF08EBCBC8F07F2E3EEC8232506720"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\native-workspace.js",
+    "sha256": "3A3B0F13590D610F2D6ED9E1212CE07F7FC75BA4B24AF8DA797B0EE0CC8DD34A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\object-creation.js",
+    "sha256": "190D113D3FC83516132C3C8E06C0521266E8F87302A54836F1F285C39A000C18"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\object-properties.js",
+    "sha256": "03EF40BCB90EABA3BD911AE69EB9792C1D944AC81A83AEB801F0A28B5F327138"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\project-context.js",
+    "sha256": "D73E6F2701A8250D60C60014D709314D6B5C4FB218496547E62AD5D01ACFADA3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\query-builder.js",
+    "sha256": "39D436E8AD0E4725FD585154D2864842948873B06C4B5DE67C76FA355A393E60"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\table-properties.js",
+    "sha256": "6BA467267914EBB486A6D01BE0E248968155815857CDDB13552CF29E39E88E3F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\tree-actions.js",
+    "sha256": "6D1E07FAFF1FC0E0A6D4A1D10EACB5530DFE3E3E8A72EDC64C0577351A8A16B5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\tree-icons.js",
+    "sha256": "5F31F17FAFB109F3C2A87421497C9EE2AD55AD09FFC21575F85D7670C6AF579F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\visual-expressions.js",
+    "sha256": "ACEF3EB3361DCA188A413B4D0B3448F1F2FDAB2EB4E2EE86DB8A77C03EB72556"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\main\\resources\\codegraph\\dba\\visual-model.js",
+    "sha256": "E4180E6E73624A5E5802E615CA09B6AE9CA3A457E1706EBA6150E752C01D723E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\AgentAccessTest.java",
+    "sha256": "DF9458C01B0CC55554DE506C71AEA1B54D615B8C2FCD81490451E03D6B5F54CF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\AgentRequestsTest.java",
+    "sha256": "1C2396DC1E3CF6ECA61294703E1D18FE0BC7B4EB8BE35BA1DA42A5D669570A2B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ApprovalBrokerTest.java",
+    "sha256": "BE18E55E9F07C56F092AD6A6694CD8D8889231E915D94D59AE47BB2103D8395E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ApprovalDetailsViewTest.java",
+    "sha256": "DA23EBDB6343A73F768CC98AD42C47F6591E2E7F9CA66291838386A6CE977816"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ApprovalReviewServerTest.java",
+    "sha256": "6583AFA65020826C421FFECFFAB35586F70A9A5FFB90999E40652E6A14803B06"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ApprovalTitleBarTest.java",
+    "sha256": "52F6634FAD263EF4E9F2AA68593CE2A08C52DDFF741B77AAFD729881A844DAB4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\BrowserFixture.java",
+    "sha256": "68210589C9B79E59D25D6B9D7E6038C02D4F44228C0929DD40E08B33FC2051B9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\BrowserSqlGuardTest.java",
+    "sha256": "C15E06296CEBD78235B1351E0E60896E15488B17F2682C5AF18AE5E51CF74155"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ConnectionAppearanceTest.java",
+    "sha256": "A4B831CA13C3E02F108DF6E07806B1B094AB0A1A980B605664E42797E669B6D1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ConnectionLifecycleTest.java",
+    "sha256": "AEA16FFF1633B071311FE8ACD68D696DF05DD71C106851B8901941BD848DF854"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ConnectionSetupTest.java",
+    "sha256": "D15A7B3BA3D230A4F68AC4D020D6867FDC59AC7C0E71F0024B3A7142BDC53353"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DbaTest.java",
+    "sha256": "0DB074D2349DAF12626A51D99BC6D5C7B01877490E249E15DC51BEFA24A02EAB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DesktopApprovalsTest.java",
+    "sha256": "0098EC22FF0CA5BD56AAD479AA78EE1296A6B1F0657C02776EBD86833B92044B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DiscoveryTest.java",
+    "sha256": "84B8C5AD726950DFC54170CB6F3E797E8CB535172D46380410C59A2C9387DBFA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DockerDatabaseTest.java",
+    "sha256": "FB08A4B075BA3B7BC50FA9BE737DD657AB4DCF60B1950DF43FB8F1C5AC2AB180"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DriverInstallationTest.java",
+    "sha256": "03A4FB6639F956F34A4188791917BCFB61D2DD493C61C37B76D3C5169A321347"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\DriverProbe.java",
+    "sha256": "CA667974C60CED95E2CF816E70DB46D9250311522406E246926424686978DB9A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\EditorPairingsTest.java",
+    "sha256": "ACA1493F4C51313E8DB5589500A29C6D2A2C30604BD08A05F51C119146DFB975"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ExplainPlansTest.java",
+    "sha256": "5054EFA35052D4C8ECF528BB57A7168412DCEADA1E37B964D85E09AFCCBEA940"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\GridSqlTest.java",
+    "sha256": "5DAB695F72E6A9BF34E077B51BE6E272B26DDDC0399656AAAA64465CB87CB2E4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\HumanSqlTest.java",
+    "sha256": "B64E274BE7A2813EF697BBB0AD5A13E6BA11326D84A7820A0AB816045FBC0415"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\MaterializedViewSchedulesTest.java",
+    "sha256": "F2B08145F6F927AFD9C51A8511BD8F153C032E957B3D34DEB1A5F0A8F1982261"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\MetadataActionsTest.java",
+    "sha256": "B6F6829B947484A0E1F9A8F2F248F886904742024F39C4A2D11480C3C9EE351D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\MetadataEmbeddedTest.java",
+    "sha256": "282BC88D62B768EF56D776DF928308D88BF75F50FCEF4BE439FD138ED973C806"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\MetadataTreeTest.java",
+    "sha256": "B1FAAC9A7609D2D50C1B2D18B8AAF39E489C21BCAA8B1F77AE3FC34557DD28C6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\MigrationPlansTest.java",
+    "sha256": "369D349459D1518CC71F0836BC587FF0E3CF507E826D9C376267F95B238B9ABB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativeFoundationTest.java",
+    "sha256": "06DE38DAD6F04783065351397C291433D071E05E6599E474BC7AD4B3FC909DFE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativeMemoryTest.java",
+    "sha256": "A3F44F01F5C7905606956443F6CBC350D063215130EA7BFDB2D23F447AD7B96E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativePerformanceTest.java",
+    "sha256": "841FD48F5E5EC9B7F835CA13C3B889A29C45892EF2A6DB6B4E425BAD5A27D0CD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativeReviewTest.java",
+    "sha256": "2DDFA7CC6E5EFB0F40EAB40E55E2BDA840C850C3A0B0477EBF7E7A4C33A63AF1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativeVaultTest.java",
+    "sha256": "08A88B13F923C52C0A3129BDDC61754324D56F517221106B65CFC1DBA2D92C33"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\NativeVendorTest.java",
+    "sha256": "BA9943B30BFB7E85F0A2958A773CEE4A117CDF5551E8151BA7C6BCF9B9A0A1B4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ObjectCreationTest.java",
+    "sha256": "797525CAAF42DFC7D181C660F01EC3D8C0CBDFB09CD11CBF15D333C7B6FF5623"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ObjectDesignerPostgresTest.java",
+    "sha256": "6A6B01D70AE61F89ACB94DAD1E20A3F7B2E50D9C203602382A236C948D2E925B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ObjectDesignerTest.java",
+    "sha256": "3DBEC77066A8F6116C9CA3191D95B5AB966DCBA695A30D27018D97F42C443110"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\PostgresIntegrationTest.java",
+    "sha256": "6B7970FE612DB312DBC0B86BCF1C6DFF57025DB6673A1FBA938C565D9A78E3C6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ProjectContextPostgresTest.java",
+    "sha256": "7DA0681874CD86C67D34EA2B449C1A2FB221BD33E1528732A62549CA945E6770"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ProjectContextsTest.java",
+    "sha256": "9727BEA6C6BDF0C653A3686679CB3AAC754A540482D777090F4B802561D0CFAA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\QueryBuilderTest.java",
+    "sha256": "7FD5E2EE5FD3A57E9A4223AD0AB1D666E2401910C102118E51CE35CDEA1E1EC8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\RequestLedgerTest.java",
+    "sha256": "0308514C2FDCC1E670BC07C1F8AC1BD736114CB8B518E164716A231842A4B3F9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ReusableApprovalsTest.java",
+    "sha256": "4E26EA1E04C8519521A25414AB5983426DA99625E896817B042E3A33EB08F51A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ReusableOperationTest.java",
+    "sha256": "E4CDA6CEA51EAEBCECD99F818BEDA65BC1621B3AC769201CB45885F3F5D6DEEE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ReusableSqlApprovalTest.java",
+    "sha256": "D1E09FCDF9D3FB748DC199962F1BE0DD05B3B18B0FEB5E8AD7FAE6E52811F9B9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\ReusableVendorIntegrationTest.java",
+    "sha256": "887AB118C92DAC7B3C415BD633E2D4B1EE6A2898A3AE68F966C8C91A13882BDC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\SchemaSnapshotsTest.java",
+    "sha256": "D484D0EFBFA3DF61761D0367DAF7B868E8739D743367401533FD419B950474EE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\SqlScriptTest.java",
+    "sha256": "63A7E0B71826263A5A42263853BB8A45C39E076C14949042CDF9752C4C97B661"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\SqlServerNativeDeliveryTest.java",
+    "sha256": "08369C213B44BF0049DE4CD25F0230F97C1CC05FC23A068DAE2E193AAF2B7894"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\StandaloneSqlApprovalTest.java",
+    "sha256": "B132AB775D9297088AA3A750D4E5F6E5725EB4A37D585500F768CC4184650D25"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\TableCreationTest.java",
+    "sha256": "0A5CF0FE51B6584010C92D0E5D0657BE06F2EE7173AF8BEFDAFB7CA3C90E0E32"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\TableDesignerTest.java",
+    "sha256": "2ACF89D1727F2322111442C26ED4E6C45EF5A9BB4FBDBE3D45EE790E1A57AD40"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\TableMetadataTest.java",
+    "sha256": "C736BA1895FF15AC2794AEDF4D6315F260BBBCB78D4640A4E054516D1C9B9A6F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\TableQueriesTest.java",
+    "sha256": "5B239E160B175475F41ED6EAB28829287BC9156181950523AA1A2223A2839379"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\TemplateDiscoveryTest.java",
+    "sha256": "B346DF6E0189890C9A428B570FE1A3B1678BB124210E520410F165AB2D88418A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\VisualPostgresTest.java",
+    "sha256": "1877B3633BD2C1FCBE8F6583CEF8DC84EFF215A018FA336FE3D035A074EEDA50"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\VisualQueryTest.java",
+    "sha256": "65E15947E586B1D6149DC6205143614AA011C6FCD6443E31E2B2078D6295FBCF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\WorkflowAnalysisTest.java",
+    "sha256": "CAAA5E8A85DA033B31B4787500D489B6E9060D89EA107D7F8471579E1652A0DA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\WorkflowTargetsTest.java",
+    "sha256": "51746572704FB7E761BD509639CAB5869B215AEFCF334DDF83F09650330C71DF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\WorkflowVendorIntegrationTest.java",
+    "sha256": "02E2CE4EA21B8BB6631B0E67DA6EA6148F62363B49FA322D8D042B871EBA7544"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\YoloTest.java",
+    "sha256": "AFEB15E3949AA9C110E786653E601E8D7A5537590F880E30701C8089117BB0A6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-dba\\src\\test\\java\\io\\doindev\\codegraph\\dba\\YoloVendorIntegrationTest.java",
+    "sha256": "DB08E4D0482BEF6AF96906FDD1E1E2CC64D97FB7D62C52168CA730734B6AC866"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\pom.xml",
+    "sha256": "A61685F492D87445477061ACE55DCA93DE2D0D7258DE70F3C7ED884683003F19"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Analyzers.java",
+    "sha256": "7CD0F1A13BD72FE833528F0433C740EF9A1765FCAFF31A97D68E9DB2D8EA49DD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\FullIndexer.java",
+    "sha256": "920A314A339ECE92C42D9CA91D58C5A12F2F17E6CEE62D3FC34453796212BD43"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\GitIgnore.java",
+    "sha256": "755F30D6BF194914AA31B73A27C967837974C80B30924F0D1007D2AF3311BE3D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\HybridIndexer.java",
+    "sha256": "CC0BAEEA08E5D2B3C98C4F9BD42B6A27D0E1A153474444025CB6C551F90C56B6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\IncrementalIndexer.java",
+    "sha256": "F65D415288DD381A59BB8453A13DE71AC1F9D1D768FDB52E47AB1ED96F7561EA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\mapping\\CodeDatabaseMappings.java",
+    "sha256": "A6208676E4F2C12CCB991163B39F3B8FF755485A43EA0E7B3EBF564110A0286F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\mapping\\MappingEvidence.java",
+    "sha256": "A279E234A4DF652D31A9B73BBEF73A34EE7EF923D7F5C758955D4CD6E61ED2A4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\mapping\\OrmMappings.java",
+    "sha256": "019BB57F115A423BA75A5338CA67CBE7BDAB0145F6DDEC6FCB8E025644BEAF0C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\mapping\\SourceTokens.java",
+    "sha256": "146F4FD134F58612395663123FC8E4ACDE5E356FD842379342F3C7318699A931"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\mapping\\SqlMappings.java",
+    "sha256": "6E46797204E9D173AFDA8AA5182F571FE5DA2FB6AB17AD0FD47B7E94394F18E7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Watcher.java",
+    "sha256": "92D6D5A1747871DB4F87B18EA32E17AFDCDDDCA5CE5A2B20ED0FF5A33040BD3A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\main\\java\\io\\doindev\\codegraph\\index\\Workspace.java",
+    "sha256": "AAAE62564170A2FA4E873C482F967F46156DCA24F8B4D808EEC7A0BAE0B8A1D6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\FullIndexerTest.java",
+    "sha256": "631634882666F7F50C1F166F1D513E2F5E2DB5798A47AD7421256A7921B46A7A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\HybridWorkspaceTest.java",
+    "sha256": "82DE1811DCE5834CB334D91E240263595D08EDDF4BF72FB56A357D5B9E796D2D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\IncrementalIndexerTest.java",
+    "sha256": "A155310A15022B9E86F17009DD958D0B1D337207CA4047D8D6B08F3C42ED85E2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\JavaResolutionTest.java",
+    "sha256": "E633F828BCC03DAF10A8E2375D01E8C9B7CF1957BB985CDB8CA75FFAEAC022ED"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\mapping\\CodeDatabaseMappingsTest.java",
+    "sha256": "3D7E4E615B9F8E3F58A79B67F350C513392F15A117D416DE1A1F97E70A241012"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\ProtectedDirectoryTest.java",
+    "sha256": "CA74464EA40F9B8D52B13075A6713F16D98BF66A22153E2BCE503679EA8B8E70"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\WatcherTest.java",
+    "sha256": "A2F72646055D5F6FA55B0A3B69AA027F287EC57EC5D0EFD477B6C5FD746652C5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-index\\src\\test\\java\\io\\doindev\\codegraph\\index\\WorkspaceTest.java",
+    "sha256": "D45673FD0874DD98A2F634A27002279A193549C36C20309229E1A892B4BF8708"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\pom.xml",
+    "sha256": "85FC26020BF49AF7F93E020BE8D05535A188E5D7D0094D3D397100E025AB822D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CAnalyzer.java",
+    "sha256": "27298488510F9079F7C3C5300BE7BDF4968BBF6391F57F108878FA7BFA7EE2E4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CFamilyAnalyzer.java",
+    "sha256": "0D78A92BA45FB61614AF2A778C52D41F9FE618914EBF6B4899395A4484784F3D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\src\\main\\java\\io\\doindev\\codegraph\\lang\\c\\CppAnalyzer.java",
+    "sha256": "73FAF7A8DB21DD2A011FA7CB09DA3F647098FA614F5E9A684A0B54AF733A8379"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\src\\test\\java\\io\\doindev\\codegraph\\lang\\c\\CAnalyzerTest.java",
+    "sha256": "FBD01E58F42D7190A00400ACD5144DBE1AA1F2AEA885764B716FCCD4019B4416"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-c\\src\\test\\java\\io\\doindev\\codegraph\\lang\\c\\CppAnalyzerTest.java",
+    "sha256": "72D2B0F8484BD8867F7D5A72BB9ABA457C9414F3EDDBFCDE7C959BCB7243DD2A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-csharp\\pom.xml",
+    "sha256": "6ECFE9BC9CA51FFD4A99C749C8D4B79C4E5C029CD71C60D6A032DB00DE2F426C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-csharp\\src\\main\\java\\io\\doindev\\codegraph\\lang\\csharp\\CSharpAnalyzer.java",
+    "sha256": "5FBE05BD98CFE175C0F3CBA8599F68D576D558F71FCE4C5FA73E144AF0E44E62"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-csharp\\src\\test\\java\\io\\doindev\\codegraph\\lang\\csharp\\CSharpAnalyzerTest.java",
+    "sha256": "07A604CC65CA06D51A4A8B3380575D6F36B506B1BD454F8A5E66817B7DA83876"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-dart\\pom.xml",
+    "sha256": "41C06BC7D60FEBB10389B992C47648D4681ED4516FFD673B2A0A3C297523B027"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-dart\\src\\main\\java\\io\\doindev\\codegraph\\lang\\dart\\DartAnalyzer.java",
+    "sha256": "98CA3A3B2CDA94DA46CEA34C1B5001D0F6D30E83BDACD4204B490DDF66F009FA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-dart\\src\\test\\java\\io\\doindev\\codegraph\\lang\\dart\\DartAnalyzerTest.java",
+    "sha256": "D3E945FEEE3B3A2827403631C0C929BA6F17402A970AF675CF24C4D990011CF8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-go\\pom.xml",
+    "sha256": "CC97D07E613EC32B97CE96D94B228AFDA5BBD713A493BA8A9EC4E450EBC3BEBF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-go\\src\\main\\java\\io\\doindev\\codegraph\\lang\\go\\GoAnalyzer.java",
+    "sha256": "05811B8902BC04E0F493BF84374B46167BF2A00E83ECCC1FF68449BF07580CF5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-go\\src\\test\\java\\io\\doindev\\codegraph\\lang\\go\\GoAnalyzerTest.java",
+    "sha256": "0EDCFECADC4B63EB3E12AF001749829C00395B773E04464B42A8E3CC7C73FE64"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-java\\pom.xml",
+    "sha256": "4A8EE1BCCDA4B7DCE89BAC5757DB0E9238B255A0F987340FE6BFCC3A20825C36"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-java\\src\\main\\java\\io\\doindev\\codegraph\\lang\\java\\JavaAnalyzer.java",
+    "sha256": "7BD4D6004A4A6B97076E1FED79FC5ED312E564BE88B33AAE801868365978E0E7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-java\\src\\main\\java\\io\\doindev\\codegraph\\lang\\java\\JavaSemanticHints.java",
+    "sha256": "CCD46C0B41FDE8959ADC1810F2B21F8ED902CA000026FD772066D6FC1E11B0E0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-javascript\\pom.xml",
+    "sha256": "71937E4C467ECF3BC5231F2AF04FA7A90293A36DC0E89D4267CF2B08E20A77A2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\EcmaAnalyzer.java",
+    "sha256": "E78C62B22E05DA4AD5A78ED6F6F80F6F7608CD5E3D9626181B6D9C3013A2319F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\JavaScriptAnalyzer.java",
+    "sha256": "65DEBF1040F53BBFC7A4CAF7351BFA409AB006096AC80293CE73C8C1DB98CEED"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\TsxAnalyzer.java",
+    "sha256": "9C398D0BB90D51B6B758BB80EEAFC448A5E389ECEE081CAF4E77B91AD1AEDE9B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-javascript\\src\\main\\java\\io\\doindev\\codegraph\\lang\\javascript\\TypeScriptAnalyzer.java",
+    "sha256": "B19351B9B3440E4CBAC9F036097F308826FE9CB4AE3221108F867CE90C7EFF0C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-kotlin\\pom.xml",
+    "sha256": "26DEEE3B7DFAC24CBD26495809D76C30FF06E8F2626E18EE682A3FA53B489972"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-kotlin\\src\\main\\java\\io\\doindev\\codegraph\\lang\\kotlin\\KotlinAnalyzer.java",
+    "sha256": "D71DF2E04D7F3ED0619810E05D03553E562E6E42DF676E812BDCF09A086D04AF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-kotlin\\src\\test\\java\\io\\doindev\\codegraph\\lang\\kotlin\\KotlinAnalyzerTest.java",
+    "sha256": "A9EE10F98B6D33E37E1FBF584F567945842D01D1CE6D4CFDE2F9B2305E95482B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-objc\\pom.xml",
+    "sha256": "D6A22B8E851D503370DFDAA22249F1C74E18541C0462DC8E1C03F672B604AAA9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-objc\\src\\main\\java\\io\\doindev\\codegraph\\lang\\objc\\ObjcAnalyzer.java",
+    "sha256": "059D7B34BCC4338AF581CD74D2E484DC480CDFDD1B5BC953A7875F595B3747EC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-objc\\src\\test\\java\\io\\doindev\\codegraph\\lang\\objc\\ObjcAnalyzerTest.java",
+    "sha256": "AD8A84B88A8E1FD5A0C4F17F6D1D80E5DE5A1E8FB1B66A198BCE1DB361605DC5"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-php\\pom.xml",
+    "sha256": "F5160282E5502951C7B116D65C5B68452DF2B1B744762B5266DA40830EDF322A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-php\\src\\main\\java\\io\\doindev\\codegraph\\lang\\php\\PhpAnalyzer.java",
+    "sha256": "FEF731ABE43377D7E0F9CA02446140CE83E14BE0885C562364BB50C5C470A5E3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-php\\src\\test\\java\\io\\doindev\\codegraph\\lang\\php\\PhpAnalyzerTest.java",
+    "sha256": "8B3FCEC23CD4C52C5EEBDD3027255870357E8E6842B39B20CF63AFC1DDB6F717"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-python\\pom.xml",
+    "sha256": "7F3FB496E3F0E803FB8E9E5BE40A169303F175E430EFD729BC120A3617EC45E0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-python\\src\\main\\java\\io\\doindev\\codegraph\\lang\\python\\PythonAnalyzer.java",
+    "sha256": "CC87C29A554DC32F798A0A0574C3B9C9BB8E377D2E74612A6A1C95FD1EE78268"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-ruby\\pom.xml",
+    "sha256": "24CA5F2482C74C1EA3C573503F4FBB6713D82B9616CDF5B6AA81D77F4BEAE14F"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-ruby\\src\\main\\java\\io\\doindev\\codegraph\\lang\\ruby\\RubyAnalyzer.java",
+    "sha256": "5FB424AC25FC02AE3C0D1F42ADC2A2FD350BC49AD02E3D43C8AC2156B0E41B8E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-ruby\\src\\test\\java\\io\\doindev\\codegraph\\lang\\ruby\\RubyAnalyzerTest.java",
+    "sha256": "C343142312D347E45EC2C221EEBBFA86F60FC1D593EBD11ED49F67D09ADE67D7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-rust\\pom.xml",
+    "sha256": "8F64ED1734A887E49973591FA80EED1D55BE79EC35549DB3F7D22F681B689826"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-rust\\src\\main\\java\\io\\doindev\\codegraph\\lang\\rust\\RustAnalyzer.java",
+    "sha256": "64ABDE2A23463670944E3C51D5C13992EBC36C6396F190E7C1CACFCDA5DF7091"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-rust\\src\\test\\java\\io\\doindev\\codegraph\\lang\\rust\\RustAnalyzerTest.java",
+    "sha256": "85890DB8CAE5F00A830E6DA19FB63F801421364C38DB99294CC1FF4523952B19"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-scala\\pom.xml",
+    "sha256": "032BA24A51C5723E4E9667A679A53F0510195A179A4E6AA8C51B3AA3B6ADC826"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-scala\\src\\main\\java\\io\\doindev\\codegraph\\lang\\scala\\ScalaAnalyzer.java",
+    "sha256": "5F6686F9CD009946AFF42E5A5FA9FF37E3F15E6F6FA593AA373E3B8096064B85"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-scala\\src\\test\\java\\io\\doindev\\codegraph\\lang\\scala\\ScalaAnalyzerTest.java",
+    "sha256": "D7807ED6A196E4594CAC73BE3E3B2C4F2ADE4CE71942960C6C4B9D839ABD1D8C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-sql\\pom.xml",
+    "sha256": "5486CFADB204405A6718A6E6823E36895D9B42F129EFC9802CCDCDD867E17258"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-sql\\src\\main\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlAnalyzer.java",
+    "sha256": "D0A20D30A9047310B4208666E703C9FB01C8585C47B3F3B1DD86F36A49802D6B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-sql\\src\\main\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlQueries.java",
+    "sha256": "A05ED9314F4C11DF7CE709AF3B47DEA38155D3A3D1CBCB9F21B94BA2F9F5F180"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-sql\\src\\test\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlAnalyzerTest.java",
+    "sha256": "8A6428C51391F2E22BA5B2F123BEA331793FFEBE3B3073F257A42A4D6A3B0A0C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-sql\\src\\test\\java\\io\\doindev\\codegraph\\lang\\sql\\SqlQueriesTest.java",
+    "sha256": "9BE59B2C86C1344ABDA20C52F51366E8E43D2795F5C120B333370BE7AB66E46D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-swift\\pom.xml",
+    "sha256": "CD29EE022F999DAAED1C43EA1C63C05BD4C619BA07C1BAB26A2525CB4D574E51"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-swift\\src\\main\\java\\io\\doindev\\codegraph\\lang\\swift\\SwiftAnalyzer.java",
+    "sha256": "0595063CA9E542BD56B35208581363B4E52387D8A36519B71DB803360FFFEBC0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-lang-swift\\src\\test\\java\\io\\doindev\\codegraph\\lang\\swift\\SwiftAnalyzerTest.java",
+    "sha256": "E6D77D804F1F14BDCEE2CEBB30FE34ECEBB28247A1E4393A2B8AF08A5144D91E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\pom.xml",
+    "sha256": "90D42690073ED8D5E02CAD80DEF7E66BCD9F9A5500B228C7114F92979664EC18"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\HttpRouteLinker.java",
+    "sha256": "19004F6E9B0BF929B2FDFCB8A810E70630CBE5249285C807B78A0AD1C634F9C8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\Linker.java",
+    "sha256": "CF47106BF18FEAE237611B50D622B7DFA2A81F6F430D281FDDFF4248752A3FA7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\RouteNormalizer.java",
+    "sha256": "323FD0153BE6FD4C3F2B8FEEA281ECF7F39717E7917E515EEE665D298A89F335"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\main\\java\\io\\doindev\\codegraph\\linker\\RouteScan.java",
+    "sha256": "63660211C5D9C78AFEDA6F091E0260308483993284CE29C07B02C8CBFFE49F8D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\test\\java\\io\\doindev\\codegraph\\linker\\HttpRouteLinkerTest.java",
+    "sha256": "79CE0B39876E604D1D4A0C49F73790FE3FF86A79D5F40E0D8287A7D5E0D97622"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-linker\\src\\test\\java\\io\\doindev\\codegraph\\linker\\RouteNormalizerTest.java",
+    "sha256": "BE875B02B0ACF6196CCC88D19315B40C9132F219AF093EE18E4C30DD776B77D7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\pom.xml",
+    "sha256": "968597F6C8CBD398CD3788E0B54390DBB0CBEBB064003E7282943A2DFA07BF56"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\CgraphMain.java",
+    "sha256": "84357DCCF6AC418D5A969569DDAC1619717C780DE569C33CD8B227D4E0870E5E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\DbaHttpAccess.java",
+    "sha256": "A69BA2FCBD506993C38DAC5387A480813E30FC17D014E74B515BB3FB173ABCD9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpMain.java",
+    "sha256": "3B69203A087FFE42F908B7D81148B50FD9FAF55F1ACE03EED918CB4845399ABC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpServer.java",
+    "sha256": "DFD61551D808399786038675D7ED09FC5D5059DE63C89AAA7057D0F93173EB54"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\CgraphMainTest.java",
+    "sha256": "0ED7A17527DB0FF15EDD917E00E9176C5033BFC2C070920E7279288C25FBE62B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\DbaHttpAccessTest.java",
+    "sha256": "D63F852536818AD10339DAB22721C717D8FF723105A171FC688F85601421271D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\DbaMcpHttpTest.java",
+    "sha256": "A056303BB943A42E401708880E38D083120E19E1B16BBED4AE9831FAD9557184"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\HttpEndToEndTest.java",
+    "sha256": "C6C43F95DE63C5666EA637FCC1A34890A3B4546126732B320D4DF3ECE72FF60C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\HybridHttpTest.java",
+    "sha256": "FC8D60AD40BAF868096226636883897639B7E8CDC3A28A4AB8D782ADA20E0460"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\NativeMcpHttpTest.java",
+    "sha256": "65B7694280DAE963F3D18E386F3E4F188CA9380EE0F3C958FC5FF971E340DB0C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\ReusableMcpHttpTest.java",
+    "sha256": "EA0D1F547E3340B6032181A226CEDB5CE091E43AE3A15180D41CD9F3EB86C1E7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp-http\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\http\\YoloMcpHttpTest.java",
+    "sha256": "20495575D8349061D071F819F9FF9AD7692B90C8822262462FE14C9A412FBBEC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\pom.xml",
+    "sha256": "B2F48C29DC405129220277F5DD6E056D663BE73B25C9655B9D82AA8C74B2CE9E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\CodeGraphMcpServer.java",
+    "sha256": "CCFFC13D870A2FA8F4848E55CEB0F334CDDEB1419D0F3F4121A71FF6BB6A3E29"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\DbaInputSchemas.java",
+    "sha256": "16F122350ABC4A9AEC62E99BE01EA43403DC42B7E8DD59AAB44E477B70394501"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\DbaMcpTools.java",
+    "sha256": "2D31499FE3B9A76519DB2AA327619C863FE16FE4CDC28066AC28D4704C3333E7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\Main.java",
+    "sha256": "B07686EBB31EDEEF270AE9C386E7A7F72366469722D5D253CDD31CCD62558D31"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\McpToolContracts.java",
+    "sha256": "C416AF5EB5DA09BB035A1A73938C33FFBEA813B69E1A2A514F78ABB8F8C60318"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\ProjectContextBridge.java",
+    "sha256": "2C1FFAABC96FD5BC64909F12352370CE96C1D19AF59014CA240BF80C9413AE0D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\ProjectOnboarding.java",
+    "sha256": "2347A9D9A12F14F6A27232FB67DFE3F45CA3F835AC5D8C10FBFC1454AD97D038"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\main\\java\\io\\doindev\\codegraph\\mcp\\WorkspaceVizControl.java",
+    "sha256": "C21752A0D7857AE4E6AF839427EDC614438AFCDCE517D87DD5CF5ABDEB664AF1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\CodeGraphMcpServerTest.java",
+    "sha256": "45205508CACCF4857442FF75C50925677DC65D8D00CAC213D43DC371A11CEAE4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\DbaToolSchemaTest.java",
+    "sha256": "43C8AE7139DB5797AAA0CEB8366902FB0F096DB5D17F0F1460A7C57C21E06D49"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\MainTest.java",
+    "sha256": "524C2E61F6649AB16BDE59A2326C85666F357409FED46D32C66EC738CB91993A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-mcp\\src\\test\\java\\io\\doindev\\codegraph\\mcp\\WorkspaceVizControlTest.java",
+    "sha256": "910697C5F8904036A990EB9D1E451201918C31D77026415FD4005DCAD6DD2C6B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\pom.xml",
+    "sha256": "3F230B2D7AC648F2AF96472C94F358B662B5FADCF64A8464B91D542B037E91F6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\CallContext.java",
+    "sha256": "28CCBE7EB46B4DA93EA160AAAACD896FEDCDF54B8118F4ABD59EF59FFC3E4F98"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\FileFragment.java",
+    "sha256": "A83DFC0888CA935D40A23D5FD7D5DAF79A56418C0E9DD9D05D550F78B15A604C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\JavaCallResolver.java",
+    "sha256": "0E7662E622A048B4241C7F3C6F7730DBA61E6EA037E9BAFE414F143014C025A8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\LanguageAnalyzer.java",
+    "sha256": "D951614BD06EAEA25094AAF334FF389BED1BB9E4DC1A21BDF9460E5D19BFD8DA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\NameResolver.java",
+    "sha256": "61E39D9C9E8935FB8217E8DD9F72D2C699D5895513C9D2498C5427A5D1338C8E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\RawRef.java",
+    "sha256": "264CEDF83A35636ABFFEFD4594B6D88F45E5A4962714B5079552C6B5CEC57BFB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\RefKind.java",
+    "sha256": "54FCC567790B2671F2B367C9A790FF2323EC82D0DE39610EE26C3427540E4F4A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SemanticHints.java",
+    "sha256": "856860E4B772BF60506E18457D6F3959C66F45289BD1325A19B1053E3785CB3A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SourceFile.java",
+    "sha256": "AB9C7F6298954217A9F37C34542343751E2A86250406E96326664D034CC1FB6D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\Src.java",
+    "sha256": "71C401AE3D9296C953F74432868139331A44F4D12279E001B3346B2B698F6C36"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SymbolLookup.java",
+    "sha256": "8C7FC442BA92F645121C19D9A6E83B14AB898BAEC7E43E75532ECFED71502BC0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\SymbolTable.java",
+    "sha256": "EF6A4CD60F15B242B05A6AF377BA5080F7AC37E25D23B0DEADA8BA46ACFA2BB1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\TreeWalkAnalyzer.java",
+    "sha256": "B6964685DA0E0C56CD1CD2BB59B09A80CFAFD5E6020374BBCEB83E5CE9610AE1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\main\\java\\io\\doindev\\codegraph\\parse\\ValueHint.java",
+    "sha256": "37A5E9B497D138EE24DC76D466E4A3A0C6A2DCE94078441C9EC4B6EEB7CB77DA"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-parsers\\src\\test\\java\\io\\doindev\\codegraph\\parse\\GrammarAbiSmokeTest.java",
+    "sha256": "6C5FEAD1C9D50C37B0CC623D623990A74F4F54172B632138286AA6B63483EA07"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-rules\\pom.xml",
+    "sha256": "C81A5819784342610A30DDDEE507709EF699FC0EC1596E92710F33C29FC2BC4C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-rules\\src\\main\\java\\io\\doindev\\codegraph\\rules\\Drift.java",
+    "sha256": "927E739EBA279DA19F7F7846E4A40F01DC164F2BFCEAB74DA6387AD664F9D999"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-rules\\src\\main\\java\\io\\doindev\\codegraph\\rules\\ModuleGraph.java",
+    "sha256": "8A7C9958C7DF52C22DE8397129B588930D1F9B034DE6E422845B66C7C77F2A15"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-rules\\src\\test\\java\\io\\doindev\\codegraph\\rules\\DriftTest.java",
+    "sha256": "865EEF0D2BB85ABBC9768644AAC7507C6DDD54FB7717FA51D7B4BA61FB7C35A8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\pom.xml",
+    "sha256": "B55BAE3701F9AAF805B4885D28524B7D4F70EE40155C1A7D7C946584B21CFAF7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\AdvancedSmells.java",
+    "sha256": "96C7D2F3E967605B0633D7406DD7329F197EA97C0F16BE2EF090AFE82B50B82E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\EmbeddedSqlSmells.java",
+    "sha256": "500DBF7353C214444297034A87C19F06D0A71D8152D2143F5FDDD6476C8E7809"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\GraphSmells.java",
+    "sha256": "2682ABDECCFD3B22CA07AB386B5B20A23CE5901F1C2DA9825F020E95A9F36170"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\HistorySmells.java",
+    "sha256": "D3CDE715B3C2871A467F968EFBB1BE9F6F52B009B08B4DE0413C3E09C2692D5C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\MetricSmells.java",
+    "sha256": "FDC5C8E65B00886F712270525911AD782805494592771E1583148301D4717DF2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\SmellEngine.java",
+    "sha256": "4114180CBAD9C39D8B90551278462C4469560B0427D6A76E4A3965DE6C963F5D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\main\\java\\io\\doindev\\codegraph\\smells\\SmellFinding.java",
+    "sha256": "F69606751E769F9D8AF795278D988CB9783BD3734E91C789D4145D766039B7EE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\EmbeddedSqlSmellsTest.java",
+    "sha256": "30F75D9EC28A13E029F2E848D0E7BCB38587C56D0114335C5369018C8EB8BEF3"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\SmellEngineTest.java",
+    "sha256": "72AE44B7B788EDEB14B7D9FA11C6EE48F6794A62A3A345F5ACA6FD9974AB8E9D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-smells\\src\\test\\java\\io\\doindev\\codegraph\\smells\\WaveBSmellsTest.java",
+    "sha256": "1D278207E4618875D2EE7344068617B24F9DC9FE136B96E96151355EC890EE6C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\pom.xml",
+    "sha256": "5AC7AF93D2316974E075FC88B0B08D2D975C6E942E739045194D146324318675"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\BenchMain.java",
+    "sha256": "55A4748AACC34E314804AAF7AA67B902EB8EE5964288A5185D7FEEA8E4BF0681"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Codec.java",
+    "sha256": "CE2492323ECBA099D55BABB6A74BA81C92ABACFB4991B6F2C4C7E2566B6ACB2E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Engine.java",
+    "sha256": "8311C730511E84881A06979751EB668A7DFE53D455BB1E9E5FF6DE6FB0C8CA95"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Ingestion.java",
+    "sha256": "A33ACB4CD8BBC444349E096835C807B522279C7C9A2AB0DEA4DCF321FD6A92F1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Kv.java",
+    "sha256": "EA69D773894AF2837AC54336BA0D19029E472E6ED39B27009510BA6ECA01DCEC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\MvKv.java",
+    "sha256": "5520716BD0495FF68562E4A7F4FB7EC62A21365D0AD049203CA27FF6E7BE2A53"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\RocksKv.java",
+    "sha256": "29A30B6C3A809A06AC30E0EEDA6CBBBBD0343F46E64C118DE0E060F759CD5513"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\main\\java\\io\\doindev\\codegraph\\bench\\Telemetry.java",
+    "sha256": "6C4AA2E2ED96E2BE5A9867ACA13F1C1A7A36516991AFD2056A7545370CFBAF17"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage-benchmark\\src\\test\\java\\io\\doindev\\codegraph\\bench\\EngineTest.java",
+    "sha256": "63238261E41026237ACA5CC87E5A48B5539FAFD603C9837097299894A9C6884A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\pom.xml",
+    "sha256": "B1EFF8FA3E98A5DB797E3A62DFBE249274B13A32B7649DC6E89DFC42D7B69A9D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\src\\main\\java\\io\\doindev\\codegraph\\storage\\GraphStorage.java",
+    "sha256": "28BDA54A45D6A3127A9A7CA65A1AA375CD7072862D7A8AEEC237A810FB741C8B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\src\\main\\java\\io\\doindev\\codegraph\\storage\\PagedGraph.java",
+    "sha256": "B737399D60095531366F6C024409D626AEACE88286F8CFB51C52753CB174A15B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\src\\main\\java\\io\\doindev\\codegraph\\storage\\RecordCodec.java",
+    "sha256": "2D0987DF6DC180FC3DEB9D4CD25F6F140DE24F61339E9350AA58473A835922DF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\src\\test\\java\\io\\doindev\\codegraph\\storage\\DocumentStoreTest.java",
+    "sha256": "53E3529DE55F6D99FBD2B7ED2DE30FBA2ECDBD21C0E2687D631CA7C5522BFA4A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-storage\\src\\test\\java\\io\\doindev\\codegraph\\storage\\PagedGraphTest.java",
+    "sha256": "9F241C8EE93BD06A4454871D9DAC9964EDB4F185C211DAB13989BDBDB0176885"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-arangodb\\pom.xml",
+    "sha256": "C3EE4DA101970E24D7DC8538D889A7D30FA34712088775989845F005E526856B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-arangodb\\src\\main\\java\\io\\doindev\\codegraph\\store\\arango\\ArangoGraphStore.java",
+    "sha256": "370CDFA6C2C71298B59D9B49DCC2CA6E736E9274F681E3FB6CD8342684A0CC66"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-arangodb\\src\\main\\java\\io\\doindev\\codegraph\\store\\arango\\Codecs.java",
+    "sha256": "51A4CB34016A8603C7E1EB551D6F7B1065BCA774D991118F76C60226256BF7C9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-arangodb\\src\\test\\java\\io\\doindev\\codegraph\\store\\arango\\ArangoGraphStoreLiveTest.java",
+    "sha256": "156D69159BCC4BF1CF208EC4D85F30088EA03D2B3D85FD82BDE7D04CA1F74FF9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-h2\\pom.xml",
+    "sha256": "D4584712318F52DFEA4DE1F28F072ADD75311AAD8644AD6C18FF14F61FE9D809"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-h2\\src\\main\\java\\io\\doindev\\codegraph\\store\\h2\\Codecs.java",
+    "sha256": "4C4D9C670B90D5C1C998C52BD7F3B9552B61F02B9606B18264B6BAA4C422D831"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-h2\\src\\main\\java\\io\\doindev\\codegraph\\store\\h2\\H2GraphStore.java",
+    "sha256": "18A12F6B76E62BFC773342E800D3F0208CD579260D6DBFCE0441471F1595EDA8"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-h2\\src\\test\\java\\io\\doindev\\codegraph\\store\\h2\\H2GraphStoreTest.java",
+    "sha256": "F4A2FBB00D4F873354FD308DAEBACDF0C565735383A17626082C04BF32FB2969"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-neo4j\\pom.xml",
+    "sha256": "DD33D990610438AA0036D05E909D9642E1894D25DC0C01C3CF1D6C5D4D36845A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-neo4j\\src\\main\\java\\io\\doindev\\codegraph\\store\\neo4j\\Codecs.java",
+    "sha256": "888B9DE9D4E247EA62F1E78C9B33D4ABEE02D1C47F12C646EFD18A10FA960C50"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-neo4j\\src\\main\\java\\io\\doindev\\codegraph\\store\\neo4j\\Neo4jGraphStore.java",
+    "sha256": "6DD14A4BBD47BC7677FFE8AB897B928ACDCCDE8A8C43BECC6529BE18E41A0DF1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-store-neo4j\\src\\test\\java\\io\\doindev\\codegraph\\store\\neo4j\\Neo4jGraphStoreLiveTest.java",
+    "sha256": "5B2F8FB2BD0380C638DE41C853B7E45D2174EB2B0A4174E3FDB56985425821EC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\pom.xml",
+    "sha256": "C2928374FB679A2B4FF79ECAE373082147F1DC165A28F56BEF92A6573C00E5ED"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\AddProjectTool.java",
+    "sha256": "A2280412CE952A03C5FA33AA650DFFE6B2D1B870DB1CCC595963BA5DA19F6531"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ChangeAnalysisTool.java",
+    "sha256": "BD4261E8FDB88096C8E1981D70178364ECD8F31FEBB056F85937EF63F48BCBA6"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ChangeEvidence.java",
+    "sha256": "021E385E7F36697E52207B86D1600D7D1C9252D27CCCB24FDB1A4CC48EEE34D4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\CodeGraphTools.java",
+    "sha256": "56483943549D105036DE9D80C8C7CF8B98A10B3AF69DCC54FA2B11645B5C6BF0"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\CodeNavigationTool.java",
+    "sha256": "A2B034218170C516F6869639B92B42EECDF8269DC73E83BF87B6EB46A6AED707"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\CompareDriftTool.java",
+    "sha256": "16E7A9E2B91BC0DEF4E2AC36364E6E40B05585EDAEECA1823D0C7B2E7D3F80DE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\FindCodeSmellsTool.java",
+    "sha256": "BDDD21471FC829BA1EF4B77D35AEA20F4C03FAC3D1D8F9CFAE553AD6853CF5E7"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\FindDeadCodeTool.java",
+    "sha256": "5ACDC71896DC70C243106FA6B44ACDF1D7A00B950DBD7EDA4817DF2729834F81"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetBlastScoreTool.java",
+    "sha256": "2885BE39D280F624E0DE1670D1493820CBDC706032387C18D36BCF65A847F93E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetCallGraphTool.java",
+    "sha256": "4FB8C56B037C5384DA3CF82D00DCF7B17EABCD6A1E47D919ABC80E350BB625A2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetImpactRadiusTool.java",
+    "sha256": "8EC463F859F14AB4A641E95D8B00B21A08A8BCC329B1E39DC9615DDEB43CC3DE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GetSymbolTool.java",
+    "sha256": "797852386467FEE04AF1C60C25C0C3CB8B5A202C53BD871CC20E4BB047EFCA35"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GitChangeSelection.java",
+    "sha256": "9778F9CF5E5C08DB3529CC88AFB369DEF27217026C4F77B82BC4D6CA01D02325"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\GraphTool.java",
+    "sha256": "1CC768666DFE162DF564BDDE572F6B74B13F74AD0B6E46C5A3B2D9FFE62844B4"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\IndexStatusTool.java",
+    "sha256": "CA40CEFF2B6F75B277EA14CB98496FBDCEA9622D6AE396E8E14F4ED0D60017FB"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ListProjectsTool.java",
+    "sha256": "88062DDE09C361659581839168633D3D3B6D0E70995108C7667B1D084712C43A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ReindexTool.java",
+    "sha256": "148032472E9132D0BC160C28A9DF4E3C55D73FAE50F0EA885D7EAA29EAB0DAD2"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RemoveProjectTool.java",
+    "sha256": "4F1C2347E9FDE325BAEA4E6BBAA26FCB6F2BD940AAD5E58BF0FD4B3131CD8BFD"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RiskGate.java",
+    "sha256": "158F4EBBAC2C0BFF2D577961416158E88C0DF042188A8BD4DCFBCBB56F733B0B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\RouterTool.java",
+    "sha256": "801519916B3A204E27FAD8F33FB82AF757B1524F41AB373E81C4B29388249A47"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\SearchSymbolsTool.java",
+    "sha256": "33461E5565A89B0F147F0537D4A356AB131FB7C571BDAF814D9F6387C811A53D"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolResponse.java",
+    "sha256": "1BEC22BF1BD46946F8B2AFADEF12F19710E681912A0E7303704114C663279B0B"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolSpec.java",
+    "sha256": "C4D6D40E48E036A2122B469DA02EDE4BF01355A783332348D816C4CB13EBB6E9"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\ToolSupport.java",
+    "sha256": "1A75DF788DE0F2BE0EB8A86B79CBBF6F896E2A564E5A7912A8768FEE4C44326E"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\WorkspaceContextTool.java",
+    "sha256": "DEF2AE1598866E6F300814BC26F6966B7A5D30CF305861B4C2FF1A36E1EC568C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\main\\java\\io\\doindev\\codegraph\\tools\\WorkspaceTools.java",
+    "sha256": "41EDC3D32D8D550F862F4D2B8BCFC12154777F2F11DF8089B52FAC4493EEE339"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\AddProjectToolTest.java",
+    "sha256": "AA708894016BB5A32FB102BD66ADBB2104ED4D73FDFB6E40E6D500D21C460899"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\ChangeEvidenceTest.java",
+    "sha256": "C7FC107F4B21939ACD20A22937B1F34ADC53BF6E31EBC65D8A97787ED3B254E1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\CodeNavigationTest.java",
+    "sha256": "6E0A8C0442AFE752E19C8747782E1757E7B2FF6F9C1FDF4411C629A9FAF1F814"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\GitChangeSelectionTest.java",
+    "sha256": "4F829DFD1FD74256FCD34132C4485AFB48680B8CA6B9912FB9E95A7D6516F145"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\ImpactSeedExpansionTest.java",
+    "sha256": "E93CF8379CC0EF6B510A97E75518BF67C614B2CC08703B35BAAE5BAE4CD2F400"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\RiskGateAndScoreToolTest.java",
+    "sha256": "D76387755CC8266DAC467165A4533F5C4ED9864FB59461B8173317C48DCDC7FE"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\ToolsTest.java",
+    "sha256": "198A4185D0FB0C6911EAB46CC9F70717C29706990D990D17548DBFC7423B39BF"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-tools\\src\\test\\java\\io\\doindev\\codegraph\\tools\\WorkspaceToolsTest.java",
+    "sha256": "E8C06E43CB6F66385B2950A5122B8FD63CC627314E74197365D2956D51AABF5C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\pom.xml",
+    "sha256": "041C71B2A32BB27BF0E81A0A6CC08C2D82443E3D79B6FBF4EF666E57A0F877FC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizApi.java",
+    "sha256": "42D0B43A8FBE1116B2884C799A80C29E54CD265929048D72003D83726ECD6395"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizControl.java",
+    "sha256": "C43E1794B6DEAFDB13779D14D3577F1D41954E351D0A5CFDA600514FBF75E6B1"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\java\\io\\doindev\\codegraph\\viz\\VizServer.java",
+    "sha256": "86A8BE0E884DDCD6F9472F1779866D9DDCB6BB90BF3475B6D3475E138F2F5B58"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\resources\\codegraph\\viz\\app.js",
+    "sha256": "3FE8986BA6C32BC33670C4C9DB8DD8824F712673D07789568F39408FF38F4664"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\resources\\codegraph\\viz\\vendor\\3d-force-graph.min.js",
+    "sha256": "0BC081161C7CAE47030F9B976C812152422A38797AAB601906BBF5E3DD873E22"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\main\\resources\\codegraph\\viz\\vendor\\force-graph.min.js",
+    "sha256": "C931839184ED48A5E22ED1680DCEB73EC3FF352744C6C7CA615D093043D60088"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\DbaRouteTest.java",
+    "sha256": "29715B59A98E665C5CCC592852615695ACB73A6246F53464749E3C33D247F04A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\StaticAssetsTest.java",
+    "sha256": "D323E1555BA4627762A52EB46E7944D6F844622F7C9DBCFF01F0D6D49762F676"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\VizIdleTest.java",
+    "sha256": "E7F96A2558ED896D3B611A413B9E71DF19611C75E8CAD480BC65FD0E41A8F27A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\code-graph-viz\\src\\test\\java\\io\\doindev\\codegraph\\viz\\VizServerTest.java",
+    "sha256": "484765CA45748B817392D71C53F8760EC91F3812560A8BE8540AE9B20D198566"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\installer\\CgraphInstaller.java",
+    "sha256": "8EC52B7AD11926BA72CF8AAB85686FDEDD0A157FF136E6A524C7B617597618CC"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\installer\\CgraphInstallerTest.java",
+    "sha256": "AE32FFF6ADD93FA5BDAD4F2444FDC2B90C16C87441CE62DDB4DB3DBB9785401A"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\installer\\NativeSmokeTest.java",
+    "sha256": "409EE6DDC0CD6117FC48167DCA6E70354F4D44E6A8E80F381A0E56A331E1C449"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\installer\\ProxySmokeTest.java",
+    "sha256": "35AC6EA712021A26AA3A261C9FC93C61E1EB42DB539C9D05FA30096C52D28E06"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\pom.xml",
+    "sha256": "9FD9B3B136690F8C401C2EBF58F12D70E488B73C329AB8FD27CAE764AF75BA1C"
+  },
+  {
+    "path": "C:/Users/timhj/AppData/Local/Temp/cgraph-precision-build-ebbf0bb582ee4c128196407c818bd8ab\\scripts\\NavigationBenchmark.java",
+    "sha256": "DBB7F509764238B9C8AF843643EB2ADDB285EF219826EA758B7D855C09880AE7"
+  }
+]

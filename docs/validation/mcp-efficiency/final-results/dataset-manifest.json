@@ -1,0 +1,4151 @@
+{
+  "inventorySha256": "975cdd39cd75716711e0b9131632835b20ff764a31e719dbc54b3b90990d9e98",
+  "fileCount": 829,
+  "files": [
+    {
+      "path": "code-graph-analysis/pom.xml",
+      "bytes": 937,
+      "sha256": "fdcedf496caa03f47c6f8cdccebbfa1f0f401b68ba58e8685ec6ca7da035c125"
+    },
+    {
+      "path": "code-graph-analysis/src/main/java/io/doindev/codegraph/analysis/BlastFormula.java",
+      "bytes": 3404,
+      "sha256": "4aa2dfc342fa5ea68e691f573d80f15cc9d216f7a48347714ac739047bd16e01"
+    },
+    {
+      "path": "code-graph-analysis/src/main/java/io/doindev/codegraph/analysis/BlastScore.java",
+      "bytes": 5385,
+      "sha256": "76d8839fb40753515e08facd8b816dae98d1876c0b2d9fec976d77d72ea7fe1f"
+    },
+    {
+      "path": "code-graph-analysis/src/main/java/io/doindev/codegraph/analysis/DeadCode.java",
+      "bytes": 10392,
+      "sha256": "bb162afde44de515f5334a517b611158f52d514dfc7177105d0fb300940b8026"
+    },
+    {
+      "path": "code-graph-analysis/src/main/java/io/doindev/codegraph/analysis/Tarjan.java",
+      "bytes": 3263,
+      "sha256": "b326ad49a5421e12c8d0a1c94782d827094133963450c38923b3e04e7359b91b"
+    },
+    {
+      "path": "code-graph-analysis/src/test/java/io/doindev/codegraph/analysis/BlastFormulaTest.java",
+      "bytes": 2610,
+      "sha256": "70fc47fadff208b49e820f1cf61aff3b1db2d12649fd72301e3f4533dcdf21d6"
+    },
+    {
+      "path": "code-graph-analysis/src/test/java/io/doindev/codegraph/analysis/DeadCodeAndScoreTest.java",
+      "bytes": 5729,
+      "sha256": "49a28be63349f5dd4bb2f0afce90abd85e75a55a77081e5582c7627ea7fd306f"
+    },
+    {
+      "path": "code-graph-analysis/src/test/java/io/doindev/codegraph/analysis/DeadCodeHierarchyTest.java",
+      "bytes": 6527,
+      "sha256": "5cc7a04bfaea7bf93b08ff187d9decc0d7a2c4fe43a7f739ccf914dd6d10ffae"
+    },
+    {
+      "path": "code-graph-analysis/src/test/java/io/doindev/codegraph/analysis/TarjanTest.java",
+      "bytes": 1557,
+      "sha256": "a27cdbd555a525a6840fb7d8db5adb1bd1af1e72823d51799bf0eaf89ffcfc62"
+    },
+    {
+      "path": "code-graph-bom/pom.xml",
+      "bytes": 6368,
+      "sha256": "eb3b1008a216f210c7894ac497dd4791f33519f1ded86a30fae0ca1ef5b05b32"
+    },
+    {
+      "path": "code-graph-cli/pom.xml",
+      "bytes": 5944,
+      "sha256": "4ef44f1395b16640d65dd47c188373def3762987519e6a149c5ceb4a5b5eac0b"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/Args.java",
+      "bytes": 2929,
+      "sha256": "2aa9b12442e1f3e6e1b62c978769a7ee958b4f4a0dc7ec3852f3e3b594a20c6e"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/CheckCommand.java",
+      "bytes": 2676,
+      "sha256": "1be603837cef03dc8190fe5e6965140b0e30e9d622094ae8cef3c83137a8eb1e"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/CiCommand.java",
+      "bytes": 9512,
+      "sha256": "405f6dbbc970c537fc005000e9a5f5b2c4983769444149969d71097bb75ce8dd"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/CiReport.java",
+      "bytes": 9382,
+      "sha256": "5a04c2c10ddde1e7970262cb6ec42955073a25baa2eba80d5dd5ac84e5295a8b"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/Git.java",
+      "bytes": 4989,
+      "sha256": "bbedaca7669ee45e6694e91d5100a97966cefdea2245714803d80d60d41145a3"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/GithubPoster.java",
+      "bytes": 4800,
+      "sha256": "30031e048541c961c9273ca0309a3c89beb14ab9f684455387da51899eaa9abb"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/GitlabPoster.java",
+      "bytes": 4805,
+      "sha256": "c97e4849d1895159e06912c85f91da2031a446b16cbdf17a9c00ab8810f52d1c"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/IndexCommand.java",
+      "bytes": 1457,
+      "sha256": "af74afa37d4e95dfb5f1294c941f12a404d5074ac46bff24bc6d244723f04d35"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/Indexing.java",
+      "bytes": 1117,
+      "sha256": "50d00deb689e00745156080865d2c687d00a6426ba7f62485a918b35761bb70e"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/Main.java",
+      "bytes": 2185,
+      "sha256": "0220abf8b867890f61086ac9865429049e8c1aec8f639f20588dd3391657ca0a"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/PrCommentPoster.java",
+      "bytes": 556,
+      "sha256": "0f6055691822c0b0c0ce547115787588d3fe6257250354848290ce1b21c4deb2"
+    },
+    {
+      "path": "code-graph-cli/src/main/java/io/doindev/codegraph/cli/Snapshots.java",
+      "bytes": 2376,
+      "sha256": "55e1252259d2d654b8f55f779cfbf993e5289da87beb4f898716821b773c0e4d"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/ArgsTest.java",
+      "bytes": 3183,
+      "sha256": "c74a80a75a80a5550e602f5556a1615da62134f611313fb4e69273dd55f6facf"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/CiEndToEndTest.java",
+      "bytes": 3725,
+      "sha256": "2e64d6a7291e9333f820bdb546699317fa82ef215a073c51de84fed8365381a5"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/CiGitTest.java",
+      "bytes": 3374,
+      "sha256": "c4a67480368613b6700845a30664f8eec75c6d0c711a06a00b122319e811fda0"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/GithubPosterLiveTest.java",
+      "bytes": 1107,
+      "sha256": "898d7a83f60805184685b84c69b451892568254ce75098fe58e1e7a125ee9dbf"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/PosterTest.java",
+      "bytes": 5971,
+      "sha256": "9bf4c669c66eaf700db47222a86ddacc2e0215bf56edd3e4c4c72661d5cd5a98"
+    },
+    {
+      "path": "code-graph-cli/src/test/java/io/doindev/codegraph/cli/ReportTest.java",
+      "bytes": 6387,
+      "sha256": "91e286f1d31fa4e1a076623d10473ee1916397c2bd6405a525e05fd92fbb5cd2"
+    },
+    {
+      "path": "code-graph-config/pom.xml",
+      "bytes": 1235,
+      "sha256": "2efb9d9a6bf62e4c115fedc8ba04dd789495134a1a47176f691c3ede7c953d1b"
+    },
+    {
+      "path": "code-graph-config/src/main/java/io/doindev/codegraph/config/loader/ConfigLoader.java",
+      "bytes": 4599,
+      "sha256": "eb9e728d2382beaaa3d1349bde28a893736dfb654a4c7ae89b3edb3bf2773c6c"
+    },
+    {
+      "path": "code-graph-config/src/test/java/io/doindev/codegraph/config/loader/ConfigLoaderTest.java",
+      "bytes": 3822,
+      "sha256": "5ce24b4723630a67c0fa1cadc50be77f8da24b9991679889d67f5b72d3bb8540"
+    },
+    {
+      "path": "code-graph-core/pom.xml",
+      "bytes": 800,
+      "sha256": "1aabe214c79cb846e464628aeabfbc33c7f964fad38be8cc121578c11e43c81a"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/config/CodeGraphConfig.java",
+      "bytes": 5858,
+      "sha256": "2990156608e1285c458a3ccab95a0cfb4e274a17f471d88fd6f7eaba98aea6b6"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/graph/InMemoryCodeGraph.java",
+      "bytes": 13949,
+      "sha256": "ceaac2c07d8c3be271603b3bf9949ad1695d21e1ab49fa09605b0c612559423c"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/lifecycle/ProjectLifecycle.java",
+      "bytes": 7342,
+      "sha256": "f42277f5105dd2d0811844ab99a0084e60664de800aef3b1ed815f3477eeff3e"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/Direction.java",
+      "bytes": 218,
+      "sha256": "b96f80df14b4493c4a04a63d6b3135c62ab78910e809fa8117a8efde4de76e34"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/Edge.java",
+      "bytes": 1206,
+      "sha256": "6eb39d9155d5cd500c1d7b7a8ded50f2aa75b5a36549bbf9b198b14d4d0736cc"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/EdgeKind.java",
+      "bytes": 589,
+      "sha256": "995725777fedbc1559391d78ca299a78db493c69fe30b63c2c813479a6df2083"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/FileId.java",
+      "bytes": 565,
+      "sha256": "db74f18148c33e01a3254f1712c2b2d0a35db4583bdaa80df254f2f80554778b"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/Metrics.java",
+      "bytes": 1220,
+      "sha256": "a20c35c2c22e5baacce738fafd49bf4e4650fbbe3ff2e8230a14f21637edefb8"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/ModuleId.java",
+      "bytes": 443,
+      "sha256": "ce2580839af2f7fe0005cf31dd98048808d2421fffc01e4dbf018ad6efb81651"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/Node.java",
+      "bytes": 2143,
+      "sha256": "f8be0a2014e8e7409a80bd669982a56cc2f2aadc4fd6506adab6edd98af58203"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/NodeId.java",
+      "bytes": 1384,
+      "sha256": "0fc103c47667edca982c10e4bafab0d23a1853112920d3567240f685d4c63d19"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/NodeKind.java",
+      "bytes": 277,
+      "sha256": "09c01f35834f634663abb59b41b6e94bf43d0b8dd26cc362ea92b8f3c07af119"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/RepoId.java",
+      "bytes": 394,
+      "sha256": "9e5ddeff9730f1e55e2cf8824a228004b7f2eadf1b5367d5dd41fca85fb8616f"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/SourceSpan.java",
+      "bytes": 407,
+      "sha256": "987cc298cfb9adb0603146c519a577eb6e9af431b5cecbe3c033a597e4ab053d"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/model/SymbolId.java",
+      "bytes": 3083,
+      "sha256": "7f315780d666b6008ea4bfb8d245ae1352a528738fc16658cbbb6a01cfe88db0"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/query/ClosureHit.java",
+      "bytes": 289,
+      "sha256": "55b6e0817a43ed7ee97816670b39406342939f8446f5e432580c71df931d2a5e"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/query/ClosureResult.java",
+      "bytes": 518,
+      "sha256": "ab81271c80befa8ed009527267017404d2b9b9a0343706322f26e4985a1fa565"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/query/GenerationCursor.java",
+      "bytes": 4160,
+      "sha256": "6f62d74000038aa5acf429e4040249b063f2b65f64e5dc03a8c416326e7c8878"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/query/GraphQuery.java",
+      "bytes": 3387,
+      "sha256": "cc82a0380975cc57fdf53cc0aca74245910153aa507f15e51317fbf1c793dffe"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/query/IndexStatus.java",
+      "bytes": 1421,
+      "sha256": "5f00db87bd9825966e2033fa7d2bf08753d693a9d7573fab40414c54568423d3"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/snapshot/DeltaCodec.java",
+      "bytes": 5507,
+      "sha256": "acf42d607280ac530692a7d5e04b52e85ff5015b44a637023abdf5e55961332e"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/snapshot/FileSnapshotStore.java",
+      "bytes": 9074,
+      "sha256": "9ae56ce5bb1c9afdad6515737a95d27e0059eef8caf7ba9d8e6bc9a7dd009596"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/snapshot/SnapshotCodec.java",
+      "bytes": 8847,
+      "sha256": "81bf86193b8baf4bf6a1d81c6d6b7acecbe7169bfcaa39db61086df2f18731b5"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/snapshot/Varint.java",
+      "bytes": 1567,
+      "sha256": "92985b0a5b4e28c27e9ee3362707f4db254410dd9cb6e9c91b633e2d43bf69da"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/store/DocumentStore.java",
+      "bytes": 1687,
+      "sha256": "11992621121de419c669eedb80fad5d3ba0551de2e9ea25d522f19a4712835b5"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/store/GraphDelta.java",
+      "bytes": 1367,
+      "sha256": "9faafd24d2e2b6df3d7b0623f166e2668ccb03c7ad9454a0512db921dadc85ba"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/store/GraphSink.java",
+      "bytes": 319,
+      "sha256": "6e94126a84b899c3a7a7bbcd0c7c0179a366b6bd06b5efc7cd7e47e8773a0e7b"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/store/GraphStore.java",
+      "bytes": 876,
+      "sha256": "35cfdad702fef1d3ae899eb926c4f8b8ce0b2d13b838911549f7852ec5f3ae9a"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/store/ManagedGraph.java",
+      "bytes": 437,
+      "sha256": "8a0f2a0f4b52e7a0bd89d47442867349042cfe7e1d89e29a8d37cf56d2d99e7a"
+    },
+    {
+      "path": "code-graph-core/src/main/java/io/doindev/codegraph/util/Globs.java",
+      "bytes": 2061,
+      "sha256": "1aaa1aed0c9cd8b572b6527ffc0b3e5294ef9e4de439e799fe7472eed0bacaba"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/graph/EnginePerfTest.java",
+      "bytes": 3387,
+      "sha256": "f9bfbdfb87881546031a83fa060d5a3f66889971a44da99e0f504805e6731075"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/graph/InMemoryCodeGraphTest.java",
+      "bytes": 5011,
+      "sha256": "1d5de8080897e05fa92811654ac9c7b89e3db26d67b67e8b07e43c374e9b89b6"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/lifecycle/ProjectLifecycleTest.java",
+      "bytes": 4376,
+      "sha256": "ab0c12c56c91315d40e9a354bdfe2a651a7b1046601159f83dd9c29349a77847"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/model/NodeIdTest.java",
+      "bytes": 2070,
+      "sha256": "431f0f538a92167268e90574a0d0b9dcd7d4e219717fef54ef99acabcae3f99c"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/query/GenerationCursorTest.java",
+      "bytes": 1489,
+      "sha256": "92bcbdb07b097699ebabcd6e7e0fcbb9748af728f07062c88addaba8ffe43f2c"
+    },
+    {
+      "path": "code-graph-core/src/test/java/io/doindev/codegraph/snapshot/FileSnapshotStoreTest.java",
+      "bytes": 6110,
+      "sha256": "a656e0d90e5242ce8c9201aee3904debb30ce7f939ac6a01bc1b80a69f123854"
+    },
+    {
+      "path": "code-graph-dba/.gitignore",
+      "bytes": 9,
+      "sha256": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368"
+    },
+    {
+      "path": "code-graph-dba/browser-approval-review.cjs",
+      "bytes": 3345,
+      "sha256": "92a2f34a1ea1836b8246d0edd608bdf84dc3f8993e297f5b8052d6d82b85c9d5"
+    },
+    {
+      "path": "code-graph-dba/browser-approvals.cjs",
+      "bytes": 10718,
+      "sha256": "14abf628a1d0b99111ca01a50cb3eca0e6d5bef0232b11f2d200365e8a7fe08e"
+    },
+    {
+      "path": "code-graph-dba/browser-editor-pairing.cjs",
+      "bytes": 3519,
+      "sha256": "f829a4110d9f8a60f110d5acae267223d2655b4a724e179ca64cc7b0d5203825"
+    },
+    {
+      "path": "code-graph-dba/browser-grid-column-menu.cjs",
+      "bytes": 8293,
+      "sha256": "2672d7a95bf9f3257a0be060cc29dc744f4d5a723d67a6e15399f9257b36dece"
+    },
+    {
+      "path": "code-graph-dba/browser-grid-controller.cjs",
+      "bytes": 8734,
+      "sha256": "32444a845c3dc7ca386a458e176e2e6b90d68ef92815816ff8268f5d8d2e25a5"
+    },
+    {
+      "path": "code-graph-dba/browser-grid-edit.cjs",
+      "bytes": 20451,
+      "sha256": "29b54e3c27fda24d30067b7f5c24e272ef28a5a6f16071438e5fbb0549987c15"
+    },
+    {
+      "path": "code-graph-dba/browser-grid-refresh.cjs",
+      "bytes": 8637,
+      "sha256": "d1f316f5ee0c33aac7729962ca492f3b71655f83d24eac34aba2d1a4bd7c5863"
+    },
+    {
+      "path": "code-graph-dba/browser-native.cjs",
+      "bytes": 12230,
+      "sha256": "92eea87525553bceeeeb12dbcf1528a0297077a1b93b9d91076451804d675b53"
+    },
+    {
+      "path": "code-graph-dba/browser-object-creation.cjs",
+      "bytes": 7375,
+      "sha256": "2d557b820ca21aa5fdcb4818bd26f3743ac13ebe046fcc4ff0280c35dbb16f72"
+    },
+    {
+      "path": "code-graph-dba/browser-object-designer.cjs",
+      "bytes": 7372,
+      "sha256": "307885ec310fe91c756374f72ecf4d467a322da6a590ff6c1375cef0ebd346dd"
+    },
+    {
+      "path": "code-graph-dba/browser-project-context.cjs",
+      "bytes": 7933,
+      "sha256": "2cae2bec7218264457b14269e8f6dbba2ca4b8cf04fb1b4df9933300c540bb80"
+    },
+    {
+      "path": "code-graph-dba/browser-query-builder.cjs",
+      "bytes": 13623,
+      "sha256": "3717d5cbf77a200b79b2191552926609cd5c900705c16aa7c39d64aeed3e41f8"
+    },
+    {
+      "path": "code-graph-dba/browser-query-geometry.cjs",
+      "bytes": 7300,
+      "sha256": "38432ae007d7f09028e6c8f5369f7bb8a01d3b74877dffbce094a72eddb53c6e"
+    },
+    {
+      "path": "code-graph-dba/browser-query-lifecycle.cjs",
+      "bytes": 6184,
+      "sha256": "84fc0e30eee71c383ab2b108b6fc415d4fd858b9723260a87c3b73248b0db9ee"
+    },
+    {
+      "path": "code-graph-dba/browser-script-selection.cjs",
+      "bytes": 4628,
+      "sha256": "deb2e6cd878a244980c683e7bfe7c80845b3986bc101010f8d182ff480b8560b"
+    },
+    {
+      "path": "code-graph-dba/browser-smoke.cjs",
+      "bytes": 72045,
+      "sha256": "04219599bd980f582f0e75755a0b57f607c212de41a397aa8d935adcc12acdd5"
+    },
+    {
+      "path": "code-graph-dba/browser-table-designer.cjs",
+      "bytes": 6071,
+      "sha256": "c74b47f0f4bcb41edb7683cbd709437e7e6e598c172d34fff6a9963e4b998d49"
+    },
+    {
+      "path": "code-graph-dba/browser-table-tabs.cjs",
+      "bytes": 12773,
+      "sha256": "eacc29a7ffae136fba0842f72a741d6f18cb11981c6d2048f409db5056070db4"
+    },
+    {
+      "path": "code-graph-dba/browser-tree-context.cjs",
+      "bytes": 9168,
+      "sha256": "634c5b9650931ec0b55e24f132c22611008522683cdb76cd612973282dc00ad5"
+    },
+    {
+      "path": "code-graph-dba/browser-view-query.cjs",
+      "bytes": 23263,
+      "sha256": "02ac015237c2bb917ec9e43b729893f5c37a582e8675a3315b1cd703fba1cb02"
+    },
+    {
+      "path": "code-graph-dba/browser-workspace-toolbar.cjs",
+      "bytes": 3863,
+      "sha256": "1409485f090771de9b8e71f75d0b1bc1646e95753844212f448ad6243129c004"
+    },
+    {
+      "path": "code-graph-dba/browser-yolo.cjs",
+      "bytes": 2166,
+      "sha256": "de0d0277ed71748f44f052dbdbf51d1b640ce11617bfefbfb3abfaa5fb58cd38"
+    },
+    {
+      "path": "code-graph-dba/Dockerfile.vault",
+      "bytes": 719,
+      "sha256": "3b3878d530e1408c637e060609b36f867db04b2f51fbb663bf061221ffb25876"
+    },
+    {
+      "path": "code-graph-dba/pom.xml",
+      "bytes": 2408,
+      "sha256": "3b86fd0017a3658efbb0cc6a6e6b6fef79065521a72e076d9f372f9bebe45aac"
+    },
+    {
+      "path": "code-graph-dba/qa/linux-vault.sh",
+      "bytes": 880,
+      "sha256": "cbc0a5bd7ffd0018759b12474d65da1140067c589f77a38c99fcbf78ba78a48b"
+    },
+    {
+      "path": "code-graph-dba/qa/LinuxVaultProbe.java",
+      "bytes": 1602,
+      "sha256": "3fefe93efcd30a6aacc52da8fbf4c3624c0e6913fbcce794386cdfd891b60d31"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentAccess.java",
+      "bytes": 15386,
+      "sha256": "e218aeb858352db780e2eb57b962a58abb871327d4af345dee6fec6f9830efa2"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentAuthorization.java",
+      "bytes": 3524,
+      "sha256": "3da52ef600e43d5b91bef7032c340daab3145dada7631607bc95e1598ecf77c3"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/AgentRequests.java",
+      "bytes": 37715,
+      "sha256": "070241e1332b31ac78d650cc3a091cbf9c2bf7a0d4ea09b867c65717eec81a46"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalBroker.java",
+      "bytes": 17544,
+      "sha256": "77ceca18220d0c7c9e77542749253f19d2b37546fa29b0216ccd94d7454fdc66"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalDetailsView.java",
+      "bytes": 6849,
+      "sha256": "c11f012b5669f44d31b6ca6f069900083f597f875a7c185dcc701b5509fd593d"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalPresentation.java",
+      "bytes": 3874,
+      "sha256": "1c755f193bbb945c7642f4758fa16006b52b670a51993bce6a32de688f9c17d5"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalQueue.java",
+      "bytes": 26174,
+      "sha256": "0b039aca4b52656679779856f718faf8b327e694a33ca29af60a15331adbf095"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalReviewServer.java",
+      "bytes": 9242,
+      "sha256": "a6158442d099be1274c7ee5f7a5578c0bed88d1fd8e69041e854bf761d46c241"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalScope.java",
+      "bytes": 3612,
+      "sha256": "53761c4d342f7323460f5466a1dfda554af512ab54cc8e03a5331c4a4a1e5f8f"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalTitleBar.java",
+      "bytes": 9340,
+      "sha256": "8aa04109b440df9020f3e35fbfdd0360c090a35f26f133b85f51d628ce223fbd"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ApprovalWindowSizing.java",
+      "bytes": 2776,
+      "sha256": "6dbfaa096a2ccd41ac8b0ae04763667bb6070e43d7555c608fc3de8180411bd0"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/BrowserAuth.java",
+      "bytes": 5253,
+      "sha256": "33c0378ce5ad916c80b9d0e4a71a4fbb8014a9c3a61809d6df2e10f89c2e8a1f"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/CatalogScanner.java",
+      "bytes": 26113,
+      "sha256": "71108d6310e25bfc0800031c9a13ba5a82554ba577f230320d732aeb0c6cd0ec"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ConnectionDraft.java",
+      "bytes": 9601,
+      "sha256": "06d2e144e119f1a99576f945b390e03b051c75f85bfe4d3849b4a2fc12ad7652"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/Connections.java",
+      "bytes": 15104,
+      "sha256": "67cdfaf3e03880f7df7a92fe9a1f7b0034a67beca5c2203e2bbb15ded7a11a00"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ConnectionSetup.java",
+      "bytes": 13965,
+      "sha256": "6315064599d80c870b2c9d36e605ffcdaed19e0fa38d19b9edbb2adfbd8d112c"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ContractValidation.java",
+      "bytes": 4533,
+      "sha256": "c231c5e9fa19a7644a8bfdc8d98633447947ee5fad5658e41e5f8489bc9bfff5"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DatabaseCapabilities.java",
+      "bytes": 6361,
+      "sha256": "f8a6a25a95916ed16eb6bb85cc213375ffa73b15061dfbd22b9c66020104cb98"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DatabaseCatalog.java",
+      "bytes": 15864,
+      "sha256": "d4dfd625d63a72d519305a74b3d9f97b9df358f8c0619730c17d4ca56c08568d"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DatabaseTransport.java",
+      "bytes": 937,
+      "sha256": "9a5c2f4b770c8cef0decfefd1f7a442e70bb328801429bb58423a436ef8d4958"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DbaConfig.java",
+      "bytes": 4689,
+      "sha256": "fcbeb5e31670b99efd13720fa2d833dbcbd2d8cb809d7bfc0ea7e6bdbe936181"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DbaRuntime.java",
+      "bytes": 71197,
+      "sha256": "7025c58c2cf0dc941941dd17a8112b7050201dcfc2a6a3cdfb672550151c009b"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DesktopApprovals.java",
+      "bytes": 14002,
+      "sha256": "e8fa93c42949cd21264781396636e3a7136da128a8e5d50219f11240acabd195"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DriverBundles.java",
+      "bytes": 10251,
+      "sha256": "f9fe4284b20faae2278c33dde20f5c8330cd12cc97bd4e84ce7b90377feef410"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/DriverCleanup.java",
+      "bytes": 481,
+      "sha256": "7abfa07259a0a767e332984385eb84ae4344cab572f1adce9e51e86e7f0c65f9"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/EditorPairings.java",
+      "bytes": 11501,
+      "sha256": "ec98591060851c8acbfb4957e6dff0576507a120e119ffdcfcae77f685f6cbdb"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ExplainPlans.java",
+      "bytes": 22132,
+      "sha256": "4b0ec27b8504a4c638e5df1fb338d2f004a85b5d01f4c737a305cdd9e5af25a8"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/GridSql.java",
+      "bytes": 24967,
+      "sha256": "741d0b19087384ff5fe6f243c1ed0c3baba1faafab3b0aaa56c945630e76cbc5"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/HumanSql.java",
+      "bytes": 10882,
+      "sha256": "bc8541d4943a76d54a7fa615b6cd99ce81c9635690240debf68d967ba69e9435"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/MaterializedViewChanges.java",
+      "bytes": 8259,
+      "sha256": "a6e838333e89d2ba9ef9705cd5796b3767913fbea2b9bef3bd24ad3c28327160"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/MaterializedViewSchedules.java",
+      "bytes": 35117,
+      "sha256": "322453009d8d4fa7f490c638a38cdca7ccb132d9a78399852704eb347ef8effb"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/McpSessions.java",
+      "bytes": 1422,
+      "sha256": "bf11600648fb4459e1419b850707fe6a0d329e4b08f1152727bc2f60fbe67a1f"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/MetadataActions.java",
+      "bytes": 19719,
+      "sha256": "028f567c673419fea1d018d880cabae457be5e52a0e9d73b663f04e11af08c4a"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/MetadataTree.java",
+      "bytes": 9201,
+      "sha256": "38ecf76032c9690a863406c8790bce7b40eec56c02118b0331efd150df23296b"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/MigrationPlans.java",
+      "bytes": 19907,
+      "sha256": "6c8fbdd3dd35b32b77c1bda4d80f34d626754b5fe06df5fbd15bbd36dc3663ea"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeCatalog.java",
+      "bytes": 5312,
+      "sha256": "941850b536f9cc8002bb7205367dd03967968d325baec88bf5916845873b67f5"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeCommand.java",
+      "bytes": 13405,
+      "sha256": "9bf8a0498ead51d7785fccf1541e6d71e4f347e22e3a45655051abf9ff0d68af"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeConnections.java",
+      "bytes": 11742,
+      "sha256": "5b318d83f0787e5237fe3083c090183861ce06b56f440f2366a907cc51311717"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMetadataTree.java",
+      "bytes": 6041,
+      "sha256": "5cfad546c44bd1e8af0b48aeec586a4948516ee30d34bf146797680b8ce4ae2d"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeMutations.java",
+      "bytes": 13154,
+      "sha256": "bd4edd5e8edbc6add4670be1d7458106687792d3bc98439eeff86a0ec4e85e73"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeOperations.java",
+      "bytes": 13278,
+      "sha256": "c2c8586c837e69cd14d479464abc117e9d6d6967466db3842951d81c27330418"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeProfile.java",
+      "bytes": 8531,
+      "sha256": "879176b1f9715ad2073accd567b8a98280456e242ff439c5693306195cadf290"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeReadExecutor.java",
+      "bytes": 11817,
+      "sha256": "0fd11af9b2d2698743c0ff20ab8159e387b890767bef9636fd2a1eeb86e52142"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisArguments.java",
+      "bytes": 3874,
+      "sha256": "a7f66ef07d423d411064d770e671c7efbf2076bda28a9a89f374f13dfd74d439"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeRedisReads.java",
+      "bytes": 8201,
+      "sha256": "9852229a65c8e5a16b91dc78f0d998d281af734ce719ec4016927729ebb91d14"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeResults.java",
+      "bytes": 2349,
+      "sha256": "9f023048cd3e382b0f8278248b41e84b082eadf56b38dcbc043efd1b09e2ef8b"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeTarget.java",
+      "bytes": 3509,
+      "sha256": "12bf7f78d1fd3b2b55b3d1888db347d274319e8b549a59e8f1f2e10ff82c0d46"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeVault.java",
+      "bytes": 7221,
+      "sha256": "32d0dedc8b5ad56f43f77c3a50f7b33d869fd6b76323307f233d034d827d9dac"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/NativeWireBudget.java",
+      "bytes": 5387,
+      "sha256": "fefc6e2daa83026cf5c8174c7a8f667c9d6fbb4109c5b71fa0b8c6b652012b0f"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectCatalog.java",
+      "bytes": 25555,
+      "sha256": "80c1d085ca81d36cfd3e37ea38aee9d5ab5a7a7065982bcfc9129ce25d053d9b"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectCreation.java",
+      "bytes": 4456,
+      "sha256": "eff7d54497f2786b76c6f7d8b1dac0824e00c194c690a366f8c1f7d908be231c"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectDesigner.java",
+      "bytes": 10549,
+      "sha256": "5c472a1e3700feb547eaddb176db8fa744054077ad8cf29d83d6964751a0f540"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ObjectForms.java",
+      "bytes": 32464,
+      "sha256": "c22f2168598f694d2619d832162e2ee5ccfb4faa95491d437d98baaddbbc8b9c"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/OpenSearchExplain.java",
+      "bytes": 5547,
+      "sha256": "813b52c08d5c409f25934cac1ffde46b897124ee85f49fef23e7a0649ce8e394"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/PlanObservations.java",
+      "bytes": 1541,
+      "sha256": "8e9951c68b0fdc13c0b7b1a240765666c8a7afe94cedc7b099850a77394bd0dd"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/Profiles.java",
+      "bytes": 13632,
+      "sha256": "e6fc41c94f5e54fe1ec7cb316bb9824d7df152ca158ecec7aab2ecf284cbcc68"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ProjectContextHost.java",
+      "bytes": 847,
+      "sha256": "b248b05fccb1cae2faa7c7c852b3f2915ee9652095e3de474a391ec051fa68ef"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ProjectContexts.java",
+      "bytes": 30612,
+      "sha256": "c9a564cbe910c505b2e1db08f3ba12a87070f60d5b931a1a81a547791179deca"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryBuilder.java",
+      "bytes": 12831,
+      "sha256": "9d1f89e4a6cef13d168a70f8b2ad5fd7abc87cc5bd5f7e726385cf09cc5b0148"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryJobs.java",
+      "bytes": 84609,
+      "sha256": "46164c79f6e2e916677c8ca75668aa760c1962032f3dc7155f7b9f6db8862b00"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/QueryPlanAnalysis.java",
+      "bytes": 3830,
+      "sha256": "fbd86cb4870e40fbbfcb9e41deebec8011bd117f1dcad38cb26d245d5714c8f4"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/RequestLedger.java",
+      "bytes": 1405,
+      "sha256": "8477f65c69be5a967a4ca3189ccf493982c51de28744b543670e8776dbb2c5ad"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ReusableApprovals.java",
+      "bytes": 10673,
+      "sha256": "f1305d61daf9eaf8e6b97f36d5684048ae47e0182278d7a8da9f252d71dd4fc0"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/ReusableOperation.java",
+      "bytes": 15688,
+      "sha256": "0cf9d8553db5782bba6926a37ba4223711ea59c3ab7dcb38797405133d558f4a"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/SchemaSnapshots.java",
+      "bytes": 6716,
+      "sha256": "776bfd66d956c7375bc514c7a9a6fe8d10feb67dcddfe06d9a5ed7285f047df2"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/SecretRecords.java",
+      "bytes": 2131,
+      "sha256": "de46460837ee03b8ae712c8a87197120de6a726a9752cb1bc8699c82d5ef8772"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/SnowflakeKeys.java",
+      "bytes": 3214,
+      "sha256": "6d09ca175d8a359236e89425d02ecd90d4c651be58f4aae434ebf627ac155ac3"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/SqlReadGuard.java",
+      "bytes": 6316,
+      "sha256": "2256ac3ac3709404a0ab88325e3705c6cfa18e52b18e6c421628748ef40c5507"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/SqlScript.java",
+      "bytes": 6683,
+      "sha256": "8df3ab3c1755344308ce7d48b18beff42ce3597fff21935e523af89d3e3c3004"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableCreation.java",
+      "bytes": 6463,
+      "sha256": "0d6bc0d5171f48b0962f9dc9a7fa6b4b3f8b6eaf51f7dbf4acbc60bcf5674f4a"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableDesigner.java",
+      "bytes": 25585,
+      "sha256": "aea9b046b4234d4c7e7a93018b1ac00ad216e6c2718b640dca4ecc6790b965b9"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableMetadata.java",
+      "bytes": 15474,
+      "sha256": "51e37865929e4e8c1768e99d9724085e3dfd3b80066ae9ce2be1a4a2bb3d38be"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TableQueries.java",
+      "bytes": 3163,
+      "sha256": "9f1b004d632e205570648dfd69b298ab7dd270d0877122b8bea4e34865966be9"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TemplateDiscovery.java",
+      "bytes": 2096,
+      "sha256": "e48b800042210274213b5fc9d115ba51be52c6bb89028b004f8bde455c8dc571"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/TrustedCatalogRead.java",
+      "bytes": 6011,
+      "sha256": "8937dab93fd03da3bcd8cbacabed6803852904fd81e221bfa1dc9f685cbce3ad"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/Vault.java",
+      "bytes": 288,
+      "sha256": "d704607426cdbefc9745533e0ad90ac69b435e70a3e13d731e3698c603b2b59f"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/VendorMetadata.java",
+      "bytes": 17297,
+      "sha256": "3c314c6a6364c9e6fe43ab0114af0f2fd38d8b44dfaecd8210fbc5b5ffa0b11d"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/VisualFunctions.java",
+      "bytes": 9746,
+      "sha256": "52380df305f0e1efdda98c5d279bbdde27ccd93650dfd4d740656842ea11fcda"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/VisualQuery.java",
+      "bytes": 28338,
+      "sha256": "918c17d0a496058e819efc4011805eb30a0b68c5d5711435f56655b9b41f2083"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/VisualQueryImport.java",
+      "bytes": 12921,
+      "sha256": "9f5884622d40c2ff511c409c4be4208c906c23595e3df052dc0126143d5f211e"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/WorkflowTargets.java",
+      "bytes": 3714,
+      "sha256": "8caf775e11a82103e49172124dcfc1eec5daa15da1a1f6d8cabfe0ef889fbee8"
+    },
+    {
+      "path": "code-graph-dba/src/main/java/io/doindev/codegraph/dba/WorkspaceDiscovery.java",
+      "bytes": 2552,
+      "sha256": "4dfa6e24f441a961399eb54637b56720e1956bc74f33a25bbae7e673b613467b"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/app.js",
+      "bytes": 77974,
+      "sha256": "64fd00ac47169027505cdd7f1c9adae35c68bc2b40df20ce325b898890de7271"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/approval-client.js",
+      "bytes": 3314,
+      "sha256": "6920beafd015c8302d34d3a60735fedf575c0d74eda6f2ac69636bfec16427fd"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/approval-review.html",
+      "bytes": 742,
+      "sha256": "3e759ae776eb3191d0ebcf265691b9b3d0f59348d5ca79c1cb7eb9a9745c518a"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/approval-review.js",
+      "bytes": 1543,
+      "sha256": "b20e8bdf1e41433de6ecdcc857c62aaec69e2c0c8f552f933b90a640b2092bee"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/approval-ui.js",
+      "bytes": 10464,
+      "sha256": "733a04c90e77c23657c903af266607d08ed935d8444c60b228be5d8d309305bb"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/connection-editor.js",
+      "bytes": 29646,
+      "sha256": "61c7c8af59a67d899fd1e743c2a7f3216db7fb301fec495e92dfb37616a56b97"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/connection-tree.js",
+      "bytes": 17387,
+      "sha256": "1ddbde49ef14961dfd164c84a3ef5f9dd283764e2665e3c1b411de96f85450c2"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/data-grid.js",
+      "bytes": 47144,
+      "sha256": "c7ab5ea24da8a185fd5e5a617e4f90c6015a3abea7a0df0efd4b02588a621741"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/database.svg",
+      "bytes": 509,
+      "sha256": "5372a5b4ec4c2fc0e1750662026506f3269f5de67aa36d5e8d23eabb599158fe"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/index.html",
+      "bytes": 9355,
+      "sha256": "c96753460306677a22ac11a1a4d95a779a0bfc164a995019828639da2cc868f9"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/metadata-tree.js",
+      "bytes": 12516,
+      "sha256": "8f576cf83d6dac9ea01cebaddd2550519854472d805bd055aa3ad11575548ef3"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/native-connection-editor.js",
+      "bytes": 4530,
+      "sha256": "3038dc617590e6fc13ca3843107d7d960edf08ebcbc8f07f2e3eec8232506720"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/native-workspace.js",
+      "bytes": 11592,
+      "sha256": "3a3b0f13590d610f2d6ed9e1212ce07f7fc75ba4b24af8da797b0ee0cc8dd34a"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/object-creation.js",
+      "bytes": 5536,
+      "sha256": "190d113d3fc83516132c3c8e06c0521266e8f87302a54836f1f285c39a000c18"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/object-properties.js",
+      "bytes": 27908,
+      "sha256": "03ef40bcb90eaba3bd911ae69eb9792c1d944ac81a83aeb801f0a28b5f327138"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/project-context.js",
+      "bytes": 13010,
+      "sha256": "d73e6f2701a8250d60c60014d709314d6b5c4fb218496547e62ad5d01acfada3"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/query-builder.css",
+      "bytes": 10602,
+      "sha256": "7661c7877699c8fbd95ad1584366a1771efc9d241674d1f73905af61d172e35d"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/query-builder.js",
+      "bytes": 57773,
+      "sha256": "39d436e8ad0e4725fd585154d2864842948873b06c4b5de67c76fa355a393e60"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/style.css",
+      "bytes": 47318,
+      "sha256": "e531820967489e62eaf2e937a22a1206cfe8ecedb816339dd20281a127c07ecf"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/table-properties.js",
+      "bytes": 25361,
+      "sha256": "6ba467267914ebb486a6d01be0e248968155815857cddb13552cf29e39e88e3f"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/tree-actions.js",
+      "bytes": 7006,
+      "sha256": "6d1e07faff1fc0e0a6d4a1d10eacb5530dfe3e3e8a72edc64c0577351a8a16b5"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/tree-icons.js",
+      "bytes": 9007,
+      "sha256": "5f31f17fafb109f3c2a87421497c9ee2ad55ad09ffc21575f85d7670c6af579f"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/visual-expressions.js",
+      "bytes": 15136,
+      "sha256": "acef3eb3361dca188a413b4d0b3448f1f2fdab2eb4e2ee86db8a77c03eb72556"
+    },
+    {
+      "path": "code-graph-dba/src/main/resources/codegraph/dba/visual-model.js",
+      "bytes": 5810,
+      "sha256": "e4180e6e73624a5e5802e615ca09b6ae9ca3a457e1706eba6150e752c01d723e"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/AgentAccessTest.java",
+      "bytes": 9145,
+      "sha256": "df9458c01b0cc55554de506c71aea1b54d615b8c2fcd81490451e03d6b5f54cf"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/AgentRequestsTest.java",
+      "bytes": 18814,
+      "sha256": "1c2396dc1e3cf6eca61294703e1d18fe0bc7b4eb8be35ba1da42a5d669570a2b"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ApprovalBrokerTest.java",
+      "bytes": 9977,
+      "sha256": "be18e55e9f07c56f092ad6a6694cd8d8889231e915d94d59ae47bb2103d8395e"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ApprovalDetailsViewTest.java",
+      "bytes": 7487,
+      "sha256": "da23ebdb6343a73f768cc98ad42c47f6591e2e7f9ca66291838386a6ce977816"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ApprovalReviewServerTest.java",
+      "bytes": 13361,
+      "sha256": "6583afa65020826c421ffecffab35586f70a9a5ffb90999e40652e6a14803b06"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ApprovalTitleBarTest.java",
+      "bytes": 2687,
+      "sha256": "52f6634fad263ef4e9f2aa68593ce2a08c52ddff741b77aafd729881a844dab4"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/BrowserFixture.java",
+      "bytes": 5978,
+      "sha256": "68210589c9b79e59d25d6b9d7e6038c02d4f44228c0929dd40e08b33fc2051b9"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/BrowserSqlGuardTest.java",
+      "bytes": 1262,
+      "sha256": "c15e06296cebd78235b1351e0e60896e15488b17f2682c5af18ae5e51cf74155"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ConnectionAppearanceTest.java",
+      "bytes": 3026,
+      "sha256": "a4b831ca13c3e02f108df6e07806b1b094ab0a1a980b605664e42797e669b6d1"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ConnectionLifecycleTest.java",
+      "bytes": 6344,
+      "sha256": "aea16fff1633b071311fe8acd68d696df05dd71c106851b8901941bd848df854"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ConnectionSetupTest.java",
+      "bytes": 10821,
+      "sha256": "d15a7b3ba3d230a4f68ac4d020d6867fdc59ac7c0e71f0024b3a7142bdc53353"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DbaTest.java",
+      "bytes": 16117,
+      "sha256": "0db074d2349daf12626a51d99bc6d5c7b01877490e249e15dc51befa24a02eab"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DesktopApprovalsTest.java",
+      "bytes": 18347,
+      "sha256": "0098ec22ff0ca5bd56aad479aa78ee1296a6b1f0657c02776ebd86833b92044b"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DiscoveryTest.java",
+      "bytes": 6526,
+      "sha256": "84b8c5ad726950dfc54170cb6f3e797e8cb535172d46380410c59a2c9387dbfa"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DockerDatabaseTest.java",
+      "bytes": 4196,
+      "sha256": "fb08a4b075ba3b7bc50fa9be737dd657ab4dcf60b1950df43fb8f1c5ac2ab180"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DriverInstallationTest.java",
+      "bytes": 3051,
+      "sha256": "03a4fb6639f956f34a4188791917bcfb61d2dd493c61c37b76d3c5169a321347"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/DriverProbe.java",
+      "bytes": 790,
+      "sha256": "ca667974c60ced95e2cf816e70db46d9250311522406e246926424686978db9a"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/EditorPairingsTest.java",
+      "bytes": 2069,
+      "sha256": "aca1493f4c51313e8db5589500a29c6d2a2c30604bd08a05f51c119146dfb975"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ExplainPlansTest.java",
+      "bytes": 8906,
+      "sha256": "5054efa35052d4c8ecf528bb57a7168412dceada1e37b964d85e09afccbea940"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/GridSqlTest.java",
+      "bytes": 14231,
+      "sha256": "5dab695f72e6a9bf34e077b51be6e272b26dddc0399656aaaa64465cb87cb2e4"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/HumanSqlTest.java",
+      "bytes": 7500,
+      "sha256": "b64e274be7a2813ef697bbb0ad5a13e6ba11326d84a7820a0ab816045fbc0415"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/MaterializedViewSchedulesTest.java",
+      "bytes": 8180,
+      "sha256": "f2b08145f6f927afd9c51a8511bd8f153c032e957b3d34deb1a5f0a8f1982261"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/MetadataActionsTest.java",
+      "bytes": 8314,
+      "sha256": "b6f6829b947484a0e1f9a8f2f248f886904742024f39c4a2d11480c3c9ee351d"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/MetadataEmbeddedTest.java",
+      "bytes": 4133,
+      "sha256": "282bc88d62b768ef56d776df928308d88bf75f50fcef4be439fd138ed973c806"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/MetadataTreeTest.java",
+      "bytes": 4906,
+      "sha256": "b1faac9a7609d2d50c1b2d18b8aaf39e489c21bcaa8b1f77ae3fc34557dd28c6"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/MigrationPlansTest.java",
+      "bytes": 9412,
+      "sha256": "369d349459d1518cc71f0836bc587ff0e3cf507e826d9c376267f95b238b9abb"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeFoundationTest.java",
+      "bytes": 14186,
+      "sha256": "06de38dad6f04783065351397c291433d071e05e6599e474bc7ad4b3fc909dfe"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeMemoryTest.java",
+      "bytes": 6327,
+      "sha256": "a3f44f01f5c7905606956443f6cbc350d063215130ea7bfdb2d23f447ad7b96e"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativePerformanceTest.java",
+      "bytes": 12339,
+      "sha256": "841fd48f5e5ec9b7f835ca13c3b889a29c45892ef2a6db6b4e425bad5a27d0cd"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeReviewTest.java",
+      "bytes": 3798,
+      "sha256": "2ddfa7cc6e5efb0f40eab40e55e2bda840c850c3a0b0477ebf7e7a4c33a63af1"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeVaultTest.java",
+      "bytes": 1519,
+      "sha256": "08a88b13f923c52c0a3129bddc61754324d56f517221106b65cfc1dba2d92c33"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/NativeVendorTest.java",
+      "bytes": 21931,
+      "sha256": "ba9943b30bfb7e85f0a2958a773cee4a117cdf5551e8151ba7c6bcf9b9a0a1b4"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ObjectCreationTest.java",
+      "bytes": 4211,
+      "sha256": "797525caaf42dfc7d181c660f01ec3d8c0cbdfb09cd11cbf15d333c7b6ff5623"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ObjectDesignerPostgresTest.java",
+      "bytes": 8018,
+      "sha256": "6a6b01d70ae61f89acb94dad1e20a3f7b2e50d9c203602382a236c948d2e925b"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ObjectDesignerTest.java",
+      "bytes": 9807,
+      "sha256": "3dbec77066a8f6116c9ca3191d95b5ab966dcba695a30d27018d97f42c443110"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/PostgresIntegrationTest.java",
+      "bytes": 41171,
+      "sha256": "6b7970fe612db312dbc0b86bcf1c6dff57025db6673a1fba938c565d9a78e3c6"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ProjectContextPostgresTest.java",
+      "bytes": 2967,
+      "sha256": "7da0681874cd86c67d34ea2b449c1a2fb221bd33e1528732a62549ca945e6770"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ProjectContextsTest.java",
+      "bytes": 20698,
+      "sha256": "9727bea6c6bdf0c653a3686679cb3aac754a540482d777090f4b802561d0cfaa"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/QueryBuilderTest.java",
+      "bytes": 4605,
+      "sha256": "7fd5e2ee5fd3a57e9a4223ad0ab1d666e2401910c102118e51ce35cdea1e1ec8"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/RequestLedgerTest.java",
+      "bytes": 1745,
+      "sha256": "0308514c2fdcc1e670bc07c1f8ac1bd736114cb8b518e164716a231842a4b3f9"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ReusableApprovalsTest.java",
+      "bytes": 6259,
+      "sha256": "4e26ea1e04c8519521a25414ab5983426da99625e896817b042e3a33eb08f51a"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ReusableOperationTest.java",
+      "bytes": 5745,
+      "sha256": "e4cda6cea51eaebcecd99f818beda65bc1621b3ac769201cb45885f3f5d6deee"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ReusableSqlApprovalTest.java",
+      "bytes": 6967,
+      "sha256": "d1e09fcdf9d3fb748dc199962f1be0dd05b3b18b0feb5e8ad7fae6e52811f9b9"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/ReusableVendorIntegrationTest.java",
+      "bytes": 7689,
+      "sha256": "887ab118c92dac7b3c415bd633e2d4b1ee6a2898a3ae68f966c8c91a13882bdc"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/SchemaSnapshotsTest.java",
+      "bytes": 6711,
+      "sha256": "d484d0efbfa3df61761d0367daf7b868e8739d743367401533fd419b950474ee"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/SqlScriptTest.java",
+      "bytes": 1512,
+      "sha256": "63a7e0b71826263a5a42263853bb8a45c39e076c14949042cdf9752c4c97b661"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/SqlServerNativeDeliveryTest.java",
+      "bytes": 6037,
+      "sha256": "08369c213b44bf0049de4cd25f0230f97c1cc05fc23a068dae2e193aaf2b7894"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/StandaloneSqlApprovalTest.java",
+      "bytes": 11481,
+      "sha256": "b132ab775d9297088aa3a750d4e5f6e5725eb4a37d585500f768cc4184650d25"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableCreationTest.java",
+      "bytes": 4384,
+      "sha256": "0a5cf0fe51b6584010c92d0e5d0657be06f2ee7173af8befdafb7ca3c90e0e32"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableDesignerTest.java",
+      "bytes": 5161,
+      "sha256": "2acf89d1727f2322111442c26ed4e6c45ef5a9bb4fbdbe3d45ee790e1a57ad40"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableMetadataTest.java",
+      "bytes": 3735,
+      "sha256": "c736ba1895ff15ac2794aedf4d6315f260bbbcb78d4640a4e054516d1c9b9a6f"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/TableQueriesTest.java",
+      "bytes": 4648,
+      "sha256": "5b239e160b175475f41ed6eab28829287bc9156181950523aa1a2223a2839379"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/TemplateDiscoveryTest.java",
+      "bytes": 2114,
+      "sha256": "b346df6e0189890c9a428b570fe1a3b1678bb124210e520410f165ab2d88418a"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/VisualPostgresTest.java",
+      "bytes": 4955,
+      "sha256": "1877b3633bd2c1fcbe8f6583cef8dc84eff215a018fa336fe3d035a074eeda50"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/VisualQueryTest.java",
+      "bytes": 12631,
+      "sha256": "65e15947e586b1d6149dc6205143614aa011c6fcd6443e31e2b2078d6295fbcf"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/WorkflowAnalysisTest.java",
+      "bytes": 3181,
+      "sha256": "caaa5e8a85da033b31b4787500d489b6e9060d89ea107d7f8471579e1652a0da"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/WorkflowTargetsTest.java",
+      "bytes": 4458,
+      "sha256": "51746572704fb7e761bd509639cab5869b215aefcf334ddf83f09650330c71df"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/WorkflowVendorIntegrationTest.java",
+      "bytes": 9880,
+      "sha256": "02e2ce4ea21b8bb6631b0e67da6ea6148f62363b49fa322d8d042b871eba7544"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/YoloTest.java",
+      "bytes": 17682,
+      "sha256": "afeb15e3949aa9c110e786653e601e8d7a5537590f880e30701c8089117bb0a6"
+    },
+    {
+      "path": "code-graph-dba/src/test/java/io/doindev/codegraph/dba/YoloVendorIntegrationTest.java",
+      "bytes": 8429,
+      "sha256": "db08e4d0482bef6af96906fdd1e1e2cc64d97fb7d62c52168ca730734b6ac866"
+    },
+    {
+      "path": "code-graph-dba/test-browser.ps1",
+      "bytes": 2461,
+      "sha256": "b2dff67e1ae431d9ef91d4573b95d24a6de17041c729fc31ed31a0afed9b73dc"
+    },
+    {
+      "path": "code-graph-dba/test-database-matrix.ps1",
+      "bytes": 4251,
+      "sha256": "06ffd0a02294c650fa70569e1ee1040106294283adba73975e959bb9a37b0bfc"
+    },
+    {
+      "path": "code-graph-dba/test-docker-resources.ps1",
+      "bytes": 2605,
+      "sha256": "441edeffb230aa9cabd395dfb1590a64548e0ebe8a6f8030c527ac811927811e"
+    },
+    {
+      "path": "code-graph-dba/test-docker-resources.tests.ps1",
+      "bytes": 2631,
+      "sha256": "5f41311a349df9ae43f37453860b027da4646e70b19af89a5043b88e983cec51"
+    },
+    {
+      "path": "code-graph-dba/test-linux-vault.ps1",
+      "bytes": 919,
+      "sha256": "4a84f90ee32335cf254986beef7e978a947ee20663a42800bd8ff5b10005951f"
+    },
+    {
+      "path": "code-graph-dba/test-native-vendors.ps1",
+      "bytes": 3346,
+      "sha256": "a239fe945708b2c6f944afe4887f89003df6400b23f8961c2aad53dc661c5779"
+    },
+    {
+      "path": "code-graph-dba/test-postgres.ps1",
+      "bytes": 2262,
+      "sha256": "09b9f00bf69071b109ddd4a1c15bb835bf3c9addfd4ee4fe836436b6c8d9a76f"
+    },
+    {
+      "path": "code-graph-dba/test-reusable-vendors.ps1",
+      "bytes": 5288,
+      "sha256": "5e5bb04591eb625b94f7c7332caa65241c49a2645257d3b3044b384905b9c984"
+    },
+    {
+      "path": "code-graph-dba/test-sqlserver-native.ps1",
+      "bytes": 2890,
+      "sha256": "ff21e3a75132976672f1fcdc5d93590d4ad3ee264f913041e2bc424c01559e38"
+    },
+    {
+      "path": "code-graph-index/pom.xml",
+      "bytes": 1998,
+      "sha256": "a61685f492d87445477061ace55dca93de2d0d7258de70f3c7ed884683003f19"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/Analyzers.java",
+      "bytes": 2262,
+      "sha256": "7cd0f1a13bd72fe833528f0433c740ef9a1765fcaff31a97d68e9db2d8ea49dd"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/FullIndexer.java",
+      "bytes": 9059,
+      "sha256": "920a314a339ece92c42d9ca91d58c5a12f2f17e6cee62d3fc34453796212bd43"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/GitIgnore.java",
+      "bytes": 2837,
+      "sha256": "755f30d6bf194914aa31b73a27c967837974c80b30924f0d1007d2af3311be3d"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java",
+      "bytes": 5775,
+      "sha256": "f27639a6b44ccf09598bbb0787796f4526d594f9fb2e2a08f8179bb46d120df7"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/IncrementalIndexer.java",
+      "bytes": 11503,
+      "sha256": "f65d415288dd381a59bb8453a13de71ac1f9d1d768fdb52e47ab1ed96f7561ea"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/mapping/CodeDatabaseMappings.java",
+      "bytes": 4196,
+      "sha256": "a6208676e4f2c12ccb991163b39f3b8ff755485a43ea0e7b3ebf564110a0286f"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/mapping/MappingEvidence.java",
+      "bytes": 3040,
+      "sha256": "a279e234a4df652d31a9b73bbef73a34ee7ef923d7f5c758955d4cd6e61ed2a4"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/mapping/OrmMappings.java",
+      "bytes": 15822,
+      "sha256": "019bb57f115a423ba75a5338ca67cbe7bdab0145f6ddec6fcb8e025644beaf0c"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/mapping/SourceTokens.java",
+      "bytes": 2344,
+      "sha256": "146f4fd134f58612395663123fc8e4acde5e356fd842379342f3c7318699a931"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/mapping/SqlMappings.java",
+      "bytes": 5342,
+      "sha256": "6e46797204e9d173afda8aa5182f571fe5da2fb6ab17ad0fd47b7e94394f18e7"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/Watcher.java",
+      "bytes": 7111,
+      "sha256": "92d6d5a1747871db4f87b18ea32e17afdcdddca5ce5a2b20ed0ff5a33040bd3a"
+    },
+    {
+      "path": "code-graph-index/src/main/java/io/doindev/codegraph/index/Workspace.java",
+      "bytes": 13455,
+      "sha256": "aaae62564170a2fa4e873c482f967f46156dca24f8b4d808eec7a0bae0b8a1d6"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/FullIndexerTest.java",
+      "bytes": 7433,
+      "sha256": "631634882666f7f50c1f166f1d513e2f5e2db5798a47ad7421256a7921b46a7a"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/HybridWorkspaceTest.java",
+      "bytes": 3147,
+      "sha256": "82de1811dce5834cb334d91e240263595d08eddf4bf72fb56a357d5b9e796d2d"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/IncrementalIndexerTest.java",
+      "bytes": 6255,
+      "sha256": "a155310a15022b9e86f17009dd958d0b1d337207ca4047d8d6b08f3c42ed85e2"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/JavaResolutionTest.java",
+      "bytes": 12346,
+      "sha256": "e633f828bcc03daf10a8e2375d01e8c9b7cf1957bb985cdb8ca75ffaeac022ed"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/LanguageResolutionIntegrationTest.java",
+      "bytes": 6625,
+      "sha256": "4b686f13a231fb13d549442277c7139b5c810046780bfbf23598ea936befff4e"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/mapping/CodeDatabaseMappingsTest.java",
+      "bytes": 6848,
+      "sha256": "3d7e4e615b9f8e3f58a79b67f350c513392f15a117d416de1a1f97e70a241012"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/ProtectedDirectoryTest.java",
+      "bytes": 1601,
+      "sha256": "ca74464ea40f9b8d52b13075a6713f16d98bf66a22153e2bce503679ea8b8e70"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/WatcherTest.java",
+      "bytes": 1752,
+      "sha256": "a2f72646055d5f6fa55b0a3b69aa027f287ec57ec5d0efd477b6c5fd746652c5"
+    },
+    {
+      "path": "code-graph-index/src/test/java/io/doindev/codegraph/index/WorkspaceTest.java",
+      "bytes": 8203,
+      "sha256": "d45673fd0874dd98a2f634a27002279a193549c36c20309229e1a892b4bf8708"
+    },
+    {
+      "path": "code-graph-lang-c/pom.xml",
+      "bytes": 1224,
+      "sha256": "85fc26020bf49af7f93e020be8d05535a188e5d7d0094d3d397100e025ab822d"
+    },
+    {
+      "path": "code-graph-lang-c/src/main/java/io/doindev/codegraph/lang/c/CAnalyzer.java",
+      "bytes": 646,
+      "sha256": "27298488510f9079f7c3c5300be7bdf4968bbf6391f57f108878fa7bfa7ee2e4"
+    },
+    {
+      "path": "code-graph-lang-c/src/main/java/io/doindev/codegraph/lang/c/CFamilyAnalyzer.java",
+      "bytes": 7692,
+      "sha256": "0d78a92ba45fb61614af2a778c52d41f9fe618914ebf6b4899395a4484784f3d"
+    },
+    {
+      "path": "code-graph-lang-c/src/main/java/io/doindev/codegraph/lang/c/CppAnalyzer.java",
+      "bytes": 1920,
+      "sha256": "73faf7a8db21dd2a011fa7cb09da3f647098fa614f5e9a684a0b54af733a8379"
+    },
+    {
+      "path": "code-graph-lang-c/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 78,
+      "sha256": "d73a5c23f551821d045da950412d255057ae11b5f047f4be88076b31cdd234f8"
+    },
+    {
+      "path": "code-graph-lang-c/src/test/java/io/doindev/codegraph/lang/c/CAnalyzerTest.java",
+      "bytes": 4186,
+      "sha256": "fbd01e58f42d7190a00400acd5144dbe1aa1f2aea885764b716fccd4019b4416"
+    },
+    {
+      "path": "code-graph-lang-c/src/test/java/io/doindev/codegraph/lang/c/CppAnalyzerTest.java",
+      "bytes": 4523,
+      "sha256": "72d2b0f8484bd8867f7d5a72bb9aba457c9414f3eddbfcde7c959bcb7243dd2a"
+    },
+    {
+      "path": "code-graph-lang-csharp/pom.xml",
+      "bytes": 1076,
+      "sha256": "6ecfe9bc9ca51ffd4a99c749c8d4b79c4e5c029cd71c60d6a032db00de2f426c"
+    },
+    {
+      "path": "code-graph-lang-csharp/src/main/java/io/doindev/codegraph/lang/csharp/CSharpAnalyzer.java",
+      "bytes": 7868,
+      "sha256": "5fbe05bd98cfe175c0f3cba8599f68d576d558f71fce4c5fa73e144af0e44e62"
+    },
+    {
+      "path": "code-graph-lang-csharp/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 48,
+      "sha256": "bd68cb23cfe6869d74894e5a5f37b917dbde924aca220bf06c2c5111c208ae67"
+    },
+    {
+      "path": "code-graph-lang-csharp/src/test/java/io/doindev/codegraph/lang/csharp/CSharpAnalyzerTest.java",
+      "bytes": 7186,
+      "sha256": "07a604cc65ca06d51a4a8b3380575d6f36b506b1bd454f8a5e66817b7da83876"
+    },
+    {
+      "path": "code-graph-lang-dart/pom.xml",
+      "bytes": 1073,
+      "sha256": "41c06bc7d60febb10389b992c47648d4681ed4516ffd673b2a0a3c297523b027"
+    },
+    {
+      "path": "code-graph-lang-dart/src/main/java/io/doindev/codegraph/lang/dart/DartAnalyzer.java",
+      "bytes": 7484,
+      "sha256": "98ca3a3b2cda94da46cea34c1b5001d0f6d30e83bdacd4204b490ddf66f009fa"
+    },
+    {
+      "path": "code-graph-lang-dart/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 44,
+      "sha256": "b2beb2cab26b090403faad4107332b028483b911b291490c30f8a7eb292c8420"
+    },
+    {
+      "path": "code-graph-lang-dart/src/test/java/io/doindev/codegraph/lang/dart/DartAnalyzerTest.java",
+      "bytes": 3647,
+      "sha256": "d3e945feee3b3a2827403631c0c929ba6f17402a970af675cf24c4d990011cf8"
+    },
+    {
+      "path": "code-graph-lang-go/pom.xml",
+      "bytes": 1063,
+      "sha256": "cc97d07e613ec32b97ce96d94b228afda5bbd713a493ba8a9ec4e450ebc3bebf"
+    },
+    {
+      "path": "code-graph-lang-go/src/main/java/io/doindev/codegraph/lang/go/GoAnalyzer.java",
+      "bytes": 4630,
+      "sha256": "05811b8902bc04e0f493bf84374b46167bf2a00e83eccc1ff68449bf07580cf5"
+    },
+    {
+      "path": "code-graph-lang-go/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 40,
+      "sha256": "90d4bb6c5b6e284201546c8abd0bc2cfd3a3bfe63261dc65753a71e2d4b761ef"
+    },
+    {
+      "path": "code-graph-lang-go/src/test/java/io/doindev/codegraph/lang/go/GoAnalyzerTest.java",
+      "bytes": 3778,
+      "sha256": "0edcfecadc4b63eb3e12af001749829c00395b773e04464b42a8e3cc7c73fe64"
+    },
+    {
+      "path": "code-graph-lang-java/pom.xml",
+      "bytes": 1071,
+      "sha256": "4a8ee1bccda4b7dce89bac5757db0e9238b255a0f987340fe6bfcc3a20825c36"
+    },
+    {
+      "path": "code-graph-lang-java/src/main/java/io/doindev/codegraph/lang/java/JavaAnalyzer.java",
+      "bytes": 6778,
+      "sha256": "7bd4d6004a4a6b97076e1fed79fc5ed312e564be88b33aae801868365978e0e7"
+    },
+    {
+      "path": "code-graph-lang-java/src/main/java/io/doindev/codegraph/lang/java/JavaSemanticHints.java",
+      "bytes": 12677,
+      "sha256": "ccd46c0b41fde8959adc1810f2b21f8ed902ca000026fd772066d6fc1e11b0e0"
+    },
+    {
+      "path": "code-graph-lang-java/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 44,
+      "sha256": "fcb7d43378b097f718aaeebd76cff32610ad6ddae8af462f3cfee0c398b57c5e"
+    },
+    {
+      "path": "code-graph-lang-javascript/pom.xml",
+      "bytes": 1435,
+      "sha256": "71937e4c467ecf3bc5231f2af04fa7a90293a36dc0e89d4267cf2b08e20a77a2"
+    },
+    {
+      "path": "code-graph-lang-javascript/src/main/java/io/doindev/codegraph/lang/javascript/EcmaAnalyzer.java",
+      "bytes": 4717,
+      "sha256": "e78c62b22e05da4ad5a78ed6f6f80f6f7608cd5e3d9626181b6d9c3013a2319f"
+    },
+    {
+      "path": "code-graph-lang-javascript/src/main/java/io/doindev/codegraph/lang/javascript/JavaScriptAnalyzer.java",
+      "bytes": 572,
+      "sha256": "65debf1040f53bbfc7a4caf7351bfa409ab006096ac80293ce73c8c1db98ceed"
+    },
+    {
+      "path": "code-graph-lang-javascript/src/main/java/io/doindev/codegraph/lang/javascript/TsxAnalyzer.java",
+      "bytes": 568,
+      "sha256": "9c398d0bb90d51b6b758bb80eeafc448a5e389ecee081caf4e77b91ad1aede9b"
+    },
+    {
+      "path": "code-graph-lang-javascript/src/main/java/io/doindev/codegraph/lang/javascript/TypeScriptAnalyzer.java",
+      "bytes": 579,
+      "sha256": "b19351b9b3440e4cbac9f036097f308826fe9cb4ae3221108f867ce90c7eff0c"
+    },
+    {
+      "path": "code-graph-lang-javascript/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 161,
+      "sha256": "285cf2610c13a1c6a04cae331240b1d20ee94f723d2233b71dde0f9cd8126e50"
+    },
+    {
+      "path": "code-graph-lang-kotlin/pom.xml",
+      "bytes": 1080,
+      "sha256": "26deee3b7dfac24cbd26495809d76c30ff06e8f2626e18ee682a3fa53b489972"
+    },
+    {
+      "path": "code-graph-lang-kotlin/src/main/java/io/doindev/codegraph/lang/kotlin/KotlinAnalyzer.java",
+      "bytes": 8216,
+      "sha256": "d71df2e04d7f3ed0619810e05d03553e562e6e42df676e812bdcf09a086d04af"
+    },
+    {
+      "path": "code-graph-lang-kotlin/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 48,
+      "sha256": "d8fc74992b6c9bf0fda0ba60730af653681d63fc0ab6c1191754e984cd3d86ba"
+    },
+    {
+      "path": "code-graph-lang-kotlin/src/test/java/io/doindev/codegraph/lang/kotlin/KotlinAnalyzerTest.java",
+      "bytes": 5318,
+      "sha256": "a9ee10f98b6d33e37e1fbf584f567945842d01d1ce6d4cfde2f9b2305e95482b"
+    },
+    {
+      "path": "code-graph-lang-objc/pom.xml",
+      "bytes": 1078,
+      "sha256": "d6a22b8e851d503370dfdaa22249f1c74e18541c0462dc8e1c03f672b604aaa9"
+    },
+    {
+      "path": "code-graph-lang-objc/src/main/java/io/doindev/codegraph/lang/objc/ObjcAnalyzer.java",
+      "bytes": 8159,
+      "sha256": "059d7b34bcc4338af581cd74d2e484dc480cdfdd1b5bc953a7875f595b3747ec"
+    },
+    {
+      "path": "code-graph-lang-objc/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 44,
+      "sha256": "77146ff9803271c6e1fb430bc5d287d63d7ff529f02ab75b17714b08b6c268e2"
+    },
+    {
+      "path": "code-graph-lang-objc/src/test/java/io/doindev/codegraph/lang/objc/ObjcAnalyzerTest.java",
+      "bytes": 4064,
+      "sha256": "ad8a84b88a8e1fd5a0c4f17f6d1d80e5de5a1e8fb1b66a198bce1db361605dc5"
+    },
+    {
+      "path": "code-graph-lang-php/pom.xml",
+      "bytes": 1068,
+      "sha256": "f5160282e5502951c7b116d65c5b68452df2b1b744762b5266da40830edf322a"
+    },
+    {
+      "path": "code-graph-lang-php/src/main/java/io/doindev/codegraph/lang/php/PhpAnalyzer.java",
+      "bytes": 8010,
+      "sha256": "fef731abe43377d7e0f9ca02446140ce83e14be0885c562364bb50c5c470a5e3"
+    },
+    {
+      "path": "code-graph-lang-php/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 42,
+      "sha256": "34c5d56ba065e4fc384186ff6c7307484cbda0fc13e020b040cd29d30342195c"
+    },
+    {
+      "path": "code-graph-lang-php/src/test/java/io/doindev/codegraph/lang/php/PhpAnalyzerTest.java",
+      "bytes": 6652,
+      "sha256": "8b3fcec23cd4c52c5eebdd3027255870357e8e6842b39b20cf63afc1ddb6f717"
+    },
+    {
+      "path": "code-graph-lang-python/pom.xml",
+      "bytes": 1079,
+      "sha256": "7f3fb496e3f0e803fb8e9e5be40a169303f175e430efd729bc120a3617ec45e0"
+    },
+    {
+      "path": "code-graph-lang-python/src/main/java/io/doindev/codegraph/lang/python/PythonAnalyzer.java",
+      "bytes": 4841,
+      "sha256": "cc87c29a554dc32f798a0a0574c3b9c9bb8e377d2e74612a6a1c95fd1ee78268"
+    },
+    {
+      "path": "code-graph-lang-python/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 48,
+      "sha256": "de7c07b5afc9c01493ece939e4ec3fb1a2160f3341ff695b8e0baa5e55a6db9c"
+    },
+    {
+      "path": "code-graph-lang-ruby/pom.xml",
+      "bytes": 1071,
+      "sha256": "24ca5f2482c74c1ea3c573503f4fbb6713d82b9616cdf5b6aa81d77f4beae14f"
+    },
+    {
+      "path": "code-graph-lang-ruby/src/main/java/io/doindev/codegraph/lang/ruby/RubyAnalyzer.java",
+      "bytes": 3447,
+      "sha256": "5fb424ac25fc02ae3c0d1f42adc2a2fd350bc49ad02e3d43c8ac2156b0e41b8e"
+    },
+    {
+      "path": "code-graph-lang-ruby/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 44,
+      "sha256": "e2ffc769e33ebd66797f6bdaeb72f44b015ccd32b1452fb58e2976d9f9dbdac5"
+    },
+    {
+      "path": "code-graph-lang-ruby/src/test/java/io/doindev/codegraph/lang/ruby/RubyAnalyzerTest.java",
+      "bytes": 4734,
+      "sha256": "c343142312d347e45ec2c221eebbfa86f60fc1d593ebd11ed49f67d09ade67d7"
+    },
+    {
+      "path": "code-graph-lang-rust/pom.xml",
+      "bytes": 1071,
+      "sha256": "8f64ed1734a887e49973591fa80eed1d55be79ec35549db3f7d22f681b689826"
+    },
+    {
+      "path": "code-graph-lang-rust/src/main/java/io/doindev/codegraph/lang/rust/RustAnalyzer.java",
+      "bytes": 4399,
+      "sha256": "64abde2a23463670944e3c51d5c13992ebc36c6396f190e7c1cacfcda5df7091"
+    },
+    {
+      "path": "code-graph-lang-rust/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 44,
+      "sha256": "cb726fbaeb4dc601e8da8aab05c03d975393629bdbe53215ada62df12e55cfc0"
+    },
+    {
+      "path": "code-graph-lang-rust/src/test/java/io/doindev/codegraph/lang/rust/RustAnalyzerTest.java",
+      "bytes": 4858,
+      "sha256": "85890db8cae5f00a830e6da19fb63f801421364c38db99294cc1ff4523952b19"
+    },
+    {
+      "path": "code-graph-lang-scala/pom.xml",
+      "bytes": 1075,
+      "sha256": "032ba24a51c5723e4e9667a679a53f0510195a179a4e6aa8c51b3aa3b6adc826"
+    },
+    {
+      "path": "code-graph-lang-scala/src/main/java/io/doindev/codegraph/lang/scala/ScalaAnalyzer.java",
+      "bytes": 6911,
+      "sha256": "5f6686f9cd009946aff42e5a5fa9ff37e3f15e6f6fa593aa373e3b8096064b85"
+    },
+    {
+      "path": "code-graph-lang-scala/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 46,
+      "sha256": "6e32c5a051dc29016c0fbb47365d39f1373c66d546eb716c0ae0d04b6e5de967"
+    },
+    {
+      "path": "code-graph-lang-scala/src/test/java/io/doindev/codegraph/lang/scala/ScalaAnalyzerTest.java",
+      "bytes": 4626,
+      "sha256": "d7807ed6a196e4594cac73be3e3b2c4f2ade4ce71942960c6c4b9d839abd1d8c"
+    },
+    {
+      "path": "code-graph-lang-sql/pom.xml",
+      "bytes": 1137,
+      "sha256": "5486cfadb204405a6718a6e6823e36895d9b42f129efc9802ccdcdd867e17258"
+    },
+    {
+      "path": "code-graph-lang-sql/src/main/java/io/doindev/codegraph/lang/sql/SqlAnalyzer.java",
+      "bytes": 3420,
+      "sha256": "d0a20d30a9047310b4208666e703c9fb01c8585c47b3f3b1dd86f36a49802d6b"
+    },
+    {
+      "path": "code-graph-lang-sql/src/main/java/io/doindev/codegraph/lang/sql/SqlQueries.java",
+      "bytes": 9635,
+      "sha256": "a05ed9314f4c11df7ce709af3b47dea38155d3a3d1cbcb9f21b94ba2f9f5f180"
+    },
+    {
+      "path": "code-graph-lang-sql/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 42,
+      "sha256": "5f8372239f055e354da60c8c2ec0be3a647d3718b495b58aa21b15ae0054ae00"
+    },
+    {
+      "path": "code-graph-lang-sql/src/test/java/io/doindev/codegraph/lang/sql/SqlAnalyzerTest.java",
+      "bytes": 1951,
+      "sha256": "8a6428c51391f2e22ba5b2f123bea331793ffebe3b3073f257a42a4d6a3b0a0c"
+    },
+    {
+      "path": "code-graph-lang-sql/src/test/java/io/doindev/codegraph/lang/sql/SqlQueriesTest.java",
+      "bytes": 3583,
+      "sha256": "9be59b2c86c1344abda20c52f51366e8e43d2795f5c120b333370be7ab66e46d"
+    },
+    {
+      "path": "code-graph-lang-swift/pom.xml",
+      "bytes": 1074,
+      "sha256": "cd29ee022f999daaed1c43ea1c63c05bd4c619ba07c1bab26a2525cb4d574e51"
+    },
+    {
+      "path": "code-graph-lang-swift/src/main/java/io/doindev/codegraph/lang/swift/SwiftAnalyzer.java",
+      "bytes": 7819,
+      "sha256": "0595063ca9e542bd56b35208581363b4e52387d8a36519b71db803360fffebc0"
+    },
+    {
+      "path": "code-graph-lang-swift/src/main/resources/META-INF/services/io.doindev.codegraph.parse.LanguageAnalyzer",
+      "bytes": 46,
+      "sha256": "5f8f6e62a1371a6a8185a78b63b45086eb626654eefd74824edde4df42485c62"
+    },
+    {
+      "path": "code-graph-lang-swift/src/test/java/io/doindev/codegraph/lang/swift/SwiftAnalyzerTest.java",
+      "bytes": 4144,
+      "sha256": "e6d77d804f1f14bdcee2cebb30fe34ecebb28247a1e4393a2b8af08a5144d91e"
+    },
+    {
+      "path": "code-graph-linker/pom.xml",
+      "bytes": 928,
+      "sha256": "90d42690073ed8d5e02cad80def7e66bcd9f9a5500b228c7114f92979664ec18"
+    },
+    {
+      "path": "code-graph-linker/src/main/java/io/doindev/codegraph/linker/HttpRouteLinker.java",
+      "bytes": 14107,
+      "sha256": "19004f6e9b0bf929b2fdfcb8a810e70630cbe5249285c807b78a0ad1c634f9c8"
+    },
+    {
+      "path": "code-graph-linker/src/main/java/io/doindev/codegraph/linker/Linker.java",
+      "bytes": 1360,
+      "sha256": "cf47106bf18feae237611b50d622b7dfa2a81f6f430d281fddff4248752a3fa7"
+    },
+    {
+      "path": "code-graph-linker/src/main/java/io/doindev/codegraph/linker/RouteNormalizer.java",
+      "bytes": 5118,
+      "sha256": "323fd0153be6fd4c3f2b8feea281ecf7f39717e7917e515eee665d298a89f335"
+    },
+    {
+      "path": "code-graph-linker/src/main/java/io/doindev/codegraph/linker/RouteScan.java",
+      "bytes": 2000,
+      "sha256": "63660211c5d9c78afeda6f091e0260308483993284ce29c07b02c8cbffe49f8d"
+    },
+    {
+      "path": "code-graph-linker/src/main/resources/META-INF/services/io.doindev.codegraph.linker.Linker",
+      "bytes": 44,
+      "sha256": "8688332be285a342994397c7b79fee404704dcd5ca42a98db24ce513ac39c79a"
+    },
+    {
+      "path": "code-graph-linker/src/test/java/io/doindev/codegraph/linker/HttpRouteLinkerTest.java",
+      "bytes": 7079,
+      "sha256": "79ce0b39876e604d1d4a0c49f73790fe3ff86a79d5f40e0d8287a7d5e0d97622"
+    },
+    {
+      "path": "code-graph-linker/src/test/java/io/doindev/codegraph/linker/RouteNormalizerTest.java",
+      "bytes": 4468,
+      "sha256": "be875b02b0acf6196ccc88d19315b40c9132f219af093ee18e4c30dd776b77d7"
+    },
+    {
+      "path": "code-graph-mcp-http/Dockerfile",
+      "bytes": 1194,
+      "sha256": "454266314a3a123c60ab11fb5a85489a52002be4df7a6426ba91d01ed28102c0"
+    },
+    {
+      "path": "code-graph-mcp-http/pom.xml",
+      "bytes": 3532,
+      "sha256": "968597f6c8cbd398cd3788e0b54390dbb0cbebb064003e7282943a2dfa07bf56"
+    },
+    {
+      "path": "code-graph-mcp-http/src/main/java/io/doindev/codegraph/mcp/http/CgraphMain.java",
+      "bytes": 5157,
+      "sha256": "84357dccf6ac418d5a969569ddac1619717c780de569c33cd8b227d4e0870e5e"
+    },
+    {
+      "path": "code-graph-mcp-http/src/main/java/io/doindev/codegraph/mcp/http/DbaHttpAccess.java",
+      "bytes": 3957,
+      "sha256": "a69ba2fcbd506993c38dac5387a480813e30fc17d014e74b515bb3fb173abcd9"
+    },
+    {
+      "path": "code-graph-mcp-http/src/main/java/io/doindev/codegraph/mcp/http/HttpMain.java",
+      "bytes": 2151,
+      "sha256": "3b69203a087ffe42f908b7d81148b50fd9faf55f1ace03eed918cb4845399abc"
+    },
+    {
+      "path": "code-graph-mcp-http/src/main/java/io/doindev/codegraph/mcp/http/HttpServer.java",
+      "bytes": 11037,
+      "sha256": "dfd61551d808399786038675d7ed09fc5d5059de63c89aaa7057d0f93173eb54"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/CgraphMainTest.java",
+      "bytes": 3014,
+      "sha256": "0ed7a17527db0ff15edd917e00e9176c5033bfc2c070920e7279288c25fbe62b"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/DbaHttpAccessTest.java",
+      "bytes": 7547,
+      "sha256": "d63f852536818ad10339dab22721c717d8ff723105a171fc688f85601421271d"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/DbaMcpHttpTest.java",
+      "bytes": 14881,
+      "sha256": "a056303bb943a42e401708880e38d083120e19e1b16bbed4ae9831fad9557184"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/HttpEndToEndTest.java",
+      "bytes": 17540,
+      "sha256": "c6c43f95de63c5666ea637fcc1a34890a3b4546126732b320d4df3ece72ff60c"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/HybridHttpTest.java",
+      "bytes": 3278,
+      "sha256": "fc8d60ad40baf868096226636883897639b7e8cdc3a28a4ab8d782ada20e0460"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/NativeMcpHttpTest.java",
+      "bytes": 5066,
+      "sha256": "65b7694280dae963f3d18e386f3e4f188ca9380ee0f3c958fc5ff971e340db0c"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/ReusableMcpHttpTest.java",
+      "bytes": 7246,
+      "sha256": "ea0d1f547e3340b6032181a226cedb5ce091e43ae3a15180d41cd9f3eb86c1e7"
+    },
+    {
+      "path": "code-graph-mcp-http/src/test/java/io/doindev/codegraph/mcp/http/YoloMcpHttpTest.java",
+      "bytes": 10258,
+      "sha256": "20495575d8349061d071f819f9ff9ad7692b90c8822262462fe14c9a412fbbec"
+    },
+    {
+      "path": "code-graph-mcp/pom.xml",
+      "bytes": 4855,
+      "sha256": "b2f48c29dc405129220277f5dd6e056d663be73b25c9655b9d82aa8c74b2ce9e"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/CodeGraphMcpServer.java",
+      "bytes": 6214,
+      "sha256": "ccffc13d870a2fa8f4848e55ceb0f334cddeb1419d0f3f4121a71ff6bb6a3e29"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/DbaInputSchemas.java",
+      "bytes": 16180,
+      "sha256": "16f122350abc4a9aec62e99be01ea43403dc42b7e8dd59aab44e477b70394501"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/DbaMcpTools.java",
+      "bytes": 22164,
+      "sha256": "2d31499fe3b9a76519db2aa327619c863fe16fe4cdc28066ac28d4704c3333e7"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/Main.java",
+      "bytes": 9426,
+      "sha256": "b07686ebb31edeef270ae9c386e7a7f72366469722d5d253cdd31ccd62558d31"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/McpToolContracts.java",
+      "bytes": 6225,
+      "sha256": "c416af5eb5da09bb035a1a73938c33ffbea813b69e1a2a514f78abb8f8c60318"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/ProjectContextBridge.java",
+      "bytes": 6038,
+      "sha256": "2c1ffaabc96fd5bc64909f12352370ce96c1d19af59014ca240bf80c9413ae0d"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/ProjectOnboarding.java",
+      "bytes": 3558,
+      "sha256": "2347a9d9a12f14f6a27232fb67dfe3f45ca3f835ac5d8c10fbfc1454ad97d038"
+    },
+    {
+      "path": "code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/WorkspaceVizControl.java",
+      "bytes": 11257,
+      "sha256": "c21752a0d7857ae4e6af839427edc614438afcdce517d87dd5cf5abdeb664af1"
+    },
+    {
+      "path": "code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/CodeGraphMcpServerTest.java",
+      "bytes": 3886,
+      "sha256": "45205508caccf4857442ff75c50925677dc65d8d00cac213d43dc371a11ceae4"
+    },
+    {
+      "path": "code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/DbaToolSchemaTest.java",
+      "bytes": 6295,
+      "sha256": "43c8ae7139db5797aaa0ceb8366902fb0f096db5d17f0f1460a7c57c21e06d49"
+    },
+    {
+      "path": "code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/MainTest.java",
+      "bytes": 2160,
+      "sha256": "524c2e61f6649ab16bde59a2326c85666f357409fed46d32c66ec738cb91993a"
+    },
+    {
+      "path": "code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/WorkspaceVizControlTest.java",
+      "bytes": 7326,
+      "sha256": "910697c5f8904036a990eb9d1e451201918c31d77026415fd4005dcad6dd2c6b"
+    },
+    {
+      "path": "code-graph-parsers/pom.xml",
+      "bytes": 3686,
+      "sha256": "3f230b2d7ac648f2af96472c94f358b662b5fadcf64a8464b91d542b037e91f6"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/CallContext.java",
+      "bytes": 368,
+      "sha256": "28ccbe7eb46b4da93ea160aaaacd896fedcdf54b8118f4abd59ef59ffc3e4f98"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/FileFragment.java",
+      "bytes": 1356,
+      "sha256": "a83dfc0888ca935d40a23d5fd7d5daf79a56418c0e9dd9d05d550f78b15a604c"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/JavaCallResolver.java",
+      "bytes": 18747,
+      "sha256": "c871bd1064a90b72e48d66c139e06e0709d815146ddcc8778f7f2b3906b0078b"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/LanguageAnalyzer.java",
+      "bytes": 809,
+      "sha256": "d951614bd06eaea25094aaf334ff389bed1bb9e4dc1a21bdf9460e5d19bfd8da"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/NameResolver.java",
+      "bytes": 6903,
+      "sha256": "b15c52e5b3bda4d41c5cba3bfda02b95f8abb9fc35aab302802497e99ab57f88"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/RawRef.java",
+      "bytes": 1482,
+      "sha256": "264cedf83a35636abffefd4594b6d88f45e5a4962714b5079552c6b5cec57bfb"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/RefKind.java",
+      "bytes": 517,
+      "sha256": "54fcc567790b2671f2b367c9a790ff2323ec82d0de39610ee26c3427540e4f4a"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/ResolutionLanguages.java",
+      "bytes": 876,
+      "sha256": "3299c7638e484bff202e6e2e94ecd4bd82ae775428a7e897978340caf19dfbc4"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/SemanticHints.java",
+      "bytes": 399,
+      "sha256": "856860e4b772bf60506e18457d6f3959c66f45289bd1325a19b1053e3785cb3a"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/SourceFile.java",
+      "bytes": 353,
+      "sha256": "ab9c7f6298954217a9f37c34542343751e2a86250406e96326664d034cc1fb6d"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/Src.java",
+      "bytes": 1764,
+      "sha256": "71c401ae3d9296c953f74432868139331a44f4d12279e001b3346b2b698f6c36"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/SymbolLookup.java",
+      "bytes": 489,
+      "sha256": "31a204696a568dbda8e3c598f45af12a5050be4f5247d1b7cfc1e24b26d6fb3e"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/SymbolTable.java",
+      "bytes": 2767,
+      "sha256": "3a61a0a10464885c2e25cc06cd2f705cb9a8602e4f4226f071d43bf51e837e88"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/TreeWalkAnalyzer.java",
+      "bytes": 15160,
+      "sha256": "b6964685da0e0c56cd1cd2bb59b09a80cfafd5e6020374bbceb83e5ce9610ae1"
+    },
+    {
+      "path": "code-graph-parsers/src/main/java/io/doindev/codegraph/parse/ValueHint.java",
+      "bytes": 525,
+      "sha256": "37a5e9b497d138ee24dc76d466e4a3a0c6a2dce94078441c9ec4b6eeb7cb77da"
+    },
+    {
+      "path": "code-graph-parsers/src/test/java/io/doindev/codegraph/parse/GrammarAbiSmokeTest.java",
+      "bytes": 5749,
+      "sha256": "6c5fead1c9d50c37b0cc623d623990a74f4f54172b632138286aa6b63483ea07"
+    },
+    {
+      "path": "code-graph-parsers/src/test/java/io/doindev/codegraph/parse/NameResolverLanguageTest.java",
+      "bytes": 4542,
+      "sha256": "7a093fcac0c0b450ded11374d15326b4cd84670ab4d3602782b43c299ff0c0bb"
+    },
+    {
+      "path": "code-graph-rules/pom.xml",
+      "bytes": 1134,
+      "sha256": "c81a5819784342610a30dddee507709ef699fc0ec1596e92710f33c29fc2bc4c"
+    },
+    {
+      "path": "code-graph-rules/src/main/java/io/doindev/codegraph/rules/Drift.java",
+      "bytes": 4837,
+      "sha256": "927e739eba279da19f7f7846e4a40f01dc164f2bfceab74da6387ad664f9d999"
+    },
+    {
+      "path": "code-graph-rules/src/main/java/io/doindev/codegraph/rules/ModuleGraph.java",
+      "bytes": 5143,
+      "sha256": "8a7c9958c7df52c22de8397129b588930d1f9b034de6e422845b66c7c77f2a15"
+    },
+    {
+      "path": "code-graph-rules/src/test/java/io/doindev/codegraph/rules/DriftTest.java",
+      "bytes": 4356,
+      "sha256": "865eef0d2bb85abbc9768644aac7507c6ddd54fb7717fa51d7b4ba61fb7c35a8"
+    },
+    {
+      "path": "code-graph-smells/pom.xml",
+      "bytes": 1460,
+      "sha256": "b55bae3701f9aaf805b4885d28524b7d4f70ee40155c1a7d7c946584b21cfaf7"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/AdvancedSmells.java",
+      "bytes": 11361,
+      "sha256": "96c7d2f3e967605b0633d7406dd7329f197ea97c0f16be2ef090afe82b50b82e"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/EmbeddedSqlSmells.java",
+      "bytes": 8425,
+      "sha256": "500dbf7353c214444297034a87c19f06d0a71d8152d2143f5fddd6476c8e7809"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/GraphSmells.java",
+      "bytes": 7796,
+      "sha256": "2682abdeccfd3b22ca07ab386b5b20a23ce5901f1c2da9825f020e95a9f36170"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/HistorySmells.java",
+      "bytes": 11547,
+      "sha256": "d3cde715b3c2871a467f968efbb1be9f6f52b009b08b4de0413c3e09c2692d5c"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/MetricSmells.java",
+      "bytes": 6443,
+      "sha256": "fdc5c8e65b00886f712270525911ad782805494592771e1583148301d4717df2"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/SmellEngine.java",
+      "bytes": 4858,
+      "sha256": "4114180cbad9c39d8b90551278462c4469560b0427d6a76e4a3965de6c963f5d"
+    },
+    {
+      "path": "code-graph-smells/src/main/java/io/doindev/codegraph/smells/SmellFinding.java",
+      "bytes": 868,
+      "sha256": "f69606751e769f9d8af795278d988cb9783bd3734e91c789d4145d766039b7ee"
+    },
+    {
+      "path": "code-graph-smells/src/test/java/io/doindev/codegraph/smells/EmbeddedSqlSmellsTest.java",
+      "bytes": 4936,
+      "sha256": "30f75d9ec28a13e029f2e848d0e7bcb38587c56d0114335c5369018c8eb8bef3"
+    },
+    {
+      "path": "code-graph-smells/src/test/java/io/doindev/codegraph/smells/SmellEngineTest.java",
+      "bytes": 5440,
+      "sha256": "72ae44b7b788edeb14b7d9fa11c6ee48f6794a62a3a345f5aca6fd9974ab8e9d"
+    },
+    {
+      "path": "code-graph-smells/src/test/java/io/doindev/codegraph/smells/WaveBSmellsTest.java",
+      "bytes": 9571,
+      "sha256": "1d278207e4618875d2ee7344068617b24f9dc9fe136b96e96151355ec890ee6c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/.gitignore",
+      "bytes": 9,
+      "sha256": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368"
+    },
+    {
+      "path": "code-graph-storage-benchmark/capture-environment.ps1",
+      "bytes": 1884,
+      "sha256": "625e512b51150ea8daba2385094b0444b477e50380ca3ece47b307ecceeed6a8"
+    },
+    {
+      "path": "code-graph-storage-benchmark/pom.xml",
+      "bytes": 2118,
+      "sha256": "5ac7af93d2316974e075fc88b0b08d2d975c6e942e739045194d146324318675"
+    },
+    {
+      "path": "code-graph-storage-benchmark/README.md",
+      "bytes": 7869,
+      "sha256": "a9d18d28a1ccf243e1619308a28d21561ca42996ea51228aea2169b94bf2d485"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/environment.json",
+      "bytes": 48505,
+      "sha256": "b4ab292258007ab506fd840192c2ea5f63fe55d22d36ac705f688e7f218a81ff"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-1.json",
+      "bytes": 364450,
+      "sha256": "ecfffcb80057ee7822c105f929e3e16f8113367a621ce465b842c341bfcee1a7"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-1.stdout.log",
+      "bytes": 106,
+      "sha256": "3a4e8838fa2fa44e2f2177c0db9c3066c37915c9c0e8897d184d1b64c57f844e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-2.json",
+      "bytes": 365384,
+      "sha256": "21584307ed345ec6a5d79cf93d9aa4bc23bbed96eb493ee3ab893efddd52a753"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-2.stdout.log",
+      "bytes": 105,
+      "sha256": "4cc7de47cc80d0112521ecbd0b9532754349e36163b5922265734b0419b802ca"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-3.json",
+      "bytes": 364549,
+      "sha256": "ac7f7c7c6a1e8770655e470b5c7b2c8ea51d7abea59d4d2abfb493716b974dc9"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-memory-3.stdout.log",
+      "bytes": 105,
+      "sha256": "f93a62cad3b5d7d21ce6fb3e66c39a161b65f3be69a2e7d2e77f4663de2821ff"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-1.json",
+      "bytes": 434406,
+      "sha256": "38ae3a6d8245461aad6143ed9549b48a875ee05735cf36cfc3eec830bb668e84"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-1.stdout.log",
+      "bytes": 105,
+      "sha256": "df89bb74584b0cda219728351d20f03df8c338f20b92e55a42bb502f474a63db"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-2.json",
+      "bytes": 433815,
+      "sha256": "f6f9bdf6e38dc60fa410520e5f6de93de720997f8f1ab963290635e0bb683574"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-2.stdout.log",
+      "bytes": 106,
+      "sha256": "5596852af9f7e90ab59e0b910181782b2fe5b403c7697234d82261e9a5bb329d"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-3.json",
+      "bytes": 433944,
+      "sha256": "779d76bf126b2edffb89aa1388d55b3a08c60ecb3fe980f338a9ab75340e268e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-mvstore-3.stdout.log",
+      "bytes": 106,
+      "sha256": "b76c0392376fec141c60b3b051df0ce2434fd21df8112a3b39f8325064588eb4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-1.json",
+      "bytes": 423928,
+      "sha256": "4b0802ad884f725669bb75f7be003d6f89a327660fe2c36a3ded5d265be497cb"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-1.stdout.log",
+      "bytes": 106,
+      "sha256": "7349dfe3c97c278c057c9ff37294f47de9f7613572f5a4922bef68e7125545cb"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-2.json",
+      "bytes": 423820,
+      "sha256": "282a31db47c61956fd2c368a0c1899bb8e1a87e9c9d7fe0aeb1bf0985286dd5e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-2.stdout.log",
+      "bytes": 106,
+      "sha256": "6057f865aa2fcd8670b9022a6fe348fe2afe52af89afdf45b5f360410bf75fe1"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-3.json",
+      "bytes": 423835,
+      "sha256": "85f94e854f19908ac8835d8d3fbde28dfd8b85f51a95f549316d35f387896c41"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/fit-rocksdb-3.stdout.log",
+      "bytes": 105,
+      "sha256": "d8c0f83432f43a4b1b050911bbb10e825d901e42702fa47622499c6e91caa6ea"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/manifest.json",
+      "bytes": 46283,
+      "sha256": "030643651f4f6cdfc70956d980d19c60baaa86f3e7f966b8419ae19e7171666c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-1.json",
+      "bytes": 385492,
+      "sha256": "5bae26c8490c2e23ef782906a32ac3166c9525dc9887a7462cd26586bb142d1d"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-1.stdout.log",
+      "bytes": 105,
+      "sha256": "35db530072dba44f8c1a459816e709de8f979ed51af5d75ca8d3fc684f0bf896"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-2.json",
+      "bytes": 385768,
+      "sha256": "9c5634b6da9e2f9072273320bd3040f36d7f4b3abaae31df4b5224bc525376d5"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-2.stdout.log",
+      "bytes": 106,
+      "sha256": "353f03705e8f7420019a0753500cb226c4e440a1ce71fd1830e613bff7b689d0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-3.json",
+      "bytes": 385455,
+      "sha256": "e875321cefd4e410100232ee32669f752c2c4829ef2a3eb363679e9fce0c5bae"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-memory-3.stdout.log",
+      "bytes": 106,
+      "sha256": "151a1d87f5b8c4f9b28404079ac967e68fb0adc55812911eb67da45baddb5700"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-1.json",
+      "bytes": 459701,
+      "sha256": "e31fd8f885f3b5262ace622f7b86915aa5db6686f323cae37485f78ed8efc8e0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-1.stdout.log",
+      "bytes": 106,
+      "sha256": "be1b59a0877d75c99cc5c0e1736d76f4bc13a6f4ab41acaeab58dc934b28bb89"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-2.json",
+      "bytes": 459688,
+      "sha256": "a4d04d1bd5d01698a7451256765b373fc0a165cab0fceb47bd806d874b2ce063"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-2.stdout.log",
+      "bytes": 106,
+      "sha256": "20eb8d154c349a62e31528c0b1831a03e9eedf34f5e732b4f306f17edbb6323c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-3.json",
+      "bytes": 459774,
+      "sha256": "03dc15158d737c01861db4bbd4e5d2503a692cb647fe6c9bd03cf0141a4376bd"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-mvstore-3.stdout.log",
+      "bytes": 106,
+      "sha256": "5ff3614e57898f2d82bc367527e3ff352ecaad93d64fd5a4f7079d2ab9a6b7dd"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-1.json",
+      "bytes": 446517,
+      "sha256": "454a9882bf8265c828429478895d0ff177df16ec4337a6478bc14938b9e0e6f2"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-1.stdout.log",
+      "bytes": 106,
+      "sha256": "69b2fa8645d3e0be41aa0bd0f198debd66f8460452d697050741cfaaa5b71536"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-2.json",
+      "bytes": 448475,
+      "sha256": "d55ab68834d9cd6d640630e445b6852978d02aae353bc673b89d2befb4c8354a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-2.stdout.log",
+      "bytes": 105,
+      "sha256": "2c3c6907f929d750336ad6c99ffd454aa48458b953d3d19377b05a5e11a5ad26"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-3.json",
+      "bytes": 447101,
+      "sha256": "bb6ee90a51de161256e83d3916f626f624887024eb41851bb0584bb05646a207"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/multi-rocksdb-3.stdout.log",
+      "bytes": 106,
+      "sha256": "86c552d79b9d3e8f41456a0bc2ecfd7b86b67c909ed71de31da58c073cf7d846"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-1.json",
+      "bytes": 364580,
+      "sha256": "f64f7ca7d00749d8e697bdb2f97a982afc8467bb0f1db8bdca78984886ecb145"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-1.stdout.log",
+      "bytes": 105,
+      "sha256": "ea3d0c953e6da2b9f14ef39092756e713c1f7927801b123ba14b4d9a706a247a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-2.json",
+      "bytes": 365015,
+      "sha256": "d2fd8b4bcaa69c8e39bf044ad5b93f5cf42dee3a07d1a7770511dc2d02509251"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-2.stdout.log",
+      "bytes": 105,
+      "sha256": "1627e96b3c75b64d76338cf0fdacb9b49f433f658c10555ab09c336461ef6b9f"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-3.json",
+      "bytes": 364671,
+      "sha256": "788c4f934f650ee0beb8914e390d25a60349fcf880628fadfee5f6dbebb34424"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-memory-3.stdout.log",
+      "bytes": 106,
+      "sha256": "b4d81d2d4f588c89286c953675670116f82a87f38cf5f6a8660bb35e5bdcea39"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-1.json",
+      "bytes": 434699,
+      "sha256": "0467018e4cfe024498930242b9b3a2966ee87d4e77faa68788f0428773a0e21a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-1.stdout.log",
+      "bytes": 106,
+      "sha256": "311be491daa31ac2aafc382ce4ab16d5b1765cb09f0d1b62c3bee1c8683d58b9"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-2.json",
+      "bytes": 434952,
+      "sha256": "09d30537dac7ea8000638b7acbf78779ae029d9e97b996ec2b6a5483f0e88e24"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-2.stdout.log",
+      "bytes": 106,
+      "sha256": "7110c13619d50b036857c4a31680eb9ec3e13e00f1a437f657e99b0b67f2038c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-3.json",
+      "bytes": 434884,
+      "sha256": "6e8c8a34f280b26b02e126ac52b8a874071545f5d9aa08485a2af835eb784909"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-mvstore-3.stdout.log",
+      "bytes": 106,
+      "sha256": "1c2bc26fb732864dc6de0528c9548197b0471ff6e628d7191ef6a23091f60780"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-1.json",
+      "bytes": 420724,
+      "sha256": "8c33fab8805403f7519485ff9fd222f243d7211506d3d3d13497afdd30cb878a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-1.stdout.log",
+      "bytes": 106,
+      "sha256": "e6ca2312249228c46163c59cb8ee3d4ab22035786b384f609d9a7401e4705c9f"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-2.json",
+      "bytes": 420326,
+      "sha256": "bfd323cb0e1972429485777f57c60af7059e25d1e162e32067298735cc725fb9"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-2.stdout.log",
+      "bytes": 106,
+      "sha256": "eefad63402c50a8e2dd671a4273f489e82db7a68dd142d0acb77e70147477a58"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-3.json",
+      "bytes": 420541,
+      "sha256": "8b4e77128c91da68101b1d2d9edee07e1445b6d5cc45a4c35a6b4a234d9bd9e3"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/pressure-rocksdb-3.stdout.log",
+      "bytes": 105,
+      "sha256": "ca16a5217ce8e9f897febd9d1bf0b632b112670e97a9da740f68cf8153d72a2a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-1.json",
+      "bytes": 398855,
+      "sha256": "0a66c98fc43f5bab1c72c823f198f52785771241c31132fb8c0bf4fcea890fcb"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-1.stdout.log",
+      "bytes": 106,
+      "sha256": "feeedd123230057a14d2c01bc9e5d487005c3260e9161c4a40a72c0872eb01c4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-2.json",
+      "bytes": 398316,
+      "sha256": "d9160134a3f7e1ad8b54b7783f8c18c50255093f740be96ffb7321e0e26440f1"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-2.stdout.log",
+      "bytes": 105,
+      "sha256": "1452f1aee902eb5325fb73042d88687242461b473751090e1ddc4820dd126956"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-3.json",
+      "bytes": 399041,
+      "sha256": "c88e4b6c0c5971e9ae18bdac987a2590231d8e0edc376a3376979532bc0e6c00"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-memory-3.stdout.log",
+      "bytes": 105,
+      "sha256": "51cd7d264d0dea40a08a55de712c94fbfe51c5cf9079ed7469c330ea68a25ad1"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-1.json",
+      "bytes": 442927,
+      "sha256": "883e8bc39490c7e38a44e2cda37c12ceb2506a742c019b9a59cf3fe4ca7c8228"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-1.stdout.log",
+      "bytes": 106,
+      "sha256": "8daf7cda40185cd52dcecf53aefcd6a7042f37e3024c311b63e6e5f039532469"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-2.json",
+      "bytes": 442999,
+      "sha256": "9cf3f689d973592e431a6f09e72bdfa1239884d1053940d62d322298aa94a57a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-2.stdout.log",
+      "bytes": 105,
+      "sha256": "60ba9eb1c3c31d597eb397664e64a7cb9d23fe69fe266b7db9e3cc50b9fd6aba"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-3.json",
+      "bytes": 443096,
+      "sha256": "8d38c51713e5048e63e9a8cb5cd587328d85a699151bf469be4dabefe220d6b0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-mvstore-3.stdout.log",
+      "bytes": 105,
+      "sha256": "0754b873147cee36ee54a0f4f5f047bd0cf0d2a2fbc9a730cee4a40d547ec167"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-1.json",
+      "bytes": 427931,
+      "sha256": "5e8ff6f370997b45ef8f0e5d084b7d6463bf6e7795c890befe71de7ba7845f6b"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-1.stdout.log",
+      "bytes": 105,
+      "sha256": "128072868d30f97c5b2669256739bd02a301d34137e6fdebfacad05d7aad84be"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-2.json",
+      "bytes": 427726,
+      "sha256": "169257c5ee21b58040f31db774fe42b1792599a78c3536e16d7fcfeaa9dfd50f"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-2.stdout.log",
+      "bytes": 105,
+      "sha256": "8ea94aef30540f99169194ecb0268a5035512dc0c166ea881a5b84513f720d68"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-3.json",
+      "bytes": 427530,
+      "sha256": "2b66a991fa6489486c90907cbfae1a00dc591d10fb24a2a6b54901dfc691e6c4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/repository-rocksdb-3.stdout.log",
+      "bytes": 106,
+      "sha256": "1416ebbf92b2d6c126011dd2112e6b365e02c8b4e5b491620a4d50f0c4ddeb2e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/scan-evidence.csv",
+      "bytes": 8881,
+      "sha256": "664d7d2c312d5631389d4c512f4cf17d631c048831499d5ff34501ae152c87ac"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/summary-groups.json",
+      "bytes": 12701,
+      "sha256": "e874a449ff3de9c1d3bae6a0efeaf30ff373f17b771e473607874ce7120dba48"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/summary-trials.csv",
+      "bytes": 17576,
+      "sha256": "1e686e807efc6fa3b9defe6cfe6d82d4f01b84e272d959f7fd68f4df9299d2e0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/comparison/summary-trials.json",
+      "bytes": 49767,
+      "sha256": "43da99c189af72e1a66e4443e73ff5574749c1675a3a775bf2207d0a2a8262c8"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/final-environment/environment.json",
+      "bytes": 49082,
+      "sha256": "ad48338ca605e95d2a0d43f186d0b400f365dbdff202f7a82caf26c3139c1d07"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/EXPLORATORY-NOTE.md",
+      "bytes": 1185,
+      "sha256": "9046d4b89e1497871cf049c7410269271fdd04e2ced39a89364826a1ff26c2be"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-1.json",
+      "bytes": 50087,
+      "sha256": "f5956df5b034d181c51b0dbbb298b80f87b0077f2ea24c13ad259994772cff14"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-1.stdout.log",
+      "bytes": 105,
+      "sha256": "3e2ca26daa9bac7f1618ad7b9efed38712c78fee538f2a94f0ecaba334d46835"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-2.json",
+      "bytes": 50040,
+      "sha256": "067578b8b6768359dbab3feefdfb45aefd8667b30b4effe9a51f41ded37d9881"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-2.stdout.log",
+      "bytes": 106,
+      "sha256": "a90e784b476101ce36f7326aa6d9a112d84a2c68f841567312211395ceb2fef0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-3.json",
+      "bytes": 50086,
+      "sha256": "6325ae9cd1d75f5938d3e6ccbdc306eda19d1e5468d9c7c1170b2e9824566c62"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-memory-3.stdout.log",
+      "bytes": 105,
+      "sha256": "0f7180c85299918db41e9b4b2033dcef176391a6ca1441f9cfb323af23b91ce4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-mvstore-1.json",
+      "bytes": 67494,
+      "sha256": "26ab09fb45baf0fbfdddaa02d8d3a5a7d5f7d6ec1f4679539b8a0345ed4e5e25"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-mvstore-1.stdout.log",
+      "bytes": 106,
+      "sha256": "c6f105f41654ed577169589c4b51e7ee5cd50e4874e175b60522d33888fd3d28"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/fit-mvstore-2.stdout.log",
+      "bytes": 105,
+      "sha256": "0ff5cac4f8635e5711518120e0cc62f6bb4e478f2e5113736e0b775a22fc0200"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/main/manifest.json",
+      "bytes": 5071,
+      "sha256": "99f7a425902c2766fd0d39b697f6deb8f5ffb61c96ecce7f3a736d1bdb066ada"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/EXPLORATORY-NOTE.md",
+      "bytes": 449,
+      "sha256": "f018213dc9fbe2b18f76ced83380787084681f81c10ede8371784ab36e50fb8a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-memory-1.json",
+      "bytes": 361650,
+      "sha256": "882f45e26da786944dd59b9646d56ecb09d46e4cf483cdb97f7fd8223e167565"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-memory-1.stdout.log",
+      "bytes": 106,
+      "sha256": "21aa1f8caefb1d58f7ce0f91987d6da3fbe6a715442cd68d4a37126450e14312"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-memory-2.json",
+      "bytes": 363014,
+      "sha256": "eff8eb16449af0ab9157a123ea1ef1723e2c1d7760be6a57dd1dea5f29cadc73"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-memory-2.stdout.log",
+      "bytes": 105,
+      "sha256": "d01afb8857a6190369409f3a285b5b20da49ec10a14a09ce45c426757d70e21c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-memory-3.stdout.log",
+      "bytes": 105,
+      "sha256": "c3a47865d03967234d3a2d45c5765c18f7aa544eeafbc8f4e8ee2d0c0155c0b4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-1.json",
+      "bytes": 420887,
+      "sha256": "deac884f4a96f9506f4da270b07b595e119808c98b5c32f8e4e79c145e7b3143"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-1.stdout.log",
+      "bytes": 106,
+      "sha256": "4526787f7bd5265c914363caffb2dcd5bbc30f9ea8589ba7003c9abf716c9e55"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-2.json",
+      "bytes": 420804,
+      "sha256": "c1ad87a5f13be2e6b1c41cf0abb22be59560ca4a65a688c62df9c229e98e34f2"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-2.stdout.log",
+      "bytes": 105,
+      "sha256": "56153af7af839c339b6361364f70fd543cabf4fa9fc62adaa7d928d73c0dc122"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-3.json",
+      "bytes": 420769,
+      "sha256": "cde3e95a076460702b19a4304a403118c1be74caff29e326a2cc8b60c411d79c"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/fit-rocksdb-3.stdout.log",
+      "bytes": 106,
+      "sha256": "d9a5877fab7b3a055558dc590aaea835617d4af91f124b053c664c8d3e159dbd"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/measured/manifest.json",
+      "bytes": 6359,
+      "sha256": "1c6a1d267f1399ded2bbde8c186e3001aa96410b860cb82228840fd4abf5f870"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-memory-1.json",
+      "bytes": 27570,
+      "sha256": "8184f2975c6bb99de798027bd6ae24ff1d469f1712e5cd8af75c9c6f15055fc8"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-memory-2.json",
+      "bytes": 27575,
+      "sha256": "35111b34c70d6a7e0c67784241c4eb0b10ecf910be7fdc7cf656db62456364c2"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-memory-3.json",
+      "bytes": 27553,
+      "sha256": "5db265f1bc63bbf0680e0c02cb5ac07de463adc6b1c6c1a034da79f67353eeab"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-mvstore-1.json",
+      "bytes": 33220,
+      "sha256": "a08d5db91dfd271ffd5f7522479f0c2a70bf799ee7b1eee4133a15da2802d3a2"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-mvstore-2.json",
+      "bytes": 33143,
+      "sha256": "aaf941144839af103379ae2fd248c79491f918ce00d9f0cb489174688bd63bf7"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-mvstore-3.json",
+      "bytes": 33194,
+      "sha256": "86d838dc5c671d00ae2c48563e24f8808204ab26a6e27512ffba37468610c344"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-rocksdb-1.json",
+      "bytes": 32639,
+      "sha256": "6cfe9d53484b3f84aedae727f69ed73b274b5f25ceaf023de14f84edc8d203db"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-rocksdb-2.json",
+      "bytes": 32677,
+      "sha256": "d82aa9d046c09255ee6aee98b9fa51681f8872ed0bc084c0abe02533b43d42a7"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/fit-rocksdb-3.json",
+      "bytes": 32694,
+      "sha256": "562c3fd4c5d9ed473b97cb54c6ef63f66f953ee9fb919e27b6417717151256de"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/pilot/manifest.json",
+      "bytes": 11360,
+      "sha256": "29d6488f2b96b7860eb80464b2b93d543b38f768e34548906d1581f485e52aa8"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/manifest.json",
+      "bytes": 11567,
+      "sha256": "d876c858c007aa1f2e6e7556e1220602e27b956e8e6f39b1cf81a66f93576c6d"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-1.json",
+      "bytes": 6139,
+      "sha256": "63641e0609bb12ca23ac9fd1769a141ada1b4c80c6b093d3cfbf9d3f46543c60"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-1.stderr.log",
+      "bytes": 409,
+      "sha256": "3813b877649a6900473200fb50da383ece8d377868c46367ae6f3a22e648631e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-1.stdout.log",
+      "bytes": 106,
+      "sha256": "101b87127993adcf9dc0bd44b45b49cec1ee8e1dad350380bbe9d2f8108d3aeb"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-2.json",
+      "bytes": 6148,
+      "sha256": "d7464f1f8548daa2d9dee08e22496d7d63049384ad37d670e64710adace38376"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-2.stderr.log",
+      "bytes": 842,
+      "sha256": "67156bd4e5c6af036550b0435a540984ea3e3de5c2f9f62bdf8d5baace46aa4d"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-2.stdout.log",
+      "bytes": 105,
+      "sha256": "496d714004ef91756196635f3a5837d1c1dda076b7ec35e9a95d9f5b405806b5"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-3.json",
+      "bytes": 6141,
+      "sha256": "92e57048bcc7012c4876a61bb2bd92136a72020a910c8aa3213795f0da4fd041"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-3.stderr.log",
+      "bytes": 1101,
+      "sha256": "711e295db23a2837877cd404ffb33e7e131bba2e82f0aa98f68569d1944a1cdd"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-memory-3.stdout.log",
+      "bytes": 105,
+      "sha256": "696a95e7b31bc898ee7462d1c8d6549c11a0e51fd0ee1f8969803476c2cc4652"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-1.json",
+      "bytes": 433262,
+      "sha256": "fa6ce0a14c0f2b3443a1e8475dfa4d3337d1e18b4402e6e21a44b0370aaa0db4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-1.stdout.log",
+      "bytes": 105,
+      "sha256": "0f96061297648bd56ba9bc481cb5c251509e6a680485b13b7bcce87bb960d359"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-2.json",
+      "bytes": 433513,
+      "sha256": "8eda6b7fbe9b1db4d6af9755f93fc6b2fe332a41d3ed2463e23d5fec753cb905"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-2.stdout.log",
+      "bytes": 105,
+      "sha256": "95020d68c898f382e923df067ff8ac2928ff588b6530ffe05adc5f0f3f508db4"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-3.json",
+      "bytes": 433318,
+      "sha256": "b13eb5a200f82b3d56dbc4fcf99670952860ea707507f2109184694d830efc3a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-mvstore-3.stdout.log",
+      "bytes": 106,
+      "sha256": "14c98301ee15640ad62b8df5da205d0127204ececc5d8e0e3bd97cded0d2b613"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-1.json",
+      "bytes": 420397,
+      "sha256": "27de27b32a1af989bbe57a604ac469d907b4fe1c1b258a884d228a5a374a9142"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-1.stdout.log",
+      "bytes": 106,
+      "sha256": "6063d764c596f61456388d7a4ce2c67e81ebe9e830cab6b088d8b1b1e1631b7e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-2.json",
+      "bytes": 420390,
+      "sha256": "6c794c2585091fe83a2bb5018a59a811007ceae6b4a7cc1800e7d620f9d948f0"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-2.stdout.log",
+      "bytes": 104,
+      "sha256": "3e9b70cc1bc2b5c6213743428ff03891bd15d4de58dfdf6d8e6aab43268b1a48"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-3.json",
+      "bytes": 177609,
+      "sha256": "8a2d2b16c805e0e37f1ba1aecce38b193870129aeb0dc2ccde69d3ea4c781eed"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-3.stderr.log",
+      "bytes": 705,
+      "sha256": "fbc5f8a8d2b63e2b7b279b1bbb35ff9847f1ae8f337ad5032b4e53b51837878b"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/pressure-rocksdb-3.stdout.log",
+      "bytes": 105,
+      "sha256": "affda3a18393e4e82a5215136171994f8ec7c4cc881528cded9c233357eb33e7"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/scan-evidence.csv",
+      "bytes": 1784,
+      "sha256": "16b6b3917ef89b124685ee956ad7f5c57bea1980b98a5c6c905056d18ae2750e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/summary-groups.json",
+      "bytes": 3194,
+      "sha256": "601ebb28e437d2df9de0784edf61fcefeb9b0a2af01d07b3ee9efe17fd75a124"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/summary-trials.csv",
+      "bytes": 3985,
+      "sha256": "5088906b596f52a0b3a1f8f9693a36b2ad702f5e3c9f9e05ac024e338bb922c8"
+    },
+    {
+      "path": "code-graph-storage-benchmark/results/tight/summary-trials.json",
+      "bytes": 11866,
+      "sha256": "10cad942cd05a7a424085cedde4e6e8810bb5a00cedc4268bee2070b2bde7c2e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/run-benchmarks.ps1",
+      "bytes": 4565,
+      "sha256": "458a61ace25b4e053b0d40236af6b5d45be3f69fb825879c8daf1709ada55d2b"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/BenchMain.java",
+      "bytes": 12008,
+      "sha256": "55a4748aacc34e314804aaf7aa67b902eb8ee5964288a5185d7feea8e4bf0681"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/Codec.java",
+      "bytes": 2708,
+      "sha256": "ce2492323ecba099d55babb6a74ba81c92abacfb4991b6f2c4c7e2566b6acb2e"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/Engine.java",
+      "bytes": 15605,
+      "sha256": "8311c730511e84881a06979751eb668a7dfe53d455bb1e9e5ff6de6fb0c8ca95"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/Ingestion.java",
+      "bytes": 6690,
+      "sha256": "a33acb4cd8bbc444349e096835c807b522279c7c9a2ab0dea4dcf321fd6a92f1"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/Kv.java",
+      "bytes": 629,
+      "sha256": "ea69d773894af2837ac54336ba0d19029e472e6ed39b27009510ba6eca01dcec"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/MvKv.java",
+      "bytes": 3520,
+      "sha256": "5520716bd0495ff68562e4a7f4fb7ec62a21365d0ad049203ca27ff6e7be2a53"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/RocksKv.java",
+      "bytes": 4264,
+      "sha256": "29a30b6c3a809a06ac30e0eeda6cbbbbd0343f46e64c118de0e060f759cd5513"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/main/java/io/doindev/codegraph/bench/Telemetry.java",
+      "bytes": 3543,
+      "sha256": "6c4aa2e2ed96e2be5a9867aca13f1c1a7a36516991afd2056a7545370cfbaf17"
+    },
+    {
+      "path": "code-graph-storage-benchmark/src/test/java/io/doindev/codegraph/bench/EngineTest.java",
+      "bytes": 7728,
+      "sha256": "63238261e41026237aca5cc87e5a48b5539fafd603c9837097299894a9c6884a"
+    },
+    {
+      "path": "code-graph-storage-benchmark/summarize.ps1",
+      "bytes": 7729,
+      "sha256": "534734dfeb1c3aaba9295fb9f06e0d8230d8e237080b1fe1aa78a1716bd73626"
+    },
+    {
+      "path": "code-graph-storage/.gitignore",
+      "bytes": 9,
+      "sha256": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368"
+    },
+    {
+      "path": "code-graph-storage/pom.xml",
+      "bytes": 1525,
+      "sha256": "b1eff8fa3e98a5db797e3a62dfbe249274b13a32b7649dc6e89dfc42d7b69a9d"
+    },
+    {
+      "path": "code-graph-storage/src/main/java/io/doindev/codegraph/storage/GraphStorage.java",
+      "bytes": 11151,
+      "sha256": "28bda54a45d6a3127a9a7ca65a1aa375cd7072862d7a8aeec237a810fb741c8b"
+    },
+    {
+      "path": "code-graph-storage/src/main/java/io/doindev/codegraph/storage/PagedGraph.java",
+      "bytes": 16666,
+      "sha256": "b737399d60095531366f6c024409d626aeace88286f8cfb51c52753cb174a15b"
+    },
+    {
+      "path": "code-graph-storage/src/main/java/io/doindev/codegraph/storage/RecordCodec.java",
+      "bytes": 2921,
+      "sha256": "2d0987df6dc180fc3deb9d4cd25f6f140de24f61339e9350aa58473a835922df"
+    },
+    {
+      "path": "code-graph-storage/src/test/java/io/doindev/codegraph/storage/DocumentStoreTest.java",
+      "bytes": 888,
+      "sha256": "53e3529de55f6d99fbd2b7ed2de30fba2ecdbd21c0e2687d631ca7c5522bfa4a"
+    },
+    {
+      "path": "code-graph-storage/src/test/java/io/doindev/codegraph/storage/PagedGraphTest.java",
+      "bytes": 8918,
+      "sha256": "9f241c8ee93bd06a4454871d9dac9964edb4f185c211dab13989bdbdb0176885"
+    },
+    {
+      "path": "code-graph-store-arangodb/pom.xml",
+      "bytes": 1395,
+      "sha256": "c3ee4da101970e24d7dc8538d889a7d30fa34712088775989845f005e526856b"
+    },
+    {
+      "path": "code-graph-store-arangodb/src/main/java/io/doindev/codegraph/store/arango/ArangoGraphStore.java",
+      "bytes": 11031,
+      "sha256": "370cdfa6c2c71298b59d9b49dcc2ca6e736e9274f681e3fb6cd8342684a0cc66"
+    },
+    {
+      "path": "code-graph-store-arangodb/src/main/java/io/doindev/codegraph/store/arango/Codecs.java",
+      "bytes": 3230,
+      "sha256": "51a4cb34016a8603c7e1eb551d6f7b1065bca774d991118f76c60226256bf7c9"
+    },
+    {
+      "path": "code-graph-store-arangodb/src/test/java/io/doindev/codegraph/store/arango/ArangoGraphStoreLiveTest.java",
+      "bytes": 7430,
+      "sha256": "156d69159bcc4bf1cf208ec4d85f30088ea03d2b3d85fd82bde7d04ca1f74ff9"
+    },
+    {
+      "path": "code-graph-store-h2/pom.xml",
+      "bytes": 1065,
+      "sha256": "d4584712318f52dfea4de1f28f072add75311aad8644ad6c18ff14f61fe9d809"
+    },
+    {
+      "path": "code-graph-store-h2/src/main/java/io/doindev/codegraph/store/h2/Codecs.java",
+      "bytes": 3226,
+      "sha256": "4c4d9c670b90d5c1c998c52bd7f3b9552b61f02b9606b18264b6baa4c422d831"
+    },
+    {
+      "path": "code-graph-store-h2/src/main/java/io/doindev/codegraph/store/h2/H2GraphStore.java",
+      "bytes": 11421,
+      "sha256": "18a12f6b76e62bfc773342e800d3f0208cd579260d6dbfce0441471f1595eda8"
+    },
+    {
+      "path": "code-graph-store-h2/src/test/java/io/doindev/codegraph/store/h2/H2GraphStoreTest.java",
+      "bytes": 5295,
+      "sha256": "f4a2fbb00d4f873354fd308daebacdf0c565735383a17626082c04bf32fb2969"
+    },
+    {
+      "path": "code-graph-store-neo4j/pom.xml",
+      "bytes": 1382,
+      "sha256": "dd33d990610438aa0036d05e909d9642e1894d25dc0c01c3cf1d6c5d4d36845a"
+    },
+    {
+      "path": "code-graph-store-neo4j/src/main/java/io/doindev/codegraph/store/neo4j/Codecs.java",
+      "bytes": 3229,
+      "sha256": "888b9de9d4e247ea62f1e78c9b33d4abee02d1c47f12c646efd18a10fa960c50"
+    },
+    {
+      "path": "code-graph-store-neo4j/src/main/java/io/doindev/codegraph/store/neo4j/Neo4jGraphStore.java",
+      "bytes": 9122,
+      "sha256": "6dd14a4bbd47bc7677ffe8ab897b928acdccde8a8c43becc6529be18e41a0df1"
+    },
+    {
+      "path": "code-graph-store-neo4j/src/test/java/io/doindev/codegraph/store/neo4j/Neo4jGraphStoreLiveTest.java",
+      "bytes": 6963,
+      "sha256": "5b2f8fb2bd0380c638de41c853b7e45d2174eb2b0a4174e3fdb56985425821ec"
+    },
+    {
+      "path": "code-graph-tools/pom.xml",
+      "bytes": 1561,
+      "sha256": "c2928374fb679a2b4ff79ecae373082147f1dc165a28f56bef92a6573c00e5ed"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/AddProjectTool.java",
+      "bytes": 2112,
+      "sha256": "a2280412ce952a03c5fa33aa650dffe6b2d1b870db1ccc595963ba5da19f6531"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ChangeAnalysisTool.java",
+      "bytes": 5046,
+      "sha256": "bd4261e8fdb88096c8e1981d70178364ecd8f31febb056f85937ef63f48bcba6"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ChangeEvidence.java",
+      "bytes": 9339,
+      "sha256": "021e385e7f36697e52207b86d1600d7d1c9252d27cccb24fdb1a4cc48eee34d4"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/CodeGraphTools.java",
+      "bytes": 3572,
+      "sha256": "56483943549d105036de9d80c8c7cf8b98a10b3af69dcc54fa2b11645b5c6bf0"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/CodeNavigationTool.java",
+      "bytes": 13538,
+      "sha256": "a2b034218170c516f6869639b92b42eecdf8269dc73e83bf87b6eb46a6aed707"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/CompareDriftTool.java",
+      "bytes": 3673,
+      "sha256": "16e7a9e2b91bc0def4e2ac36364e6e40b05585edaeeca1823d0c7b2e7d3f80de"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/FindCodeSmellsTool.java",
+      "bytes": 3213,
+      "sha256": "bddd21471fc829ba1ef4b77d35aea20f4c03fac3d1d8f9cfae553ad6853cf5e7"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/FindDeadCodeTool.java",
+      "bytes": 3064,
+      "sha256": "5acdc71896dc70c243106fa6b44acdf1d7a00b950dbd7eda4817df2729834f81"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GetBlastScoreTool.java",
+      "bytes": 3263,
+      "sha256": "2885be39d280f624e0de1670d1493820cbdc706032387c18d36bcf65a847f93e"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GetCallGraphTool.java",
+      "bytes": 6276,
+      "sha256": "4fb8c56b037c5384da3cf82d00dcf7b17eabcd6a1e47d919abc80e350bb625a2"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GetImpactRadiusTool.java",
+      "bytes": 7767,
+      "sha256": "8ec463f859f14ab4a641e95d8b00b21a08a8bcc329b1e39dc9615ddeb43cc3de"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GetSymbolTool.java",
+      "bytes": 3843,
+      "sha256": "797852386467fee04af1c60c25c0c3cb8b5a202c53bd871cc20e4bb047efca35"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GitChangeSelection.java",
+      "bytes": 9178,
+      "sha256": "9778f9cf5e5c08db3529cc88afb369def27217026c4f77b82bc4d6ca01d02325"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/GraphTool.java",
+      "bytes": 627,
+      "sha256": "1cc768666dfe162df564bdde572f6b74b13f74ad0b6e46c5a3b2d9ffe62844b4"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/IndexStatusTool.java",
+      "bytes": 1602,
+      "sha256": "ca40ceff2b6f75b277ea14cb98496fbdcea9622d6ae396e8e14f4ed0d60017fb"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ListProjectsTool.java",
+      "bytes": 2643,
+      "sha256": "88062dde09c361659581839168633d3d3b6d0e70995108c7667b1d084712c43a"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ReindexTool.java",
+      "bytes": 1554,
+      "sha256": "148032472e9132d0bc160c28a9df4e3c55d73fae50f0ea885d7eaa29eab0dad2"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/RemoveProjectTool.java",
+      "bytes": 2083,
+      "sha256": "4f1c2347e9fde325baea4e6bbaa26fcb6f2bd940aad5e58bf0fd4b3131cd8bfd"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/RiskGate.java",
+      "bytes": 2659,
+      "sha256": "158f4ebbac2c0bff2d577961416158e88c0df042188a8bd4dcfbcbb56f733b0b"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/RouterTool.java",
+      "bytes": 3056,
+      "sha256": "801519916b3a204e27fad8f33fb82af757b1524f41ab373e81c4b29388249a47"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/SearchSymbolsTool.java",
+      "bytes": 6505,
+      "sha256": "33461e5565a89b0f147f0537d4a356ab131fb7c571bdaf814d9f6387c811a53d"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ToolResponse.java",
+      "bytes": 632,
+      "sha256": "1bec22bf1bd46946f8b2afadef12f19710e681912a0e7303704114c663279b0b"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ToolSpec.java",
+      "bytes": 240,
+      "sha256": "c4d6d40e48e036a2122b469da02ede4bf01355a783332348d816c4cb13ebb6e9"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/ToolSupport.java",
+      "bytes": 2294,
+      "sha256": "1a75df788de0f2be0eb8a86b79cbbf6f896e2a564e5a7912a8768fee4c44326e"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/WorkspaceContextTool.java",
+      "bytes": 3020,
+      "sha256": "def2ae1598866e6f300814bc26f6966b7a5d30cf305861b4c2ff1a36e1ec568c"
+    },
+    {
+      "path": "code-graph-tools/src/main/java/io/doindev/codegraph/tools/WorkspaceTools.java",
+      "bytes": 6540,
+      "sha256": "41edc3d32d8d550f862f4d2b8bcfc12154777f2f11df8089b52fac4493eee339"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/AddProjectToolTest.java",
+      "bytes": 2301,
+      "sha256": "aa708894016bb5a32fb102bd66adbb2104ed4d73fdfb6e40e6d500d21c460899"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/ChangeEvidenceTest.java",
+      "bytes": 3876,
+      "sha256": "c7fc107f4b21939acd20a22937b1f34adc53bf6e31ebc65d8a97787ed3b254e1"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/CodeNavigationTest.java",
+      "bytes": 6230,
+      "sha256": "6e0a8c0442afe752e19c8747782e1757e7b2ff6f9c1fdf4411c629a9faf1f814"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/EfficiencyRegressionTest.java",
+      "bytes": 6628,
+      "sha256": "5bc79f799cc434eb3b7c30c95ed7be6a562c40e4c1ad101051bbde3c6f386a29"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/GitChangeSelectionTest.java",
+      "bytes": 3408,
+      "sha256": "4f829dfd1fd74256fcd34132c4485afb48680b8ca6b9912fb9e95a7d6516f145"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/ImpactSeedExpansionTest.java",
+      "bytes": 3198,
+      "sha256": "e93cf8379cc0ef6b510a97e75518bf67c614b2cc08703b35baae5bae4cd2f400"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/RiskGateAndScoreToolTest.java",
+      "bytes": 4986,
+      "sha256": "d76387755cc8266dac467165a4533f5c4ed9864fb59461b8173317c48dcdc7fe"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/ToolsTest.java",
+      "bytes": 7955,
+      "sha256": "198a4185d0fb0c6911eab46cc9f70717c29706990d990d17548dbfc7423b39bf"
+    },
+    {
+      "path": "code-graph-tools/src/test/java/io/doindev/codegraph/tools/WorkspaceToolsTest.java",
+      "bytes": 10676,
+      "sha256": "e8c06e43cb6f66385b2950a5122b8fd63cc627314e74197365d2956d51aabf5c"
+    },
+    {
+      "path": "code-graph-viz/pom.xml",
+      "bytes": 1602,
+      "sha256": "041c71b2a32bb27bf0e81a0a6cc08c2d82443e3d79b6fbf4ef666e57a0f877fc"
+    },
+    {
+      "path": "code-graph-viz/src/main/java/io/doindev/codegraph/viz/VizApi.java",
+      "bytes": 18844,
+      "sha256": "42d0b43a8fbe1116b2884c799a80c29e54cd265929048d72003d83726ecd6395"
+    },
+    {
+      "path": "code-graph-viz/src/main/java/io/doindev/codegraph/viz/VizControl.java",
+      "bytes": 4714,
+      "sha256": "c43e1794b6deafdb13779d14d3577f1d41954e351d0a5cfda600514fbf75e6b1"
+    },
+    {
+      "path": "code-graph-viz/src/main/java/io/doindev/codegraph/viz/VizServer.java",
+      "bytes": 16931,
+      "sha256": "86a8be0e884ddcd6f9472f1779866d9ddcb6bb90bf3475b6d3475e138f2f5b58"
+    },
+    {
+      "path": "code-graph-viz/src/main/resources/codegraph/viz/app.js",
+      "bytes": 55490,
+      "sha256": "3fe8986ba6c32bc33670c4c9db8dd8824f712673d07789568f39408ff38f4664"
+    },
+    {
+      "path": "code-graph-viz/src/main/resources/codegraph/viz/index.html",
+      "bytes": 7051,
+      "sha256": "174f819d95eb8c0275cc6369abc43d023d5049e3080136647f0884451a57e590"
+    },
+    {
+      "path": "code-graph-viz/src/main/resources/codegraph/viz/style.css",
+      "bytes": 16289,
+      "sha256": "17b6a4deeb355defb55cd60e66aefa3065ab1fbbb679045e31b794e7b408507d"
+    },
+    {
+      "path": "code-graph-viz/src/main/resources/codegraph/viz/vendor/3d-force-graph.min.js",
+      "bytes": 1185428,
+      "sha256": "0bc081161c7cae47030f9b976c812152422a38797aab601906bbf5e3dd873e22"
+    },
+    {
+      "path": "code-graph-viz/src/main/resources/codegraph/viz/vendor/force-graph.min.js",
+      "bytes": 162070,
+      "sha256": "c931839184ed48a5e22ed1680dceb73ec3ff352744c6c7ca615d093043d60088"
+    },
+    {
+      "path": "code-graph-viz/src/test/java/io/doindev/codegraph/viz/DbaRouteTest.java",
+      "bytes": 2950,
+      "sha256": "29715b59a98e665c5ccc592852615695acb73a6246f53464749e3c33d247f04a"
+    },
+    {
+      "path": "code-graph-viz/src/test/java/io/doindev/codegraph/viz/StaticAssetsTest.java",
+      "bytes": 7539,
+      "sha256": "d323e1555ba4627762a52eb46e7944d6f844622f7c9dbcff01f0d6d49762f676"
+    },
+    {
+      "path": "code-graph-viz/src/test/java/io/doindev/codegraph/viz/VizIdleTest.java",
+      "bytes": 4697,
+      "sha256": "e7f96a2558ed896d3b611a413b9e71df19611c75e8cad480bc65fd0e41a8f27a"
+    },
+    {
+      "path": "code-graph-viz/src/test/java/io/doindev/codegraph/viz/VizServerTest.java",
+      "bytes": 7304,
+      "sha256": "484765ca45748b817392d71c53f8760ec91f3812560a8be8540ae9b20d198566"
+    },
+    {
+      "path": "docs/approval-broker.md",
+      "bytes": 11473,
+      "sha256": "5a50a6082150efb20f7fb85bf8b3883f1dcdb9287b62f2a45e13334a44fc2753"
+    },
+    {
+      "path": "docs/benchmarks/hybrid-validation.json",
+      "bytes": 1083,
+      "sha256": "9af8327440efe75f69cf09269354d96476a8a5f4842f65bd640c2405b919e554"
+    },
+    {
+      "path": "docs/benchmarks/memory-budgeted-storage.md",
+      "bytes": 31048,
+      "sha256": "e56a1a9664ef13ab9179d318e2a8a3ee6b0e1f252259b9c5e21057d99d0d664d"
+    },
+    {
+      "path": "docs/dba-catalog-tree.md",
+      "bytes": 19639,
+      "sha256": "c7d8f58c5f7075cfed5a830235196b76b0dd43cbbb2fbddf039681114f9cec94"
+    },
+    {
+      "path": "docs/dba-connections.md",
+      "bytes": 21318,
+      "sha256": "58239f88d36ba6f7853434fe03755421404d4782fe7c03b56385277a9e4c4f31"
+    },
+    {
+      "path": "docs/dba-explain-support.md",
+      "bytes": 7280,
+      "sha256": "ef26b7cb43376f01d8f11f23fc07e08058eb7fd1cd85dbb0ec0ba864490e2c34"
+    },
+    {
+      "path": "docs/dba-grid-and-drivers.md",
+      "bytes": 18121,
+      "sha256": "eafe57289bba361182bb6c63e220cf0896b11a8f531299fbd53e371390c21572"
+    },
+    {
+      "path": "docs/dba-object-editors.md",
+      "bytes": 12426,
+      "sha256": "a2a282bfb2f247a0c1a11a08ce8768ecde1d26a02f9558d6a75220cf28f58e86"
+    },
+    {
+      "path": "docs/dba-query-builder.md",
+      "bytes": 10899,
+      "sha256": "64d411f9e0cdb6a35774f69095afff0ab681dfa03bc0eb0944a9b6da314fcabc"
+    },
+    {
+      "path": "docs/dba-table-designer.md",
+      "bytes": 8278,
+      "sha256": "7f41a3abe05ca3896fea292dfdb6c75c26f6ae206f75d925ff2674ac08968cb9"
+    },
+    {
+      "path": "docs/dba-validation.md",
+      "bytes": 16452,
+      "sha256": "64a83488bb50d00e31c03925e834ecc3f447671e204b593b289be7316dea5073"
+    },
+    {
+      "path": "docs/dba.md",
+      "bytes": 26754,
+      "sha256": "72c6587146c5dd4da660327068fb84ce55a11a40a0a3b45d13c0df898767dc42"
+    },
+    {
+      "path": "docs/dependency-precision-results.md",
+      "bytes": 15114,
+      "sha256": "162e0bbda86db43b26be743a10689ae123f53d213993852ce22d288ed3a9bda8"
+    },
+    {
+      "path": "docs/dependency-precision.md",
+      "bytes": 9131,
+      "sha256": "ee84ccb09db8fba6de723b48b5b674551bd82849c0565240974c238119f808cd"
+    },
+    {
+      "path": "docs/guides/architecture-drift.md",
+      "bytes": 2177,
+      "sha256": "d020923967bc83de9eed0f0235ea38b53109a88bcb3587b7b82caeaf34c542b8"
+    },
+    {
+      "path": "docs/guides/blast-score.md",
+      "bytes": 2933,
+      "sha256": "2bc229721679632b4918c77d39b2fcbfb950cc11e1447187793562a3d613fc38"
+    },
+    {
+      "path": "docs/guides/ci.md",
+      "bytes": 7234,
+      "sha256": "fc444a384441d19c201cec72c5d3abebd70bad3354b7f2a10e100da5d0dbd047"
+    },
+    {
+      "path": "docs/guides/configuration.md",
+      "bytes": 3163,
+      "sha256": "911a7d971a63580ca7b4e66a651bec73c5cd1d0c0f1306c482429881411e82f0"
+    },
+    {
+      "path": "docs/guides/indexing.md",
+      "bytes": 3214,
+      "sha256": "50c2cb4b4ccb859d753267459e4c757cc44d07dd096cf564b004205b8bd8c37e"
+    },
+    {
+      "path": "docs/guides/mcp-server.md",
+      "bytes": 21265,
+      "sha256": "790cf3a6f4f4fffe25d949001300a352bfa5962a042bdd8968c8f4b3f6db55cd"
+    },
+    {
+      "path": "docs/guides/smells.md",
+      "bytes": 2564,
+      "sha256": "26c7a9c7b620dd89379618960872d818115d0434546aab8b070858e2504ea7d7"
+    },
+    {
+      "path": "docs/guides/visualization.md",
+      "bytes": 3941,
+      "sha256": "ad7b8a76cb16a81a2bd7897c34b49d733ba9561ea2e679f783465ee1777f02aa"
+    },
+    {
+      "path": "docs/hybrid-graph-storage.md",
+      "bytes": 7544,
+      "sha256": "47188c9f0f3469c725c5ac014d67840cbb6b667b1ed00777bad49a1d6460456d"
+    },
+    {
+      "path": "docs/installation.md",
+      "bytes": 20955,
+      "sha256": "d03b4d732530755ddbffd37eb8fb3e51c88df185bc1739b00111848468e065b3"
+    },
+    {
+      "path": "docs/language-resolution-followups.md",
+      "bytes": 4153,
+      "sha256": "4330edb569a14880f8caf1947aa3fe6a4b22cf5a7fced4ac6865389f58ba270c"
+    },
+    {
+      "path": "docs/language-resolution.md",
+      "bytes": 10375,
+      "sha256": "92f66614bf3e42e6a1f192173faf707efa1ec04e115f97ae233ee24e3b4709e6"
+    },
+    {
+      "path": "docs/mcp-workflow-acceptance.md",
+      "bytes": 6884,
+      "sha256": "661fcd85f0fcda0ef9e005ecd915f39c723a8f7e9b5c78c56c6d3648af9c5504"
+    },
+    {
+      "path": "docs/mcp-workflow-delivery.md",
+      "bytes": 10120,
+      "sha256": "862f91199b1b06a89dbd2c754b3ebb96fbe521206c4a5b6d7e2c744a9fa45528"
+    },
+    {
+      "path": "docs/native-database-delivery.md",
+      "bytes": 21912,
+      "sha256": "6f8147cd7e978ffa6b096877b282508b2f8f03e0c6437ace37dbe381639b1399"
+    },
+    {
+      "path": "docs/native-database-performance.md",
+      "bytes": 5636,
+      "sha256": "d7648899a9d012d26e166c08995bccbb2d93a6e976ded0020bc2dccb5daaeff9"
+    },
+    {
+      "path": "docs/native-databases.md",
+      "bytes": 12325,
+      "sha256": "95b828f1aa7dc1b1824825f485381c3baf0a60c6cbbb2a5a130c0474a9a48694"
+    },
+    {
+      "path": "docs/project-database-context.md",
+      "bytes": 19068,
+      "sha256": "84dee4b4e24e5ad1f7b6056c4c61e50372fc8915a618fa89737d0e44956b1506"
+    },
+    {
+      "path": "docs/reusable-approvals.md",
+      "bytes": 12275,
+      "sha256": "b879d094b1664d686b4170e1fc587d40f9c58300578746a11a03135c114836b6"
+    },
+    {
+      "path": "docs/validation/dependency-precision/activity-ledger.json",
+      "bytes": 5962,
+      "sha256": "58f5d78294fcde6b0d1190b2556ae51766bea0f7067795f1842afd0ea9098ce3"
+    },
+    {
+      "path": "docs/validation/dependency-precision/baseline-mcp.json",
+      "bytes": 20185,
+      "sha256": "a5daf0c5ba2d05881f5e8f39f309cb248a8600fbdfd67bff3e95036921e592e9"
+    },
+    {
+      "path": "docs/validation/dependency-precision/dataset-manifest.json",
+      "bytes": 125648,
+      "sha256": "b696256065e97c2abfad8c86d8dcc8001bcd759f5552ed793d144f17dd1d3921"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-1.json",
+      "bytes": 2692,
+      "sha256": "d42dab48b0b6f302e2bc53256b719300863fa634ab23f537a2893853020a5ab8"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-2.json",
+      "bytes": 2693,
+      "sha256": "a5e2ff189f31c5f79936f85e8431378e237fd98b69fd24292dc817f327f0f87c"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-3.json",
+      "bytes": 2691,
+      "sha256": "24fc6522a8955d5efc2504c3af7ae1e08adfd71f6ed04bb5d07ac6979e87779b"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-baseline-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-before-1.json",
+      "bytes": 2095,
+      "sha256": "777017ec261fe950d362843e90039eec212572449573b6eec99d2f9d735d01d1"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-1.json",
+      "bytes": 2967,
+      "sha256": "e50d22dbebe560745af1a65143f73071c2f704f330297bf4eb7a98e8d97edf06"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-2.json",
+      "bytes": 2968,
+      "sha256": "059fdc487dfd5f0e73d658f8ce10503ee7d67c8b17fc5290a5c352101cd15b00"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-3.json",
+      "bytes": 2971,
+      "sha256": "e262845833d3039cc094b972084dd25b5d47bc08abf798bdc869e808cbcb18d5"
+    },
+    {
+      "path": "docs/validation/dependency-precision/engine-candidate-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/final-mcp.json",
+      "bytes": 3931,
+      "sha256": "b2ce5ef0fb5e2abace338c040ae421c8d02baf5d3cf5ad7f7ea26347652473d1"
+    },
+    {
+      "path": "docs/validation/dependency-precision/navigation-after.json",
+      "bytes": 63765,
+      "sha256": "e7906617773895b7e9ed029d52895096dc09a8334eec9f044bd20485ec022a1e"
+    },
+    {
+      "path": "docs/validation/dependency-precision/navigation-before.json",
+      "bytes": 41661,
+      "sha256": "88deaf7a17a7a6c0f03fd1512ff086cc00cc0cd553f82521209000a7bbf07e9a"
+    },
+    {
+      "path": "docs/validation/dependency-precision/package.log",
+      "bytes": 461,
+      "sha256": "e7cf7492040c61f87df17cff417a9949dadc48ca3a874f3663346ef4bb58ebd8"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-1.json",
+      "bytes": 2691,
+      "sha256": "dc682ca30f28fe4a4c2aaedc99d272ee2189fa3abfeaea57194a3a29d43632e5"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-2.json",
+      "bytes": 2690,
+      "sha256": "095bc5a019b55c3bbf5d680fa2ee4b24d7259c0c9dcf802aaec5514bdc722ae4"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-3.json",
+      "bytes": 2694,
+      "sha256": "9dd5187396dc6ba237580f1e55647c90a1c1c9bbb68029000fda11db439c2dce"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-baseline-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-1.json",
+      "bytes": 2969,
+      "sha256": "d49cff5201454c5f6396441c3ff20f160d0bf4f8121a0e2ffcee9737c0a9ed80"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-2.json",
+      "bytes": 2972,
+      "sha256": "b4adcdca02a951fd3f56df1b274ddac4887fa9fe3a465220a026d0547d52682f"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-3.json",
+      "bytes": 2962,
+      "sha256": "de1b5d187a7f2725a0759b4f886ed2a965d43f634f0eeeea2e62e53b827849ae"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preliminary-engine-candidate-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/dependency-precision/preview-after-mcp.json",
+      "bytes": 12804,
+      "sha256": "fc7c17a2ac7bf2d71e4d64de48b205a014195220a39ebfbc73ba4d8741d621bd"
+    },
+    {
+      "path": "docs/validation/dependency-precision/reactor-final.log",
+      "bytes": 12914,
+      "sha256": "3dcb28beef271093040a538e00e753f98830fb851e9fb7c5b39d58fc481a3b5c"
+    },
+    {
+      "path": "docs/validation/dependency-precision/reactor.log",
+      "bytes": 12919,
+      "sha256": "14cd35faccb85e7a97912b4da08ddc9d4359a93833302d1b3ca043e2c8fbde11"
+    },
+    {
+      "path": "docs/validation/dependency-precision/runtime.json",
+      "bytes": 326,
+      "sha256": "e708a92173c8c0759e0d8f1124e52416c1087c3943e2a92b82f100c9435e9949"
+    },
+    {
+      "path": "docs/validation/dependency-precision/summary-console.log",
+      "bytes": 8992,
+      "sha256": "7b1b4a17ea8d90e9d991f7cba218b07ebf4783597608a2266350000b1168c245"
+    },
+    {
+      "path": "docs/validation/dependency-precision/summary.json",
+      "bytes": 8992,
+      "sha256": "7b1b4a17ea8d90e9d991f7cba218b07ebf4783597608a2266350000b1168c245"
+    },
+    {
+      "path": "docs/validation/dependency-precision/test-summary.json",
+      "bytes": 92,
+      "sha256": "5b5d3216a370ca0e84871b367b0edf9b3b14413ee76cd14a2aea0f20baec74a6"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-baseline-1.json",
+      "bytes": 597074,
+      "sha256": "4a17f85f8f9c07474bd165869832c671f073a904b005bc6c1b0c04c163ce9157"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-baseline-2.json",
+      "bytes": 597076,
+      "sha256": "e43ff53f5bc413a897b89e5579060e7456f81eb97012a85608d698bf63d5b60b"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-baseline-3.json",
+      "bytes": 597049,
+      "sha256": "52eb418ee421f50e8c1c4cb51c8327aa0bda92a7aa21085a6ed0ae8ab2c57211"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-candidate-1.json",
+      "bytes": 586415,
+      "sha256": "ecd1d58d2492ce51008b62e8d592183b7027cedb227547357a9874c18a5550eb"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-candidate-2.json",
+      "bytes": 586452,
+      "sha256": "de016d8cb03ac2463d15096e53e7bf69d4c73fc7a67e405ef7ae0ef15862d636"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-candidate-3.json",
+      "bytes": 586474,
+      "sha256": "15ecfbeba0e74ee09873c54e61676bee96a3afca8f754d5a30ed303d3d0dcfff"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-environment.json",
+      "bytes": 1702,
+      "sha256": "e8b0d38b5d4f7bd0680bc49a03a7cfc793c1dc6ad956c4073fd139629f3da513"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-oracle.json",
+      "bytes": 16649,
+      "sha256": "428d9883f43649b0c6990a8f87637be82c46d65c8079a7fe75139a96fc3c9afb"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-pilot-baseline.json",
+      "bytes": 596929,
+      "sha256": "d3cc5497f739338be71877c70adee4425ef30b27366e7f24503233a43b6aed32"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-pilot-candidate.json",
+      "bytes": 401547,
+      "sha256": "204e0e30e7a5e8e0e1f8d3be8c545c3ad8c79f29644a118599f1f6eccf3bbf71"
+    },
+    {
+      "path": "docs/validation/dependency-precision/workflow-summary.json",
+      "bytes": 29209,
+      "sha256": "359652fd56e7566fedbb88185ad0a32b444387f97e5c986c739d679ff2089294"
+    },
+    {
+      "path": "docs/validation/language-resolution/baseline.stderr.log",
+      "bytes": 1286,
+      "sha256": "dd2ee10d4028def78b46b31661d93a4a79bdfde542874659b0e7b5a99681601a"
+    },
+    {
+      "path": "docs/validation/language-resolution/baseline.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/candidate.stderr.log",
+      "bytes": 1286,
+      "sha256": "6529dcc7486c2db6bee5b06e3edc2372b250c5f204a15902c6380738c1d1c6de"
+    },
+    {
+      "path": "docs/validation/language-resolution/candidate.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/development-navigation.json",
+      "bytes": 1957,
+      "sha256": "699b8535fdaa3f34a3592a7f6ae9dcf56ad0349563b41d65dcb3affcfd7a240c"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-1.json",
+      "bytes": 2964,
+      "sha256": "29efa181260e337f557dd16bee866f1400ed3a9abc9f7f4c78bc9a910dd6b305"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-1.with-background-app.json",
+      "bytes": 2969,
+      "sha256": "4b69d1ec61a79547cf6d6598a1532f45b1ce5bb8becf215d6e1e47032717aa26"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-2.json",
+      "bytes": 2972,
+      "sha256": "4b57482dd3969c35a7cbc10d58251e95ff3f844ee86b5225332df60c4207f982"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-3.json",
+      "bytes": 2968,
+      "sha256": "0ccfde6ecbf0e31a5e76aad822fd9d3270ab3635f10fc6f29c7dbcd03362f236"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-baseline-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-1.json",
+      "bytes": 2966,
+      "sha256": "3df97c8d77a5403ecd3fbd8d1f7c3910ab33ab9c6a70ed2e2afc743fdd3f64bf"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-2.json",
+      "bytes": 2972,
+      "sha256": "b8100cf75c9d4ebfa7b404c61fd011210706c4829cd11c095795b9a004e02ffe"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-3.json",
+      "bytes": 2973,
+      "sha256": "f92bdf5a2797119f2ed94f814ae7855f03f57b76cb7b323133ac7fce811834e9"
+    },
+    {
+      "path": "docs/validation/language-resolution/engine-candidate-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/validation/language-resolution/live-compact-call-graph.json",
+      "bytes": 1877,
+      "sha256": "a0bb95cca216e2680e2582b26b27340efc5a5cceaf98beb8ff82b22b575877e4"
+    },
+    {
+      "path": "docs/validation/language-resolution/live-navigation.json",
+      "bytes": 295,
+      "sha256": "50e3d863708441fb72bf34ffa723dbc7a0244c8d6316dbf290f707905302435c"
+    },
+    {
+      "path": "docs/validation/language-resolution/module-alias-probe.log",
+      "bytes": 867,
+      "sha256": "9753f089be9c87298388973ef323684516148b6c0cb4485a391c653d34f45d4b"
+    },
+    {
+      "path": "docs/validation/language-resolution/validation.json",
+      "bytes": 2110,
+      "sha256": "a4a8ef6b8d626a37178f79047cd57180a3f8825b1d26c3c8e0c2f54a5cae28fa"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-baseline-1.json",
+      "bytes": 586403,
+      "sha256": "bdaa726eed391f8bbbf73b3e4cbb9c04fd13c71b72697ffe6b9c8968b38e82cc"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-baseline-2.json",
+      "bytes": 586396,
+      "sha256": "97910b620e1e056f947933e0a4599bdc5c6dd10b295c21edc30388d23d24f5ee"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-baseline-3.json",
+      "bytes": 586412,
+      "sha256": "0f74fcd45b0e57e391df886388b8156e71062501cfc3cc3631ec041900ccb22c"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-baseline-warmup.json",
+      "bytes": 586453,
+      "sha256": "88f8fc05ed42edbf6e0b45d6d479ebd1faf2cbeba80e8a0755e68b0bc994473f"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-candidate-1.json",
+      "bytes": 378418,
+      "sha256": "843af81a3e558afc2be99d02e86a40eadc9e0d1fd8e638dc27529dff11cd805c"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-candidate-2.json",
+      "bytes": 378427,
+      "sha256": "69bf0b634fce1d1a0b6da0d7208d8e918fe53237a4336f8d073cba70dd83932c"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-candidate-3.json",
+      "bytes": 378403,
+      "sha256": "f9b6113605a52e8a809a018796610fd7309614113af9be7f0d12deaedad98c29"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-candidate-warmup.json",
+      "bytes": 378478,
+      "sha256": "8a6c5d59102fa497da21a0c13271358ba009715c3dc770f4013b9dcb07f9e683"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-oracle.json",
+      "bytes": 16649,
+      "sha256": "428d9883f43649b0c6990a8f87637be82c46d65c8079a7fe75139a96fc3c9afb"
+    },
+    {
+      "path": "docs/validation/language-resolution/workflow-summary.json",
+      "bytes": 28084,
+      "sha256": "10c8212c09cc15b1653d6c98138b76c528e6d4dadc3d33d962c3a729ab76d608"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch1-1.json",
+      "bytes": 6089,
+      "sha256": "20efd8e49aaf0f13bec63c99a56966c11492ba02c8b38cc86871e7154c83a8a4"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch1-2.json",
+      "bytes": 6091,
+      "sha256": "de269053da8aeeeedfd2397a39c6c517851a1ea19435cccef63da26e4502addd"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch1-3.json",
+      "bytes": 6092,
+      "sha256": "8350807be2809f6edb14674edccf24058195433ea33ffdf4ced156dcf43dc144"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch16-1.json",
+      "bytes": 5973,
+      "sha256": "bdd1f83a9f9c282e5c26554d38e695413f61d04e39d6b7ce886ac1b42b44f8da"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch16-2.json",
+      "bytes": 5967,
+      "sha256": "7d5db538e13e5a164d827af8f329bf3adb8278e043b71938e1de0a89d2fbc0b1"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/mongodb-batch16-3.json",
+      "bytes": 5954,
+      "sha256": "29eeddd024ba76df865e1bbc533a2adf5b944e827e5aa8feb05a867e3be56cd7"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-capped-1.json",
+      "bytes": 6054,
+      "sha256": "218c20dcfd39cbaa90d29c0f251624f2489f31ffec2401b62f90ad240a0452ab"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-capped-2.json",
+      "bytes": 6028,
+      "sha256": "ab5c2caa6512cfca830bdd1b73a391530bfa9cb02fcc458727554e46c50094bf"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-capped-3.json",
+      "bytes": 6040,
+      "sha256": "0961ae81e13ba84537d4c884479d569e5925ce4c61bc844e9a0fdd8f386695b8"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-uncapped-invalid-1.json",
+      "bytes": 6003,
+      "sha256": "5c7a8c9b810cc62252c8e966db6ae4ef3838d91b0c4636c451158393b3c08086"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-uncapped-invalid-2.json",
+      "bytes": 6032,
+      "sha256": "dccf006e7200af0f6f99b06ace04364eaf810f4bf1ee316d5b02cc110edcf6cc"
+    },
+    {
+      "path": "docs/validation/native-performance-2026-09-18/redis-uncapped-invalid-3.json",
+      "bytes": 6023,
+      "sha256": "94937e1fa236320e5d95701794ae2b3b0c0da660158705911d2664af77f56de5"
+    },
+    {
+      "path": "docs/workflow-capabilities.json",
+      "bytes": 13679,
+      "sha256": "1d38abf2936d11b92d485e0aa9aad808eb7ce068b0dc072c77149274acd353fd"
+    },
+    {
+      "path": "docs/workflow-validation.md",
+      "bytes": 5114,
+      "sha256": "6934d7eea2afced17f8d4b7cddb5bc02c300f7aceb21373c6d591d9e9318fdc0"
+    },
+    {
+      "path": "docs/yolo-delivery.md",
+      "bytes": 5405,
+      "sha256": "65eec54a92fdfead184dbfa92136020cf3032c7fe6b210b706cb2199c181bfc2"
+    },
+    {
+      "path": "docs/yolo.md",
+      "bytes": 6075,
+      "sha256": "e7492c8286e44395fb6b9e2cae74f770d7dbe576054aea784e95dab49edd9d75"
+    },
+    {
+      "path": "efficiency-fixtures/alias/right.js",
+      "bytes": 32,
+      "sha256": "80ce4b25e57d45a675bc7363fea9656fcc12ccae1431d4a3338e3e460a38e173"
+    },
+    {
+      "path": "efficiency-fixtures/alias/use.js",
+      "bytes": 66,
+      "sha256": "421fa850e26cd4a411630d83bce19f83d094541d4404588f3857b3143b5ebb4b"
+    },
+    {
+      "path": "efficiency-fixtures/alias/wrong.js",
+      "bytes": 30,
+      "sha256": "fea9d723be5fdb20f93dc5f6a2d1e0e015b493d6d2e60edf63622915ecb1918d"
+    },
+    {
+      "path": "efficiency-fixtures/barrel/barrel.js",
+      "bytes": 52,
+      "sha256": "8eac7abb1718cc1ccaa73eb9fc1ee8147a1de92547aad2fc346e7dbc8d329c8c"
+    },
+    {
+      "path": "efficiency-fixtures/barrel/right.js",
+      "bytes": 33,
+      "sha256": "a7cc413c3081e4f8a4c07cb7a32fc9b185d4b0348401a3a2f0c170e4f437b77b"
+    },
+    {
+      "path": "efficiency-fixtures/barrel/use.js",
+      "bytes": 65,
+      "sha256": "f0115243c7e244a5a0c847641d3e1d127be46d08e6f4ea68722b1199cfe1f26f"
+    },
+    {
+      "path": "efficiency-fixtures/barrel/wrong.js",
+      "bytes": 31,
+      "sha256": "b41c534f50eb305b954bd14429c9686a06e5c7b0e91895403c2ed0450670fbe0"
+    },
+    {
+      "path": "efficiency-fixtures/common/right.cjs",
+      "bytes": 61,
+      "sha256": "3eb216b41067eb97d77fef25f6908fae7a74f8bd643b9697919f9bb9bdd52cf3"
+    },
+    {
+      "path": "efficiency-fixtures/common/use.cjs",
+      "bytes": 70,
+      "sha256": "09dd6ce419c20aee8e37f673d7c69e7ae90c2d14230f9d8a0c48f027967e3283"
+    },
+    {
+      "path": "efficiency-fixtures/common/wrong.cjs",
+      "bytes": 55,
+      "sha256": "908ead7738f47df3d968fbef29078593febf959884d346348e6d7f573c8900c1"
+    },
+    {
+      "path": "efficiency-fixtures/default/right.js",
+      "bytes": 42,
+      "sha256": "27cd34f28004008ca30a98afb3b7a02460fd272b9cabc8bff4d291e9d47baeaf"
+    },
+    {
+      "path": "efficiency-fixtures/default/use.js",
+      "bytes": 53,
+      "sha256": "10b7885988102022b18f0422f31b977bf8d7b9ff06d82f14232e657158fcdfa4"
+    },
+    {
+      "path": "efficiency-fixtures/default/wrong.js",
+      "bytes": 32,
+      "sha256": "0c3dc0c88e1ff6b9ab903fc2353586727f9eda70a1e2dbe107efe78d3bd5155f"
+    },
+    {
+      "path": "efficiency-fixtures/namespace/right.js",
+      "bytes": 36,
+      "sha256": "bfd556895aaf11d07cce0d9a5dae5a05e4cf4c2fcbab1acb632fbda2fec28663"
+    },
+    {
+      "path": "efficiency-fixtures/namespace/use.js",
+      "bytes": 58,
+      "sha256": "b051755b22770a84dda6f64c4a07ad1e66692e6c94b2bb5ca7f0a6bf2ccf030b"
+    },
+    {
+      "path": "efficiency-fixtures/namespace/wrong.js",
+      "bytes": 36,
+      "sha256": "bfd556895aaf11d07cce0d9a5dae5a05e4cf4c2fcbab1acb632fbda2fec28663"
+    },
+    {
+      "path": "install.ps1",
+      "bytes": 12393,
+      "sha256": "ec672e595d951852e5568180ce6c734bcc39fe5d09e3cf9585f98c9e94f8f290"
+    },
+    {
+      "path": "install.sh",
+      "bytes": 11418,
+      "sha256": "9d97abdd8209f44cbd9534d804c465250ef1dbfd14761f24ae6c05156f3206cc"
+    },
+    {
+      "path": "installer/CgraphInstaller.java",
+      "bytes": 23364,
+      "sha256": "b7da3a71d269bbe26eeb34526924c388089f45966a7e84687ab8de33c8249254"
+    },
+    {
+      "path": "installer/CgraphInstallerTest.java",
+      "bytes": 5802,
+      "sha256": "ae32fff6add93fa5bdad4f2444fdc2b90c16c87441ce62ddb4db3dbb9785401a"
+    },
+    {
+      "path": "installer/NativeSmokeTest.java",
+      "bytes": 5105,
+      "sha256": "409ee6ddc0cd6117fc48167dca6e70354f4d44e6a8e80f381a0e56a331e1c449"
+    },
+    {
+      "path": "installer/ProxySmokeTest.java",
+      "bytes": 5859,
+      "sha256": "35ac6ea712021a26aa3a261c9fc93c61e1eb42db539c9d05fa30096c52d28e06"
+    },
+    {
+      "path": "installer/skill-bootstrap.test.mjs",
+      "bytes": 5334,
+      "sha256": "12dcb059ab780ba02f53a0580fc04a29e3188a6d99dd96e855a30f46b5ad9df7"
+    },
+    {
+      "path": "installer/SkillInstaller.java",
+      "bytes": 8294,
+      "sha256": "b12bc729119d684bbcc47881a79aacaf9bd68aecf73f920a1f716e6d818d2412"
+    },
+    {
+      "path": "installer/SkillInstallerTest.java",
+      "bytes": 7414,
+      "sha256": "b207346fa1055f1386827ca05ce5b500153c0a377163e70e7c9ee81d474f53a4"
+    },
+    {
+      "path": "installer/Test-Bootstrap.ps1",
+      "bytes": 3309,
+      "sha256": "689d52bb985220fe00d1dd1dbb2abfe9c1839f871f75160359f91529c770be6c"
+    },
+    {
+      "path": "installer/test-bootstrap.sh",
+      "bytes": 1866,
+      "sha256": "3bd70c52716a48b59c982911c1575c48c3d3b74a9ddf1ed18fb8d5830232c4df"
+    },
+    {
+      "path": "pom.xml",
+      "bytes": 7786,
+      "sha256": "9fd9b3b136690f8c401c2ebf58f12d70e488b73c329ab8fd27cae764af75ba1c"
+    },
+    {
+      "path": "README.md",
+      "bytes": 46049,
+      "sha256": "9c1d591b918e1041caa9babde3eca3d28f427f626899d0dbb6bf32695b04b37e"
+    },
+    {
+      "path": "scripts/benchmark-agent-navigation.cjs",
+      "bytes": 10810,
+      "sha256": "7e9f9d184af72fa99ded6fc4ee8da4c749201fca1f03736f6b2e3ad6bf8127d1"
+    },
+    {
+      "path": "scripts/benchmark-agent-navigation.test.cjs",
+      "bytes": 1512,
+      "sha256": "25e8ba49ca43fab32c8c91f03bb4da73cfc14611c1b31be5189abea49f2b6d74"
+    },
+    {
+      "path": "scripts/benchmark-navigation.cjs",
+      "bytes": 3723,
+      "sha256": "07b8d3cd61851758405090453135834058dd5769b3cc1b27a218e5e8bd1c618f"
+    },
+    {
+      "path": "scripts/benchmark-navigation.ps1",
+      "bytes": 2921,
+      "sha256": "f5c8d2fc1bdeee7eedaf0e37b2169eba99d2938849a11a285420fb182d64889a"
+    },
+    {
+      "path": "scripts/mcp-benchmark-client.cjs",
+      "bytes": 1783,
+      "sha256": "e6b5985a58254a54777d2b5a81ce80d4f085b2be314e84a0a2bcc70a75046ade"
+    },
+    {
+      "path": "scripts/NavigationBenchmark.java",
+      "bytes": 3759,
+      "sha256": "dbb7f509764238b9c8af843643eb2addb285ef219826ea758b7d855c09880ae7"
+    },
+    {
+      "path": "scripts/NavigationWorkflowOracle.java",
+      "bytes": 5486,
+      "sha256": "420e8836e36a51935e76a0def7ac5caf5bbc91d71f9343f76d72c8b1144a8e84"
+    },
+    {
+      "path": "scripts/ProbeLanguageResolution.java",
+      "bytes": 2236,
+      "sha256": "8c804ffadc29c304696ac1694fd0839dcb5f301bb38e9078c44f7d0c99a7ba86"
+    },
+    {
+      "path": "scripts/summarize-agent-navigation.cjs",
+      "bytes": 5657,
+      "sha256": "fb414420e6cdcb4ab13ae562a53fed3e55dc94c9efabcb93f4610b9436c83816"
+    },
+    {
+      "path": "scripts/summarize-navigation.cjs",
+      "bytes": 2772,
+      "sha256": "c703d03fd4abffac725a55c43a4060c7ffac09d6f056bcd193b3959ecee65945"
+    },
+    {
+      "path": "skills/clients.properties",
+      "bytes": 538,
+      "sha256": "96c8fbbc8dfd91925beed475cb6b7c0a7b01ffa56621407f7979dcdecfee6d78"
+    },
+    {
+      "path": "skills/code-graph/references/approvals-and-jobs.md",
+      "bytes": 2637,
+      "sha256": "c29049dbd8f82628e0ed86174f4836976535e4824cc48feb62406706254a3396"
+    },
+    {
+      "path": "skills/code-graph/references/code-navigation.md",
+      "bytes": 4537,
+      "sha256": "6a2d250a84ac2353bc532560b71b353e609062c7d6431dabd13b1515f05c4d62"
+    },
+    {
+      "path": "skills/code-graph/references/database-targets.md",
+      "bytes": 3966,
+      "sha256": "a468a53de8227b778f28afc594828efb6296d0a92ab71df6a917967e808f5a02"
+    },
+    {
+      "path": "skills/code-graph/references/editor-and-verification.md",
+      "bytes": 1942,
+      "sha256": "d96dac25ad3107de0cebfba92f8938fc4c74298430b78d36b5e29ab50f1c1cc2"
+    },
+    {
+      "path": "skills/code-graph/references/migrations.md",
+      "bytes": 3557,
+      "sha256": "84b89e991a0e4cbfd25895dfbfe8bb1172f406f5d70f63e28b6a84e84069b14d"
+    },
+    {
+      "path": "skills/code-graph/SKILL.md",
+      "bytes": 5862,
+      "sha256": "4c8541668c9d0114b22ce21bae1b43857e7c7abafcda11dc4243652c5f1415cd"
+    },
+    {
+      "path": "skills/install-skill.mjs",
+      "bytes": 7346,
+      "sha256": "0faf8f569a44edac5edafe56aa3c6fe9d2faf834774eb797fb47f365786d990b"
+    },
+    {
+      "path": "skills/install-skill.test.mjs",
+      "bytes": 9746,
+      "sha256": "d3609c243255c65f7a491ce30b6e1209b7315e0732ca62fd50d561649ddff117"
+    }
+  ]
+}

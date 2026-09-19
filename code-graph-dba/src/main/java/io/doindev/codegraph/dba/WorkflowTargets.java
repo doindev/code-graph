@@ -11,6 +11,7 @@ final class WorkflowTargets {
     WorkflowTargets(Profiles profiles,AgentAccess agents,ProjectContexts contexts,ReusableApprovals policies){this.profiles=profiles;this.agents=agents;this.contexts=contexts;this.policies=policies;}
     Target catalog(String principal,String session,JsonNode input){
         if(!agents.alive("agent:"+principal))throw new SecurityException("Agent revoked");
+        agents.authorization.requireSession(principal,session);
         ObjectNode binding=Profiles.JSON.createObjectNode(),profile;boolean allowed=false;
         ObjectNode request=Profiles.JSON.createObjectNode();
         for(String key:List.of("bindingId","connectionId","connectionName","database","schema"))if(input.has(key))request.set(key,input.get(key));
@@ -24,9 +25,10 @@ final class WorkflowTargets {
             if(!profile.path("name").asText().equals(Profiles.text(request,"connectionName",120)))throw new IllegalArgumentException("Exact connectionName must match connectionId");
             allowed=agents.permitsRead(principal,"catalog",Profiles.JSON.createObjectNode().put("connectionId",profile.path("id").asText()));
         }
-        ObjectNode scope=ApprovalScope.resolve(profile,binding,request);
+        ObjectNode scope=agents.authorization.scope(profile,binding,request);
         if(scope.path("database").asText().isBlank()||scope.path("schema").asText().isBlank())throw new IllegalArgumentException("Schema capture requires an unambiguous database and schema; supply explicit standalone targeting or a binding");
         String reason="Existing catalog read permission",policy="legacy-catalog";
+        if(agents.authorization.automatic){agents.authorization.audit(principal,session,"schema_observation",scope);return new Target(profile,scope,request,"startup_yolo");}
         if(!allowed){
             var operation=new ReusableOperation.Result("ddl_inspection",true,true,"Bounded schema observation");
             ObjectNode invocation=Profiles.JSON.createObjectNode().put("sql","dba_capture_schema").put("autoCommit",false);invocation.set("parameters",request);

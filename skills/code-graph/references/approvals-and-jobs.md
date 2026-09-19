@@ -1,5 +1,16 @@
 # Approvals, jobs and uncertain outcomes
 
+Startup `--yolo` is an explicit exception to normal human review: a validated
+local session receives `auto_approved` / `startup_yolo` / `automatic` responses,
+including in headless mode. It creates no grants and does not broaden this task.
+Use an exact binding or standalone UUID, exact name, explicit database and applicable
+schema. Create/update requires `testBeforeSave: true` or `saveUntested: true`;
+driver installation additionally requires an explicit pinned request. Follow the
+advertised schemas. Do not enable YOLO or restart a server merely to avoid review.
+Submitted jobs still require polling and release. Expired results or uncertain
+outcomes must not be retried as new writes. Browser pairing remains separate.
+The normal approval rules below apply when YOLO is off.
+
 Do not treat MCP safety annotations, templates, a skill, or an accepted request as
 authorization. The server decides eligibility using exact targets and the user's
 policies. Local transport trust does not grant database access. Reduced headless

@@ -1,0 +1,1104 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] code-graph-bom                                                     [pom]
+[INFO] code-graph                                                         [pom]
+[INFO] code-graph-core                                                    [jar]
+[INFO] code-graph-config                                                  [jar]
+[INFO] code-graph-parsers                                                 [jar]
+[INFO] code-graph-lang-java                                               [jar]
+[INFO] code-graph-lang-javascript                                         [jar]
+[INFO] code-graph-lang-python                                             [jar]
+[INFO] code-graph-lang-go                                                 [jar]
+[INFO] code-graph-lang-rust                                               [jar]
+[INFO] code-graph-lang-c                                                  [jar]
+[INFO] code-graph-lang-csharp                                             [jar]
+[INFO] code-graph-lang-php                                                [jar]
+[INFO] code-graph-lang-ruby                                               [jar]
+[INFO] code-graph-lang-kotlin                                             [jar]
+[INFO] code-graph-lang-scala                                              [jar]
+[INFO] code-graph-lang-swift                                              [jar]
+[INFO] code-graph-lang-dart                                               [jar]
+[INFO] code-graph-lang-objc                                               [jar]
+[INFO] code-graph-lang-sql                                                [jar]
+[INFO] code-graph-storage                                                 [jar]
+[INFO] code-graph-index                                                   [jar]
+[INFO] code-graph-analysis                                                [jar]
+[INFO] code-graph-rules                                                   [jar]
+[INFO] code-graph-smells                                                  [jar]
+[INFO] code-graph-tools                                                   [jar]
+[INFO] code-graph-dba                                                     [jar]
+[INFO] code-graph-viz                                                     [jar]
+[INFO] code-graph-mcp                                                     [jar]
+[INFO] code-graph-store-h2                                                [jar]
+[INFO] code-graph-store-neo4j                                             [jar]
+[INFO] code-graph-store-arangodb                                          [jar]
+[INFO] code-graph-linker                                                  [jar]
+[INFO] code-graph-cli                                                     [jar]
+[INFO] code-graph-mcp-http                                                [jar]
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-bom >----------------------
+[INFO] Building code-graph-bom 0.0.1-SNAPSHOT                            [1/35]
+[INFO]   from code-graph-bom\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] -----------------------< io.doindev:code-graph >------------------------
+[INFO] Building code-graph 0.0.1-SNAPSHOT                                [2/35]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-core >---------------------
+[INFO] Building code-graph-core 0.0.1-SNAPSHOT                           [3/35]
+[INFO]   from code-graph-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-core\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-core ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-core\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-core ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-core ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.graph.PinnedReadTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.079 s -- in io.doindev.codegraph.graph.PinnedReadTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-core ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-config >--------------------
+[INFO] Building code-graph-config 0.0.1-SNAPSHOT                         [4/35]
+[INFO]   from code-graph-config\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-config ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-config\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-config ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-config ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-config\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-config ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-config ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-config ---
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-parsers >--------------------
+[INFO] Building code-graph-parsers 0.0.1-SNAPSHOT                        [5/35]
+[INFO]   from code-graph-parsers\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-parsers\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-parsers ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 19 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-parsers ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-parsers\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-parsers ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-parsers ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-parsers ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-parsers\target\code-graph-parsers-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-java >-------------------
+[INFO] Building code-graph-lang-java 0.0.1-SNAPSHOT                      [6/35]
+[INFO]   from code-graph-lang-java\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-java ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-java ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-java ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-java\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-java ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-java ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-java ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-java\target\code-graph-lang-java-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ---------------< io.doindev:code-graph-lang-javascript >----------------
+[INFO] Building code-graph-lang-javascript 0.0.1-SNAPSHOT                [7/35]
+[INFO]   from code-graph-lang-javascript\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-javascript ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-javascript ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 5 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-javascript ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-javascript\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-javascript ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-javascript ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.lang.javascript.ModuleResolutionTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.308 s -- in io.doindev.codegraph.lang.javascript.ModuleResolutionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-javascript ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-javascript\target\code-graph-lang-javascript-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-python >------------------
+[INFO] Building code-graph-lang-python 0.0.1-SNAPSHOT                    [8/35]
+[INFO]   from code-graph-lang-python\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-python ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-python ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-python ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-python\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-python ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-python ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-python ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-python\target\code-graph-lang-python-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-go >--------------------
+[INFO] Building code-graph-lang-go 0.0.1-SNAPSHOT                        [9/35]
+[INFO]   from code-graph-lang-go\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-go ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-go ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-go ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-go\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-go ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-go ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-go ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-go\target\code-graph-lang-go-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-rust >-------------------
+[INFO] Building code-graph-lang-rust 0.0.1-SNAPSHOT                     [10/35]
+[INFO]   from code-graph-lang-rust\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-rust ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-rust ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-rust ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-rust\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-rust ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-rust ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-rust ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-rust\target\code-graph-lang-rust-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-lang-c >--------------------
+[INFO] Building code-graph-lang-c 0.0.1-SNAPSHOT                        [11/35]
+[INFO]   from code-graph-lang-c\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-c ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-c ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-c ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-c\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-c ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-c ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-c ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-c\target\code-graph-lang-c-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-csharp >------------------
+[INFO] Building code-graph-lang-csharp 0.0.1-SNAPSHOT                   [12/35]
+[INFO]   from code-graph-lang-csharp\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-csharp ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-csharp ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-csharp ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-csharp\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-csharp ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-csharp ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-csharp ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-csharp\target\code-graph-lang-csharp-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-php >-------------------
+[INFO] Building code-graph-lang-php 0.0.1-SNAPSHOT                      [13/35]
+[INFO]   from code-graph-lang-php\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-php ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-php ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-php ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-php\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-php ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-php ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-php ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-php\target\code-graph-lang-php-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-ruby >-------------------
+[INFO] Building code-graph-lang-ruby 0.0.1-SNAPSHOT                     [14/35]
+[INFO]   from code-graph-lang-ruby\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-ruby ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-ruby ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-ruby ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-ruby\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-ruby ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-ruby ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-ruby ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-ruby\target\code-graph-lang-ruby-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-lang-kotlin >------------------
+[INFO] Building code-graph-lang-kotlin 0.0.1-SNAPSHOT                   [15/35]
+[INFO]   from code-graph-lang-kotlin\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-kotlin ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-kotlin ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-kotlin ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-kotlin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-kotlin ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-kotlin ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-kotlin ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-kotlin\target\code-graph-lang-kotlin-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-scala >------------------
+[INFO] Building code-graph-lang-scala 0.0.1-SNAPSHOT                    [16/35]
+[INFO]   from code-graph-lang-scala\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-scala ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-scala ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-scala ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-scala\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-scala ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-scala ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-scala ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-scala\target\code-graph-lang-scala-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-swift >------------------
+[INFO] Building code-graph-lang-swift 0.0.1-SNAPSHOT                    [17/35]
+[INFO]   from code-graph-lang-swift\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-swift ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-swift ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-swift ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-swift\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-swift ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-swift ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-swift ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-swift\target\code-graph-lang-swift-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-dart >-------------------
+[INFO] Building code-graph-lang-dart 0.0.1-SNAPSHOT                     [18/35]
+[INFO]   from code-graph-lang-dart\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-dart ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-dart ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-dart ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-dart\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-dart ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-dart ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-dart ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-dart\target\code-graph-lang-dart-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< io.doindev:code-graph-lang-objc >-------------------
+[INFO] Building code-graph-lang-objc 0.0.1-SNAPSHOT                     [19/35]
+[INFO]   from code-graph-lang-objc\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-objc ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-objc ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-objc ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-objc\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-objc ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-objc ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-objc ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-objc\target\code-graph-lang-objc-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-lang-sql >-------------------
+[INFO] Building code-graph-lang-sql 0.0.1-SNAPSHOT                      [20/35]
+[INFO]   from code-graph-lang-sql\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-lang-sql ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-lang-sql ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-lang-sql ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-sql\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-lang-sql ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-lang-sql ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-lang-sql ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-lang-sql\target\code-graph-lang-sql-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-storage >--------------------
+[INFO] Building code-graph-storage 0.0.1-SNAPSHOT                       [21/35]
+[INFO]   from code-graph-storage\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-storage\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-storage ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-storage ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-storage\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-storage ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-storage ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-storage ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-storage\target\code-graph-storage-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-index >---------------------
+[INFO] Building code-graph-index 0.0.1-SNAPSHOT                         [22/35]
+[INFO]   from code-graph-index\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-index ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-index\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-index ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 13 source files with javac [debug release 25] to target\classes
+[WARNING] /C:/Users/timhj/AppData/Local/Temp/cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4/candidate/code-graph-index/src/main/java/io/doindev/codegraph/index/Watcher.java:[68,37] com.sun.nio.file.ExtendedWatchEventModifier is internal proprietary API and may be removed in a future release
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-index ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-index\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-index ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 10 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-index ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.index.ModuleConfigurationIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.256 s -- in io.doindev.codegraph.index.ModuleConfigurationIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-index ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-index\target\code-graph-index-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-analysis >-------------------
+[INFO] Building code-graph-analysis 0.0.1-SNAPSHOT                      [23/35]
+[INFO]   from code-graph-analysis\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-analysis ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-analysis\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-analysis ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-analysis ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-analysis\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-analysis ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-analysis ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-analysis ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-rules >---------------------
+[INFO] Building code-graph-rules 0.0.1-SNAPSHOT                         [24/35]
+[INFO]   from code-graph-rules\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-rules ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-rules\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-rules ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-rules ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-rules\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-rules ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-rules ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-rules ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-smells >--------------------
+[INFO] Building code-graph-smells 0.0.1-SNAPSHOT                        [25/35]
+[INFO]   from code-graph-smells\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-smells ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-smells\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-smells ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 7 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-smells ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-smells\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-smells ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-smells ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-smells ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-smells\target\code-graph-smells-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-tools >---------------------
+[INFO] Building code-graph-tools 0.0.1-SNAPSHOT                         [26/35]
+[INFO]   from code-graph-tools\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-tools ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-tools\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-tools ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 27 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-tools ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-tools\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-tools ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 9 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-tools ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.tools.EfficiencyRegressionTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.577 s -- in io.doindev.codegraph.tools.EfficiencyRegressionTest
+[INFO] Running io.doindev.codegraph.tools.RiskGateAndScoreToolTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 s -- in io.doindev.codegraph.tools.RiskGateAndScoreToolTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-tools ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-tools\target\code-graph-tools-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-dba >----------------------
+[INFO] Building code-graph-dba 0.0.1-SNAPSHOT                           [27/35]
+[INFO]   from code-graph-dba\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-dba ---
+[INFO] Copying 24 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-dba ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-dba ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-dba\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-dba ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-dba ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-dba ---
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-viz >----------------------
+[INFO] Building code-graph-viz 0.0.1-SNAPSHOT                           [28/35]
+[INFO]   from code-graph-viz\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-viz ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-viz ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-viz ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-viz\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-viz ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-viz ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-viz ---
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-mcp >----------------------
+[INFO] Building code-graph-mcp 0.0.1-SNAPSHOT                           [29/35]
+[INFO]   from code-graph-mcp\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-mcp ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] The encoding used to copy filtered properties files have not been set. This means that the same encoding will be used to copy filtered properties files as when copying other filtered resources. This might not be what you want! Run your build with --debug to see which files might be affected. Read more at https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-mcp ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 10 source files with javac [debug release 25] to target\classes
+[INFO] /C:/Users/timhj/AppData/Local/Temp/cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4/candidate/code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/CodeGraphMcpServer.java: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp\src\main\java\io\doindev\codegraph\mcp\CodeGraphMcpServer.java uses or overrides a deprecated API.
+[INFO] /C:/Users/timhj/AppData/Local/Temp/cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4/candidate/code-graph-mcp/src/main/java/io/doindev/codegraph/mcp/CodeGraphMcpServer.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-mcp ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-mcp ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 5 source files with javac [debug release 25] to target\test-classes
+[INFO] /C:/Users/timhj/AppData/Local/Temp/cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4/candidate/code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/CodeGraphMcpServerTest.java: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp\src\test\java\io\doindev\codegraph\mcp\CodeGraphMcpServerTest.java uses or overrides a deprecated API.
+[INFO] /C:/Users/timhj/AppData/Local/Temp/cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4/candidate/code-graph-mcp/src/test/java/io/doindev/codegraph/mcp/CodeGraphMcpServerTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-mcp ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.doindev.codegraph.mcp.ToolCatalogTest
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.722 s -- in io.doindev.codegraph.mcp.ToolCatalogTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-mcp ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp\target\code-graph-mcp-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-store-h2 >-------------------
+[INFO] Building code-graph-store-h2 0.0.1-SNAPSHOT                      [30/35]
+[INFO]   from code-graph-store-h2\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-store-h2 ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-h2\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-store-h2 ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-store-h2 ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-h2\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-store-h2 ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-store-h2 ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-store-h2 ---
+[INFO] 
+[INFO] -----------------< io.doindev:code-graph-store-neo4j >------------------
+[INFO] Building code-graph-store-neo4j 0.0.1-SNAPSHOT                   [31/35]
+[INFO]   from code-graph-store-neo4j\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-store-neo4j ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-neo4j\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-store-neo4j ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-store-neo4j ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-neo4j\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-store-neo4j ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-store-neo4j ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-store-neo4j ---
+[INFO] 
+[INFO] ----------------< io.doindev:code-graph-store-arangodb >----------------
+[INFO] Building code-graph-store-arangodb 0.0.1-SNAPSHOT                [32/35]
+[INFO]   from code-graph-store-arangodb\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-store-arangodb ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-arangodb\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-store-arangodb ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-store-arangodb ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-store-arangodb\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-store-arangodb ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-store-arangodb ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-store-arangodb ---
+[INFO] 
+[INFO] --------------------< io.doindev:code-graph-linker >--------------------
+[INFO] Building code-graph-linker 0.0.1-SNAPSHOT                        [33/35]
+[INFO]   from code-graph-linker\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-linker ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-linker ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-linker ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-linker\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-linker ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-linker ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-linker ---
+[INFO] 
+[INFO] ---------------------< io.doindev:code-graph-cli >----------------------
+[INFO] Building code-graph-cli 0.0.1-SNAPSHOT                           [34/35]
+[INFO]   from code-graph-cli\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-cli ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-cli\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-cli ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 12 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-cli ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-cli\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-cli ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 6 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-cli ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-cli ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-cli\target\code-graph-cli-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- shade:3.6.0:shade (default) @ code-graph-cli ---
+[INFO] Including io.doindev:code-graph-tools:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.doindev:code-graph-core:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.doindev:code-graph-analysis:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.doindev:code-graph-rules:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.doindev:code-graph-smells:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.doindev:code-graph-config:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.18.2 in the shaded jar.
+[INFO] Including org.yaml:snakeyaml:jar:2.3 in the shaded jar.
+[INFO] Including io.doindev:code-graph-index:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including com.github.jsqlparser:jsqlparser:jar:5.3 in the shaded jar.
+[INFO] Including org.openjdk.jmh:jmh-core:jar:1.37 in the shaded jar.
+[INFO] Including net.sf.jopt-simple:jopt-simple:jar:5.0.4 in the shaded jar.
+[INFO] Including org.apache.commons:commons-math3:jar:3.6.1 in the shaded jar.
+[INFO] Including io.doindev:code-graph-storage:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including com.h2database:h2:jar:2.4.240 in the shaded jar.
+[INFO] Including io.doindev:code-graph-parsers:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter:jar:0.26.6 in the shaded jar.
+[INFO] Including com.fasterxml.jackson.core:jackson-databind:jar:2.18.2 in the shaded jar.
+[INFO] Including com.fasterxml.jackson.core:jackson-annotations:jar:2.18.2 in the shaded jar.
+[INFO] Including com.fasterxml.jackson.core:jackson-core:jar:2.18.2 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-java:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-java:jar:0.23.4 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-javascript:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-javascript:jar:0.23.1 in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-typescript:jar:0.23.2 in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-tsx:jar:0.23.2 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-python:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-python:jar:0.23.4 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-go:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-go:jar:0.23.3 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-rust:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-rust:jar:0.23.1 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-c:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-c:jar:0.23.2 in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-cpp:jar:0.23.4 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-csharp:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-c-sharp:jar:0.23.1 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-php:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-php:jar:0.23.11 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-ruby:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-ruby:jar:0.23.1 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-kotlin:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-kotlin:jar:0.3.8.1 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-scala:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-scala:jar:0.23.3 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-swift:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-swift:jar:0.5.0 in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-dart:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-dart:jar:master-a in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-objc:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-objc:jar:main-a in the shaded jar.
+[INFO] Including io.doindev:code-graph-lang-sql:jar:0.0.1-SNAPSHOT in the shaded jar.
+[INFO] Including io.github.bonede:tree-sitter-sql:jar:gh-pages-a in the shaded jar.
+[WARNING] jmh-core-1.37.jar, jsqlparser-5.3.jar define 8 overlapping resources: 
+[WARNING]   - LICENSE
+[WARNING]   - THIRD-PARTY
+[WARNING]   - checkstyle.xml
+[WARNING]   - findbugs.xml
+[WARNING]   - jmh-security-minimal-runner.policy
+[WARNING]   - jmh-security-minimal.policy
+[WARNING]   - jmh-security.policy
+[WARNING]   - jmh.properties
+[WARNING] jackson-annotations-2.18.2.jar, jackson-core-2.18.2.jar, jackson-databind-2.18.2.jar, jackson-dataformat-yaml-2.18.2.jar define 2 overlapping resources: 
+[WARNING]   - META-INF/LICENSE
+[WARNING]   - META-INF/NOTICE
+[WARNING] code-graph-analysis-0.0.1-SNAPSHOT.jar, code-graph-cli-0.0.1-SNAPSHOT.jar, code-graph-config-0.0.1-SNAPSHOT.jar, code-graph-core-0.0.1-SNAPSHOT.jar, code-graph-index-0.0.1-SNAPSHOT.jar, code-graph-lang-c-0.0.1-SNAPSHOT.jar, code-graph-lang-csharp-0.0.1-SNAPSHOT.jar, code-graph-lang-dart-0.0.1-SNAPSHOT.jar, code-graph-lang-go-0.0.1-SNAPSHOT.jar, code-graph-lang-java-0.0.1-SNAPSHOT.jar, code-graph-lang-javascript-0.0.1-SNAPSHOT.jar, code-graph-lang-kotlin-0.0.1-SNAPSHOT.jar, code-graph-lang-objc-0.0.1-SNAPSHOT.jar, code-graph-lang-php-0.0.1-SNAPSHOT.jar, code-graph-lang-python-0.0.1-SNAPSHOT.jar, code-graph-lang-ruby-0.0.1-SNAPSHOT.jar, code-graph-lang-rust-0.0.1-SNAPSHOT.jar, code-graph-lang-scala-0.0.1-SNAPSHOT.jar, code-graph-lang-sql-0.0.1-SNAPSHOT.jar, code-graph-lang-swift-0.0.1-SNAPSHOT.jar, code-graph-parsers-0.0.1-SNAPSHOT.jar, code-graph-rules-0.0.1-SNAPSHOT.jar, code-graph-smells-0.0.1-SNAPSHOT.jar, code-graph-storage-0.0.1-SNAPSHOT.jar, code-graph-tools-0.0.1-SNAPSHOT.jar, commons-math3-3.6.1.jar, h2-2.4.240.jar, jackson-annotations-2.18.2.jar, jackson-core-2.18.2.jar, jackson-databind-2.18.2.jar, jackson-dataformat-yaml-2.18.2.jar, jmh-core-1.37.jar, jopt-simple-5.0.4.jar, jsqlparser-5.3.jar, snakeyaml-2.3.jar, tree-sitter-0.26.6.jar, tree-sitter-c-0.23.2.jar, tree-sitter-c-sharp-0.23.1.jar, tree-sitter-cpp-0.23.4.jar, tree-sitter-dart-master-a.jar, tree-sitter-go-0.23.3.jar, tree-sitter-java-0.23.4.jar, tree-sitter-javascript-0.23.1.jar, tree-sitter-kotlin-0.3.8.1.jar, tree-sitter-objc-main-a.jar, tree-sitter-php-0.23.11.jar, tree-sitter-python-0.23.4.jar, tree-sitter-ruby-0.23.1.jar, tree-sitter-rust-0.23.1.jar, tree-sitter-scala-0.23.3.jar, tree-sitter-sql-gh-pages-a.jar, tree-sitter-swift-0.5.0.jar, tree-sitter-tsx-0.23.2.jar, tree-sitter-typescript-0.23.2.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/MANIFEST.MF
+[WARNING] maven-shade-plugin has detected that some files are
+[WARNING] present in two or more JARs. When this happens, only one
+[WARNING] single version of the file is copied to the uber jar.
+[WARNING] Usually this is not harmful and you can skip these warnings,
+[WARNING] otherwise try to manually exclude artifacts based on
+[WARNING] mvn dependency:tree -Ddetail=true and the above output.
+[WARNING] See https://maven.apache.org/plugins/maven-shade-plugin/
+[INFO] Replacing C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-cli\target\code-graph.jar with C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-cli\target\code-graph-cli-0.0.1-SNAPSHOT-shaded.jar
+[INFO] 
+[INFO] -------------------< io.doindev:code-graph-mcp-http >-------------------
+[INFO] Building code-graph-mcp-http 0.0.1-SNAPSHOT                      [35/35]
+[INFO]   from code-graph-mcp-http\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ code-graph-mcp-http ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp-http\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ code-graph-mcp-http ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 4 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ code-graph-mcp-http ---
+[INFO] skip non existing resourceDirectory C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp-http\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ code-graph-mcp-http ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 8 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ code-graph-mcp-http ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ code-graph-mcp-http ---
+[INFO] Building jar: C:\Users\timhj\AppData\Local\Temp\cgraph-efficiency-92332f3e79654ca89d7e3c11fc72f7f4\candidate\code-graph-mcp-http\target\code-graph-server.jar
+[INFO] 
+[INFO] --- dependency:3.8.1:copy-dependencies (copy-runtime-dependencies) @ code-graph-mcp-http ---
+[INFO] com.h2database:h2:jar:2.4.240 already exists in destination.
+[INFO] io.doindev:code-graph-core:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] io.doindev:code-graph-analysis:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] io.doindev:code-graph-rules:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] io.doindev:code-graph-config:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.18.2 already exists in destination.
+[INFO] org.yaml:snakeyaml:jar:2.3 already exists in destination.
+[INFO] com.github.jsqlparser:jsqlparser:jar:5.3 already exists in destination.
+[INFO] org.openjdk.jmh:jmh-core:jar:1.37 already exists in destination.
+[INFO] net.sf.jopt-simple:jopt-simple:jar:5.0.4 already exists in destination.
+[INFO] org.apache.commons:commons-math3:jar:3.6.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter:jar:0.26.6 already exists in destination.
+[INFO] io.doindev:code-graph-viz:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] io.doindev:code-graph-dba:jar:0.0.1-SNAPSHOT already exists in destination.
+[INFO] org.mongodb:mongodb-driver-sync:jar:5.12.0 already exists in destination.
+[INFO] org.mongodb:bson:jar:5.12.0 already exists in destination.
+[INFO] org.mongodb:mongodb-driver-core:jar:5.12.0 already exists in destination.
+[INFO] org.mongodb:bson-record-codec:jar:5.12.0 already exists in destination.
+[INFO] io.lettuce:lettuce-core:jar:7.7.0.RELEASE already exists in destination.
+[INFO] redis.clients.authentication:redis-authx-core:jar:0.1.1-beta2 already exists in destination.
+[INFO] io.netty:netty-common:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-handler:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-resolver:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-buffer:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-transport-native-unix-common:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-codec-base:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-transport:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-resolver-dns:jar:4.2.13.Final already exists in destination.
+[INFO] io.netty:netty-codec-dns:jar:4.2.13.Final already exists in destination.
+[INFO] org.apache.maven:maven-resolver-provider:jar:3.9.11 already exists in destination.
+[INFO] org.apache.maven:maven-model:jar:3.9.11 already exists in destination.
+[INFO] org.apache.maven:maven-model-builder:jar:3.9.11 already exists in destination.
+[INFO] org.codehaus.plexus:plexus-interpolation:jar:1.28 already exists in destination.
+[INFO] org.apache.maven:maven-artifact:jar:3.9.11 already exists in destination.
+[INFO] org.apache.maven:maven-builder-support:jar:3.9.11 already exists in destination.
+[INFO] org.eclipse.sisu:org.eclipse.sisu.inject:jar:0.9.0.M4 already exists in destination.
+[INFO] org.ow2.asm:asm:jar:9.8 already exists in destination.
+[INFO] org.apache.maven:maven-repository-metadata:jar:3.9.11 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-api:jar:1.9.24 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-spi:jar:1.9.24 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-util:jar:1.9.24 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-impl:jar:1.9.24 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-named-locks:jar:1.9.24 already exists in destination.
+[INFO] org.codehaus.plexus:plexus-utils:jar:3.6.0 already exists in destination.
+[INFO] javax.inject:javax.inject:jar:1 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-connector-basic:jar:1.9.24 already exists in destination.
+[INFO] org.apache.maven.resolver:maven-resolver-transport-http:jar:1.9.24 already exists in destination.
+[INFO] com.google.code.gson:gson:jar:2.13.1 already exists in destination.
+[INFO] com.google.errorprone:error_prone_annotations:jar:2.38.0 already exists in destination.
+[INFO] org.apache.httpcomponents:httpclient:jar:4.5.14 already exists in destination.
+[INFO] org.apache.httpcomponents:httpcore:jar:4.4.16 already exists in destination.
+[INFO] commons-codec:commons-codec:jar:1.18.0 already exists in destination.
+[INFO] org.slf4j:jcl-over-slf4j:jar:1.7.36 already exists in destination.
+[INFO] org.bouncycastle:bcpkix-jdk18on:jar:1.83 already exists in destination.
+[INFO] org.bouncycastle:bcutil-jdk18on:jar:1.83 already exists in destination.
+[INFO] org.bouncycastle:bcprov-jdk18on:jar:1.83 already exists in destination.
+[INFO] com.zaxxer:HikariCP:jar:7.0.2 already exists in destination.
+[INFO] net.java.dev.jna:jna:jar:5.18.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-java:jar:0.23.4 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-javascript:jar:0.23.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-typescript:jar:0.23.2 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-tsx:jar:0.23.2 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-python:jar:0.23.4 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-go:jar:0.23.3 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-rust:jar:0.23.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-c:jar:0.23.2 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-cpp:jar:0.23.4 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-c-sharp:jar:0.23.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-php:jar:0.23.11 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-ruby:jar:0.23.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-kotlin:jar:0.3.8.1 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-scala:jar:0.23.3 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-swift:jar:0.5.0 already exists in destination.
+[INFO] io.github.bonede:tree-sitter-dart:jar:master-a already exists in destination.
+[INFO] io.github.bonede:tree-sitter-objc:jar:main-a already exists in destination.
+[INFO] io.github.bonede:tree-sitter-sql:jar:gh-pages-a already exists in destination.
+[INFO] io.modelcontextprotocol.sdk:mcp-core:jar:2.0.0 already exists in destination.
+[INFO] org.slf4j:slf4j-api:jar:2.0.16 already exists in destination.
+[INFO] com.fasterxml.jackson.core:jackson-annotations:jar:2.20 already exists in destination.
+[INFO] io.projectreactor:reactor-core:jar:3.7.0 already exists in destination.
+[INFO] org.reactivestreams:reactive-streams:jar:1.0.4 already exists in destination.
+[INFO] io.modelcontextprotocol.sdk:mcp-json-jackson2:jar:2.0.0 already exists in destination.
+[INFO] com.networknt:json-schema-validator:jar:2.0.0 already exists in destination.
+[INFO] com.ethlo.time:itu:jar:1.14.0 already exists in destination.
+[INFO] com.fasterxml.jackson.core:jackson-databind:jar:2.18.2 already exists in destination.
+[INFO] com.fasterxml.jackson.core:jackson-core:jar:2.18.2 already exists in destination.
+[INFO] org.eclipse.jetty.ee10:jetty-ee10-servlet:jar:12.0.37 already exists in destination.
+[INFO] jakarta.servlet:jakarta.servlet-api:jar:6.0.0 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-security:jar:12.0.37 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-server:jar:12.0.37 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-http:jar:12.0.37 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-util:jar:12.0.37 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-io:jar:12.0.37 already exists in destination.
+[INFO] org.eclipse.jetty:jetty-session:jar:12.0.37 already exists in destination.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for code-graph 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] code-graph-bom ..................................... SUCCESS [  0.003 s]
+[INFO] code-graph ......................................... SUCCESS [  0.001 s]
+[INFO] code-graph-core .................................... SUCCESS [  2.567 s]
+[INFO] code-graph-config .................................. SUCCESS [  0.138 s]
+[INFO] code-graph-parsers ................................. SUCCESS [  3.337 s]
+[INFO] code-graph-lang-java ............................... SUCCESS [  0.352 s]
+[INFO] code-graph-lang-javascript ......................... SUCCESS [  1.687 s]
+[INFO] code-graph-lang-python ............................. SUCCESS [  0.227 s]
+[INFO] code-graph-lang-go ................................. SUCCESS [  0.427 s]
+[INFO] code-graph-lang-rust ............................... SUCCESS [  0.412 s]
+[INFO] code-graph-lang-c .................................. SUCCESS [  0.540 s]
+[INFO] code-graph-lang-csharp ............................. SUCCESS [  0.432 s]
+[INFO] code-graph-lang-php ................................ SUCCESS [  0.375 s]
+[INFO] code-graph-lang-ruby ............................... SUCCESS [  0.374 s]
+[INFO] code-graph-lang-kotlin ............................. SUCCESS [  0.385 s]
+[INFO] code-graph-lang-scala .............................. SUCCESS [  0.413 s]
+[INFO] code-graph-lang-swift .............................. SUCCESS [  0.453 s]
+[INFO] code-graph-lang-dart ............................... SUCCESS [  0.341 s]
+[INFO] code-graph-lang-objc ............................... SUCCESS [  0.384 s]
+[INFO] code-graph-lang-sql ................................ SUCCESS [  0.379 s]
+[INFO] code-graph-storage ................................. SUCCESS [  0.825 s]
+[INFO] code-graph-index ................................... SUCCESS [  4.286 s]
+[INFO] code-graph-analysis ................................ SUCCESS [  0.061 s]
+[INFO] code-graph-rules ................................... SUCCESS [  0.050 s]
+[INFO] code-graph-smells .................................. SUCCESS [  0.624 s]
+[INFO] code-graph-tools ................................... SUCCESS [  2.604 s]
+[INFO] code-graph-dba ..................................... SUCCESS [  0.685 s]
+[INFO] code-graph-viz ..................................... SUCCESS [  0.164 s]
+[INFO] code-graph-mcp ..................................... SUCCESS [  3.353 s]
+[INFO] code-graph-store-h2 ................................ SUCCESS [  0.049 s]
+[INFO] code-graph-store-neo4j ............................. SUCCESS [  0.273 s]
+[INFO] code-graph-store-arangodb .......................... SUCCESS [  0.312 s]
+[INFO] code-graph-linker .................................. SUCCESS [  0.053 s]
+[INFO] code-graph-cli ..................................... SUCCESS [  5.430 s]
+[INFO] code-graph-mcp-http ................................ SUCCESS [  2.812 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  35.172 s
+[INFO] Finished at: 2026-09-18T20:27:00-05:00
+[INFO] ------------------------------------------------------------------------

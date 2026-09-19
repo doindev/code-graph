@@ -18,11 +18,12 @@ class TemplateDiscoveryTest {
             for (var template : page.path("templates")) {
                 assertTrue(ids.add(template.path("id").asText()));
                 assertTrue(template.has("properties"));
-                assertTrue(template.has("artifactId"));
+                if(template.path("transport").asText().equals("jdbc"))assertTrue(template.has("artifactId"));
+                else {assertEquals("bundled_native",template.path("driverSource").asText());assertTrue(template.has("clientVersion"));assertFalse(template.path("capabilities").path("sql").asBoolean());}
             }
             args.put("cursor", page.path("nextCursor").asText(""));
         } while (!args.path("cursor").asText().isEmpty());
-        assertEquals(DatabaseCatalog.ALL.size(), ids.size());
+        assertEquals(DatabaseCatalog.ALL.size()+NativeCatalog.IDS.size(), ids.size());
     }
 
     @Test void filtersAndRejectsInvalidOrDifferentCursors() {

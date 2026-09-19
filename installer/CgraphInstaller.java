@@ -25,17 +25,22 @@ public final class CgraphInstaller {
 
     public static void main(String[] args) {
         try { new CgraphInstaller(args).install(); }
+        catch (SkillInstallFailure e) { System.err.println(e.getMessage()); System.exit(2); }
         catch (Exception e) { System.err.println("Installation failed: " + e.getMessage()); System.err.println("For network failures, check HTTPS_PROXY/HTTP_PROXY/NO_PROXY, --proxy, Git CA certificates, and --maven-settings. TLS verification is never disabled."); System.exit(1); }
+    }
+    static final class SkillInstallFailure extends IOException {
+        SkillInstallFailure() { super("Application installed, but some optional skills could not be installed. Existing skills were preserved; resolve the reported conflicts and rerun the skill helper."); }
     }
 
     static Map<String,String> parse(String[] args) {
         Map<String,String> out = new LinkedHashMap<>();
         Set<String> flags = Set.of("--skip-tests", "--no-path", "--non-interactive", "--keep-build", "--build-only");
-        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--proxy", "--no-proxy");
+        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--proxy", "--no-proxy", "--skills");
         for (int i=0; i<args.length; i++) {
             String key = args[i];
+            if (out.containsKey(key)) throw new IllegalArgumentException("Duplicate installer option: " + key);
             if (flags.contains(key)) out.put(key, "true");
-            else if (values.contains(key) && i+1<args.length) out.put(key, args[++i]);
+            else if (values.contains(key) && i+1<args.length && !args[i+1].isBlank() && !args[i+1].startsWith("--")) out.put(key, args[++i]);
             else throw new IllegalArgumentException("Unknown or incomplete installer option: " + key);
         }
         return out;
@@ -43,6 +48,9 @@ public final class CgraphInstaller {
     String required(String key) { String value=options.get(key); if(value==null||value.isBlank())throw new IllegalArgumentException("Required: "+key); return value; }
 
     void install() throws Exception {
+        SkillInstaller skills = new SkillInstaller(source);
+        List<String> selectedSkills = skills.choose(options.get("--skills"), options.containsKey("--non-interactive"),
+                options.containsKey("--build-only"), System.console());
         if (Runtime.version().feature()!=25 || !Files.isRegularFile(tool("jpackage")) || !Files.isRegularFile(tool("javac")))
             throw new IOException("A full JDK 25 with javac, jlink and jpackage is required for the build.");
         validateDestination(source, base, Path.of(System.getProperty("user.home")));
@@ -115,6 +123,13 @@ public final class CgraphInstaller {
             System.out.println("Start with cgraph (open a new terminal if PATH changed). Ctrl+C stops it. No server was started or stopped by installation.");
             System.out.println("Defaults: MCP 3000, admin UI/DBA 8137, desktop approvals, hybrid storage, 1 GiB graph/cache budget.");
             System.out.println("JDK, Git and Maven were build prerequisites only. Node.js/npm are not required.");
+            if (selectedSkills.isEmpty()) System.out.println("Optional agent skills skipped. Install later with skills/install-skill.mjs.");
+            else {
+                var results = new SkillInstaller(snapshot).install(selectedSkills, Path.of(System.getProperty("user.home")), environment);
+                for (var result : results) System.out.println("Skill " + result.client() + ": " + result.status() + " — "
+                        + result.destination() + (result.error() == null ? "" : " (" + result.error() + ")"));
+                if (results.stream().anyMatch(result -> result.status().equals("failed"))) throw new SkillInstallFailure();
+            }
         } finally {
             if(complete&&!options.containsKey("--keep-build")) {
                 try { removeOwnedWork(work,owner); } catch(IOException e) { System.err.println("Temporary build cleanup could not complete; remove this owned build directory after tools close: "+work); }

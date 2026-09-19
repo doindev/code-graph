@@ -21,6 +21,7 @@ final class Connections implements AutoCloseable {
     ObjectNode profile(String id){return profiles.get(id);}
     boolean genericOnly(String id){return !Set.of("custom","postgresql","mysql","mariadb","sqlserver","oracle","db2","snowflake","h2","hsqldb","sqlite","duckdb").contains(profiles.get(id).path("templateId").asText("custom"));}
     synchronized Connection open(String id) throws SQLException {
+        if(DatabaseTransport.of(profiles.get(id))!=DatabaseTransport.JDBC)throw new IllegalArgumentException("This connection uses a native transport; use its native workspace/MCP command rather than SQL/JDBC tools");
         Pool p=pools.get(id);
         if(p==null){
             ObjectNode profile=profiles.get(id);JarLoader loader=null;

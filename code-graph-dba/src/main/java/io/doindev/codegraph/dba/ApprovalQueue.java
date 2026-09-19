@@ -12,12 +12,13 @@ import java.util.function.LongSupplier;
 final class ApprovalQueue implements AutoCloseable {
     private final ProjectContexts contexts;private final Profiles profiles;private final AgentAccess agents;private final QueryJobs jobs;private MigrationPlans migrations;
     final ReusableApprovals reusable;
+    private final RequestLedger ledger=new RequestLedger();
     private final Map<String,Request> requests=new LinkedHashMap<>();private final LongSupplier clock;private final Path audit;
     private java.util.function.Consumer<String> onPending=id->{};
     synchronized void onPending(java.util.function.Consumer<String> listener){onPending=listener;}
     private IntSupplier otherCount=()->0;
     static final class Request{
-        final ObjectNode value;final String principal;final AutoCloseable hold;String state="awaiting_approval",jobId="";boolean released;
+        final ObjectNode value;final String principal;final AutoCloseable hold;String state="awaiting_approval",jobId="";boolean released,admitted;
         String mcpSession,policyId; ObjectNode scope; ReusableOperation.Result operation;
         Request(ObjectNode v,String p,AutoCloseable h){value=v;principal=p;hold=h;}
         synchronized void release(){if(!released){released=true;try{hold.close();}catch(Exception ignored){}}}
@@ -52,23 +53,31 @@ final class ApprovalQueue implements AutoCloseable {
             ObjectNode target=Profiles.JSON.createObjectNode();for(String key:List.of("bindingId","connectionId","connectionName","database","schema"))if(input.has(key))target.set(key,input.get(key));r.value.set("planRequest",target);
         });
     }
+    synchronized JsonNode existingMigration(String principal,String mcpSession,JsonNode input){
+        reap();if(mcpSession!=null&&!reusable.sessions.alive(mcpSession,principal))throw new SecurityException("MCP session expired");String requestId=Profiles.text(input,"requestId",100),hash=CatalogScanner.hash(input.toString());
+        for(Request r:requests.values())if(r.principal.equals(principal)&&Objects.equals(r.mcpSession,mcpSession)&&requestId.equals(r.value.path("requestId").asText())){
+            if(!hash.equals(r.value.path("migrationRequestHash").asText()))throw new IllegalArgumentException("Request ID was already used for different content");
+            authorize(r);return status(r,false);
+        }
+        return null;
+    }
     synchronized JsonNode migration(String principal,String mcpSession,JsonNode input,MigrationPlans.Plan plan){
         ObjectNode request=plan.sourceRequest.deepCopy().put("requestId",Profiles.text(input,"requestId",100))
                 .put("purpose",Profiles.text(input,"purpose",2000)).put("autoCommit",!plan.value.path("transactional").asBoolean());
         request.put("sql",String.join(";\n",Profiles.JSON.convertValue(plan.value.path("statements"),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){})));
         request.set("parameters",Profiles.JSON.createArrayNode());
-        JsonNode submitted=request(principal,mcpSession,request,null,false,null,true);
-        Request retained=requests.get(submitted.path("id").asText());if(retained==null||!retained.state.equals("awaiting_approval"))throw new IllegalStateException("Migration review must require a fresh one-time approval");
+        return request(principal,mcpSession,request,null,false,retained->{
         boolean rehearsal=plan.value.path("rehearsal").asBoolean();
         retained.value.put("type",rehearsal?"migration_rehearsal":"migration").put("migrationPlanId",plan.id).put("migrationPlanHash",plan.value.path("planHash").asText())
                 .put("migrationSchemaFingerprint",plan.value.path("schemaFingerprint").asText()).put("migrationTransactional",plan.value.path("transactional").asBoolean());
+        retained.value.put("migrationRequestHash",CatalogScanner.hash(input.toString()));
         retained.value.set("migrationStatements",plan.value.path("statements").deepCopy());retained.value.set("migrationScope",plan.sourceScope.deepCopy());
         retained.value.put("migrationRehearsal",rehearsal);retained.value.set("migrationChecks",plan.value.path("checks").deepCopy());
         retained.operation=new ReusableOperation.Result("migration_application",false,false,"Complete migration plans require exact one-time review");
         retained.value.set("operation",retained.operation.json());retained.value.set("approvalChoices",choices(retained.operation,false));
         retained.value.put("transactionNotice",plan.value.path("transactional").asBoolean()?"Atomic transaction requested; connection loss during commit can still produce an uncertain outcome.":"This engine can auto-commit DDL. Execution stops at the first failure and reports acknowledged prior steps.");
         if(rehearsal)retained.value.put("rehearsalNotice","This exact disposable target will be mutated. Setup and fixtures are synthetic and bounded; the application will not delete the target afterward.");
-        return status(retained,false);
+        },true);
     }
     private JsonNode request(String principal,String mcpSession,JsonNode input,String trustedCategory,boolean requireReusableRead){
         return request(principal,mcpSession,input,trustedCategory,requireReusableRead,null);
@@ -79,6 +88,7 @@ final class ApprovalQueue implements AutoCloseable {
     private JsonNode request(String principal,String mcpSession,JsonNode input,String trustedCategory,boolean requireReusableRead,java.util.function.Consumer<Request> initialize,boolean forceExactReview){
         reap();Set<String> keys=Set.of("bindingId","connectionId","connectionName","database","schema","sql","parameters","purpose","autoCommit","requestId");input.fieldNames().forEachRemaining(k->{if(!keys.contains(k))throw new IllegalArgumentException("Unexpected live request field: "+k);});
         if(mcpSession!=null&&!reusable.sessions.alive(mcpSession,principal))throw new SecurityException("MCP session expired");
+        agents.authorization.requireSession(principal,mcpSession);
         boolean bound=input.has("bindingId");
         if(bound&&(input.has("connectionId")||input.has("connectionName")))throw new IllegalArgumentException("Use bindingId or connectionId plus connectionName, not both target forms");
         if(!agents.alive("agent:"+principal))throw new SecurityException("Agent revoked");
@@ -88,11 +98,10 @@ final class ApprovalQueue implements AutoCloseable {
         if(!bound&&!Profiles.nameKey(p.path("name").asText()).equals(Profiles.nameKey(Profiles.text(input,"connectionName",120))))throw new SecurityException("Connection name does not match its stable ID");
         String sql=Profiles.text(input,"sql",65536),purpose=Profiles.text(input,"purpose",2000),requestId=Profiles.text(input,"requestId",100);
         JsonNode parameters=input.has("parameters")?input.path("parameters"):Profiles.JSON.createArrayNode();HumanSql.checkParameters(parameters);
+        if(agents.authorization.automatic&&!forceExactReview){var units=SqlScript.extract(sql);if(units.stream().mapToInt(SqlScript.Unit::parameters).sum()!=parameters.size())throw new IllegalArgumentException("SQL parameter marker/value counts differ; nothing was executed");}
         ObjectNode fingerprintInput=((ObjectNode)input).deepCopy();String hash=CatalogScanner.hash(fingerprintInput.toString());
-        for(Request r:requests.values())if(r.principal.equals(principal)&&Objects.equals(r.mcpSession,mcpSession)&&r.value.path("requestId").asText().equals(requestId)){if(!r.value.path("requestHash").asText().equals(hash))throw new IllegalArgumentException("Request ID was already used for different SQL or parameters");return status(r,false);}
-        ObjectNode permissionScope=ApprovalScope.resolve(p,b,input);
+        ObjectNode permissionScope=agents.authorization.scope(p,b,input);
         ReusableOperation.Result operation=trustedCategory==null?ReusableOperation.classify(sql,permissionScope):new ReusableOperation.Result(trustedCategory,!permissionScope.path("vendor").asText().equals("h2"),true,"Server-generated, scope-filtered catalog inspection; H2 requires one-time review");
-        if(requests.size()+otherCount.getAsInt()>=32)throw new IllegalArgumentException("Approval queue is full; wait for completed requests to expire");
         ObjectNode value=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("requestId",requestId).put("requestHash",hash)
             .put("connectionId",b.path("connectionId").asText()).put("connectionName",p.path("name").asText()).put("database",b.path("database").asText()).put("schema",b.path("schema").asText())
             .put("type","live_sql").put("sql",sql).put("purpose",purpose).put("autoCommit",input.path("autoCommit").asBoolean(false)).put("createdAt",clock.getAsLong()).put("expiresAt",clock.getAsLong()+300000)
@@ -105,11 +114,17 @@ final class ApprovalQueue implements AutoCloseable {
         boolean verifiedRead=false;try{SqlReadGuard.validate(sql);verifiedRead=Set.of("postgresql","h2","mysql","mariadb").contains(p.path("templateId").asText());}catch(IllegalArgumentException ignored){}value.put("eligiblePersistentRead",verifiedRead).put("readCapability","query");
         value.put("scopeNotice",bound?"The schema binding scopes catalog discovery. Review every referenced target in live SQL; native statements and routines can affect objects outside that schema.":"Standalone connection: use the saved connection's configured database and schema. No project is required. Review every referenced target; qualified SQL and routines may affect other objects allowed by the database account.");
         value.put("transactionNotice","Rollback depends on the database and statement. DDL, explicit commits, routines and external effects may commit independently. Unknown outcomes are never automatically replayed.");
-        ObjectNode matched=forceExactReview?null:reusable.match(principal,mcpSession,value,permissionScope,operation);
-        if(requireReusableRead&&(!operation.readOnly()||matched==null))throw new SecurityException("No reusable read permission matches; enable an approval channel to review this request");
+        ObjectNode matched=forceExactReview||agents.authorization.automatic?null:reusable.match(principal,mcpSession,value,permissionScope,operation);
+        if(requireReusableRead&&!agents.authorization.automatic&&(!operation.readOnly()||matched==null))throw new SecurityException("No reusable read permission matches; enable an approval channel to review this request");
         Request r=new Request(value,principal,bound?contexts.hold(bindingId):()->{});r.mcpSession=mcpSession;r.scope=permissionScope;r.operation=operation;if(initialize!=null)initialize.accept(r);
-        if(!capacity.tryAcquire()){r.release();throw new IllegalArgumentException("Approval queue is full");}try{record(r,"requested","");}catch(RuntimeException e){capacity.release();r.release();throw e;}requests.put(value.path("id").asText(),r);retainedCount=requests.size();
-        if(matched!=null){usePolicy(r,matched);submit(r,"reusable_policy");}
+        hash=CatalogScanner.hash(hash+value.path("migrationPlanId").asText()+value.path("migrationPlanHash").asText());value.put("requestHash",hash);
+        String duplicate;try{duplicate=ledger.lookup(principal,mcpSession,requestId,hash);}catch(RuntimeException invalid){r.release();throw invalid;}
+        if(duplicate!=null){r.release();Request previous=requests.get(duplicate);if(previous==null)throw new IllegalArgumentException("Request result expired; operation will not be replayed (request "+duplicate+")");return status(previous,false);}
+        if(!capacity.tryAcquire()){r.release();throw new IllegalArgumentException("Approval queue is full");}r.admitted=true;
+        try{ledger.reserve(principal,mcpSession,requestId,hash,value.path("id").asText());record(r,"requested","");}catch(RuntimeException e){releaseAdmission(r);r.release();throw e;}
+        requests.put(value.path("id").asText(),r);trimHistory();
+        if(agents.authorization.automatic){AgentAuthorization.approved(value);try{validate(r);agents.authorization.audit(principal,mcpSession,value.path("type").asText(),r.scope);submit(r,"startup_yolo");}catch(RuntimeException failure){r.state="failed_to_submit";r.release();releaseAdmission(r);throw failure;}}
+        else if(matched!=null){usePolicy(r,matched);submit(r,"reusable_policy");}
         else if(!forceExactReview&&verifiedRead&&!input.has("database")&&!input.has("schema")&&agents.permitsRead(principal,"query",b)){value.put("authorizationReason","Legacy read policy (unchanged scope)");submit(r,"legacy_policy");}
         if(r.state.equals("awaiting_approval"))onPending.accept(value.path("id").asText());return status(r,false);
     }
@@ -145,24 +160,28 @@ final class ApprovalQueue implements AutoCloseable {
         submit(r,session);
         return status(r,true);
     }
-    private void submit(Request r,String session){record(r,"approved",session);r.state="approved";try{if(r.value.has("migrationPlanId"))migrations.consume(migrations.require("agent:"+r.principal,r.value.path("migrationPlanId").asText()));ObjectNode job=jobs.approved(r.principal,r.value,()->validate(r),()->{contexts.changed(r.value.path("connectionId").asText());r.release();});r.jobId=job.path("id").asText();r.state="submitted";record(r,"submitted",session);}catch(Exception e){r.state="failed_to_submit";r.release();record(r,"failed_to_submit",session);throw e;}}
+    private void submit(Request r,String session){record(r,"approved",session);r.state="approved";try{if(r.value.has("migrationPlanId"))migrations.consume(migrations.require("agent:"+r.principal,r.value.path("migrationPlanId").asText()));ObjectNode job=jobs.approved(r.principal,r.value,()->validate(r),()->{contexts.changed(r.value.path("connectionId").asText());r.release();});r.jobId=job.path("id").asText();r.state="submitted";record(r,"submitted",session);}catch(Exception e){r.state="failed_to_submit";releaseAdmission(r);r.release();record(r,"failed_to_submit",session);throw e;}}
     private void authorize(Request r){if(!agents.alive("agent:"+r.principal))throw new SecurityException("Agent revoked");if(r.value.has("bindingId"))contexts.authorized(r.principal,r.value.path("bindingId").asText(),true);}
     private void validate(Request r){
+        agents.authorization.requireSession(r.principal,r.mcpSession);
         if(r.mcpSession!=null&&!reusable.sessions.alive(r.mcpSession,r.principal))throw new IllegalArgumentException("Requesting MCP session expired; request approval again");
         String fingerprint=r.value.path("snapshotFingerprint").asText();if(!fingerprint.isEmpty()&&!fingerprint.equals(contexts.fingerprint(r.value.path("bindingId").asText())))throw new IllegalArgumentException("Catalog or database version changed since review; request approval again");authorize(r);if(!ProjectContexts.profileRevision(profiles.get(r.value.path("connectionId").asText())).equals(r.value.path("profileRevision").asText()))throw new IllegalArgumentException("Connection changed after request; submit a new request for review");
         if(r.value.has("bindingId")&&!r.scope.path("bindingRevision").asText().equals(CatalogScanner.hash(contexts.binding(r.value.path("bindingId").asText()).toString())))throw new IllegalArgumentException("Binding changed after request; request approval again");
         if(r.value.has("migrationPlanId")){
             if(migrations==null)throw new IllegalStateException("Migration planning service unavailable");
-            migrations.verify("agent:"+r.principal,r.value.path("migrationPlanId").asText(),r.value.path("migrationPlanHash").asText(),r.scope);
+            MigrationPlans.Plan plan=migrations.verify("agent:"+r.principal,r.value.path("migrationPlanId").asText(),r.value.path("migrationPlanHash").asText(),r.scope);
+            if(agents.authorization.automatic&&!Objects.equals(plan.mcpSession,r.mcpSession))throw new SecurityException("Migration belongs to another MCP session");
         }
         if(r.policyId!=null)reusable.require(r.policyId,r.principal,r.mcpSession,r.value,r.scope,r.operation);
     }
     synchronized JsonNode cancel(String principal,String id){Request r=require(principal,id);if(r.state.equals("awaiting_approval")){r.state="cancelled";r.release();record(r,"cancelled","");}else if(!r.jobId.isEmpty()&&r.state.equals("submitted")){jobs.cancel(jobs.require("agent:"+principal,r.jobId));record(r,"cancellation_requested","");}return status(r,false);}
     private Request require(String principal,String id){Request r=requests.get(id);if(r==null||!r.principal.equals(principal))throw new SecurityException("Approval request is not owned by this agent");return r;}
-    private ObjectNode status(Request r,boolean browser){ObjectNode out=r.value.deepCopy();out.remove(List.of("profileRevision","requestHash","reusableScope","migrationStatements","migrationScope","migrationChecks"));out.put("state",r.state);if(browser)out.put("agentId",r.principal);if(!r.jobId.isEmpty()){out.put("jobId",r.jobId);try{JsonNode job=jobs.status("agent:"+r.principal,r.jobId);if(browser){ObjectNode summary=((ObjectNode)job).deepCopy();summary.remove(List.of("result","exception"));out.set("job",summary);}else out.set("job",job);String state=job.path("state").asText();if(Set.of("complete","failed","cancelled").contains(state)&&!r.state.equals(state)){r.state=state;r.release();out.put("state",state);record(r,state,"");}}catch(Exception e){out.put("jobExpired",true);if(r.state.equals("submitted")){r.state="result_expired";r.release();out.put("state",r.state);record(r,r.state,"");}}}return out;}
-    private void reap(){long now=clock.getAsLong();var iterator=requests.values().iterator();while(iterator.hasNext()){Request r=iterator.next();if(r.state.equals("awaiting_approval")&&(now>=r.value.path("expiresAt").asLong()||!agents.alive("agent:"+r.principal)||r.mcpSession!=null&&!reusable.sessions.alive(r.mcpSession,r.principal))){r.state="expired";r.release();record(r,"expired","");}if(now-r.value.path("createdAt").asLong()>3600000&&!r.state.equals("submitted")){r.release();iterator.remove();capacity.release();retainedCount=requests.size();}}}
-    private void record(Request r,String action,String session){try{if(Files.exists(audit)&&Files.size(audit)>4L<<20)Files.move(audit,audit.resolveSibling("agent-approvals.previous.jsonl"),StandardCopyOption.REPLACE_EXISTING);if(!Files.exists(audit)){Files.createFile(audit);Profiles.protect(audit);}ObjectNode row=Profiles.JSON.createObjectNode().put("at",clock.getAsLong()).put("request",r.value.path("id").asText()).put("agent",r.principal).put("binding",r.value.path("bindingId").asText()).put("connection",r.value.path("connectionId").asText()).put("action",action).put("humanSession",session).put("sqlHash",CatalogScanner.hash(r.value.path("sql").asText())).put("job",r.jobId).put("policy",r.policyId==null?"":r.policyId).put("category",r.operation==null?"":r.operation.category()).put("scopeHash",r.scope==null?"":CatalogScanner.hash(r.scope.toString()));Files.writeString(audit,row+"\n",StandardCharsets.UTF_8,StandardOpenOption.APPEND);}catch(Exception e){throw new IllegalStateException("Approval audit could not be written; execution is not authorized",e);}}
-    synchronized void tick(){reap();for(Request r:requests.values())if(r.state.equals("submitted"))status(r,false);}
+    private ObjectNode status(Request r,boolean browser){ObjectNode out=r.value.deepCopy();out.remove(List.of("migrationRequestHash","profileRevision","requestHash","reusableScope","migrationStatements","migrationScope","migrationChecks"));out.put("state",r.state);if(browser)out.put("agentId",r.principal);if(!r.jobId.isEmpty()){out.put("jobId",r.jobId);try{JsonNode job=jobs.status("agent:"+r.principal,r.jobId);if(browser){ObjectNode summary=((ObjectNode)job).deepCopy();summary.remove(List.of("result","exception"));out.set("job",summary);}else out.set("job",job);String state=job.path("state").asText();if(Set.of("complete","failed","cancelled").contains(state)&&!r.state.equals(state)){r.state=state;r.release();out.put("state",state);record(r,state,"");}}catch(Exception e){out.put("jobExpired",true);if(r.state.equals("submitted")){r.state="result_expired";r.release();out.put("state",r.state);record(r,r.state,"");}}}return out;}
+    private void reap(){ledger.reap(reusable.sessions);for(Request r:requests.values())if(!Set.of("awaiting_approval","approved","submitted").contains(r.state))releaseAdmission(r);long now=clock.getAsLong();var iterator=requests.values().iterator();while(iterator.hasNext()){Request r=iterator.next();if(r.state.equals("awaiting_approval")&&(now>=r.value.path("expiresAt").asLong()||!agents.alive("agent:"+r.principal)||r.mcpSession!=null&&!reusable.sessions.alive(r.mcpSession,r.principal))){r.state="expired";r.release();record(r,"expired","");}if(now-r.value.path("createdAt").asLong()>3600000&&!r.state.equals("submitted")){r.release();releaseAdmission(r);iterator.remove();retainedCount=requests.size();}}}
+    private void releaseAdmission(Request r){if(r.admitted){r.admitted=false;capacity.release();}}
+    private void trimHistory(){var it=requests.values().iterator();while(requests.size()>64&&it.hasNext()){Request r=it.next();if(!Set.of("awaiting_approval","approved","submitted").contains(r.state)){r.release();releaseAdmission(r);it.remove();}}retainedCount=requests.size();}
+    private void record(Request r,String action,String session){try{if(Files.exists(audit)&&Files.size(audit)>4L<<20)Files.move(audit,audit.resolveSibling("agent-approvals.previous.jsonl"),StandardCopyOption.REPLACE_EXISTING);if(!Files.exists(audit)){Files.createFile(audit);Profiles.protect(audit);}ObjectNode row=Profiles.JSON.createObjectNode().put("at",clock.getAsLong()).put("request",r.value.path("id").asText()).put("agent",r.principal).put("binding",r.value.path("bindingId").asText()).put("connection",r.value.path("connectionId").asText()).put("action",action).put("humanSession",session.equals("startup_yolo")?"":session).put("authorizationReason",r.value.path("authorizationReason").asText()).put("sqlHash",CatalogScanner.hash(r.value.path("sql").asText())).put("job",r.jobId).put("policy",r.policyId==null?"":r.policyId).put("category",r.operation==null?"":r.operation.category()).put("scopeHash",r.scope==null?"":CatalogScanner.hash(r.scope.toString()));Files.writeString(audit,row+"\n",StandardCharsets.UTF_8,StandardOpenOption.APPEND);}catch(Exception e){throw new IllegalStateException("Approval audit could not be written; execution is not authorized",e);}}
+    synchronized void tick(){reap();for(Request r:requests.values())if(r.state.equals("submitted"))status(r,false);trimHistory();}
     synchronized void sessionEnded(String id){
         reusable.sessions.remove(id);
         for(Request r:requests.values())if(Objects.equals(id,r.mcpSession)){
@@ -170,5 +189,5 @@ final class ApprovalQueue implements AutoCloseable {
             else if(r.state.equals("submitted")&&!r.jobId.isEmpty())try{jobs.cancel(jobs.require("agent:"+r.principal,r.jobId));}catch(IllegalArgumentException ignored){}
         }
     }
-    public synchronized void close(){requests.values().forEach(Request::release);capacity.release(requests.size());requests.clear();retainedCount=0;reusable.close();}
+    public synchronized void close(){requests.values().forEach(r->{r.release();releaseAdmission(r);});requests.clear();ledger.clear();retainedCount=0;reusable.close();}
 }

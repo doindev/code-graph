@@ -144,7 +144,8 @@ class FullIndexerTest {
                 "com.acme.api.BaseController", 0);
         List<Edge> extendsEdges = graph.edges(base, Direction.IN, Set.of(EdgeKind.EXTENDS));
         assertEquals(1, extendsEdges.size());
-        assertEquals(0.9f, extendsEdges.get(0).confidence(), 0.001f);
+        assertEquals(1.0f, extendsEdges.get(0).confidence(), 0.001f);
+        assertEquals("java-type", extendsEdges.get(0).attrs().get("resolution"));
     }
 
     @Test

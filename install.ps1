@@ -10,6 +10,8 @@ param(
     [string]$NoProxy,
     [string]$GitCaFile,
     [string]$MavenSettings,
+    # Optional current-user skills: all, none, or comma-separated codex,copilot,claude,windsurf.
+    [string]$Skills,
     [switch]$Check,
     [switch]$NonInteractive,
     [switch]$SkipTests,
@@ -76,7 +78,19 @@ function Offer-CgraphRequirement([string]$Name,[string]$Link,[string]$WingetId) 
         $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User')+';'+$env:Path
     }
 }
+function Get-CgraphSkillArguments([string]$Selection,[bool]$OnlyBuild) {
+    if(!$Selection){return}
+    $normalized=$Selection.Trim().ToLowerInvariant()
+    $items=@($normalized.Split(',') | ForEach-Object {$_.Trim()})
+    if($normalized -notin @('all','none')){
+        if(@($items | Where-Object {$_ -notin @('codex','copilot','claude','windsurf')}).Count -gt 0 -or
+           @($items | Select-Object -Unique).Count -ne $items.Count){throw 'Skills must be all, none, or unique comma-separated clients: codex,copilot,claude,windsurf'}
+    }
+    if($OnlyBuild -and $normalized -ne 'none'){throw '-BuildOnly cannot install skills; use -Skills none or omit -Skills'}
+    return @('--skills',($items -join ','))
+}
 function Invoke-CgraphInstall {
+    $skillArguments=@(Get-CgraphSkillArguments $Skills ([bool]$BuildOnly))
     $saved=@{}
     foreach($name in @('JAVA_HOME','HTTPS_PROXY','HTTP_PROXY','NO_PROXY','GIT_SSL_CAINFO','GIT_CONFIG_COUNT','CGRAPH_PROXY_USER','CGRAPH_PROXY_PASSWORD')){$saved[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
     $clone=$null;$success=$false;$gitKeys=@()
@@ -134,12 +148,17 @@ function Invoke-CgraphInstall {
         $engine=Join-Path $source 'installer/CgraphInstaller.java'
         if(!(Test-Path -LiteralPath $engine)){throw 'Selected repository/ref does not include this installer yet. Use a published ref containing it, or -SourceDir with your development checkout.'}
         $arguments=@($engine,'--source',$source,'--install-dir',[IO.Path]::GetFullPath($InstallDir),'--maven',$requirements.Maven.Source)
+        $arguments+=$skillArguments
         if($MavenSettings){$arguments+=@('--maven-settings',$MavenSettings)}
         if($script:effectiveProxy){$arguments+=@('--proxy',$script:effectiveProxy)}
         if($NoProxy){$arguments+=@('--no-proxy',$NoProxy)}
         if($SkipTests){$arguments+='--skip-tests'};if($NoPath){$arguments+='--no-path'}
         if($NonInteractive){$arguments+='--non-interactive'};if($KeepBuild){$arguments+='--keep-build'};if($BuildOnly){$arguments+='--build-only'}
         & (Join-Path $requirements.Jdk 'bin/java.exe') @arguments
+        if($LASTEXITCODE -eq 2){
+            $success=$true
+            throw 'Application installed, but optional skill installation was incomplete. Existing skills were preserved; inspect the per-client messages and merge conflicts manually. No server was restarted.'
+        }
         if($LASTEXITCODE -ne 0){throw 'The native installer failed; the existing server was not stopped or restarted.'}
         $success=$true
         if(!$NoPath -and !$BuildOnly){$env:Path=(Join-Path $InstallDir 'bin')+';'+$env:Path}

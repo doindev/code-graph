@@ -153,8 +153,7 @@ class ToolsTest {
     }
 
     @Test
-    void oversizedResponsesAreRejectedNotEmitted() {
-        // tiny budget forces the cap error path
+    void oversizedPagesAreShortenedWithinTheResponseBound() throws Exception {
         CodeGraphConfig tiny = new CodeGraphConfig(null, null,
                 new CodeGraphConfig.Limits(50, 1024), null, null, null, Map.of(), null).withDefaults();
         // hydrate a graph large enough that search output exceeds 1KB
@@ -165,7 +164,8 @@ class ToolsTest {
         graph.apply(new GraphDelta(2, List.of(), many, List.of(), List.of()));
         GraphTool search = CodeGraphTools.standard(graph, tiny, s -> { }).get(0);
         ToolResponse response = search.call(JSON.createObjectNode().put("query", "pad").put("limit", 50));
-        assertTrue(response.error());
-        assertTrue(response.json().contains("narrow the query"));
+        assertFalse(response.error(), response.json());
+        assertTrue(response.json().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 1024);
+        assertTrue(JSON.readTree(response.json()).has("nextCursor"));
     }
 }
