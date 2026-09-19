@@ -77,10 +77,33 @@ cgraph_validate_skills() {
     printf '%s\n' '--build-only cannot install skills; use --skills none or omit --skills' >&2;return 1;
   }
 }
+cgraph_validate_mcp() {
+  local selection=$1 endpoint=$2 only_build=$3 item seen=','
+  if [[ -n "$selection" && "$selection" != all && "$selection" != none ]]; then
+    [[ "$selection" =~ ^(codex|copilot|copilot-vscode|claude|windsurf)(,(codex|copilot|copilot-vscode|claude|windsurf))*$ ]] || {
+      printf 'MCP clients must be all, none, or comma-separated codex,copilot,copilot-vscode,claude,windsurf\n' >&2;return 1;
+    }
+    local items=()
+    IFS=',' read -r -a items <<< "$selection"
+    for item in "${items[@]}";do
+      [[ "$seen" != *",$item,"* ]] || { printf 'Duplicate MCP client\n' >&2;return 1; };seen+="$item,"
+    done
+  fi
+  [[ "$only_build" == 0 || -z "$selection" || "$selection" == none ]] || {
+    printf '%s\n' '--build-only cannot configure MCP; use --mcp-clients none' >&2;return 1;
+  }
+  [[ "$endpoint" =~ ^http://(localhost|127\.0\.0\.1|\[::1\])(:[0-9]{1,5})?/mcp/?$ ]] || {
+    printf 'MCP URL must use local HTTP /mcp, without credentials, query, or fragment\n' >&2;return 1;
+  }
+  local port=${endpoint%/mcp*};port=${port##*:}
+  if [[ "$port" =~ ^[0-9]+$ ]];then
+    [[ $((10#$port)) -gt 0 && $((10#$port)) -le 65535 ]] || { printf 'Invalid MCP port\n' >&2;return 1; }
+  fi
+}
 cgraph_main() {
   local repository='https://github.com/doindev/code-graph.git' ref=main source_dir='' install_dir='' proxy='' proxy_user='' bypass_hosts='' git_ca='' settings=''
   local non_interactive=0 check_only=0 skip_tests=0 no_path=0 keep_build=0 build_only=0 clone_dir='' clone_parent='' success=0
-  local skills=''
+  local skills='' mcp_clients='' mcp_url='http://localhost:3000/mcp' mcp_url_set=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --repository|--ref|--source-dir|--install-dir|--proxy|--proxy-user|--no-proxy|--git-ca-file|--maven-settings)
@@ -91,11 +114,18 @@ cgraph_main() {
       --skills)
         [[ $# -ge 2 && -n "$2" && -z "$skills" ]] || { printf 'Expected one value for --skills\n' >&2;return 1; }
         skills=$2;shift 2;;
-      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--skills all|none|codex,copilot,claude,windsurf]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\nSkills are optional current-user guidance, only useful when MCP is available; no MCP configuration is changed.\nInteractive installs ask; unattended installs default to none.\n';return;;
+      --mcp-clients)
+        [[ $# -ge 2 && -n "$2" && -z "$mcp_clients" ]] || { printf 'Expected one value for --mcp-clients\n' >&2;return 1; }
+        mcp_clients=$2;shift 2;;
+      --mcp-url)
+        [[ $# -ge 2 && -n "$2" && "$mcp_url_set" == 0 ]] || { printf 'Expected one value for --mcp-url\n' >&2;return 1; }
+        mcp_url=$2;mcp_url_set=1;shift 2;;
+      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--mcp-clients all|none|codex,copilot,copilot-vscode,claude,windsurf]\n  [--mcp-url http://localhost:3000/mcp] [--skills all|none|codex,copilot,claude,windsurf]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\nInteractive installs ask about MCP first, then offer optional skills only for detected code-graph connections.\nUnattended installs default to neither. Existing connections, skills and approvals are preserved.\n';return;;
       *) printf 'Unknown installer option: %s\n' "$1" >&2;return 1;;
     esac
   done
   cgraph_validate_skills "$skills" "$build_only" || return 1
+  cgraph_validate_mcp "$mcp_clients" "$mcp_url" "$build_only" || return 1
   case $(uname -s) in Darwin) install_dir=${install_dir:-"$HOME/Library/Application Support/CodeGraph"};; Linux) install_dir=${install_dir:-"${XDG_DATA_HOME:-$HOME/.local/share}/code-graph"};; *) printf 'Use install.ps1 on Windows.\n' >&2;return 1;; esac
   proxy=${proxy:-${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}}
   if [[ -n "$proxy" ]]; then
@@ -149,6 +179,8 @@ cgraph_main() {
   [[ -f "$source_dir/installer/CgraphInstaller.java" ]] || { printf 'Selected repository/ref does not yet contain the installer. Select a published ref or --source-dir with the updated checkout.\n' >&2;return 1; }
   local arguments=("$source_dir/installer/CgraphInstaller.java" --source "$source_dir" --install-dir "$install_dir" --maven "$maven")
   [[ -z "$skills" ]] || arguments+=(--skills "$skills")
+  [[ -z "$mcp_clients" ]] || arguments+=(--mcp-clients "$mcp_clients")
+  arguments+=(--mcp-url "$mcp_url")
   [[ -z "$settings" ]] || arguments+=(--maven-settings "$settings")
   [[ -z "$proxy" ]] || arguments+=(--proxy "$proxy")
   [[ -z "$bypass_hosts" ]] || arguments+=(--no-proxy "$bypass_hosts")
@@ -158,7 +190,7 @@ cgraph_main() {
   "$jdk/bin/java" "${arguments[@]}" || install_status=$?
   if [[ $install_status == 2 ]]; then
     success=1;cgraph_cleanup;trap - EXIT
-    printf 'Application installed, but optional skills were incomplete; existing skills were preserved. Resolve reported conflicts manually.\n' >&2
+    printf 'Application installed, but optional MCP/skill setup was incomplete; existing settings and skills were preserved. Resolve reported conflicts manually.\n' >&2
     return 2
   elif [[ $install_status != 0 ]]; then return "$install_status";fi
   success=1

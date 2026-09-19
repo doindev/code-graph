@@ -42,7 +42,7 @@ public final class CgraphMain {
         if (defaults) {
             defaultValue(result, "--port", "3000");
             defaultValue(result, "--graph-storage", "hybrid");
-            defaultValue(result, "--graph-memory", "1g");
+            defaultValue(result, "--graph-memory", "1536m");
             if (ui) { defaultValue(result, "--viz", "8137"); if (admin && !result.contains("--viz-admin")) result.add("--viz-admin"); }
             if (dba) { if (!result.contains("--dba")) result.add("--dba"); if(!result.contains("--yolo")) defaultValue(result, "--dba-approval-mode", "desktop"); }
         }
@@ -58,13 +58,13 @@ public final class CgraphMain {
         Usage: cgraph [server options]
 
         Defaults: local MCP :3000, admin UI/DBA :8137, desktop approvals,
-                  hybrid graph storage, shared 1 GiB graph/cache budget.
+                  hybrid graph storage, shared 1.5 GiB graph/cache budget (1536m).
         No directory is onboarded unless --root, --workspace or CODE_GRAPH_ROOT specifies one.
         Keep this terminal open; Ctrl+C stops the server. No service is installed.
 
           --port N                   MCP port (3000)
           --viz N                    Web UI port (8137)
-          --graph-memory 512m|1g|2g   Graph/cache budget, NOT a total RAM or JVM heap cap
+          --graph-memory 1536m       Graph/cache budget (default), NOT a total RAM or JVM heap cap
           --graph-storage MODE       hybrid (default) or memory
           --dba-approval-mode MODE   desktop (default), auto, browser, none
           --yolo                    DANGER: automatically authorize local MCP DBA operations; requires DBA

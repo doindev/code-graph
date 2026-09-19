@@ -7,6 +7,17 @@ foreach($name in @('HTTPS_PROXY','HTTP_PROXY','NO_PROXY','CGRAPH_PROXY_USER','CG
 function Get-CgraphRequirements {[pscustomobject]@{Jdk='test JDK path';Git=[pscustomobject]@{Source='git.exe'};Maven=[pscustomobject]@{Source='mvn.cmd'};MavenOk=$true}}
 function Offer-CgraphRequirement {throw 'Unexpected prerequisite installation attempt'}
 try{
+    if((@(Get-CgraphMcpArguments 'codex,copilot-vscode' 'http://localhost:3333/mcp' $false) -join '|') -ne '--mcp-clients|codex,copilot-vscode|--mcp-url|http://localhost:3333/mcp'){throw 'MCP selection forwarding'}
+    foreach($invalid in @('codex,codex','codex,','all,claude','other')){
+        $failed=$false;try{Get-CgraphMcpArguments $invalid 'http://localhost:3000/mcp' $false}catch{$failed=$true}
+        if(!$failed){throw 'Invalid MCP clients accepted'}
+    }
+    foreach($invalid in @('http://remote.test:3000/mcp','http://private:secret@localhost:3000/mcp','http://localhost:0/mcp','http://localhost:3000/mcp?secret=value')){
+        $failed=$false;try{Get-CgraphMcpArguments 'all' $invalid $false}catch{$failed=$true}
+        if(!$failed){throw 'Invalid MCP endpoint accepted'}
+    }
+    $failed=$false;try{Get-CgraphMcpArguments 'all' 'http://localhost:3000/mcp' $true}catch{$failed=$true}
+    if(!$failed){throw 'Build-only MCP writes accepted'}
     if(@(Get-CgraphSkillArguments '' $false).Count -ne 0){throw 'Skills should be optional'}
     if((@(Get-CgraphSkillArguments 'codex, claude' $false) -join '|') -ne '--skills|codex,claude'){throw 'Selected skill arguments lost'}
     if((@(Get-CgraphSkillArguments 'all' $false) -join '|') -ne '--skills|all'){throw 'All skill arguments lost'}
@@ -20,6 +31,7 @@ try{
     $env:HTTPS_PROXY=$null;$env:HTTP_PROXY=$null;$env:CGRAPH_PROXY_USER=$null;$env:CGRAPH_PROXY_PASSWORD=$null;$env:GIT_CONFIG_COUNT=$null
     $Proxy='http://proxy.example:8080';$ProxyUser='domain\tester'
     $Skills='all' # Check-only must not invoke the build engine or install even explicit skills.
+    $McpClients='all' # Likewise no MCP file access or registration in check-only mode.
     Invoke-CgraphInstall
     if($env:HTTPS_PROXY -or $env:CGRAPH_PROXY_USER -or $env:GIT_CONFIG_COUNT){throw 'Installer leaked proxy process configuration'}
     $Proxy='http://user:private_value@proxy.example:8080';$failed=$false

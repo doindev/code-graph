@@ -84,7 +84,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
 The maintained [agent skill](skills/code-graph/SKILL.md) supports Codex, GitHub
 Copilot, Claude Code and Windsurf. Explicit installation instructions are in the
 [MCP guide](docs/guides/mcp-server.md#agent-skill-for-copilot-claude-code-codex-and-windsurf);
-installation never configures MCP access or overwrites customized skills.
+the standalone skill helper never configures MCP access or overwrites customized skills.
+The application installers offer MCP registration as a separate, optional step before
+offering skills for detected connections; neither step grants tool permissions.
 
 | Module | Purpose |
 |---|---|
@@ -112,6 +114,7 @@ installation never configures MCP access or overwrites customized skills.
 
 | Guide | Topic |
 |---|---|
+| [docs/installation.md](docs/installation.md) | Windows/macOS/Linux installation, prerequisites/proxies, optional MCP and skills, launcher defaults, updates and safe uninstall |
 | [docs/dba.md](docs/dba.md) | DBA preview startup/configuration, credential handling, limits, APIs and remaining implementation gates |
 | [docs/dba-catalog-tree.md](docs/dba-catalog-tree.md) | Vendor-specific database/schema object trees, refresh behavior, metadata bounds and validation commands |
 | [docs/hybrid-graph-storage.md](docs/hybrid-graph-storage.md) | Disk paging, shared cache budget, admin settings and memory limits |
@@ -150,22 +153,81 @@ cgraph
 ```
 
 This starts local MCP on **3000**, Graph/admin UI and DBA on **8137**, desktop approvals,
-and hybrid storage with a **1 GiB shared graph/cache budget**. No project is automatically
+and hybrid storage with a **1.5 GiB shared graph/cache budget** (`1536m`). No project is automatically
 onboarded unless explicitly configured. This is not a hard total-RAM or JVM heap limit.
 Use `cgraph --help` for overrides; Ctrl+C stops the foreground server. Installation itself
 does not start, stop, or restart a server.
 
+Existing installations receive the **1.5 GiB** default after rerunning the installer
+from this updated source/ref. An explicit argument still takes precedence, for example
+`cgraph --graph-memory 512m`. Use `1536m`, not `1.5g`: the size parser accepts whole
+MiB/GiB values. `cgraph --print-config` shows the effective arguments without starting
+the server. Raw Java HTTP/stdio entry points retain their **1 GiB** default.
+
 **Behind a proxy?** Use `-Proxy` / `--proxy`, standard proxy environment variables, and
 `-MavenSettings` / `--maven-settings` for corporate mirrors and authentication. See the
 [installation guide](docs/installation.md) for authenticated proxies, certificates,
-prerequisite checks, updates, native distribution, and validation limits.
+prerequisite checks, updates, native distribution and validation limits.
 
-Optional global agent skills are offered during installation. Use `-Skills all`
+### Optional MCP connections and skills
+
+Optional MCP setup is offered **first**: choose one or more of Codex, Claude Code,
+Copilot CLI, Copilot in VS Code, and Windsurf, or none. Use `-McpClients all`
+(Windows) or `--mcp-clients all` (macOS/Linux), or a subset such as `codex,claude`.
+Matching connections in supported client configuration files are detected even under
+another name and are not added twice. Conflicting entries are reported, not overwritten.
+The default client endpoint is `http://localhost:3000/mcp`.
+See [MCP setup, detection and recovery](docs/installation.md#optional-mcp-connections-then-skills).
+
+Then optional global skills are offered only for clients with matching configured
+code-graph connections (including pre-existing connections). Use `-Skills all`
 (Windows) or `--skills all` (macOS/Linux), a subset such as `codex,claude`, or
 `none`. Unattended installs default to none. The skill recommends code-graph only
 when its MCP tools are available and useful; otherwise agents use their normal
-tools. Existing customized skills and MCP settings are left untouched.
+tools. Existing customized skills and connection settings are preserved; no tool
+permissions change. `all` skills means all detected matching clients.
 See [global skill paths and standalone installation](docs/installation.md#optional-global-agent-skills).
+
+For example, configure Codex and Claude Code, then install skills for all detected
+matching clients (including previously configured clients):
+
+```powershell
+.\install.ps1 -SourceDir . -McpClients 'codex,claude' -Skills all
+```
+
+```bash
+bash ./install.sh --source-dir "$PWD" --mcp-clients codex,claude --skills all
+```
+
+Use `-McpClients none` / `--mcp-clients none` to skip connection registration; existing
+matching connections can still qualify for the skill offer. A custom `-McpUrl` /
+`--mcp-url` changes only the client endpoint: start `cgraph --port PORT` separately
+with the matching port. Registration does not install the client applications or
+make this machine's loopback server reachable from cloud-hosted agents.
+
+### Uninstall
+
+Stop the installed application first. Run the script from the checkout or its copied
+version in the installation directory; it verifies ownership and prompts before removal:
+
+```powershell
+# Windows: check without changes, then uninstall with confirmation
+.\uninstall.ps1 -Check
+.\uninstall.ps1
+```
+
+```bash
+# macOS / Linux
+bash ./uninstall.sh --check
+bash ./uninstall.sh
+```
+
+For custom locations, supply `-InstallDir PATH` / `--install-dir PATH`.
+Unattended removal requires explicit `-Yes` / `--yes`. The scripts remove the verified
+application, binary releases and managed command/PATH entry, but preserve database
+profiles, vault credentials, projects, MCP connections and skills **outside the installation**.
+Do not store personal data in the application directory. No running process is killed.
+See [uninstall safety, backups and PATH options](docs/installation.md#uninstall-on-windows-macos-and-linux).
 
 ## Build
 
@@ -240,6 +302,9 @@ Omit `--viz` entirely if a UI is not needed. Client-side request timeouts must a
 time for initial onboarding and large queries.
 
 ### Server startup argument reference
+
+The defaults below describe the raw HTTP/stdio entry points, not the installed
+[`cgraph` launcher](#install-the-cgraph-command), which supplies its own defaults.
 
 These are application arguments, placed **after the main class**. Use `--flag value`,
 not `--flag=value`, for these server entry points. Only `--root` is intended to repeat;
@@ -380,7 +445,7 @@ zero projects; changes are not written to disk and reset to the startup value on
 | Setting | Default | Valid values / behavior |
 |---|---|---|
 | `--graph-storage` | `memory` | `memory` or `hybrid`; server-wide, restart required to switch. |
-| `--graph-memory` / admin **RAM** | `1g` = 1 GiB | Positive whole MiB/GiB sizes such as `32m`, `256MiB`, `1g`, `2GiB`; suffixes are case-insensitive. Minimum 32 MiB. No bare bytes, fractional sizes, `MB` or `GB` suffixes. |
+| `--graph-memory` / admin **RAM** | Raw HTTP/stdio: `1g`; installed `cgraph`: `1536m` = 1.5 GiB | Positive whole MiB/GiB sizes such as `32m`, `256MiB`, `1g`, `2GiB`; suffixes are case-insensitive. Minimum 32 MiB. No bare bytes, fractional sizes, `MB` or `GB` suffixes. |
 | JVM `-Xmx` | JVM/environment-selected | Maximum Java heap, e.g. `-Xmx1g`. Not a graph-cache setting or a total-process RAM limit. |
 | JVM `-Djava.io.tmpdir=PATH` | JVM temporary directory | Writable existing parent directory for temporary session storage; affects the whole JVM, not just graphs. |
 

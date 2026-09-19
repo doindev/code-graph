@@ -12,6 +12,9 @@ param(
     [string]$MavenSettings,
     # Optional current-user skills: all, none, or comma-separated codex,copilot,claude,windsurf.
     [string]$Skills,
+    # Optional current-user MCP connections; skill choices are offered afterward.
+    [string]$McpClients,
+    [string]$McpUrl='http://localhost:3000/mcp',
     [switch]$Check,
     [switch]$NonInteractive,
     [switch]$SkipTests,
@@ -89,8 +92,27 @@ function Get-CgraphSkillArguments([string]$Selection,[bool]$OnlyBuild) {
     if($OnlyBuild -and $normalized -ne 'none'){throw '-BuildOnly cannot install skills; use -Skills none or omit -Skills'}
     return @('--skills',($items -join ','))
 }
+function Get-CgraphMcpArguments([string]$Selection,[string]$Endpoint,[bool]$OnlyBuild) {
+    $items=@()
+    if($Selection){
+        $items=@($Selection.Trim().ToLowerInvariant().Split(',') | ForEach-Object {$_.Trim()})
+        if(($items -join ',') -notin @('all','none')){
+            if(@($items | Where-Object {$_ -notin @('codex','copilot','copilot-vscode','claude','windsurf')}).Count -gt 0 -or
+               @($items | Select-Object -Unique).Count -ne $items.Count){throw 'McpClients must be all, none, or unique comma-separated codex,copilot,copilot-vscode,claude,windsurf'}
+        }
+        if($OnlyBuild -and ($items -join ',') -ne 'none'){throw '-BuildOnly cannot configure MCP; use -McpClients none or omit it'}
+    }
+    try{$endpointUri=[Uri]$Endpoint}catch{throw 'McpUrl must be http://localhost:PORT/mcp without credentials, query, or fragment'}
+    if(!$endpointUri.IsAbsoluteUri -or $endpointUri.Scheme -ne 'http' -or $endpointUri.Host -notin @('localhost','127.0.0.1','[::1]','::1') -or
+       $endpointUri.UserInfo -or $endpointUri.Query -or $endpointUri.Fragment -or $endpointUri.Port -le 0 -or $endpointUri.AbsolutePath -notin @('/mcp','/mcp/')){
+        throw 'McpUrl must be http://localhost:PORT/mcp (or 127.0.0.1 / [::1]), without credentials, query, or fragment'
+    }
+    if($items.Count){'--mcp-clients';($items -join ',')}
+    '--mcp-url';$Endpoint
+}
 function Invoke-CgraphInstall {
     $skillArguments=@(Get-CgraphSkillArguments $Skills ([bool]$BuildOnly))
+    $mcpArguments=@(Get-CgraphMcpArguments $McpClients $McpUrl ([bool]$BuildOnly))
     $saved=@{}
     foreach($name in @('JAVA_HOME','HTTPS_PROXY','HTTP_PROXY','NO_PROXY','GIT_SSL_CAINFO','GIT_CONFIG_COUNT','CGRAPH_PROXY_USER','CGRAPH_PROXY_PASSWORD')){$saved[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
     $clone=$null;$success=$false;$gitKeys=@()
@@ -149,6 +171,7 @@ function Invoke-CgraphInstall {
         if(!(Test-Path -LiteralPath $engine)){throw 'Selected repository/ref does not include this installer yet. Use a published ref containing it, or -SourceDir with your development checkout.'}
         $arguments=@($engine,'--source',$source,'--install-dir',[IO.Path]::GetFullPath($InstallDir),'--maven',$requirements.Maven.Source)
         $arguments+=$skillArguments
+        $arguments+=$mcpArguments
         if($MavenSettings){$arguments+=@('--maven-settings',$MavenSettings)}
         if($script:effectiveProxy){$arguments+=@('--proxy',$script:effectiveProxy)}
         if($NoProxy){$arguments+=@('--no-proxy',$NoProxy)}
@@ -157,7 +180,7 @@ function Invoke-CgraphInstall {
         & (Join-Path $requirements.Jdk 'bin/java.exe') @arguments
         if($LASTEXITCODE -eq 2){
             $success=$true
-            throw 'Application installed, but optional skill installation was incomplete. Existing skills were preserved; inspect the per-client messages and merge conflicts manually. No server was restarted.'
+            throw 'Application installed, but optional MCP/skill setup was incomplete. Existing settings and skills were preserved; inspect the per-client messages. No server was restarted.'
         }
         if($LASTEXITCODE -ne 0){throw 'The native installer failed; the existing server was not stopped or restarted.'}
         $success=$true

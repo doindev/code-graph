@@ -25,17 +25,17 @@ public final class CgraphInstaller {
 
     public static void main(String[] args) {
         try { new CgraphInstaller(args).install(); }
-        catch (SkillInstallFailure e) { System.err.println(e.getMessage()); System.exit(2); }
+        catch (OptionalSetupFailure e) { System.err.println(e.getMessage()); System.exit(2); }
         catch (Exception e) { System.err.println("Installation failed: " + e.getMessage()); System.err.println("For network failures, check HTTPS_PROXY/HTTP_PROXY/NO_PROXY, --proxy, Git CA certificates, and --maven-settings. TLS verification is never disabled."); System.exit(1); }
     }
-    static final class SkillInstallFailure extends IOException {
-        SkillInstallFailure() { super("Application installed, but some optional skills could not be installed. Existing skills were preserved; resolve the reported conflicts and rerun the skill helper."); }
+    static final class OptionalSetupFailure extends IOException {
+        OptionalSetupFailure() { super("Application installed, but optional MCP/skill setup was incomplete. Existing settings/skills were preserved; resolve the reported conflicts and rerun the helpers."); }
     }
 
     static Map<String,String> parse(String[] args) {
         Map<String,String> out = new LinkedHashMap<>();
         Set<String> flags = Set.of("--skip-tests", "--no-path", "--non-interactive", "--keep-build", "--build-only");
-        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--proxy", "--no-proxy", "--skills");
+        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--proxy", "--no-proxy", "--skills", "--mcp-clients", "--mcp-url");
         for (int i=0; i<args.length; i++) {
             String key = args[i];
             if (out.containsKey(key)) throw new IllegalArgumentException("Duplicate installer option: " + key);
@@ -49,8 +49,11 @@ public final class CgraphInstaller {
 
     void install() throws Exception {
         SkillInstaller skills = new SkillInstaller(source);
-        List<String> selectedSkills = skills.choose(options.get("--skills"), options.containsKey("--non-interactive"),
-                options.containsKey("--build-only"), System.console());
+        // Select MCP first. Skills are offered only after actual configuration is rechecked.
+        String mcpUrl = options.getOrDefault("--mcp-url", McpInstaller.DEFAULT_URL);
+        List<String> selectedMcp = McpInstaller.choose(options.get("--mcp-clients"), options.containsKey("--non-interactive"),
+                options.containsKey("--build-only"), System.console(), mcpUrl);
+        skills.choose(options.get("--skills"), true, options.containsKey("--build-only"), null); // Early syntax validation only.
         if (Runtime.version().feature()!=25 || !Files.isRegularFile(tool("jpackage")) || !Files.isRegularFile(tool("javac")))
             throw new IOException("A full JDK 25 with javac, jlink and jpackage is required for the build.");
         validateDestination(source, base, Path.of(System.getProperty("user.home")));
@@ -114,6 +117,7 @@ public final class CgraphInstaller {
             run(List.of(installedExe.toString(),"--help"),base);
             Files.writeString(releaseDir.resolve("INSTALLATION.txt"),"Built: "+Instant.now()+"\nJava: "+Runtime.version()+"\nOS: "+System.getProperty("os.name")+" "+System.getProperty("os.arch")+"\nNo credentials, proxy settings, or user data are part of this application bundle.\n");
             if(!options.containsKey("--build-only")) {
+                installUninstallers(snapshot, base);
                 installShim(base,installedExe,WINDOWS);
                 if(!options.containsKey("--no-path"))try { registerPath(base.resolve("bin")); }
                 catch(Exception e) { System.err.println("Application installed, but PATH could not be updated. Add this directory manually: "+base.resolve("bin")); }
@@ -121,15 +125,9 @@ public final class CgraphInstaller {
             complete=true;
             System.out.println("Installed native application: "+installedExe);
             System.out.println("Start with cgraph (open a new terminal if PATH changed). Ctrl+C stops it. No server was started or stopped by installation.");
-            System.out.println("Defaults: MCP 3000, admin UI/DBA 8137, desktop approvals, hybrid storage, 1 GiB graph/cache budget.");
+            System.out.println("Defaults: MCP 3000, admin UI/DBA 8137, desktop approvals, hybrid storage, 1.5 GiB graph/cache budget (1536m).");
             System.out.println("JDK, Git and Maven were build prerequisites only. Node.js/npm are not required.");
-            if (selectedSkills.isEmpty()) System.out.println("Optional agent skills skipped. Install later with skills/install-skill.mjs.");
-            else {
-                var results = new SkillInstaller(snapshot).install(selectedSkills, Path.of(System.getProperty("user.home")), environment);
-                for (var result : results) System.out.println("Skill " + result.client() + ": " + result.status() + " — "
-                        + result.destination() + (result.error() == null ? "" : " (" + result.error() + ")"));
-                if (results.stream().anyMatch(result -> result.status().equals("failed"))) throw new SkillInstallFailure();
-            }
+            if (!options.containsKey("--build-only")) finishOptionalSetup(snapshot, selectedMcp, mcpUrl);
         } finally {
             if(complete&&!options.containsKey("--keep-build")) {
                 try { removeOwnedWork(work,owner); } catch(IOException e) { System.err.println("Temporary build cleanup could not complete; remove this owned build directory after tools close: "+work); }
@@ -137,7 +135,46 @@ public final class CgraphInstaller {
         }
     }
 
+    void finishOptionalSetup(Path snapshot, List<String> selectedMcp, String url) throws IOException {
+        Path home = Path.of(System.getProperty("user.home")).toRealPath();
+        var mcpResults = McpInstaller.install(selectedMcp, home, environment, System.getProperty("os.name"), url);
+        if (selectedMcp.isEmpty()) System.out.println("MCP setup skipped; checking for existing code-graph connections before offering skills.");
+        for (var result : mcpResults) System.out.println("MCP " + result.client() + ": " + result.status() + " — " + result.destination() + " — " + result.message());
+        boolean failed = mcpResults.stream().anyMatch(r -> !Set.of("configured", "already-configured", "scoped-existing").contains(r.status()));
+        if ("none".equalsIgnoreCase(options.getOrDefault("--skills", ""))
+                || (!options.containsKey("--skills") && options.containsKey("--non-interactive"))) {
+            System.out.println("Optional skills skipped by explicit/unattended choice. No additional client configuration scanned.");
+            if (failed) throw new OptionalSetupFailure();
+            return;
+        }
+        List<String> eligible = McpInstaller.skillClients(home, environment, System.getProperty("os.name"), url, System.out);
+        SkillInstaller skills = new SkillInstaller(snapshot);
+        try {
+            List<String> chosen = skills.chooseConfigured(options.get("--skills"), options.containsKey("--non-interactive"), false, System.console(), eligible);
+            if (chosen.isEmpty()) System.out.println("Optional skills skipped (no selection, or no detected code-graph MCP connections).");
+            for (var result : skills.install(chosen, home, environment)) {
+                System.out.println("Skill " + result.client() + ": " + result.status() + " — " + result.destination()
+                        + (result.error() == null ? "" : " (" + result.error() + ")"));
+                failed |= result.status().equals("failed");
+            }
+        } catch (IllegalArgumentException e) { System.err.println(e.getMessage()); failed = true; }
+        System.out.println("Start cgraph separately. Clients may need reload/restart and their normal MCP trust approval. Cloud clients cannot reach this machine's loopback endpoint.");
+        if (failed) throw new OptionalSetupFailure();
+    }
+
     static String firstNonBlank(String... values) { for(String value:values)if(value!=null&&!value.isBlank())return value;return null; }
+    static void installUninstallers(Path source, Path base) throws IOException {
+        for (String name : List.of("uninstall.ps1", "uninstall.sh")) {
+            Path from = source.resolve(name), to = base.resolve(name);
+            if (!Files.isRegularFile(from) || Files.isSymbolicLink(from)
+                    || !Files.readString(from).contains("# cgraph-managed-uninstaller-v1"))
+                throw new IOException("Missing verified uninstaller: " + name);
+            if (Files.exists(to, LinkOption.NOFOLLOW_LINKS)) {
+                if (Files.isSymbolicLink(to) || !Files.isRegularFile(to) || Files.mismatch(from, to) != -1)
+                    System.err.println("Existing uninstaller preserved: " + to + ". Use the current script from the source checkout for updated behavior.");
+            } else Files.copy(from, to);
+        }
+    }
     Path tool(String name) { return jdk.resolve("bin").resolve(name+(WINDOWS?".exe":"")); }
     static String executableRelative(boolean windows,boolean mac) { return windows?"cgraph.exe":mac?"Contents/MacOS/cgraph":"bin/cgraph"; }
 
@@ -282,8 +319,21 @@ public final class CgraphInstaller {
         if(!actual.getParent().equals(temp)||!actual.getFileName().toString().startsWith("cgraph-build-")||Files.isSymbolicLink(work)||
                 !Files.readString(actual.resolve(".cgraph-build-owner")).equals(owner))throw new IOException("Build directory ownership verification failed");
         Files.walkFileTree(actual,new SimpleFileVisitor<>() {
-            public FileVisitResult visitFile(Path file,BasicFileAttributes attrs)throws IOException{Files.delete(file);return FileVisitResult.CONTINUE;}
-            public FileVisitResult postVisitDirectory(Path dir,IOException error)throws IOException{if(error!=null)throw error;Files.delete(dir);return FileVisitResult.CONTINUE;}
+            public FileVisitResult visitFile(Path file,BasicFileAttributes attrs)throws IOException{
+                // Keep ownership evidence if cleanup is interrupted, and handle jpackage's
+                // read-only Windows launcher in this verified disposable copy only.
+                if(file.equals(actual.resolve(".cgraph-build-owner")))return FileVisitResult.CONTINUE;
+                if(WINDOWS&&!attrs.isSymbolicLink()){
+                    var dos=Files.getFileAttributeView(file,java.nio.file.attribute.DosFileAttributeView.class,LinkOption.NOFOLLOW_LINKS);
+                    if(dos!=null&&dos.readAttributes().isReadOnly())dos.setReadOnly(false);
+                }
+                Files.delete(file);return FileVisitResult.CONTINUE;
+            }
+            public FileVisitResult postVisitDirectory(Path dir,IOException error)throws IOException{
+                if(error!=null)throw error;
+                if(dir.equals(actual))Files.delete(actual.resolve(".cgraph-build-owner"));
+                Files.delete(dir);return FileVisitResult.CONTINUE;
+            }
         });
     }
 }

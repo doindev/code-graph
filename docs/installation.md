@@ -184,11 +184,15 @@ cgraph --help
 ```
 
 The friendly launcher supplies `--port 3000 --viz 8137 --viz-admin --dba
---dba-approval-mode desktop --graph-storage hybrid --graph-memory 1g` unless overridden.
+--dba-approval-mode desktop --graph-storage hybrid --graph-memory 1536m` unless overridden.
 It uses the existing local listeners. Graph: `http://localhost:8137/`; DBA:
 `http://localhost:8137/dba`; MCP: `http://localhost:3000/mcp`.
 
 The budget accounts for shared graph/cache residency, not total process RAM or JVM heap;
+the installed launcher defaults to **1.5 GiB** = 1,610,612,736 bytes. `1536m` uses the
+existing whole-MiB parser; `1.5g` is not a supported argument. Raw HTTP/stdio entry
+points retain their existing 1 GiB default, and explicit `--graph-memory` values
+still override the installed launcher default.
 DBA has its separate allowance. Other server arguments pass through. `--no-defaults` opts
 out of launcher defaults and uses the legacy HTTP entry-point behavior. Existing direct
 `HttpMain` and stdio entry points are unchanged. Clear `CODE_GRAPH_ROOT` if you want an empty
@@ -205,28 +209,141 @@ installation never kills a process occupying a desired port.
 spaces appropriately and never store credentials in launcher scripts. User DBA profiles/vault
 records remain outside the application installation; see [DBA configuration](dba.md).
 
+## Optional MCP connections, then skills
+
+Interactive Windows, macOS/Linux, and JDK installs first ask which **current-user
+client connections** to configure. Select one or more names/numbers, `all`, or
+`none` (the default). After the application is successfully installed, the installer
+adds only missing connections, checks both existing and newly configured connections,
+and then offers optional skills **only for those matching code-graph clients**.
+Selecting no MCP installations still allows skills for existing matching connections.
+
+This configures clients to connect to one separately running server; it does not
+install the client applications, launch extra servers, start cgraph, or grant any
+tool approvals. The default endpoint is `http://localhost:3000/mcp`.
+
+| Selection | Client/surface | Current-user MCP file |
+|---|---|---|
+| `codex` | Codex desktop/CLI/IDE | `~/.codex/config.toml` (`CODEX_HOME` honored) |
+| `claude` | Claude Code | `~/.claude.json` (not `.claude/settings.json`) |
+| `copilot` | GitHub Copilot CLI | `~/.copilot/mcp-config.json` (`COPILOT_HOME` honored) |
+| `copilot-vscode` | GitHub Copilot in VS Code, default profile | Windows `%APPDATA%/Code/User/mcp.json`; macOS `~/Library/Application Support/Code/User/mcp.json`; Linux `${XDG_CONFIG_HOME:-~/.config}/Code/User/mcp.json` |
+| `windsurf` | Windsurf | `~/.codeium/windsurf/mcp_config.json` |
+
+The separate Copilot choices avoid assuming its CLI and editor share configuration.
+Either matching Copilot connection qualifies for the existing Copilot skill offer;
+the skill is copied once. These formats follow the official
+[Codex MCP](https://developers.openai.com/codex/mcp),
+[Claude Code MCP](https://code.claude.com/docs/en/mcp),
+[Copilot CLI MCP](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers),
+[VS Code MCP](https://code.visualstudio.com/docs/agent-customization/mcp-servers), and
+[Windsurf MCP](https://docs.windsurf.com/windsurf/cascade/mcp) documentation.
+
+```powershell
+# Configure two clients, then install skills for all detected matching clients
+.\install.ps1 -SourceDir . -McpClients 'codex,claude' -Skills all
+# Unattended: choices must be explicit; neither MCP nor skills is implied
+.\install.ps1 -SourceDir . -McpClients all -Skills all -NonInteractive
+# Existing connections only; offer skills interactively
+.\install.ps1 -SourceDir . -McpClients none
+```
+
+```bash
+bash ./install.sh --source-dir "$PWD" --mcp-clients codex,claude --skills all
+bash ./install.sh --source-dir "$PWD" --mcp-clients all --skills all --non-interactive
+bash ./install.sh --source-dir "$PWD" --mcp-clients none
+```
+
+Use `-McpUrl` / `--mcp-url` for another local HTTP port, for example
+`http://localhost:3100/mcp`. This is the **client URL only**: start the server with
+the matching `cgraph --port 3100`. Credentials, query strings, fragments and remote
+hosts are rejected. `localhost`, `127.0.0.1`, `[::1]`, and a trailing `/` are treated
+as equivalent for duplicate detection when the port matches. No DNS probes,
+downloads, connections or approval prompts are triggered by configuration detection.
+
+Without a console or with `--non-interactive`, omitted selections mean none.
+`--skills all` now means all **detected matching clients**, not every client.
+An explicitly named skill without a detected connection is reported as incomplete.
+Check-only never reads/writes client configuration or installs skills. Build-only
+does neither and rejects nonempty explicit MCP/skill selections.
+
+### Existing configuration and recovery
+
+- Matching endpoints under any server name are a no-op; disabled entries, tool
+  restrictions, headers and other customizations remain unchanged.
+  Legacy VS Code `settings.json` → `mcp.servers` entries are checked too.
+- The documented Java stdio command containing `io.doindev.codegraph.mcp.Main`
+  is also recognized and preserved rather than adding a second HTTP connection.
+  Custom wrapper commands cannot be reliably identified; named conflicts require review.
+- An existing `code-graph`/`code_graph` entry using another endpoint or transport is
+  a conflict, not permission to overwrite it or add a duplicate. Choose the correct
+  URL or review the connection in the client before rerunning.
+- Claude project-scoped matches are reported without silently promoting them to a
+  second global entry. They qualify for an optional skill, which remains conditional
+  on MCP availability in each project. Named VS Code profiles, remote/WSL profiles, plugin-managed
+  servers, and arbitrary project-level configurations are not enumerated. Review
+  those in the client's MCP settings; the installer cannot certify their absence.
+- Conventional Codex `[mcp_servers.name]` tables, including quoted names and nested
+  options, are recognized. Inline/dotted MCP table layouts are left untouched with
+  manual-setup guidance instead of attempting a risky TOML rewrite. Unrelated TOML
+  text and comments are retained. VS Code JSONC comments/trailing commas are preserved;
+  other client JSON files must be strict JSON.
+- With `CLAUDE_CONFIG_DIR` set, automatic Claude registration/detection is skipped
+  with instructions to use that instance's `claude mcp add --transport http --scope
+  user code-graph URL`. Relocated global-state paths vary across client versions;
+  the installer does not guess. The standalone skill helper still honors the
+  documented Claude skill-directory override.
+- Configuration reads/edits are bounded to 2 MiB. Linked paths, invalid encodings,
+  duplicate JSON keys and unsupported layouts fail without overwriting the file.
+- Close clients before editing their configuration. Successful edits preserve
+  existing text and file permissions, retain an exact adjacent
+  `.cgraph-backup-<UUID>` copy, and atomically replace the file. Concurrent installer
+  locks and observed client changes stop the edit. An external client can still
+  race after the final check; the backup provides recovery. Backups may contain
+  existing credentials: keep them private, never commit them, and remove them
+  manually after verifying the connection. No backup is made for a no-op.
+- If interrupted, a `.cgraph-mcp.lock` may remain. Remove that exact lock only after
+  confirming no installer is active. Resolve conflicts per client and rerun; a
+  failure for one client does not prevent the other selected clients being configured.
+- Optional setup failures return partial-success status (JDK/Bash: exit 2;
+  PowerShell bootstrap: reported error/exit 1). The installed application remains
+  usable. No existing client configuration, server or skill is removed by `none`.
+
+To configure MCP separately without building/installing the app (JDK 25, no Node):
+
+```text
+java installer/McpInstaller.java --clients codex,claude --url http://localhost:3000/mcp
+java installer/McpInstaller.java --help
+```
+
+After setup, start `cgraph` yourself and refresh/restart the selected clients if
+needed. Normal client trust, enterprise restrictions and server/database approval
+rules still apply. Installing a connection or skill does not make this machine's
+loopback server reachable from cloud-hosted agents.
+
 ## Optional global agent skills
 
 The Windows, macOS/Linux, and JDK installers offer the same optional skill selection:
 **all**, a comma-separated subset of **codex,copilot,claude,windsurf**, or **none**.
-Interactive terminal installs ask once, with **none** as the default. Without a console,
+After MCP setup/detection, interactive terminal installs offer only configured
+clients, with **none** as the default. Without a console,
 or with `-NonInteractive` / `--non-interactive`, skills are skipped unless explicitly
 selected. Check-only mode never copies skills. Build-only mode skips the prompt and
 rejects a nonempty skill selection.
 
 ```powershell
-# Windows: install the application plus all four current-user skills
-.\install.ps1 -SourceDir . -Skills all
+# Windows: install the application and all connections/eligible current-user skills
+.\install.ps1 -SourceDir . -McpClients all -Skills all
 # Or choose only the clients you use (no prompt needed)
-.\install.ps1 -SourceDir . -Skills 'codex,claude' -NonInteractive
+.\install.ps1 -SourceDir . -McpClients 'codex,claude' -Skills 'codex,claude' -NonInteractive
 # Explicit opt-out
 .\install.ps1 -SourceDir . -Skills none
 ```
 
 ```bash
 # macOS / Linux
-bash ./install.sh --source-dir "$PWD" --skills all
-bash ./install.sh --source-dir "$PWD" --skills codex,claude --non-interactive
+bash ./install.sh --source-dir "$PWD" --mcp-clients all --skills all
+bash ./install.sh --source-dir "$PWD" --mcp-clients codex,claude --skills codex,claude --non-interactive
 # The shared JDK installer also accepts --skills with the same values.
 ```
 
@@ -255,7 +372,7 @@ for multiple clients can be redundant; selection is not a permission boundary.
 
 The skill remains **optional guidance**: prefer code-graph only when its MCP server
 is available and useful for the task; otherwise use ordinary tools. Installation
-does not require a running server, start one, edit MCP configuration, or grant any
+of the skill itself does not require a running server, start one, edit MCP configuration, or grant any
 tool/database permissions. Cloud-hosted agents still cannot reach your local
 loopback endpoint merely by installing a skill.
 
@@ -297,21 +414,63 @@ distribute only its EXE or JAR. Build separate images for each supported OS/arch
 them there. A macOS image is unsigned unless a release signing pipeline is added; do not tell
 users to bypass their organization's Gatekeeper/security policy.
 
-For removal, stop the installed process, remove its exact user PATH entry, and remove only the
-dedicated install directory bearing `.cgraph-install`. Preserve DBA profiles, vault entries,
-projects, Maven caches and unrelated data unless separately choosing to remove them. No broad
-recursive uninstall command is supplied. Successful temporary builds/clones are ownership-checked
+For removal, use the Windows or macOS/Linux uninstaller below. Successful temporary builds/clones are ownership-checked
 before cleanup; `-KeepBuild` / `--keep-build` retains them intentionally.
+
+### Uninstall on Windows, macOS and Linux
+
+Normal installs copy both `uninstall.ps1` and `uninstall.sh` into the installation
+directory. They can also be run from this checkout for older installations.
+They need no Java, Maven or npm. Custom existing uninstaller scripts are preserved.
+
+```powershell
+# Windows: verify without removing anything, then uninstall with confirmation
+.\uninstall.ps1 -Check
+.\uninstall.ps1
+# Custom installation / explicit noninteractive confirmation
+.\uninstall.ps1 -InstallDir 'D:\Applications\CodeGraph' -Yes
+```
+
+```bash
+# macOS and Linux
+bash ./uninstall.sh --check
+bash ./uninstall.sh
+bash ./uninstall.sh --install-dir /path/to/code-graph --yes
+```
+
+Without an explicit directory, a copied script detects its marked installation;
+otherwise it uses the OS's normal install location above. The scripts verify the
+resolved path and `.cgraph-install` marker, reject root/home/unrecognized directories
+and unexpected top-level content, and require the installed process to be stopped.
+No automatic process killing or elevation occurs. Windows refuses linked items;
+POSIX removal does not follow nested symlinks. Check-only and declined confirmation
+leave everything untouched; unattended removal requires `-Yes` / `--yes`.
+
+Removal deletes the verified application directory, including its command shim and
+retained binary releases. Binaries are recoverable by reinstalling, not by undo.
+Windows removes only the exact matching current-user PATH entry. macOS/Linux removes
+only the installer's exact marker/PATH block from `.bashrc`, `.zshrc` and `.profile`,
+keeping adjacent backups of changed shell profiles. `-KeepPath` / `--keep-path`
+leaves PATH untouched. Open a new terminal afterward.
+
+**DBA profiles, OS-vault credentials, indexed source projects, Maven caches, MCP
+connections and skills outside the installation are preserved.** Never store
+personal data inside the application installation. The uninstaller does not guess
+which database credentials or client policies are safe to delete. Disable/remove
+the code-graph MCP entry in each client if no longer needed; remove optional skill
+copies separately only after checking for personal modifications.
 
 ## Reproducible validation
 
 From the repository, with JDK 25:
 
 ```text
-javac -d target/installer-tests installer/SkillInstaller.java installer/CgraphInstaller.java installer/CgraphInstallerTest.java installer/SkillInstallerTest.java installer/NativeSmokeTest.java installer/ProxySmokeTest.java
+javac -d target/installer-tests installer/McpConfigDocument.java installer/McpInstaller.java installer/McpInstallerTest.java installer/SkillInstaller.java installer/CgraphInstaller.java installer/CgraphInstallerTest.java installer/SkillInstallerTest.java installer/NativeSmokeTest.java installer/ProxySmokeTest.java
 java -cp target/installer-tests CgraphInstallerTest
 java -cp target/installer-tests SkillInstallerTest
+java -cp target/installer-tests McpInstallerTest
 node --test skills/install-skill.test.mjs
+node --test installer/uninstall.test.mjs
 java -cp target/installer-tests ProxySmokeTest PATH-TO-GIT PATH-TO-MAVEN
 ```
 
@@ -324,6 +483,8 @@ node --test installer/skill-bootstrap.test.mjs
 .\install.ps1 -SourceDir . -InstallDir "$env:TEMP\cgraph-manual-test" -NoPath -NonInteractive
 # Use the exact native EXE path printed by installation, not the .cmd wrapper:
 java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' desktop
+# Optional third argument verifies uninstall refuses this running native image:
+# java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' none 'INSTALL-DIRECTORY'
 ```
 
 ```bash
@@ -335,7 +496,7 @@ java -cp target/installer-tests NativeSmokeTest /path/to/native/cgraph none
 ```
 
 `NativeSmokeTest` uses ephemeral ports and disposable profile/home/temp directories, verifies
-Graph/DBA/MCP, hybrid 1 GiB/admin defaults and zero projects, then stops only its own child process.
+Graph/DBA/MCP, hybrid 1.5 GiB/admin defaults and zero projects, then stops only its own child process.
 It deliberately supplies an invalid system JAVA_HOME to verify the bundled runtime is used.
 `ProxySmokeTest` exercises real Git/Maven HTTPS requests through a local Basic-auth HTTP proxy,
 which always rejects authenticated requests and never forwards anything externally. It verifies
@@ -360,3 +521,43 @@ settings. Bootstrap forwarding runs the real scripts with a harmless Java fixtur
 instead of Maven/jpackage; it also verifies partial-install failure reporting.
 Actual macOS/Linux installers and discovery inside all four client UIs
 remain unverified; filesystem tests are not claims of native-client certification.
+
+MCP-first setup validation (2026-09-19): JDK configuration/selection tests cover
+all five client surfaces, repeat installs, aliased loopback URLs, known Java stdio
+entries, legacy VS Code settings, strict JSON/JSONC, quoted TOML sections, backups,
+malformed/oversized files, lock conflicts, concurrent edits, junction rejection,
+and skill gating for new/existing connections. All 149 MCP, 39 installer and 50
+skill checks pass. Windows PowerShell 5.1 and Git Bash bootstrap checks plus 11
+Node skill/forwarding tests pass; Linux/macOS forwarding uses mocked OS detection.
+Two opt-in checks also pass using the installed Codex and Copilot CLI parsers with
+temporary user homes, without launching agents or calling MCP tools:
+
+```powershell
+$env:CGRAPH_JAVA_HOME = 'PATH-TO-JDK-25'
+$env:CGRAPH_CODEX_ENTRY = 'PATH-TO-NPM/node_modules/@openai/codex/bin/codex.js'
+$env:CGRAPH_COPILOT_ENTRY = 'PATH-TO-NPM/node_modules/@github/copilot/npm-loader.js'
+node --test installer/mcp-client-smoke.test.mjs
+```
+
+Those optional parser checks skip when the explicit paths/JDK are not supplied.
+Actual VS Code/Windsurf/Claude UI discovery and native macOS/Linux installation
+remain unverified. These checks do not change real user MCP/skill installations
+or restart the user's application.
+
+The uninstall tests exercise Windows PowerShell and the real Bash script with
+mocked Linux/macOS process/OS detection and disposable user homes: ownership and
+home/root protection, running-process refusal, Windows junction rejection,
+noninteractive confirmation, repeat removal, copied-script removal, external-data
+preservation, and exact PATH-block removal with backups. Native macOS/Linux
+process detection and actual user PATH registration remain unverified.
+
+Launcher/uninstall validation (2026-09-19): the isolated 29-module HTTP-runtime
+reactor build/package passed (675 tests discovered, 634 passed, 41 conditional
+tests skipped). The Windows native image passed Graph/DBA HTTP 200 and MCP
+initialization with bundled Java, admin actions, no onboarded projects and the
+**1.5 GiB** default; an explicit `512m` override remained intact. The copied
+uninstaller rejected that actual running image, then successfully removed it
+after the smoke test stopped it, with no user PATH changes. All 15 Node tests
+(skills, bootstraps, client parsers and uninstall scenarios) passed. Windows
+read-only jpackage cleanup is covered; temporary validation images/builds were
+removed. No user's application was restarted or client configuration changed.

@@ -44,12 +44,26 @@ public class CgraphInstallerTest {
             rejects(()->CgraphInstaller.validateDestination(source,unrelated,temp.resolve("home")));
             check(Files.readString(unrelated.resolve("keep")).equals("user data"),"Existing data preserved");
             Path base=temp.resolve("installation");Files.createDirectories(base.resolve("releases/one/cgraph"));Path exe=base.resolve("releases/one/cgraph/cgraph.exe");Files.writeString(exe,"native fixture");
+            for(String name:List.of("uninstall.ps1","uninstall.sh"))Files.writeString(source.resolve(name),"# cgraph-managed-uninstaller-v1\nfixture\n");
+            CgraphInstaller.installUninstallers(source,base);
+            for(String name:List.of("uninstall.ps1","uninstall.sh"))check(Files.readString(base.resolve(name)).equals(Files.readString(source.resolve(name))),"Uninstaller copied: "+name);
+            CgraphInstaller.installUninstallers(source,base);
+            Files.writeString(base.resolve("uninstall.sh"),"customized script");
+            CgraphInstaller.installUninstallers(source,base);
+            check(Files.readString(base.resolve("uninstall.sh")).equals("customized script"),"Customized uninstaller preserved");
+            Files.writeString(source.resolve("uninstall.ps1"),"unverified source");
+            rejects(()->CgraphInstaller.installUninstallers(source,temp.resolve("unverified")));
             CgraphInstaller.installShim(base,exe,true);String shim=Files.readString(base.resolve("bin/cgraph.cmd"));
             check(shim.contains("%~dp0")&&shim.contains("%*"),"Windows shim preserves arguments and relative paths");
             CgraphInstaller.installShim(base,exe,true);check(Files.readString(base.resolve("bin/cgraph.cmd")).equals(shim),"Reinstall updates only owned shim");
             Files.writeString(base.resolve("bin/cgraph.cmd"),"unrelated command");rejects(()->CgraphInstaller.installShim(base,exe,true));
             check(Files.readString(base.resolve("bin/cgraph.cmd")).equals("unrelated command"),"Unrelated command preserved");
             rejects(()->CgraphInstaller.removeOwnedWork(temp,"wrong-owner"));check(Files.exists(temp),"Cleanup ownership checked");
+            if(CgraphInstaller.WINDOWS){
+                Path readOnly=temp.resolve("read-only-native.exe");Files.writeString(readOnly,"owned native fixture");
+                Files.setAttribute(readOnly,"dos:readonly",true);
+                check(Files.readAttributes(readOnly,java.nio.file.attribute.DosFileAttributes.class).isReadOnly(),"Read-only jpackage cleanup fixture");
+            }
         }finally{CgraphInstaller.removeOwnedWork(temp,owner);}
         check(!Files.exists(temp),"Only the owned test directory was removed");
         System.out.println("Installer checks passed: "+checks);

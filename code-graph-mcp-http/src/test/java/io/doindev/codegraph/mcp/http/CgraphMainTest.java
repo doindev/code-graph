@@ -15,7 +15,8 @@ class CgraphMainTest {
         var args=List.of(CgraphMain.effectiveArguments(new String[0]));
         assertEquals("3000",value(args,"--port")); assertEquals("8137",value(args,"--viz"));
         assertTrue(args.containsAll(List.of("--viz-admin","--dba")));
-        assertEquals("hybrid",value(args,"--graph-storage"));assertEquals("1g",value(args,"--graph-memory"));
+        assertEquals("hybrid",value(args,"--graph-storage"));assertEquals("1536m",value(args,"--graph-memory"));
+        assertEquals(1610612736L, io.doindev.codegraph.storage.GraphStorage.parseBudget(value(args,"--graph-memory")));
         assertEquals("desktop",value(args,"--dba-approval-mode"));assertFalse(args.contains("--root"));
     }
     @Test void explicitValuesOverrideDefaultsWithoutDuplicateFlagsAndPathsStayIntact() {

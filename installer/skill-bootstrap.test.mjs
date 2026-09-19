@@ -41,6 +41,12 @@ function assertSelection(args,selection) {
   assert.ok(args.includes('--non-interactive'));
   assert.ok(args.includes('--no-path'));
 }
+function assertMcp(args,selection) {
+  const at=args.indexOf('--mcp-clients');
+  if(selection===null)assert.equal(at,-1);
+  else {assert.ok(at>=0);assert.equal(args[at+1],selection);}
+  assert.equal(args[args.indexOf('--mcp-url')+1],'http://localhost:3333/mcp');
+}
 
 test('PowerShell bootstrap forwards all/subset/none/omitted skills and reports partial success',
   {skip:process.platform!=='win32'||!jdk},async()=>{
@@ -48,7 +54,7 @@ test('PowerShell bootstrap forwards all/subset/none/omitted skills and reports p
       const command=[
         ". (Join-Path $env:CGRAPH_REPOSITORY 'install.ps1') -SourceDir $env:CGRAPH_SKILL_FIXTURE -InstallDir $env:CGRAPH_INSTALL_FIXTURE -NoPath -NonInteractive",
         "function Get-CgraphRequirements { [pscustomobject]@{Jdk=$env:CGRAPH_TEST_JDK;Git=[pscustomobject]@{Source='unused-git'};Maven=[pscustomobject]@{Source='unused-maven'};MavenOk=$true} }",
-        "$Skills=$env:CGRAPH_SELECTED_SKILLS",
+        "$Skills=$env:CGRAPH_SELECTED_SKILLS; $McpClients=$env:CGRAPH_SELECTED_MCP; $McpUrl='http://localhost:3333/mcp'",
         "try { Invoke-CgraphInstall; exit 0 } catch { Write-Output $_.Exception.Message; exit 1 }"
       ].join('\n');
       for(const selection of ['all','codex,claude','none',null]) {
@@ -57,9 +63,14 @@ test('PowerShell bootstrap forwards all/subset/none/omitted skills and reports p
         assert.equal(result.status,0,result.stdout+result.stderr);
         assertSelection(await forwarded(env),selection);
       }
+      for(const selection of ['all','codex,copilot-vscode','none',null]) {
+        const result=spawnSync('powershell.exe',['-NoProfile','-Command',command],
+          {env:{...env,CGRAPH_SELECTED_SKILLS:'none',CGRAPH_SELECTED_MCP:selection||''},encoding:'utf8',timeout:20000});
+        assert.equal(result.status,0,result.stdout+result.stderr);assertMcp(await forwarded(env),selection);
+      }
       const partial=spawnSync('powershell.exe',['-NoProfile','-Command',command],
         {env:{...env,CGRAPH_SELECTED_SKILLS:'all',CGRAPH_FIXTURE_EXIT:'2'},encoding:'utf8',timeout:20000});
-      assert.equal(partial.status,1);assert.match(partial.stdout,/Application installed, but optional skill installation was incomplete/);
+      assert.equal(partial.status,1);assert.match(partial.stdout,/Application installed, but optional MCP\/skill setup was incomplete/);
     });
   });
 
@@ -74,7 +85,8 @@ test('Bash bootstrap forwards skill choices for Linux/macOS and preserves partia
         'git(){ printf "Unexpected Git call\\n" >&2; return 1; }',
         'extra=()',
         '[[ -z "$CGRAPH_SELECTED_SKILLS" ]] || extra+=(--skills "$CGRAPH_SELECTED_SKILLS")',
-        'cgraph_main --source-dir "$CGRAPH_SKILL_FIXTURE" --install-dir "$CGRAPH_INSTALL_FIXTURE" --no-path --non-interactive "${extra[@]}"'
+        '[[ -z "${CGRAPH_SELECTED_MCP:-}" ]] || extra+=(--mcp-clients "$CGRAPH_SELECTED_MCP")',
+        'cgraph_main --source-dir "$CGRAPH_SKILL_FIXTURE" --install-dir "$CGRAPH_INSTALL_FIXTURE" --no-path --non-interactive --mcp-url http://localhost:3333/mcp "${extra[@]}"'
       ].join('\n');
       for(const platform of ['Linux','Darwin'])for(const selection of ['all','codex,claude','none',null]) {
         const result=spawnSync(bash,['-c',command],
@@ -82,8 +94,13 @@ test('Bash bootstrap forwards skill choices for Linux/macOS and preserves partia
         assert.equal(result.status,0,result.stdout+result.stderr);
         assertSelection(await forwarded(env),selection);
       }
+      for(const platform of ['Linux','Darwin'])for(const selection of ['all','codex,copilot-vscode','none',null]) {
+        const result=spawnSync(bash,['-c',command],
+          {env:{...env,CGRAPH_SELECTED_SKILLS:'none',CGRAPH_SELECTED_MCP:selection||'',CGRAPH_TEST_OS:platform},encoding:'utf8',timeout:20000});
+        assert.equal(result.status,0,result.stdout+result.stderr);assertMcp(await forwarded(env),selection);
+      }
       const partial=spawnSync(bash,['-c',command],
         {env:{...env,CGRAPH_SELECTED_SKILLS:'all',CGRAPH_TEST_OS:'Linux',CGRAPH_FIXTURE_EXIT:'2'},encoding:'utf8',timeout:20000});
-      assert.equal(partial.status,2);assert.match(partial.stderr,/Application installed, but optional skills were incomplete/);
+      assert.equal(partial.status,2);assert.match(partial.stderr,/Application installed, but optional MCP\/skill setup was incomplete/);
     });
   });

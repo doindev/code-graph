@@ -71,6 +71,36 @@ final class SkillInstaller {
         return base.toAbsolutePath().normalize().resolve("skills/code-graph");
     }
 
+    List<String> chooseConfigured(String explicit, boolean nonInteractive, boolean buildOnly, Console console,
+                                  List<String> configured) throws IOException {
+        if (buildOnly) return choose(explicit, true, true, null);
+        List<String> eligible = clients.stream().filter(configured::contains).toList();
+        if (explicit != null) return configuredSelection(explicit, eligible);
+        if (nonInteractive || console == null || eligible.isEmpty()) return List.of();
+        console.printf("%nCode-graph MCP is configured for: %s%n", String.join(", ", eligible));
+        console.printf("Optional skills recommend MCP only when available/useful; they grant no permissions.%n");
+        for (String client : eligible) console.printf("  %s: %s%n", locations.getProperty(client + ".label"),
+                destination(client, Path.of(System.getProperty("user.home")), System.getenv()));
+        return promptConfigured(new BufferedReader(console.reader()), console.writer(), eligible);
+    }
+
+    List<String> configuredSelection(String answer, List<String> eligible) {
+        if (answer != null && answer.strip().equalsIgnoreCase("all")) return List.copyOf(eligible);
+        List<String> selected = selection(answer);
+        if (!eligible.containsAll(selected))
+            throw new IllegalArgumentException("Skills require a detected code-graph MCP connection for each selected client. Eligible: "
+                    + String.join(", ", eligible) + ". Configure MCP first, or use --skills none.");
+        return selected;
+    }
+
+    List<String> promptConfigured(BufferedReader input, PrintWriter output, List<String> eligible) throws IOException {
+        while (true) {
+            output.print("Install optional skills [" + String.join(",", eligible) + " / all / none] (none): "); output.flush();
+            try { return configuredSelection(input.readLine(), eligible); }
+            catch (IllegalArgumentException e) { output.println(e.getMessage()); }
+        }
+    }
+
     List<Result> install(List<String> selected, Path home, Map<String, String> environment) {
         List<Result> results = new ArrayList<>();
         for (String client : selected) {
