@@ -1,0 +1,694 @@
+{
+  "heapMiB": 256,
+  "host": {
+    "endpoint": "http://127.0.0.1:55195/mcp",
+    "indexAndStartupMs": 93542.0567,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 0,
+      "peakCacheUsedBytesEstimate": 0,
+      "cacheHits": 0,
+      "cacheMisses": 0,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1278503,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 229927,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 268435456,
+      "heapUsedBytes": 129185456,
+      "diskBytes": 81907712,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  },
+  "samples": [
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 326.90550000000803,
+      "responseBytes": 1110
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 150.12729999999283,
+      "responseBytes": 1058
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 149.93369999999413,
+      "responseBytes": 2982
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 148.07740000000922,
+      "responseBytes": 1656
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 209.2488999999914,
+      "responseBytes": 12569
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 152.39029999999912,
+      "responseBytes": 9678
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 179.66179999998712,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 726.1388000000006,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 218.97450000001118,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 161.90630000000237,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 128.0408000000025,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 144.03239999999641,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 155.8683999999921,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 147.04809999999998,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 147.09829999999783,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 189.38430000000517,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 161.79200000000128,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 178.74010000001,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 186.12770000001183,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 161.52599999999802,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 160.82090000000608,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 160.4658999999956,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 162.66159999999218,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 168.61849999999686,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 240.56269999999495,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 168.43180000000575,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 156.96600000000035,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 144.41470000000845,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 155.95879999999306,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 157.4708999999857,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 134.34429999999702,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 122.03789999999572,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 134.67609999999695,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 114.92359999999462,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 133.48619999999937,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 153.9597000000067,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 176.0787999999884,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 156.28620000000228,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 240.6548999999941,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 150.73129999999946,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 218.8237000000081,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 161.95590000000084,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 168.44090000000142,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 153.85009999999602,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 160.51059999999416,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 176.4948000000004,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 165.07779999999912,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 152.9820999999938,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 131.82679999999527,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 128.73139999998966,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 192.72509999999602,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 389.97810000000754,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 198.27979999998934,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 194.931700000001,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 249.42020000000775,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 229.86990000000515,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 150.31000000001222,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 145.56980000001204,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 200.79899999999907,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 181.55349999999453,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 189.0381999999954,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 164.94079999999667,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 147.10549999999057,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 161.09350000000268,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 158.2167000000045,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 154.16369999999006,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 184.93009999999776,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 140.2152999999962,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 175.13319999999658,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 156.3070000000007,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 181.48530000000028,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 155.93299999999,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 152.02550000000338,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 156.76770000001125,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 147.30869999999413,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 127.87240000000747,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 126.85370000000694,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 126.25780000000668,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 122.78770000000077,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 131.36560000000463,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 149.4103000000032,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 151.875,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 152.55519999998796,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 140.79219999999623,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 131.90860000000976,
+      "responseBytes": 1111
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 180.74649999999383,
+      "responseBytes": 1059
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 130.2734999999957,
+      "responseBytes": 2983
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 126.99159999999392,
+      "responseBytes": 1657
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 128.99120000000403,
+      "responseBytes": 12570
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 167.091499999995,
+      "responseBytes": 9679
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 243.92949999999837,
+      "responseBytes": 23354
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 155.80430000000342,
+      "responseBytes": 22039
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 162.65180000000692,
+      "responseBytes": 8203
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 145.9094999999943,
+      "responseBytes": 663
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 172.42699999999604,
+      "responseBytes": 1221
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 145.81660000000556,
+      "responseBytes": 663
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 125.8515999999945,
+      "responseBytes": 1112
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 127.0341000000044,
+      "responseBytes": 1060
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 134.90510000000359,
+      "responseBytes": 2984
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 171.6189000000013,
+      "responseBytes": 1658
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 135.12089999999444,
+      "responseBytes": 12571
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 143.4326000000001,
+      "responseBytes": 9680
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 146.72349999999278,
+      "responseBytes": 23355
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 170.04190000001108,
+      "responseBytes": 22040
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 144.8420000000042,
+      "responseBytes": 8204
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 122.7902000000031,
+      "responseBytes": 664
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 124.04099999999744,
+      "responseBytes": 1222
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 155.11699999999837,
+      "responseBytes": 664
+    },
+    {
+      "id": "qualified-java-function",
+      "elapsedMs": 162.3527999999933,
+      "responseBytes": 1112
+    },
+    {
+      "id": "java-class",
+      "elapsedMs": 136.44530000000668,
+      "responseBytes": 1060
+    },
+    {
+      "id": "storage-class",
+      "elapsedMs": 139.21480000000156,
+      "responseBytes": 2984
+    },
+    {
+      "id": "indexer-method",
+      "elapsedMs": 147.5731000000087,
+      "responseBytes": 1658
+    },
+    {
+      "id": "ambiguous-resolve",
+      "elapsedMs": 128.83370000000286,
+      "responseBytes": 12571
+    },
+    {
+      "id": "common-close",
+      "elapsedMs": 118.21700000000419,
+      "responseBytes": 9680
+    },
+    {
+      "id": "broad-get",
+      "elapsedMs": 122.57529999999679,
+      "responseBytes": 23355
+    },
+    {
+      "id": "broad-table",
+      "elapsedMs": 166.30499999999302,
+      "responseBytes": 22040
+    },
+    {
+      "id": "javascript-grid",
+      "elapsedMs": 129.54460000000836,
+      "responseBytes": 8204
+    },
+    {
+      "id": "javascript-function",
+      "elapsedMs": 139.52180000000226,
+      "responseBytes": 664
+    },
+    {
+      "id": "file-name",
+      "elapsedMs": 133.05010000000766,
+      "responseBytes": 1222
+    },
+    {
+      "id": "missing-name",
+      "elapsedMs": 134.62099999999919,
+      "responseBytes": 664
+    }
+  ],
+  "before": {
+    "state": "ready",
+    "generation": 1,
+    "files": 506,
+    "symbols": 6563,
+    "edges": 26702,
+    "dirtyPending": 0,
+    "lastIndexedAt": "2026-09-19T07:04:15.014776Z",
+    "langs": {
+      "js": 58,
+      "java": 412,
+      "xml": 36
+    },
+    "engineVersion": "hybrid-mvstore-1",
+    "server": {
+      "version": "0.0.1-SNAPSHOT",
+      "builtAt": "2026-09-19T06:32:57Z",
+      "toolCatalogFingerprint": "f7fffc0bc1c6e198b29755c1ef20d807c143be8cc05df58b2adca26a2f9f1e2a",
+      "toolCount": 20
+    }
+  },
+  "latency": {
+    "count": 120,
+    "p50Ms": 153.9597000000067,
+    "p95Ms": 240.56269999999495,
+    "p99Ms": 389.97810000000754,
+    "meanMs": 165.62877999999984,
+    "queriesPerSecond": 6.03759805512062,
+    "meanResponseBytes": 7100.316666666667
+  },
+  "passed": true,
+  "metrics": {
+    "heapUsedBytes": 84994112,
+    "heapPoolPeaksBytes": 230222992,
+    "gcCount": 277,
+    "gcTimeMs": 461,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 0,
+      "peakCacheUsedBytesEstimate": 0,
+      "cacheHits": 0,
+      "cacheMisses": 0,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1278503,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 229927,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 268435456,
+      "heapUsedBytes": 86042688,
+      "diskBytes": 81907712,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  }
+}

@@ -1,0 +1,178 @@
+diff --git a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
+index ecff110..b9a4797 100644
+--- a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
++++ b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridIndexer.java
+@@ -45,8 +45,9 @@ final class HybridIndexer {
+                 addFragment(builder, fragment);
+                 files[0]++; nodes[0] += fragment.declarations().size();
+             });
++            var lookup = new HybridSymbolLookup(builder,"");
+             builder.scanAuxiliary("fragment/", (key, value) ->
+-                    edges[0] += resolve(builder, decode(value)));
++                    edges[0] += resolve(builder, decode(value), lookup));
+             return new FullIndexer.Result(files[0], nodes[0], edges[0], List.of(), List.of());
+         });
+         record(mode, files[0], files[0], files[0], start);
+@@ -102,13 +103,16 @@ final class HybridIndexer {
+                 if (next != null) { addFragment(builder,next); affected.add(path); }
+                 changed[0]++;
+             }
++            // All lookup records are now final for this publication. Reuse the
++            // existing bounded scratch across files; never carry it into a later batch.
++            var lookup = new HybridSymbolLookup(builder,"");
+             if (all[0]) {
+                 builder.scanAuxiliary("fragment/", (key,value) -> {
+-                    resolve(builder,decode(value)); resolved[0]++;
++                    resolve(builder,decode(value),lookup); resolved[0]++;
+                 });
+             } else {
+                 for (String path : affected) {
+-                    resolve(builder,decode(builder.auxiliary("fragment/"+path))); resolved[0]++;
++                    resolve(builder,decode(builder.auxiliary("fragment/"+path)),lookup); resolved[0]++;
+                 }
+             }
+             return null;
+@@ -204,11 +208,11 @@ final class HybridIndexer {
+         builder.removeFile(fragment.lang());
+     }
+ 
+-    private static int resolve(PagedGraph.Builder builder, FileFragment fragment) {
++    private static int resolve(PagedGraph.Builder builder, FileFragment fragment, HybridSymbolLookup lookup) {
+         removeOutgoing(builder,fragment);
+         fragment.localEdges().forEach(builder::edge);
+         var pending = new ArrayList<RawRef>();
+-        var edges = NameResolver.resolve(fragment,new HybridSymbolLookup(builder,fragment.file().relPath()),pending);
++        var edges = NameResolver.resolve(fragment,lookup.forSource(fragment.file().relPath()),pending);
+         Node evidence = NameResolver.resolutionNode(fragment,pending);
+         if (evidence != null) builder.node(evidence);
+         edges.forEach(builder::edge);
+diff --git a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
+index c4cc2ff..9e2dfc0 100644
+--- a/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
++++ b/code-graph-index/src/main/java/io/doindev/codegraph/index/HybridSymbolLookup.java
+@@ -6,19 +6,30 @@ import io.doindev.codegraph.storage.*;
+ import java.nio.charset.StandardCharsets;
+ import java.util.*;
+ 
+-/** Per-file disk lookup shared by full and incremental resolution; no project-wide heap index. */
++/**
++ * Bounded lookup scratch shared only across one immutable resolution phase.
++ * Never retained across graph updates; no project-wide heap index.
++ */
+ final class HybridSymbolLookup implements SymbolLookup {
+     private final PagedGraph.Builder builder;
+     private final String source;
+-    private final LinkedHashMap<String,Object> cache = new LinkedHashMap<>(32,.75f,true);
+-    private final Map<String,Long> sizes = new HashMap<>();
+-    private long cacheBytes;
++    private final Scratch scratch;
++    private static final class Scratch {
++        final LinkedHashMap<String,Object> cache = new LinkedHashMap<>(32,.75f,true);
++        final Map<String,Long> sizes = new HashMap<>();
++        long bytes;
++    }
+ 
+-    HybridSymbolLookup(PagedGraph.Builder builder,String source) {this.builder=builder;this.source=source;}
++    HybridSymbolLookup(PagedGraph.Builder builder,String source) {this(builder,source,new Scratch());}
++    private HybridSymbolLookup(PagedGraph.Builder builder,String source,Scratch scratch) {
++        this.builder=builder;this.source=source;this.scratch=scratch;
++    }
++    /** Call only after all declaration/configuration writes, while lookup records are immutable. */
++    HybridSymbolLookup forSource(String source) { return new HybridSymbolLookup(builder,source,scratch); }
+     @SuppressWarnings("unchecked")
+     private List<SymbolTable.Entry> read(String prefix,String name,String language) {
+         String key=prefix+"/"+PagedGraph.encodeKey(ResolutionLanguages.family(language))+"/"+PagedGraph.encodeKey(name)+"/";
+-        if(cache.containsKey(key))return (List<SymbolTable.Entry>)cache.get(key);
++        if(scratch.cache.containsKey(key))return (List<SymbolTable.Entry>)scratch.cache.get(key);
+         var found=new ArrayList<SymbolTable.Entry>();long[] bytes={0};
+         builder.scanAuxiliary(key,(ignored,value)->{
+             bytes[0]+=value.length;
+@@ -29,22 +40,22 @@ final class HybridSymbolLookup implements SymbolLookup {
+         var result=List.copyOf(found);remember(key,result,bytes[0]+128);return result;
+     }
+     private void remember(String key,Object value,long bytes) {
+-        cache.put(key,value);sizes.put(key,bytes);cacheBytes+=bytes;
+-        while(cache.size()>256||cacheBytes>2L*1024*1024) {
+-            String oldest=cache.keySet().iterator().next();
+-            cache.remove(oldest);cacheBytes-=sizes.remove(oldest);
++        scratch.cache.put(key,value);scratch.sizes.put(key,bytes);scratch.bytes+=bytes;
++        while(scratch.cache.size()>256||scratch.bytes>2L*1024*1024) {
++            String oldest=scratch.cache.keySet().iterator().next();
++            scratch.cache.remove(oldest);scratch.bytes-=scratch.sizes.remove(oldest);
+         }
+     }
+     @Override public ModuleFile module(String path) {
+         String key="module/"+PagedGraph.encodeKey(path);
+-        if(cache.containsKey(key))return (ModuleFile)cache.get(key);
++        if(scratch.cache.containsKey(key))return (ModuleFile)scratch.cache.get(key);
+         byte[] bytes=builder.auxiliary(key);
+         ModuleFile module=bytes==null?null:RecordCodec.decode(bytes,RecordCodec.M.class).module();
+         remember(key,module,bytes==null?128:bytes.length+128L);return module;
+     }
+     @Override public JsonNode configuration(String path) {
+         String key="config/"+path;
+-        if(cache.containsKey(key))return (JsonNode)cache.get(key);
++        if(scratch.cache.containsKey(key))return (JsonNode)scratch.cache.get(key);
+         byte[] bytes=builder.auxiliary(key);
+         JsonNode configuration=bytes==null?null:RecordCodec.decode(bytes,JsonNode.class);
+         remember(key,configuration,bytes==null?128:bytes.length+128L);return configuration;
+diff --git a/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridSymbolLookupTest.java b/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridSymbolLookupTest.java
+new file mode 100644
+--- /dev/null
++++ b/code-graph-index/src/test/java/io/doindev/codegraph/index/HybridSymbolLookupTest.java
+@@ -0,0 +1,55 @@
++package io.doindev.codegraph.index;
++
++import io.doindev.codegraph.model.*;
++import io.doindev.codegraph.storage.*;
++import io.doindev.codegraph.parse.ResolutionLanguages;
++import java.util.*;
++import org.junit.jupiter.api.Test;
++import static org.junit.jupiter.api.Assertions.*;
++
++class HybridSymbolLookupTest {
++    private static Node node(String name,String signature) {
++        return new Node(new SymbolId("java","Api.java","Api."+name,0),NodeKind.FUNCTION,name,signature,
++                new SourceSpan("Api.java",1,1,1,10),Metrics.NONE,Map.of("signature",signature));
++    }
++    private static void put(PagedGraph.Builder builder,Node node) {
++        builder.auxiliary("simple/"+PagedGraph.encodeKey(ResolutionLanguages.family("java"))+"/"+PagedGraph.encodeKey(node.name())+"/one",RecordCodec.node(node));
++    }
++    @Test void filesShareOneBoundedScratchButLaterPhasesNeverReuseIt() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();
++            graph.rebuild(builder->{
++                put(builder,node("go","void go()"));
++                var first=new HybridSymbolLookup(builder,"A.java");var second=first.forSource("B.java");
++                var list=first.bySimpleName("go","java");
++                assertEquals(1,list.size());
++                assertSame(list,second.bySimpleName("go","java"));
++                assertThrows(UnsupportedOperationException.class,()->list.clear());
++                for(int n=0;n<256;n++)second.bySimpleName("missing"+n,"java");
++                assertNotSame(list,first.bySimpleName("go","java"),"entry budget is shared, not per file");
++                assertTrue(second.bySimpleName("future","java").isEmpty());
++                // A new resolution phase must be built after declaration writes.
++                put(builder,node("future","int future()"));
++                var next=new HybridSymbolLookup(builder,"C.java");
++                assertEquals(1,next.bySimpleName("future","java").size());
++                return null;
++            });
++            graph.update(builder->{
++                put(builder,node("go","String go()"));
++                assertEquals("String go()",new HybridSymbolLookup(builder,"A.java").bySimpleName("go","java").getFirst().attrs().get("signature"));
++                return null;
++            });
++        }
++    }
++    @Test void oversizedLookupIsNotRetainedAcrossFiles() {
++        try(var storage=new GraphStorage(true,32L<<20)) {
++            var graph=(PagedGraph)storage.create();
++            graph.rebuild(builder->{
++                put(builder,node("large","x".repeat(2*1024*1024)));
++                var first=new HybridSymbolLookup(builder,"A.java");var second=first.forSource("B.java");
++                assertNotSame(first.bySimpleName("large","java"),second.bySimpleName("large","java"));
++                return null;
++            });
++        }
++    }
++}

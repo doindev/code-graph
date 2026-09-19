@@ -1,12 +1,15 @@
 # Bounded hybrid incremental indexing
 
-Status: implemented and locally validated; deployment remains pending explicit approval.
+Status: implemented and locally validated; retained build deployed September 19, 2026.
 Baseline commit: 6ddfb38. Validation date: September 18, 2026 (Windows).
 
 The [declaration-freshness experiment](validation/declaration-freshness/README.md)
 was set aside in favor of this implementation's smaller disk footprint. Its source
 patches and measurements remain archived; targeted dependency tracking is not active.
 The incremental-indexing and search-latency fixes described here remain in place.
+The subsequent [footprint-first profiling](validation/low-footprint-freshness/README.md)
+measured heap, process memory and declaration work separately. Its faster scratch-reuse
+candidate was also archived rather than adopting an unproven RAM tradeoff.
 
 Follow-up performance gate: actual MCP name-search measurements initially found
 a **3.5x latency regression** (90 ms to 318 ms median). A subsequent 32 KiB

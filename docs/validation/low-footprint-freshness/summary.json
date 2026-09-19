@@ -1,0 +1,194 @@
+{
+  "scope": "Three independent JVMs per build; three direct declaration updates each; 768 MiB heap, 32 MiB graph allowance; JFR/NMT enabled. No concurrent search workload. Peaks sampled at 100 ms (heap), ~1 s (process); OS peak counter separate.",
+  "inputInventory": {
+    "files": 1015,
+    "sha256": "fb9747b6d5d5988e5f5f59436477155aaa884d2d0041486dd66606d552fe3c8d"
+  },
+  "rows": [
+    {
+      "variant": "baseline",
+      "run": 1,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 74902.2069,
+      "updatesMs": [
+        14546.225,
+        13993.0964,
+        13993.2395
+      ],
+      "initialDiskBytes": 81952768,
+      "finalDiskBytes": 118132736,
+      "sampledPeakHeapBytes": 225838816,
+      "sampledPeakResidentBytes": 437526528,
+      "osReportedPeakResidentBytes": 443682816,
+      "sampledPeakPrivateCommittedBytes": 478744576
+    },
+    {
+      "variant": "baseline",
+      "run": 2,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 72121.5676,
+      "updatesMs": [
+        12939.4725,
+        13077.8728,
+        13234.1839
+      ],
+      "initialDiskBytes": 82001920,
+      "finalDiskBytes": 117714944,
+      "sampledPeakHeapBytes": 404519336,
+      "sampledPeakResidentBytes": 605691904,
+      "osReportedPeakResidentBytes": 608821248,
+      "sampledPeakPrivateCommittedBytes": 655192064
+    },
+    {
+      "variant": "baseline",
+      "run": 3,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 73604.6737,
+      "updatesMs": [
+        13911.3325,
+        14309.7416,
+        14273.4081
+      ],
+      "initialDiskBytes": 81952768,
+      "finalDiskBytes": 118132736,
+      "sampledPeakHeapBytes": 328241112,
+      "sampledPeakResidentBytes": 532172800,
+      "osReportedPeakResidentBytes": 534958080,
+      "sampledPeakPrivateCommittedBytes": 572624896
+    },
+    {
+      "variant": "candidate",
+      "run": 1,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 70587.8772,
+      "updatesMs": [
+        11288.669,
+        12167.2002,
+        11730.8404
+      ],
+      "initialDiskBytes": 82120704,
+      "finalDiskBytes": 118591488,
+      "sampledPeakHeapBytes": 344300416,
+      "sampledPeakResidentBytes": 553283584,
+      "osReportedPeakResidentBytes": 554610688,
+      "sampledPeakPrivateCommittedBytes": 594477056
+    },
+    {
+      "variant": "candidate",
+      "run": 2,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 73442.0037,
+      "updatesMs": [
+        12321.7801,
+        11980.3575,
+        12146.8921
+      ],
+      "initialDiskBytes": 82001920,
+      "finalDiskBytes": 118767616,
+      "sampledPeakHeapBytes": 166662016,
+      "sampledPeakResidentBytes": 367726592,
+      "osReportedPeakResidentBytes": 367726592,
+      "sampledPeakPrivateCommittedBytes": 433664000
+    },
+    {
+      "variant": "candidate",
+      "run": 3,
+      "source": "C:\\Users\\timhj\\AppData\\Local\\Temp\\cgraph-incremental-81f93d72c7754aeeb9962245d8155984\\baseline",
+      "initialMs": 71059.8652,
+      "updatesMs": [
+        11425.1973,
+        11745.3732,
+        11816.5012
+      ],
+      "initialDiskBytes": 81969152,
+      "finalDiskBytes": 118878208,
+      "sampledPeakHeapBytes": 402293880,
+      "sampledPeakResidentBytes": 620552192,
+      "osReportedPeakResidentBytes": 621043712,
+      "sampledPeakPrivateCommittedBytes": 661823488
+    }
+  ],
+  "groups": {
+    "baseline": {
+      "initialMs": {
+        "median": 73604.6737,
+        "min": 72121.5676,
+        "max": 74902.2069
+      },
+      "initialDiskBytes": {
+        "median": 81952768,
+        "min": 81952768,
+        "max": 82001920
+      },
+      "finalDiskBytes": {
+        "median": 118132736,
+        "min": 117714944,
+        "max": 118132736
+      },
+      "sampledPeakHeapBytes": {
+        "median": 328241112,
+        "min": 225838816,
+        "max": 404519336
+      },
+      "sampledPeakResidentBytes": {
+        "median": 532172800,
+        "min": 437526528,
+        "max": 605691904
+      },
+      "osReportedPeakResidentBytes": {
+        "median": 534958080,
+        "min": 443682816,
+        "max": 608821248
+      },
+      "sampledPeakPrivateCommittedBytes": {
+        "median": 572624896,
+        "min": 478744576,
+        "max": 655192064
+      },
+      "updateMs": {
+        "median": 13993.0964
+      }
+    },
+    "candidate": {
+      "initialMs": {
+        "median": 71059.8652,
+        "min": 70587.8772,
+        "max": 73442.0037
+      },
+      "initialDiskBytes": {
+        "median": 82001920,
+        "min": 81969152,
+        "max": 82120704
+      },
+      "finalDiskBytes": {
+        "median": 118767616,
+        "min": 118591488,
+        "max": 118878208
+      },
+      "sampledPeakHeapBytes": {
+        "median": 344300416,
+        "min": 166662016,
+        "max": 402293880
+      },
+      "sampledPeakResidentBytes": {
+        "median": 553283584,
+        "min": 367726592,
+        "max": 620552192
+      },
+      "osReportedPeakResidentBytes": {
+        "median": 554610688,
+        "min": 367726592,
+        "max": 621043712
+      },
+      "sampledPeakPrivateCommittedBytes": {
+        "median": 594477056,
+        "min": 433664000,
+        "max": 661823488
+      },
+      "updateMs": {
+        "median": 11816.5012
+      }
+    }
+  },
+  "declarationMedianReductionPercent": 15.554778855093144
+}

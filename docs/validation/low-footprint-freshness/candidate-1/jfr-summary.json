@@ -1,0 +1,290 @@
+{
+  "events" : 109556,
+  "cpuSamples" : [ {
+    "frame" : "(no application frame)",
+    "value" : 1609
+  }, {
+    "frame" : "org.h2.mvstore.DataUtils.readString",
+    "value" : 159
+  }, {
+    "frame" : "org.h2.compress.CompressLZF.compress",
+    "value" : 64
+  }, {
+    "frame" : "org.h2.compress.CompressLZF.expand",
+    "value" : 57
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph.encodeKey",
+    "value" : 51
+  }, {
+    "frame" : "org.h2.mvstore.Page.read",
+    "value" : 43
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.type",
+    "value" : 41
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.qualified",
+    "value" : 39
+  }, {
+    "frame" : "org.h2.store.fs.async.FileAsync.read",
+    "value" : 37
+  }, {
+    "frame" : "io.doindev.codegraph.index.HybridSymbolLookup.read",
+    "value" : 24
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.scanAuxiliary",
+    "value" : 23
+  }, {
+    "frame" : "org.h2.mvstore.DataUtils.writeStringData",
+    "value" : 17
+  }, {
+    "frame" : "com.fasterxml.jackson.databind.deser.BeanDeserializer._deserializeUsingPropertyBased",
+    "value" : 16
+  }, {
+    "frame" : "com.fasterxml.jackson.core.json.UTF8StreamJsonParser._finishAndReturnString",
+    "value" : 15
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.declaredType",
+    "value" : 15
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.erase",
+    "value" : 14
+  }, {
+    "frame" : "org.h2.mvstore.type.StringDataType.binarySearch",
+    "value" : 14
+  }, {
+    "frame" : "org.h2.mvstore.DataUtils.readVarIntRest",
+    "value" : 12
+  }, {
+    "frame" : "com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer.findName",
+    "value" : 10
+  }, {
+    "frame" : "io.doindev.codegraph.model.Edge.<init>",
+    "value" : 10
+  }, {
+    "frame" : "org.h2.mvstore.MVMap.operate",
+    "value" : 10
+  }, {
+    "frame" : "com.fasterxml.jackson.databind.introspect.AnnotatedConstructor.call",
+    "value" : 9
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.value",
+    "value" : 9
+  }, {
+    "frame" : "com.fasterxml.jackson.core.json.UTF8StreamJsonParser.nextToken",
+    "value" : 9
+  }, {
+    "frame" : "org.h2.mvstore.Page.write",
+    "value" : 8
+  }, {
+    "frame" : "org.h2.mvstore.FileStore.getChunk",
+    "value" : 7
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.members",
+    "value" : 7
+  }, {
+    "frame" : "org.h2.mvstore.DataUtils.writeVarInt",
+    "value" : 6
+  }, {
+    "frame" : "io.doindev.codegraph.model.Node.<init>",
+    "value" : 6
+  }, {
+    "frame" : "com.fasterxml.jackson.databind.ser.BeanPropertyWriter.serializeAsField",
+    "value" : 6
+  } ],
+  "applicationSamples" : [ {
+    "frame" : "(no application frame)",
+    "value" : 1612
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.scan",
+    "value" : 310
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.flushIfNeeded",
+    "value" : 111
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec.decode",
+    "value" : 100
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph.encodeKey",
+    "value" : 51
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.type",
+    "value" : 41
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.qualified",
+    "value" : 39
+  }, {
+    "frame" : "io.doindev.codegraph.index.HybridSymbolLookup.read",
+    "value" : 24
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.scanAuxiliary",
+    "value" : 23
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.remove",
+    "value" : 23
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec.encode",
+    "value" : 23
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.put",
+    "value" : 22
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.declaredType",
+    "value" : 15
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.erase",
+    "value" : 14
+  }, {
+    "frame" : "io.doindev.codegraph.model.Edge.<init>",
+    "value" : 10
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.value",
+    "value" : 9
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.members",
+    "value" : 7
+  }, {
+    "frame" : "io.doindev.codegraph.model.Node.<init>",
+    "value" : 6
+  }, {
+    "frame" : "io.doindev.codegraph.model.SymbolId.parse",
+    "value" : 5
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.edges",
+    "value" : 5
+  }, {
+    "frame" : "io.doindev.codegraph.index.HybridSymbolLookup.remember",
+    "value" : 4
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.split",
+    "value" : 4
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.select",
+    "value" : 4
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.resolve",
+    "value" : 4
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec$R.ref",
+    "value" : 4
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.flag",
+    "value" : 3
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec$N.node",
+    "value" : 3
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec$E.<init>",
+    "value" : 3
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.edge",
+    "value" : 3
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.<init>",
+    "value" : 2
+  } ],
+  "parkNanos" : [ {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.scan :: org.h2.store.fs.async.FileAsync.complete",
+    "value" : 320025800
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.remove :: org.h2.store.fs.async.FileAsync.complete",
+    "value" : 7771100
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.flushIfNeeded :: org.h2.store.fs.async.FileAsync.complete",
+    "value" : 6720700
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.put :: org.h2.store.fs.async.FileAsync.complete",
+    "value" : 6227100
+  } ],
+  "sampledAllocationWeightBytes" : [ {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.scan",
+    "value" : 18838296760
+  }, {
+    "frame" : "(no application frame)",
+    "value" : 13516855648
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.flushIfNeeded",
+    "value" : 1898988872
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph.encodeKey",
+    "value" : 1826040160
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.qualified",
+    "value" : 1385993600
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.type",
+    "value" : 1165967736
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec.decode",
+    "value" : 791444608
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.put",
+    "value" : 737204288
+  }, {
+    "frame" : "io.doindev.codegraph.index.HybridSymbolLookup.read",
+    "value" : 634713688
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Generation.remove",
+    "value" : 634445512
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.declaredType",
+    "value" : 389149520
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.erase",
+    "value" : 216029496
+  }, {
+    "frame" : "io.doindev.codegraph.parse.ResolutionLanguages.family",
+    "value" : 134709560
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.edges",
+    "value" : 117971904
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.edge",
+    "value" : 112039856
+  }, {
+    "frame" : "io.doindev.codegraph.parse.EcmaModuleResolver.resolve",
+    "value" : 106715648
+  }, {
+    "frame" : "io.doindev.codegraph.model.SymbolId.parse",
+    "value" : 85367416
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.members",
+    "value" : 81576952
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph.sequence",
+    "value" : 79413056
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.select",
+    "value" : 71593312
+  }, {
+    "frame" : "io.doindev.codegraph.storage.RecordCodec.encode",
+    "value" : 62157704
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.auxiliary",
+    "value" : 41309352
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.fieldType",
+    "value" : 34464912
+  }, {
+    "frame" : "io.doindev.codegraph.model.Edge.<init>",
+    "value" : 32886752
+  }, {
+    "frame" : "io.doindev.codegraph.model.SymbolId.value",
+    "value" : 29833680
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph.edgePrefix",
+    "value" : 29759272
+  }, {
+    "frame" : "io.doindev.codegraph.storage.PagedGraph$Builder.lambda$removeOutgoing$0",
+    "value" : 26487816
+  }, {
+    "frame" : "io.doindev.codegraph.parse.NameResolver.edge",
+    "value" : 21862560
+  }, {
+    "frame" : "io.doindev.codegraph.parse.JavaCallResolver.methods",
+    "value" : 19355392
+  }, {
+    "frame" : "io.doindev.codegraph.parse.NameResolver.resolveOne",
+    "value" : 18737880
+  } ],
+  "note" : "Sampling diagnostics, not exact call counts, exclusive costs or retained memory; map cardinality bounded to 4096."
+}
