@@ -63,7 +63,16 @@ class StaticAssetsTest {
             assertCompactButton(index.body(), "remove-project", "&#10005;",
                     "Remove the active project from this server");
             assertCompactButton(index.body(), "reindex-project", "&#10227;", "Reindex the active project");
-            assertCompactButton(index.body(), "ttl-settings", "TTL", "Set the project idle timeout");
+            assertTrue(index.body().contains("id=\"root-settings\""));
+            assertTrue(index.body().contains("id=\"settings-divider\""));
+            assertTrue(index.body().contains("A workspace for your code."));
+            assertFalse(index.body().contains("id=\"ttl-settings\""));
+            assertFalse(index.body().contains("id=\"memory-settings\""));
+            assertFalse(index.body().contains("id=\"mcp-pill\""));
+            assertEquals(200, get(client, base + "/settings.js").statusCode());
+            var theme = get(client, base + "/dba/workspace-theme.css");
+            assertEquals(200, theme.statusCode(), "shared theme must work with DBA disabled");
+            assertTrue(theme.body().contains("--accent: #67d9bd"));
 
             HttpResponse<String> app = get(client, base + "/app.js");
             assertEquals(200, app.statusCode());

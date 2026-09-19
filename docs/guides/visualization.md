@@ -53,9 +53,32 @@ The UI consumes a small JSON API you can also script against:
 All payloads are capped and marked `truncated` when cut — the browser never receives an
 unbounded graph.
 
+## Shared workspace styling and Settings
+
+Graph and DBA share a bundled dark theme, green accents, compact 36-pixel toolbar,
+brand/navigation links, buttons, and keyboard focus styling. Their content remains independent:
+the graph page does not load the database editor, and styling works with DBA disabled.
+
+The graph toolbar's rightmost **Settings** gear opens a searchable, resizable two-pane dialog.
+Its icon-free tree groups **Graph memory (RAM)**, **MCP connection**, and
+**Project idle timeout (TTL)** under **Server**. Search matches category names and field
+names/descriptions; the inline clear button restores the unfiltered tree. Drag the divider or
+focus it and use Left/Right (Home/End for bounds). Its position lasts for this page.
+
+Edits remain drafts while navigating/searching. **Apply** is enabled only for meaningful
+editable changes, validates them, submits only changed fields, and closes after success.
+**Cancel** or Escape discards edits. An interrupted save reloads actual values for review,
+without automatically retrying the write. Read-only servers still show settings and MCP details.
+The MCP endpoint can be copied; changing listeners or backend mode requires a restart.
+
+With no projects, the welcome view offers **Add project**, **Connect an agent**, and
+**Open DBA** (when enabled). Graph-specific controls remain disabled. A read-only server
+explains how to onboard through MCP or enable UI administration; visiting the page never
+onboards a directory automatically.
+
 ## Idle timeout administration
 
-With UI administration enabled, **Idle timeout** edits the server-wide inactivity policy (one
+With UI administration enabled, **Settings → Server → Project idle timeout (TTL)** edits the server-wide inactivity policy (one
 hour by default, also configurable via `--project-ttl`). The setting is available when the
 workspace is empty. Saving changes the policy for current and future projects for this server
 session only. Shorter values may cause immediate expiry on the next five-second check.
@@ -69,12 +92,32 @@ After expiry the graph is cleared, the roster is refreshed, and project controls
 until a project is selected or onboarded. An expired project is never automatically reloaded.
 
 `GET /api/server` includes `projectTtlSeconds`. Admin-only `PUT /api/settings` accepts
-`{"projectTtl":"30m"}`. Project listings include passive lifetime metadata. A browser can send
+`{"projectTtl":"30m"}`, `{"graphMemory":"1536m"}`, or both fields in one request.
+Both fields are validated before publishing the timeout; a rejected budget leaves TTL unchanged.
+Project listings include passive lifetime metadata. A browser can send
 `POST /api/p/{name}/activity` for actual interaction; `X-Project-Instance` binds a request to the
 instance ID from the roster so stale requests cannot renew a re-added project with the same name.
 
 ## Security
 
-Read-only over the in-memory graphs; no source text is served (same SnippetPolicy invariant as
-the tools). The stdio server binds viz to loopback; the team server binds it alongside `/mcp`
-— front both with your usual reverse proxy/auth for shared deployments.
+Graph queries are read-only; no source text is served (same SnippetPolicy invariant as the
+tools). HTTP and stdio UI listeners are loopback-only. Do not expose them through a reverse
+proxy or tunnel. Administration requires the existing UI-admin setting; opening Settings
+does not grant additional authority.
+
+## UI regression checks
+
+With Node.js, Playwright and Edge available:
+
+~~~
+node --test code-graph-viz/settings-test.cjs
+node code-graph-viz/browser-settings.cjs
+mvn -pl code-graph-viz -am test
+~~~
+
+The browser test serves real assets from a disposable loopback fixture, checks read-only,
+empty and active workspaces, draft/search/resize behavior and failed-save recovery, and
+writes screenshots to `code-graph-viz/target/ui-screenshots`. It never calls the running
+user server. Shared DBA toolbar regressions use `code-graph-dba/test-browser.ps1`
+with `DBA_BROWSER_SUITE=workspace-toolbar`. Set `NODE_PATH` if Playwright is installed outside
+the repository.

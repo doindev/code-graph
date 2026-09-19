@@ -390,7 +390,7 @@ automatic restoration or persistence of the runtime project roster.
 | Scope | Where to configure | When it takes effect |
 |---|---|---|
 | Server listeners, startup roots, backend | Server arguments; root/HTTP-port environment fallbacks below | Startup; restart to change listeners or backend. |
-| Project idle expiry and hybrid allowance | Startup arguments; admin **TTL** / **RAM** controls | Admin changes apply immediately to existing and future projects, session-only. |
+| Project idle expiry and hybrid allowance | Startup arguments; root **Settings → Server** (Project idle timeout / Graph memory) | Admin changes apply immediately to existing and future projects, session-only. |
 | Parsing filters, scoring, analysis rules, response limits | Each project's `code-graph.json` or `code-graph.yaml`; three explicit environment overrides | Loaded when a project is opened/onboarded. Remove/re-add the project or restart to reload. Reindexing alone does not reload configuration. |
 | JVM heap and temporary directory | JVM arguments **before** `-cp` / `-jar` | JVM startup; independent of project configuration. |
 | CI report/gating/publication | Headless CLI arguments and CI environment variables | That CLI invocation only. |
@@ -436,7 +436,7 @@ the graph; hybrid mode also closes/deletes that project's owned disk store. Sour
 CLI snapshots and independent database mirrors are not deleted. Onboard the project again
 to use it after expiry.
 
-Admin **TTL** changes recalculate deadlines from last activity for existing and future projects.
+Admin **Settings → Project idle timeout (TTL)** changes recalculate deadlines from last activity for existing and future projects.
 Shortening the timeout may expire idle projects on the next sweep. It is available even with
 zero projects; changes are not written to disk and reset to the startup value on restart.
 
@@ -445,7 +445,7 @@ zero projects; changes are not written to disk and reset to the startup value on
 | Setting | Default | Valid values / behavior |
 |---|---|---|
 | `--graph-storage` | `memory` | `memory` or `hybrid`; server-wide, restart required to switch. |
-| `--graph-memory` / admin **RAM** | Raw HTTP/stdio: `1g`; installed `cgraph`: `1536m` = 1.5 GiB | Positive whole MiB/GiB sizes such as `32m`, `256MiB`, `1g`, `2GiB`; suffixes are case-insensitive. Minimum 32 MiB. No bare bytes, fractional sizes, `MB` or `GB` suffixes. |
+| `--graph-memory` / **Settings → Graph memory (RAM)** | Raw HTTP/stdio: `1g`; installed `cgraph`: `1536m` = 1.5 GiB | Positive whole MiB/GiB sizes such as `32m`, `256MiB`, `1g`, `2GiB`; suffixes are case-insensitive. Minimum 32 MiB. No bare bytes, fractional sizes, `MB` or `GB` suffixes. |
 | JVM `-Xmx` | JVM/environment-selected | Maximum Java heap, e.g. `-Xmx1g`. Not a graph-cache setting or a total-process RAM limit. |
 | JVM `-Djava.io.tmpdir=PATH` | JVM temporary directory | Writable existing parent directory for temporary session storage; affects the whole JVM, not just graphs. |
 
@@ -464,7 +464,7 @@ max(0, min(configured allowance, JVM maximum heap / 2)
 
 For example, `--graph-memory 1g -Xmx1g` with one active store gives a **495 MiB effective
 cache**, not 1 GiB of cache. Each staged rebuild temporarily reserves another store.
-New stores or budget reductions that cannot reserve metadata are rejected. **RAM** shows
+New stores or budget reductions that cannot reserve metadata are rejected. **Settings → Graph memory (RAM)** shows
 requested allowance, effective capacity, estimated use, disk bytes and cache hits/misses.
 Shrinking the budget evicts cache entries immediately without removing projects or changing
 their published generation. Increasing it allows on-demand cache growth.
@@ -529,11 +529,13 @@ Admin controls are enabled by `--viz-admin` for HTTP, or by default for stdio un
 | `+` | Onboard a project through the server-side directory browser; works with an empty workspace. |
 | `⟳` | Reindex the selected project; disabled when no project is selected or a reindex is active. |
 | `×` | Remove the selected project from this server; does not delete source files. |
-| **TTL** | Set the shared idle timeout, including with zero projects. |
-| **RAM** | View storage telemetry; adjust the shared allowance only in hybrid mode. Saving is disabled in memory mode. |
+| **Settings** gear | Opens the searchable server-settings dialog; available with zero projects and in read-only mode. |
+| **Settings → Project idle timeout (TTL)** | Draft the shared idle timeout. Apply commits it; Cancel discards it. |
+| **Settings → Graph memory (RAM)** | View telemetry; draft the shared allowance in hybrid mode. Editing is disabled in memory/read-only mode. |
+| **Settings → MCP connection** | View/copy the local MCP endpoint, or see stdio transport information. Listener changes require restart. |
 
 `GET /api/server` returns listener/admin information, `projectTtlSeconds` and `graphStorage`
-telemetry. `PUT /api/settings` is admin-only and accepts exactly **one** of these string fields
+telemetry. `PUT /api/settings` is admin-only and accepts either or both of these string fields
 per request (maximum request body 1,024 bytes):
 
 ~~~json
@@ -541,8 +543,17 @@ per request (maximum request body 1,024 bytes):
 ~~~
 
 ~~~json
-{ "graphMemory": "256m" }
+{ "graphMemory": "256m", "projectTtl": "10m" }
 ~~~
+
+The root page and DBA share compact dark toolbars, green accents, typography and controls.
+The root Settings dialog has a searchable tree and a draggable vertical pane divider, also
+operable with Left/Right arrow keys. Search matches node names and setting descriptions.
+Drafts survive navigation and filtering; nothing is saved until **Apply**. Only changed fields
+are sent, and both are validated before publishing TTL. A rejected RAM budget cannot partially
+change the timeout. **Cancel** discards the draft; successful Apply closes the dialog.
+With no projects, the welcome view offers Add project, MCP setup and DBA navigation when enabled.
+See the [UI guide](docs/guides/visualization.md#shared-workspace-styling-and-settings).
 
 Successful updates return refreshed server information. Invalid settings return HTTP 400;
 read-only UI mutation attempts return HTTP 403. These settings affect the running session,

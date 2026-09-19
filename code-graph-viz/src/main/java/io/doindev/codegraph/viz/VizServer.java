@@ -107,14 +107,10 @@ public final class VizServer implements AutoCloseable {
                 catch (IOException e) { throw new IllegalArgumentException("invalid settings JSON"); }
                 var value = json == null ? null : json.get("projectTtl");
                 var memory = json == null ? null : json.get("graphMemory");
-                if ((value == null) == (memory == null)) throw new IllegalArgumentException("set exactly one of projectTtl or graphMemory");
-                if (memory != null) {
-                    if (!memory.isTextual()) throw new IllegalArgumentException("graphMemory must be text, e.g. 1g");
-                    control.graphMemory(memory.asText());
-                } else {
-                    if (!value.isTextual() || control.lifecycle() == null) throw new IllegalArgumentException("projectTtl is unavailable or invalid");
-                    control.lifecycle().setTtl(io.doindev.codegraph.lifecycle.ProjectLifecycle.parseTtl(value.asText()));
-                }
+                if (value == null && memory == null) throw new IllegalArgumentException("set projectTtl, graphMemory, or both");
+                if (value != null && !value.isTextual()) throw new IllegalArgumentException("projectTtl must be text, e.g. 1h");
+                if (memory != null && !memory.isTextual()) throw new IllegalArgumentException("graphMemory must be text, e.g. 1536m");
+                control.applySettings(value == null ? null : value.asText(), memory == null ? null : memory.asText());
                 respondJson(exchange, 200, serverInfo());
                 return;
             }
@@ -253,16 +249,18 @@ public final class VizServer implements AutoCloseable {
     // ---- action helpers ----
 
     private String serverInfo() {
-        ObjectNode out = JSON.createObjectNode();
-        out.put("mcpEndpoint", control.mcpEndpoint());
-        out.put("mutable", control.mutable());
-        out.put("vizPort", port());
-        out.put("dbaEnabled", dba != null);
-        out.set("graphStorage", JSON.valueToTree(control.storageStatus()));
-        if (control.lifecycle() != null) {
-            out.put("projectTtlSeconds", control.lifecycle().ttl().toSeconds());
+        synchronized (control) {
+            ObjectNode out = JSON.createObjectNode();
+            out.put("mcpEndpoint", control.mcpEndpoint());
+            out.put("mutable", control.mutable());
+            out.put("vizPort", port());
+            out.put("dbaEnabled", dba != null);
+            out.set("graphStorage", JSON.valueToTree(control.storageStatus()));
+            if (control.lifecycle() != null) {
+                out.put("projectTtlSeconds", control.lifecycle().ttl().toSeconds());
+            }
+            return out.toString();
         }
-        return out.toString();
     }
 
     private String browse(String path) {
@@ -310,7 +308,8 @@ public final class VizServer implements AutoCloseable {
 
     private static boolean isStatic(String path) {
         return path.equals("/") || path.equals("/index.html") || path.equals("/app.js")
-                || path.equals("/style.css") || path.startsWith("/vendor/");
+                || path.equals("/style.css") || path.equals("/settings.js")
+                || path.equals("/dba/workspace-theme.css") || path.startsWith("/vendor/");
     }
 
     private void serveStatic(HttpExchange exchange, String path) throws IOException {
@@ -319,7 +318,9 @@ public final class VizServer implements AutoCloseable {
             respond(exchange, 400, "text/plain", "bad path".getBytes(StandardCharsets.UTF_8));
             return;
         }
-        try (InputStream in = VizServer.class.getResourceAsStream("/codegraph/viz/" + name)) {
+        String resource = path.equals("/dba/workspace-theme.css")
+                ? "/codegraph/dba/workspace-theme.css" : "/codegraph/viz/" + name;
+        try (InputStream in = VizServer.class.getResourceAsStream(resource)) {
             if (in == null) {
                 respond(exchange, 404, "text/plain", "not found".getBytes(StandardCharsets.UTF_8));
                 return;

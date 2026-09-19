@@ -22,7 +22,7 @@ public interface VizControl {
     /** Current projects, in registration order (first = default). */
     List<VizProject> projects();
 
-    /** MCP endpoint description shown in the UI header, e.g. {@code "stdio"} or {@code "http://host:3000/mcp"}. */
+    /** MCP endpoint description shown in Settings, e.g. {@code "stdio"} or {@code "http://host:3000/mcp"}. */
     String mcpEndpoint();
 
     /** Live project policy; absent only for fixed, read-only embeddings. */
@@ -30,6 +30,18 @@ public interface VizControl {
 
     default java.util.Map<String, Object> storageStatus() { return java.util.Map.of("mode", "memory"); }
     default void graphMemory(String value) { throw new IllegalArgumentException("graph memory settings unavailable"); }
+
+    /** Apply one reviewed settings draft. A rejected budget must not publish a shortened TTL. */
+    default void applySettings(String projectTtl, String graphMemory) {
+        synchronized (this) {
+            var policy = lifecycle();
+            if (projectTtl != null && policy == null)
+                throw new IllegalArgumentException("projectTtl is unavailable");
+            var duration = projectTtl == null ? null : ProjectLifecycle.parseTtl(projectTtl);
+            if (graphMemory != null) graphMemory(graphMemory); // validates before resizing
+            if (duration != null) policy.setTtl(duration);
+        }
+    }
 
     /** Whether the action endpoints (reindex/add/remove/browse) are enabled. */
     default boolean mutable() {

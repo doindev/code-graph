@@ -5,25 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>code-graph</title>
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/dba/workspace-theme.css">
 </head>
 <body>
 <div id="graph"></div>
-<div id="empty-state" class="hidden">
-  <div class="empty-title">No projects onboarded</div>
-  <div class="empty-message">Add a project to begin.</div>
-</div>
+<main id="empty-state" class="hidden" aria-labelledby="welcome-title">
+  <section class="welcome-card workspace-welcome">
+    <div class="welcome-eyebrow"><span class="welcome-spark" aria-hidden="true">◈</span> CODE INTELLIGENCE</div>
+    <h1 id="welcome-title">A workspace for your code.</h1>
+    <p class="welcome-intro">Explore the structure. Follow the connections.<br>Understand what changes before you change it.</p>
+    <div class="welcome-actions">
+      <button id="welcome-project" class="welcome-primary" disabled><span data-root-icon="folder-plus"></span><span id="welcome-project-label">Add project</span></button>
+      <button id="welcome-mcp"><span data-root-icon="plug"></span>Connect an agent</button>
+      <a id="welcome-dba" class="hidden" href="/dba"><span data-root-icon="database"></span>Open DBA</a>
+    </div>
+    <p id="welcome-access" class="welcome-note">Checking server capabilities…</p>
+    <div class="welcome-features">
+      <article><span class="welcome-step">01 / EXPLORE</span><h2>See the bigger picture</h2><p>Navigate modules, files, and symbols in one connected graph.</p></article>
+      <article><span class="welcome-step">02 / UNDERSTAND</span><h2>Follow the impact</h2><p>Explore callers and dependencies with indexed confidence evidence.</p></article>
+      <article><span class="welcome-step">03 / BUILD</span><h2>Give your agent context</h2><p>Use MCP to find symbols and relationships without repeated discovery searches.</p></article>
+    </div>
+    <div class="welcome-state" role="status"><span class="welcome-dot" aria-hidden="true"></span><div><strong class="empty-title">No projects onboarded</strong><p class="empty-message">Your source stays where it is. Nothing is indexed until you add a project.</p></div></div>
+  </section>
+</main>
 
-<header id="topbar">
+<header id="topbar" role="toolbar" aria-label="Graph workspace">
+  <div id="toolbar-brand">
   <a id="appname" href="/dba" title="Open database administration">code-graph</a>
   <a id="counterpart-new-tab" class="header-new-tab" href="/dba" target="_blank" rel="noopener" title="Open database administration in a new tab" aria-label="Open database administration in a new tab"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3h7v7m0-7-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a>
-  <select id="project" title="Project"></select>
+  </div>
+  <div id="toolbar-actions">
+  <div class="toolbar-group" role="group" aria-label="Projects">
+  <select id="project" title="Project" aria-label="Project"></select>
   <span id="project-actions" class="hidden">
     <button id="reindex-project" title="Reindex the active project" aria-label="Reindex the active project" aria-busy="false"><span id="reindex-glyph" aria-hidden="true">&#10227;</span></button>
     <button id="remove-project" title="Remove the active project from this server" aria-label="Remove the active project from this server"><span aria-hidden="true">&#10005;</span></button>
     <button id="add-project" title="Add a project directory" aria-label="Add a project directory"><span aria-hidden="true">&#65291;</span></button>
-    <button id="ttl-settings" title="Set the project idle timeout" aria-label="Set the project idle timeout">TTL</button>
-    <button id="memory-settings" title="View graph storage and adjust the shared cache budget" aria-label="Graph memory settings">RAM</button>
   </span>
+  </div>
+  <div class="toolbar-group" role="group" aria-label="Graph display">
   <nav id="modes">
     <button id="tab-overview" class="tab">Overview</button>
     <button id="tab-galaxy" class="tab">Galaxy</button>
@@ -32,12 +52,16 @@
     <button id="dim-3d" class="tab active">3D</button>
     <button id="dim-2d" class="tab">2D</button>
   </nav>
+  </div>
+  <div class="toolbar-group toolbar-navigation" role="group" aria-label="Search and navigation">
   <input id="search" type="search" placeholder="Search symbols&hellip;" autocomplete="off" spellcheck="false">
   <button id="nav-up" title="Up one level (Esc or double-click background)" disabled>&#8593; Up</button>
   <button id="release-pins" title="Unpin all dragged nodes">Release pins</button>
   <button id="reset-view" title="Camera home + release pins">Reset view</button>
-  <button id="mcp-pill" class="pill hidden" title="MCP endpoint"></button>
   <button id="help-toggle" title="Controls help">?</button>
+  </div>
+  </div>
+  <button id="root-settings" class="root-icon-button" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="root-settings-dialog"><span data-root-icon="settings"></span></button>
 </header>
 
 <div id="crumbs"></div>
@@ -75,29 +99,20 @@
 <div id="hint">drag rotate &middot; scroll zoom &middot; right-drag pan &middot; node drag to pin</div>
 <div id="project-lifetime" class="hidden"></div>
 
-<div id="memory-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="memory-title">
-  <form id="memory-form">
-    <h2 id="memory-title">Graph memory</h2>
-    <p id="memory-status"></p>
-    <label for="memory-value">Shared graph/cache allowance</label>
-    <input id="memory-value" type="text" value="1g" required spellcheck="false" aria-describedby="memory-help">
-    <p id="memory-help">Use MiB or GiB: 256m, 1g. Minimum 32m. Shared across all projects; changes apply immediately. The effective cache leaves JVM heap headroom.</p>
-    <p>This is not a hard limit on total RAM. Parsing, query results, JVM/native memory and the OS file cache need additional memory. TTL removal is separate from paging.</p>
-    <p id="memory-error" role="alert"></p>
-    <div class="ttl-actions"><button type="button" id="memory-cancel">Close</button><button type="submit" id="memory-save">Save budget</button></div>
-  </form>
-</div>
-<div id="ttl-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="ttl-title">
-  <form id="ttl-form">
-    <h2 id="ttl-title">Project idle timeout</h2>
-    <label for="ttl-value">Expire projects after inactivity</label>
-    <input id="ttl-value" type="text" value="1h" placeholder="1h" required spellcheck="false" aria-describedby="ttl-help">
-    <p id="ttl-help">Use seconds, minutes, hours or days: 90s, 30m, 1h, 2d.</p>
-    <p>Applies to all current and future projects in this server session. Shortening the timeout may expire idle projects immediately. Source files are never deleted.</p>
-    <p id="ttl-error" role="alert"></p>
-    <div class="ttl-actions"><button type="button" id="ttl-cancel">Cancel</button><button type="submit" id="ttl-save">Save timeout</button></div>
-  </form>
-</div>
+<dialog id="root-settings-dialog" aria-labelledby="root-settings-title">
+  <header class="settings-heading"><span class="settings-eyebrow">WORKSPACE / SERVER</span><h2 id="root-settings-title">Settings</h2></header>
+  <div id="settings-work">
+    <aside class="settings-navigation">
+      <div class="settings-search-box"><label class="sr-only" for="settings-search">Search settings</label><input id="settings-search" type="text" placeholder="Search settings…" autocomplete="off" spellcheck="false"><button id="settings-search-clear" class="root-icon-button" type="button" title="Clear settings search" aria-label="Clear settings search" hidden><span data-root-icon="x"></span></button></div>
+      <div id="settings-tree" role="tree" aria-label="Server settings"></div>
+      <p id="settings-search-status" class="sr-only" role="status"></p>
+    </aside>
+    <div id="settings-divider" role="separator" aria-label="Resize settings navigation" aria-orientation="vertical" aria-controls="settings-content" tabindex="0" aria-valuemin="25" aria-valuemax="70" aria-valuenow="50"></div>
+    <section id="settings-content" tabindex="0" aria-label="Selected settings"></section>
+  </div>
+  <div id="settings-feedback" role="alert" hidden><span></span><button id="settings-reload" type="button" hidden>Reload server settings</button></div>
+  <footer class="settings-footer"><span id="settings-draft-status" role="status"></span><button id="settings-cancel" type="button"><span data-root-icon="x"></span>Cancel</button><button id="settings-apply" type="button" disabled><span data-root-icon="check"></span><span>Apply</span></button></footer>
+</dialog>
 
 <div id="browse-overlay" class="hidden">
   <div id="browse-card">
@@ -143,6 +158,7 @@
 
 <script src="/vendor/3d-force-graph.min.js"></script>
 <script src="/vendor/force-graph.min.js"></script>
+<script src="/settings.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

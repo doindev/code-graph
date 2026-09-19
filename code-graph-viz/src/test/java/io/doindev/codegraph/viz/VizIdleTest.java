@@ -85,4 +85,37 @@ class VizIdleTest {
             assertEquals(Duration.ofMinutes(10), policy.ttl());
         }
     }
+
+    @Test void combinedSettingsValidateBeforePublishingTimeout() throws Exception {
+        var memory = new java.util.concurrent.atomic.AtomicReference<>("1536m");
+        VizControl control = new VizControl() {
+            public List<VizProject> projects() { return List.of(); }
+            public String mcpEndpoint() { return "stdio"; }
+            public boolean mutable() { return true; }
+            public ProjectLifecycle lifecycle() { return policy; }
+            public void graphMemory(String budget) {
+                if (!List.of("1536m", "2g").contains(budget)) throw new IllegalArgumentException("budget below reserve");
+                memory.set(budget);
+            }
+        };
+        try (policy; VizServer server = VizServer.start(control, 0)) {
+            assertEquals(400, request(server, "/api/settings", "PUT",
+                    "{\"projectTtl\":\"0s\",\"graphMemory\":\"2g\"}").statusCode());
+            assertEquals("1536m", memory.get());
+            assertEquals(400, request(server, "/api/settings", "PUT",
+                    "{\"projectTtl\":\"10m\",\"graphMemory\":\"1m\"}").statusCode());
+            assertEquals(Duration.ofHours(1), policy.ttl());
+            assertEquals(200, request(server, "/api/settings", "PUT",
+                    "{\"projectTtl\":\"10m\",\"graphMemory\":\"2g\"}").statusCode());
+            assertEquals(Duration.ofMinutes(10), policy.ttl());
+            assertEquals("2g", memory.get());
+            assertEquals(200, request(server, "/api/settings", "PUT",
+                    "{\"graphMemory\":\"1536m\"}").statusCode());
+            assertEquals(Duration.ofMinutes(10), policy.ttl());
+            assertEquals("1536m", memory.get());
+            assertEquals(400, request(server, "/api/settings", "PUT",
+                    "{\"projectTtl\":\"20m\",\"graphMemory\":false}").statusCode());
+            assertEquals(Duration.ofMinutes(10), policy.ttl());
+        }
+    }
 }

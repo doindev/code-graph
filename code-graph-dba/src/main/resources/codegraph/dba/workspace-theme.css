@@ -1,0 +1,96 @@
+/* Shared application chrome; independent of either workspace's editor/graph assets. */
+:root {
+  color-scheme: dark;
+  --bg: #0c111a;
+  --panel: #121a26;
+  --panel-solid: var(--panel);
+  --line: #273447;
+  --border: var(--line);
+  --text: #e4edf7;
+  --muted: #94a8bd;
+  --text-dim: var(--muted);
+  --accent: #67d9bd;
+  --surface-hover: #263e53;
+  --toolbar-bg: linear-gradient(120deg, #192a3c, #131e2d);
+  --ui-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 14px var(--ui-font);
+  scrollbar-color: #415269 #121a26;
+  scrollbar-width: thin;
+}
+body { font-family: var(--ui-font); font-size: 14px; }
+button { border-radius: 6px; background: #1a2737; color: var(--text); border-color: var(--line); }
+button:hover:not(:disabled) { background: #273b50; color: var(--text); border-color: #46647c; }
+input, select, textarea { color: var(--text); accent-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible,
+a:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+[hidden] { display: none !important; }
+#workspace-toolbar, #topbar {
+  display: flex; align-items: center; width: 100%; height: 36px; min-height: 36px;
+  flex-shrink: 0; padding: 0; gap: 8px; overflow: hidden;
+  background: var(--toolbar-bg); border-bottom: 1px solid var(--line);
+}
+#toolbar-brand {
+  display: flex; align-items: center; align-self: stretch; flex-shrink: 0;
+  gap: 8px; padding: 3px 12px; background: var(--panel); border-right: 1px solid var(--line);
+}
+#toolbar-brand #appname {
+  font: 600 14px var(--ui-font); letter-spacing: .01em; color: var(--accent);
+  white-space: nowrap; text-decoration: none;
+}
+#toolbar-brand #appname:hover { color: #b4f5e4; }
+#toolbar-brand .header-new-tab {
+  width: 28px; height: 28px; flex: 0 0 28px; margin: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted); border: 1px solid transparent; border-radius: 6px;
+}
+#toolbar-brand .header-new-tab:hover { background: var(--surface-hover); color: var(--accent); border-color: #46647c; }
+#toolbar-brand .header-new-tab svg { width: 16px; height: 16px; }
+#workspace-toolbar-actions, #toolbar-actions {
+  display: flex; align-items: center; flex: 1; min-width: 0; height: 100%;
+  gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+}
+.tool-group, .toolbar-group {
+  display: flex; align-items: center; height: 30px; gap: 3px; padding-right: 8px;
+  border-right: 1px solid #34435b; flex-shrink: 0;
+}
+#workspace-settings, #root-settings { margin-right: 8px; flex: 0 0 30px; }
+.root-icon-button, #topbar #project-actions button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 6px; flex-shrink: 0; background: transparent;
+  border: 1px solid transparent; border-radius: 6px;
+}
+.root-icon-button:hover:not(:disabled), .root-icon-button[aria-expanded=true],
+#topbar #project-actions button:hover:not(:disabled) {
+  background: var(--surface-hover); border-color: #46647c;
+}
+[data-root-icon] { display: inline-flex; flex-shrink: 0; }
+[data-root-icon] svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.workspace-welcome { width: min(920px, 100%); padding: clamp(24px, 5vw, 64px); }
+.workspace-welcome h1, #welcome h1 {
+  color: var(--text); font: 500 clamp(28px, 3vw, 40px)/1.2 var(--ui-font);
+  letter-spacing: -1.3px; margin: 18px 0;
+}
+.workspace-welcome .eyebrow, .welcome-eyebrow {
+  font-size: 11px; letter-spacing: 2px; color: var(--accent); display: flex; align-items: center; gap: 8px;
+}
+.workspace-welcome p { color: var(--muted); line-height: 1.75; }
+.welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 26px 0 12px; }
+.welcome-actions button, .welcome-actions a, #welcome #welcome-add {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 36px; padding: 8px 14px; border: 1px solid #34485a; border-radius: 6px;
+  background: #1a2737; color: var(--text); text-decoration: none; font: inherit;
+}
+.welcome-actions .welcome-primary, #welcome #welcome-add {
+  border-color: #398b76; background: #1d5749; color: #d8fff3;
+}
+.welcome-actions a:hover, .welcome-actions button:hover:not(:disabled), #welcome #welcome-add:hover {
+  background: var(--surface-hover); border-color: var(--accent);
+}
+#welcome { overflow: auto; max-height: 100%; }
+@media (max-width: 750px) {
+  #workspace-toolbar, #topbar, #toolbar-actions, #workspace-toolbar-actions { gap: 4px; }
+  #toolbar-brand { padding: 3px 8px; gap: 4px; }
+  #workspace-settings, #root-settings { margin-right: 4px; }
+}

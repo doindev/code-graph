@@ -17,9 +17,9 @@ java -Xmx1g --enable-native-access=ALL-UNNAMED `
 
 Both HTTP and stdio entry points accept `--graph-storage memory|hybrid` and `--graph-memory SIZE`. The shared allowance defaults to 1 GiB; sizes use whole MiB/GiB (`32m`, `256MiB`, `1g`). Minimum: 32 MiB. No roots are onboarded unless supplied explicitly or through `CODE_GRAPH_ROOT`. Use the UI or MCP `add_project` afterward.
 
-The admin **RAM** button shows mode, effective cache capacity, estimated use, disk size and cache hits/misses. In hybrid mode it changes the allowance immediately, including with zero projects onboarded. Shrinking evicts records; it does not remove projects or change their generations. Read-only UIs cannot mutate this setting. Backend selection requires a restart.
+The root **Settings → Server → Graph memory (RAM)** page shows mode, effective cache capacity, estimated use, disk size and cache hits/misses. In hybrid mode **Apply** changes the allowance, including with zero projects onboarded. Draft edits and Cancel never change the server. Shrinking evicts records; it does not remove projects or change their generations. Read-only UIs cannot mutate this setting. Backend selection requires a restart.
 
-Programmatic administration: `PUT /api/settings` with `{"graphMemory":"256m"}`. Send TTL updates separately (`{"projectTtl":"1h"}`). Storage telemetry is under `graphStorage` in `GET /api/server`.
+Programmatic administration: `PUT /api/settings` with `{"graphMemory":"256m"}`. TTL can be updated alone (`{"projectTtl":"1h"}`) or in the same request (`{"graphMemory":"256m","projectTtl":"1h"}`). Both fields are validated before publishing the timeout; a rejected budget does not change TTL. Storage telemetry is under `graphStorage` in `GET /api/server`.
 
 ## What the memory setting means
 
