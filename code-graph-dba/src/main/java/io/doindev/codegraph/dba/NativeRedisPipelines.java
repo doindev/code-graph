@@ -48,6 +48,7 @@ final class NativeRedisPipelines {
     }
 
     private static void validateRead(JsonNode entry,String name){
+        if(name.equals("LINDEX")&&entry.size()==3){NativeRedisTransactions.listIndex(entry.get(2));return;}
         if(SIMPLE_READS.contains(name)&&entry.size()==2)return;
         if(MEMBER_READS.contains(name)&&entry.size()==3){
             if(name.equals("GETBIT"))number(entry,2,0,4294967295L);
@@ -57,7 +58,7 @@ final class NativeRedisPipelines {
             long start=number(entry,2,0,Long.MAX_VALUE),end=number(entry,3,0,Long.MAX_VALUE);
             if(end>=start&&end-start<=8191)return;
         }
-        throw new IllegalArgumentException("Pipeline reads support scalar key metadata/membership and nonnegative GETRANGE of at most 8192 bytes; no unbounded GET, scans or aggregate replies");
+        throw new IllegalArgumentException("Pipeline reads support scalar key metadata/membership, LINDEX 0..9999 and nonnegative GETRANGE of at most 8192 bytes; no unbounded GET, scans or aggregate replies");
     }
     private static long number(JsonNode entry,int i,long min,long max){
         String value=NativeRedisArguments.text(entry,i);
@@ -127,9 +128,9 @@ final class NativeRedisPipelines {
     }
 
     private static CommandOutput<byte[],byte[],?> output(String name){
-        if(Set.of("SET","RENAME","TYPE").contains(name))return new StatusOutput<>(ByteArrayCodec.INSTANCE);
+        if(Set.of("SET","RENAME","TYPE","LSET").contains(name))return new StatusOutput<>(ByteArrayCodec.INSTANCE);
         if(BOOLEAN_REPLIES.contains(name))return new BooleanOutput<>(ByteArrayCodec.INSTANCE);
-        if(name.equals("GETRANGE"))return new ByteArrayOutput<>(ByteArrayCodec.INSTANCE);
+        if(name.equals("GETRANGE")||name.equals("LINDEX"))return new ByteArrayOutput<>(ByteArrayCodec.INSTANCE);
         if(name.equals("ZSCORE"))return new DoubleOutput<>(ByteArrayCodec.INSTANCE);
         return new IntegerOutput<>(ByteArrayCodec.INSTANCE);
     }

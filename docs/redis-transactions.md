@@ -22,6 +22,10 @@ string, not absence. Optional `field` selects an exact hash-field expectation
 instead: the hash must exist, and null then means only that field must be absent.
 Field expectations require Redis 7.4+ and HPTTL permission; expiring fields are
 rejected to avoid silently clearing their expiry. See the [hash editor](redis-hash-editor.md).
+Alternatively, integer index and length select a list-position expectation
+(0 <= index < length <= 10000), with non-null complete expected bytes and no field.
+This checks current position/length, not change history; see the
+[list-item editor](redis-list-editor.md).
 Watching starts during execution, **not while the approval is open**. The server
 checks the supplied expectations after WATCH and Redis detects subsequent changes
 before EXEC. Expiration/eviction can also cause conflicts.
@@ -31,7 +35,7 @@ before EXEC. Expiration/eviction can also cause conflicts.
 - 1–32 commands, no more than the configured result-row limit; 16 watched keys;
   100 total key references; existing 128 KiB aggregate request allowance.
 - Only existing verified scalar-reply mutation adapters: SET, DEL/UNLINK,
-  RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH, SADD/SREM,
+  RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH/LSET, SADD/SREM,
   ZADD/ZREM. Their existing argument and binary-size restrictions still apply.
 - No raw MULTI, EXEC, WATCH, scripts, nested transactions, read arrays,
   blocking commands, administrative commands or cross-database changes.

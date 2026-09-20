@@ -25,11 +25,13 @@ first command is a read. Reusable native permissions remain unavailable.
   command-input limit. The entire batch is validated before any user command is
   dispatched. Its receipt count must fit the job's row limit.
 - Existing verified scalar-reply mutations: SET, DEL, UNLINK, RENAME, RENAMENX,
-  EXPIRE, PEXPIRE, PERSIST, HSET, HDEL, LPUSH, RPUSH, SADD, SREM, ZADD and ZREM.
+  EXPIRE, PEXPIRE, PERSIST, HSET, HDEL, LPUSH, RPUSH, LSET, SADD, SREM, ZADD and ZREM.
   Each retains the individual adapter's exact supported argument grammar.
 - Reads: TYPE, TTL, PTTL, STRLEN, EXISTS (one key), EXPIRETIME, PEXPIRETIME,
   HLEN, LLEN, SCARD, ZCARD, XLEN, HEXISTS, SISMEMBER, ZSCORE, GETBIT, and
   nonnegative GETRANGE slices of at most 8,192 bytes.
+  LINDEX accepts a text index 0–9999 and returns at most an 8 KiB preview;
+  a truncated preview must never be used as an original value for editing.
 - No unbounded GET, HGETALL, scans, aggregate replies, stream delivery, scripts,
   connection controls, WATCH or nested transaction/pipeline objects. Unsupported
   commands fail before dispatch rather than being silently skipped.

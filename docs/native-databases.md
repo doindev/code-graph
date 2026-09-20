@@ -43,6 +43,11 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
+The [list-item editor](redis-list-editor.md) updates one existing position using
+reviewed LSET and current length/value WATCH expectations. It preserves key TTL,
+caps values at 8 KiB and list length at 10,000, and does not insert/delete/reorder
+items. Positional expectations do not prove historical record identity.
+
 Redis workspaces include a [bounded string value editor](redis-string-editor.md):
 text/base64 drafts, exact-byte optimistic checks, reviewed TTL-preserving Save,
 and conflict/uncertain-outcome recovery. The [hash-field editor](redis-hash-editor.md)

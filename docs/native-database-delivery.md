@@ -7,6 +7,9 @@ The unchecked compound items below include additional unsupported capabilities;
 they must not be interpreted as a claim that none of their subsets exists.
 
 This is a delivery checklist, not a declaration of implemented or tested support.
+The [list-item editor increment](redis-list-editor.md) covers guarded replacement
+of one existing Redis list position; broader collection lifecycle editors remain
+unchecked and are not implied by this addition.
 The target is first-class UI and MCP workflows, including infrastructure
 administration. Every advertised operation must have a version/edition-specific
 capability and evidence. Unknown features fail explicitly; JDBC connectivity is
@@ -121,6 +124,11 @@ authentication and operation coverage remains tracked in later phases.
 - [ ] UI/MCP integration, errors, permissions, concurrent updates and live tests.
 
 ## Phase 3: Redis developer and database workflows
+
+- [x] Existing-list-position editor: bounded text/base64 drafts, current
+  length/value expectations, reviewed LSET, TTL preservation and uncertain-outcome
+  reconciliation. No item insertion/deletion/reordering or stable record identity
+  guarantee. See [scope and acceptance](redis-list-editor.md).
 
 - [x] Hash-field lifecycle follow-up: explicit absent-field preparation, reviewed
   insertion and staged exact-value deletion. Standalone/Cluster/ACL-Sentinel,

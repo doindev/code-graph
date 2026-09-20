@@ -12,6 +12,16 @@ export function redisBytes(value,mode='text'){
   return Uint8Array.from(raw,c=>c.charCodeAt(0));
 }
 export const redisBase64=bytes=>btoa(String.fromCharCode(...bytes));
+export function redisListIndex(value){if(typeof value!=='string'||!/^[0-9]{1,4}$/.test(value))throw new Error('Enter a zero-based list index from 0 to 9999.');return Number(value);}
+export function redisListSnapshot(result,index){
+  const entries=result?.entries;
+  if(result?.kind!=='pipeline'||result.truncated||entries?.length!==4||entries.some((e,i)=>e.index!==i||e.state!=='acknowledged'||e.valueOmitted))throw new Error('Incomplete list read; no editable snapshot was created.');
+  const [type,length,value,ttl]=entries.map(e=>e.value);
+  if(type!=='list')throw new Error('Choose an existing list; this editor never creates or replaces a key.');
+  if(!Number.isInteger(index)||index<0||!Number.isSafeInteger(length)||length<1||length>10000||index>=length)throw new Error('Choose an existing position in a list of at most 10,000 items.');
+  if(value?.truncated||typeof value?.base64!=='string'||!Number.isSafeInteger(ttl)||ttl < -1)throw new Error('Missing, expired or incomplete list item; reload before editing.');
+  return{base64:redisBase64(redisBytes(value.base64,'base64')),index,length,ttl};
+}
 export function redisStringSnapshot(result){
   const entries=result?.entries;
   if(result?.kind!=='pipeline'||result.truncated||entries?.length!==4||entries.some((e,i)=>e.index!==i||e.state!=='acknowledged'||e.valueOmitted))throw new Error('Incomplete key read; no editable snapshot was created.');
@@ -39,11 +49,11 @@ export function redisNewHashSnapshot(result){
 
 /** Small, bounded, memory-only draft. Services own review, jobs, cancellation and accounting. */
 export class RedisStringEditor{
-  constructor({run,readOnly,changed,close,key='',field}){
+  constructor({run,readOnly,changed,close,key='',field,listIndex}){
     Object.assign(this,{run,readOnly,changed,close});this.snapshot=null;this.busy=false;this.uncertain=false;this.disposed=false;
-    this.isHash=field!==undefined;const noun=this.isHash?'hash field':'string';
+    this.isHash=field!==undefined;this.isList=listIndex!==undefined;if(this.isHash&&this.isList)throw new Error('Choose one Redis editor type.');const noun=this.isList?'list item':this.isHash?'hash field':'string';
     this.root=node('section');this.root.className='redis-string-editor';this.root.setAttribute('aria-label','Redis '+noun+' value editor');
-    const header=node('div');header.className='redis-string-actions';header.append(node('strong',(this.isHash?'Hash field':'String value')+' · 8 KiB maximum'));
+    const header=node('div');header.className='redis-string-actions';header.append(node('strong',(this.isList?'List item':this.isHash?'Hash field':'String value')+' · 8 KiB maximum'));
     this.key=this.input(header,'Key',key);this.key.maxLength=10924;
     this.keyMode=this.select(header,'Key encoding',['text','base64']);
     if(key&&typeof key==='object'){this.key.value=key.base64??'';this.keyMode.value='base64';}
@@ -53,11 +63,13 @@ export class RedisStringEditor{
       if(field&&typeof field==='object'){this.field.value=field.base64??'';this.fieldMode.value='base64';}
     }
     this.loadButton=this.button(header,'Load '+noun,'refresh-cw',()=>this.load());
+    if(this.isList){this.listIndex=this.input(header,'Index (zero-based)',String(listIndex));this.listIndex.maxLength=4;this.listIndex.inputMode='numeric';header.insertBefore(this.listIndex.parentElement,this.loadButton);}
     if(this.isHash)this.newButton=this.button(header,'Prepare new hash field','plus',()=>this.load(true));
     this.closeButton=this.button(header,'Close value editor','x',()=>{if(this.canClose())this.close();});
     this.root.append(header);
     this.notice=node('p',this.isHash?'One field in an existing hash · exact-value/absence WATCH checks · Redis 7.4+ required for Save. Expiring fields are unsupported. Changes are staged until reviewed Save; deleting the last field removes its hash key. No automatic retries.':'Exact-value conflict checks · existing TTL is preserved · no automatic retries. Binary/string type does not identify application semantics (for example bitmaps or HyperLogLogs).');
     this.root.append(this.notice);
+    if(this.isList)this.notice.textContent='One existing list position · exact length/value WATCH checks · key TTL preserved. Positions are not stable identities: checks compare current state, not change history. No insertion, deletion, reordering or automatic retries.';
     const format=node('div');format.className='redis-string-actions';this.mode=this.select(format,'Value encoding',['text','base64']);this.mode.onchange=()=>this.changeMode();this.root.append(format);
     this.value=node('textarea');this.value.setAttribute('aria-label','Redis '+noun+' value');this.value.spellcheck=false;this.value.wrap='off';this.value.maxLength=10924;this.value.oninput=()=>{this.sync();this.changed();};this.root.append(this.value);
     const footer=node('div');footer.className='redis-string-actions';this.saveButton=this.button(footer,'Save '+noun,'save',()=>this.save());this.revertButton=this.button(footer,'Revert '+noun+' draft','undo-2',()=>this.revert());
@@ -74,6 +86,7 @@ export class RedisStringEditor{
     const blocked=this.busy||this.disposed||!!this.unavailable;let valid=true;try{redisBytes(this.value.value,this.activeMode);}catch{valid=false;}
     this.key.disabled=this.keyMode.disabled=blocked||!!this.snapshot;
     if(this.field)this.field.disabled=this.fieldMode.disabled=blocked||!!this.snapshot;
+    if(this.listIndex)this.listIndex.disabled=blocked||!!this.snapshot;
     this.value.readOnly=blocked||!this.snapshot||this.pendingDelete||this.readOnly();this.mode.disabled=blocked||!this.snapshot||this.pendingDelete;
     this.loadButton.disabled=blocked;this.closeButton.disabled=this.busy;
     if(this.newButton)this.newButton.disabled=blocked||this.readOnly();
@@ -100,13 +113,13 @@ export class RedisStringEditor{
   }
   async load(create=false){
     if(this.busy||this.disposed||this.unavailable||(create&&(!this.isHash||this.readOnly()))||!this.canClose())return;
-    let key,field;try{key={base64:redisBase64(redisBytes(this.key.value,this.keyMode.value))};if(!key.base64)throw new Error('Choose a nonempty key.');if(this.isHash)field={base64:redisBase64(redisBytes(this.field.value,this.fieldMode.value))};}catch(e){this.status.textContent=e.message;return;}
+    let key,field,index;try{key={base64:redisBase64(redisBytes(this.key.value,this.keyMode.value))};if(!key.base64)throw new Error('Choose a nonempty key.');if(this.isHash)field={base64:redisBase64(redisBytes(this.field.value,this.fieldMode.value))};if(this.isList)index=redisListIndex(this.listIndex.value);}catch(e){this.status.textContent=e.message;return;}
     this.busy=true;this.sync();
     try{
-      const reply=await this.run(create?{pipeline:[['TYPE',key],['HEXISTS',key,field]]}:this.isHash?['HGET',key,field]:{pipeline:[['TYPE',key],['STRLEN',key],['GETRANGE',key,'0','8191'],['PTTL',key]]});
+      const reply=await this.run(create?{pipeline:[['TYPE',key],['HEXISTS',key,field]]}:this.isList?{pipeline:[['TYPE',key],['LLEN',key],['LINDEX',key,String(index)],['PTTL',key]]}:this.isHash?['HGET',key,field]:{pipeline:[['TYPE',key],['STRLEN',key],['GETRANGE',key,'0','8191'],['PTTL',key]]});
       if(this.disposed)return;if(!reply?.ok)throw new Error(reply?.error??'Key load did not complete.');
       if(!reply.targetRevision)throw new Error('Missing target revision; no editable snapshot was created.');
-      const snapshot=create?redisNewHashSnapshot(reply.result):this.isHash?redisHashSnapshot(reply.result):redisStringSnapshot(reply.result);this.snapshot={...snapshot,key,...(this.isHash?{field}:{}),targetRevision:reply.targetRevision};this.uncertain=false;this.pendingDelete=false;this.setValue(snapshot.base64);
+      const snapshot=create?redisNewHashSnapshot(reply.result):this.isList?redisListSnapshot(reply.result,index):this.isHash?redisHashSnapshot(reply.result):redisStringSnapshot(reply.result);this.snapshot={...snapshot,key,...(this.isHash?{field}:{}),targetRevision:reply.targetRevision};this.uncertain=false;this.pendingDelete=false;this.setValue(snapshot.base64);
       this.status.textContent=create?'New field draft · empty values are valid. Save rechecks field absence and existing hash; nothing has been written.':'Loaded '+redisBytes(snapshot.base64,'base64').length+' bytes · '+(this.isHash?'Save verifies persistent field and preserves key TTL':snapshot.ttl===-1?'no expiry':'TTL at read: '+snapshot.ttl+' ms')+' · Save rechecks exact bytes. Reads are not a frozen snapshot.';
     }catch(e){if(!this.disposed)this.status.textContent=e.message;}
     finally{this.busy=false;if(!this.disposed){this.sync();this.changed();}}
@@ -116,8 +129,8 @@ export class RedisStringEditor{
     const deleting=!!this.pendingDelete;let next;try{next=deleting?this.snapshot.base64:redisBase64(redisBytes(this.value.value,this.activeMode));}catch(e){this.status.textContent=e.message;return;}
     const snapshot=this.snapshot;this.busy=true;this.sync();
     try{
-      const command=deleting?['HDEL',snapshot.key,snapshot.field]:this.isHash?['HSET',snapshot.key,snapshot.field,{base64:next}]:['SET',snapshot.key,{base64:next},'XX','KEEPTTL'];
-      const reply=await this.run({transaction:[command],watch:[{key:snapshot.key,...(this.isHash?{field:snapshot.field}:{}),expected:snapshot.create?null:{base64:snapshot.base64}}]},snapshot.targetRevision);
+      const command=deleting?['HDEL',snapshot.key,snapshot.field]:this.isList?['LSET',snapshot.key,String(snapshot.index),{base64:next}]:this.isHash?['HSET',snapshot.key,snapshot.field,{base64:next}]:['SET',snapshot.key,{base64:next},'XX','KEEPTTL'];
+      const reply=await this.run({transaction:[command],watch:[{key:snapshot.key,...(this.isList?{index:snapshot.index,length:snapshot.length}:this.isHash?{field:snapshot.field}:{}),expected:snapshot.create?null:{base64:snapshot.base64}}]},snapshot.targetRevision);
       if(this.disposed)return;
       // A job can fail/cancel after EXEC. Require the exact receipt, not just terminal job status.
       const result=reply?.result,entry=result?.entries?.[0];
@@ -126,7 +139,7 @@ export class RedisStringEditor{
         if(deleting)this.setValue('');
         this.status.textContent=deleting?'Deleted field · if it was the last field, Redis also removed the hash key. Nothing was recreated.':snapshot.create?'Created field · key TTL preserved. Reload to observe subsequent changes.':'Saved · '+(this.isHash?'key TTL':'TTL')+' preserved. Reload to observe subsequent changes.';
       }else{
-        this.uncertain=!!reply?.uncertain||(this.isHash&&result?.outcome==='acknowledged');
+        this.uncertain=!!reply?.uncertain||result?.outcome==='acknowledged';
         this.status.textContent=this.uncertain?'Save outcome uncertain. Draft retained; reload and reconcile before another Save.':reply?.error??'Value update was not confirmed. Reload before retrying.';
       }
     }catch(e){this.uncertain=true;this.status.textContent='Save outcome uncertain. Reload and reconcile before retrying. '+e.message;}

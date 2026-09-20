@@ -11,7 +11,7 @@ final class NativeRedisArguments {
             "HGET","HLEN","HEXISTS","HSCAN","LRANGE","LINDEX","LLEN","SSCAN","SCARD","SISMEMBER",
             "ZRANGE","ZREVRANGE","ZCARD","ZSCORE","ZSCAN","XRANGE","XREVRANGE","XLEN","GETBIT",
             "SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL",
-            "LPUSH","RPUSH","SADD","SREM","ZADD","ZREM");
+            "LPUSH","RPUSH","LSET","SADD","SREM","ZADD","ZREM");
 
     static void validate(JsonNode command){
         String name=text(command,0).toUpperCase(Locale.ROOT);
@@ -52,6 +52,7 @@ final class NativeRedisArguments {
         if(keyOrField(name,index))return true;
         return switch(name){
             case "SET" -> index==2;
+            case "LSET" -> index==3;
             case "HSET" -> index>=2;
             case "LPUSH","RPUSH","SADD","SREM","ZREM" -> index>=2;
             case "ZADD" -> index>=3&&index%2==1;

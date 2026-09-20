@@ -114,6 +114,13 @@ rejected expectation or switch to an unguarded HSET/HDEL to force an edit throug
 An empty field value is not absence: use `expected: null` only for a new field,
 or complete original bytes for an update/deletion. Deleting the last field also
 removes the hash key and TTL; disclose this effect before requesting deletion.
+When advertised, watch.index and watch.length select a list position instead:
+integer 0 <= index < length <= 10000, complete non-null original bytes, no field.
+Use LSET with that expectation for a guarded existing-position edit. Indexes are
+not stable identities: matching current length/value cannot detect every prior
+reorder or remove/reinsert cycle. Pipeline LINDEX accepts text indexes 0–9999;
+its 8 KiB preview must be complete before using it as an original value.
+Never replace a rejected list expectation with an unguarded retry.
 Cluster requires all command/watch keys in one hash slot. Redis
 does not roll back execution-time errors: inspect per-command results, not just
 the job's final state. A WATCH conflict executes no batch commands; reread and

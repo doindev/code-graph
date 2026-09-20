@@ -162,6 +162,9 @@ The frozen source ZIP SHA-256 is
   bounded draft/review flow to existing hash fields, explicit field creation and
   staged deletion (see its separate lifecycle acceptance checkpoint); wider collection editors and
   infrastructure administration remain separate unfinished work.
+  The [list-item editor follow-up](redis-list-editor.md) adds bounded replacement
+  of one current position with length/value checks, not a general list lifecycle
+  or historical identity guarantee.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

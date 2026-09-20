@@ -52,6 +52,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   for existing fields, plus explicit new-field drafts and staged deletion. Every
   Save is reviewed; absent/original-value checks reject concurrent changes.
   Expiring fields remain unsupported and last-field deletion removes its hash key.
+  The [list-item editor](docs/redis-list-editor.md) adds bounded text/base64 editing
+  at an existing zero-based position, with reviewed exact length/value checks
+  and TTL preservation. A position is not a stable record identity.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

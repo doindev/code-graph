@@ -69,6 +69,7 @@ final class NativeMutations {
                 case "PERSIST" -> arity(size,2,2);
                 case "HSET" -> {arity(size,4,202);if(size%2!=0)throw new IllegalArgumentException("HSET requires field/value pairs");}
                 case "LPUSH","RPUSH","SADD","HDEL","SREM","ZREM" -> arity(size,3,102);
+                case "LSET" -> {arity(size,4,4);NativeRedisTransactions.listIndex(command.get(2));if(bytes(command,3).length>65536)throw new IllegalArgumentException("LSET value exceeds 64 KiB");}
                 case "DEL","UNLINK" -> arity(size,2,101);
                 case "ZADD" -> {arity(size,4,202);if(size%2!=0)throw new IllegalArgumentException("ZADD requires score/member pairs");for(int i=2;i<size;i+=2)if(!Double.isFinite(Double.parseDouble(command.get(i).asText())))throw new IllegalArgumentException("Finite sorted-set scores required");}
                 default -> throw new IllegalArgumentException("No verified native mutation adapter for this Redis command");
@@ -136,6 +137,7 @@ final class NativeMutations {
             case "HDEL" -> redis.hdel(key,tail(command,2));
             case "LPUSH" -> redis.lpush(key,tail(command,2));
             case "RPUSH" -> redis.rpush(key,tail(command,2));
+            case "LSET" -> redis.lset(key,NativeRedisTransactions.listIndex(command.get(2)),bytes(command,3));
             case "SADD" -> redis.sadd(key,tail(command,2));
             case "SREM" -> redis.srem(key,tail(command,2));
             case "ZREM" -> redis.zrem(key,tail(command,2));

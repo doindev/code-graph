@@ -4,6 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DbaToolSchemaTest {
+    @Test void listExpectationsExposeTypedBoundsWithoutGrantingAuthority()throws Exception{
+        var tool=DbaMcpTools.tools(null,()->null).stream().filter(t->t.spec().name().equals("dba_request_native_command")).findFirst().orElseThrow();
+        var schema=new ObjectMapper().readTree(tool.spec().inputSchemaJson());
+        var watch=schema.path("properties").path("command").path("oneOf").get(2).path("properties").path("watch").path("items");
+        assertEquals(9999,watch.path("properties").path("index").path("maximum").asInt());
+        assertEquals(10000,watch.path("properties").path("length").path("maximum").asInt());
+        assertEquals(2,watch.path("oneOf").size());
+        assertTrue(watch.path("oneOf").get(1).path("required").toString().contains("length"));
+        assertEquals("null",watch.path("oneOf").get(1).path("not").path("anyOf").get(1).path("properties").path("expected").path("type").asText());
+        assertFalse(watch.path("additionalProperties").asBoolean(true));
+    }
     @Test void approvalPollingHasCanonicalIdsAndLegacyCompatibility() throws Exception {
         var mapper=new ObjectMapper();
         for(var tool:DbaMcpTools.tools(null,()->null)) {

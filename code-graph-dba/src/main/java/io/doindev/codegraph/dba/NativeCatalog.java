@@ -40,11 +40,11 @@ final class NativeCatalog {
         if(target.transport()==DatabaseTransport.REDIS)operations.putObject("transactions")
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
                 .put("maximumCommands",32).put("maximumWatchedKeys",16).put("maximumKeyReferences",100).put("rollbackSupported",false)
-                .put("restriction","Reviewed transaction object containing supported scalar-reply mutations and optional string/absent WATCH expectations. Optional watch.field checks a hash field on an existing hash; Redis 7.4+ and HPTTL permission required, expiring fields rejected. One expectation per key. Cluster requires one hash slot; no scripts, read arrays, cross-slot routing, rollback or retries.");
+                .put("restriction","Reviewed transaction object containing supported scalar-reply mutations and optional string/absent WATCH expectations. Optional watch.field checks a hash field on an existing hash; Redis 7.4+ and HPTTL permission required, expiring fields rejected. Optional watch.index/length checks current position/value in lists of at most 10000 items; positions are not stable identities. One expectation per key. Cluster requires one hash slot; no scripts, read arrays, cross-slot routing, rollback or retries.");
         if(target.transport()==DatabaseTransport.REDIS)operations.putObject("pipelines")
                 .put("available",true).put("requiresPermission",true).put("maximumCommands",32).put("maximumKeyReferences",100)
                 .put("writesAvailable",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("atomic",false)
-                .put("restriction",NativeRedisPipelines.NOTICE).put("replyPolicy","Scalar key reads, GETRANGE <=8192 bytes, and verified scalar-reply mutations only. Complete per-command receipts; values may be omitted under the byte allowance.");
+                .put("restriction",NativeRedisPipelines.NOTICE).put("replyPolicy","Scalar key reads, LINDEX 0..9999 (8 KiB preview), GETRANGE <=8192 bytes, and verified scalar-reply mutations only. Complete per-command receipts; values may be omitted under the byte allowance.");
         if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("transactions")
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)&&Set.of("replica_set","sharded").contains(target.topology()))
                 .put("requiresPermission",true).put("maximumCommands",32).put("maximumWriteEntries",100).put("atomic",true)
@@ -70,7 +70,7 @@ final class NativeCatalog {
         if(target.transport()==DatabaseTransport.REDIS){commands.add("XREAD (single stream, required COUNT, no BLOCK)");commands.add("XPENDING (bounded extended form)");}
         if(target.transport()==DatabaseTransport.MONGODB&&Set.of("replica_set","sharded").contains(target.topology()))commands.add("watch (bounded exact-collection change batches)");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("insert","update (single-document entries)","delete (limit 1 entries)","create (collection or verified view)","collMod (validator/view, existing TTL index, time-series retention/granularity, capped limits)","createIndexes","renameCollection (same database, no replacement, ordinary/capped collections only)","drop","dropIndexes"))writes.add(name);
-        else for(String name:List.of("SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL","LPUSH","RPUSH","SADD","SREM","ZADD","ZREM"))writes.add(name);
+        else for(String name:List.of("SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL","LPUSH","RPUSH","LSET","SADD","SREM","ZADD","ZREM"))writes.add(name);
         if(target.transport()==DatabaseTransport.REDIS)for(String name:List.of("XADD","XDEL","XTRIM (exact MAXLEN/MINID)","XREADGROUP (delivery mutation, no BLOCK/NOACK)","XACK","XCLAIM (explicit IDs)","XAUTOCLAIM (bounded COUNT)","XGROUP CREATE/CREATECONSUMER/SETID/DELCONSUMER/DESTROY"))writes.add(name);
         if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("collectionSettings")
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
