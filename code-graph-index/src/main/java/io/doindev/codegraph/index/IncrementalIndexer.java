@@ -44,6 +44,8 @@ public final class IncrementalIndexer {
     private final FullIndexer fullIndexer;
 
     private final Object lock = new Object();
+    private final IndexingProgress progress = new IndexingProgress();
+    public Map<String,Object> fullIndexProgress() { return progress.snapshot(); }
     private final Map<String, FileFragment> fragments = new HashMap<>();
     /** Pass-2 edges added on behalf of each source file (must be retracted before re-resolving it). */
     private final Map<String, List<Edge>> resolvedBySource = new HashMap<>();
@@ -60,7 +62,7 @@ public final class IncrementalIndexer {
         this.graph = graph;
         this.fullIndexer = new FullIndexer(analyzers, config);
         this.hybrid = graph instanceof io.doindev.codegraph.storage.PagedGraph paged
-                ? new HybridIndexer(this.root, analyzers, config, paged) : null;
+                ? new HybridIndexer(this.root, analyzers, config, paged, progress) : null;
     }
 
     public io.doindev.codegraph.store.ManagedGraph graph() {
@@ -76,16 +78,23 @@ public final class IncrementalIndexer {
     public FullIndexer.Result fullIndex() {
         synchronized (lock) {
             if (hybrid != null) return hybrid.index();
+            progress.start();
+            try {
             resolvedBySource.clear();
             resolvedInto.clear();
             withPending.clear();
 
             List<Path> files = fullIndexer.scan(root);
+            progress.inventory(files.size());
+            progress.phase("parsing");
             Set<String> changed = new LinkedHashSet<>(fragments.keySet());
             for (Path file : files) {
                 changed.add(FullIndexer.relativize(root, file));
             }
-            return applyBatch(List.copyOf(changed), true);
+            var result=applyBatch(List.copyOf(changed), true);
+            progress.finish(true);
+            return result;
+            } catch(RuntimeException | Error error) { progress.finish(false); throw error; }
         }
     }
 
@@ -146,6 +155,7 @@ public final class IncrementalIndexer {
             }
             for (String relPath : toExtract) {
                 FileFragment fragment = futures.get(relPath).join();
+                if(initial)progress.parsed(fragment!=null);
                 if (fragment == null) {
                     // A failed/unsupported replacement cannot retain stale exact module bindings.
                     if(fragments.remove(relPath)!=null){removed.add(relPath);declarationsChanged=true;}
@@ -166,6 +176,7 @@ public final class IncrementalIndexer {
         }
 
         // 2. rebuild the symbol table and decide which files must re-resolve
+        if(initial)progress.phase("resolving");
         SymbolTable table = SymbolTable.of(fragments.values(),ModuleConfigurations.capture(fullIndexer,root));
         Set<String> affected = new LinkedHashSet<>(reExtracted);
         for (String changed : union(removed, reExtracted)) {
@@ -201,11 +212,13 @@ public final class IncrementalIndexer {
             if(evidence!=null)addNodes.add(evidence);
             addEdges.addAll(resolved);
             updateBookkeeping(relPath, resolved, pending);
+            if(initial)progress.resolved();
         }
         for (String relPath : removed) {
             clearBookkeeping(relPath);
         }
 
+        if(initial)progress.phase("publishing");
         graph.apply(new GraphDelta(graph.generation() + 1, removedFiles, addNodes, addEdges, removeEdges));
 
         Map<String, Integer> filesPerLang = new HashMap<>();

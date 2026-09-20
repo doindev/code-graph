@@ -40,7 +40,7 @@ final class NativeProfile {
                 int max = key.equals("maximumPoolSize") ? 16 : key.equals("idleTimeoutMS") ? 3600000 : 300000;
                 if (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() < min || value.intValue() > max) throw new IllegalArgumentException("Native connection limit out of range: " + key);
             } else if (key.equals("seeds")) {
-                if (!value.isArray() || value.isEmpty() || value.size() > 16) throw new IllegalArgumentException("Supply 1..16 native seed endpoints");
+                if (!value.isArray() || value.isEmpty() || value.size() > 15) throw new IllegalArgumentException("Supply 1..15 additional native seed endpoints");
                 for (JsonNode endpoint : value) {
                     if (!endpoint.isTextual()) throw new IllegalArgumentException("Seed endpoints must be text");
                     validateEndpoint(transport, endpoint.asText());
@@ -54,6 +54,18 @@ final class NativeProfile {
         Set<String> topologies = transport == DatabaseTransport.MONGODB ? Set.of("standalone", "replica_set", "sharded", "srv") : Set.of("standalone", "sentinel", "cluster");
         if (!topologies.contains(topology)) throw new IllegalArgumentException("Unsupported native topology");
         options.put("topology", topology);
+        if (options.has("seeds") && Set.of("standalone", "srv").contains(topology))
+            throw new IllegalArgumentException("Additional seeds require replica_set, sharded, Sentinel or Cluster topology");
+        int hosts = URI.create(url).getRawAuthority().split(",").length;
+        for (JsonNode seed : options.path("seeds")) {
+            URI endpoint = URI.create(seed.asText());
+            if (!endpoint.getScheme().equals(URI.create(url).getScheme()))
+                throw new IllegalArgumentException("All seed endpoint schemes must match the primary endpoint");
+            hosts += endpoint.getRawAuthority().split(",").length;
+        }
+        if (hosts > 16) throw new IllegalArgumentException("Native topology seed allowance is 16 hosts total");
+        if (options.has("sentinelMaster") && !topology.equals("sentinel"))
+            throw new IllegalArgumentException("sentinelMaster is only valid for Sentinel topology");
         if (transport == DatabaseTransport.REDIS) {
             for (String key : List.of("authDatabase", "authMechanism", "replicaSet", "readPreference"))
                 if (options.has(key)) throw new IllegalArgumentException("MongoDB options cannot be used with Redis");

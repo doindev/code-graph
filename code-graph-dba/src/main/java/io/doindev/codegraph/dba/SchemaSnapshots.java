@@ -64,6 +64,6 @@ final class SchemaSnapshots {
         for(JsonNode object:snapshot.path("objects"))out.put(object.path("schema").asText()+"\0"+object.path("kind").asText()+"\0"+object.path("name").asText()+"\0"+object.path("signature").asText(),object);return out;
     }
     private static ObjectNode semantic(JsonNode object){
-        ObjectNode out=Profiles.JSON.createObjectNode();for(String key:List.of("columns","indexes","primaryKeys","foreignKeys","privileges","signature","jdbcType"))if(object.has(key))out.put(key,CatalogScanner.stable(object.path(key)));return out;
+        ObjectNode out=Profiles.JSON.createObjectNode();for(String key:List.of("columns","indexes","primaryKeys","foreignKeys","privileges","signature","jdbcType","nativeDeclared","nativeType","ttlClass","nativeColumns","nativeKeys","nativeIndexes","constraints"))if(object.has(key))out.put(key,CatalogScanner.stable(object.path(key)));return out;
     }
 }

@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: real codex CLI reads generated user MCP entry
+ok 1 - real codex CLI reads generated user MCP entry # SKIP
+  ---
+  duration_ms: 0.9769
+  type: 'test'
+  ...
+# Subtest: real copilot CLI reads generated user MCP entry
+ok 2 - real copilot CLI reads generated user MCP entry # SKIP
+  ---
+  duration_ms: 0.1716
+  type: 'test'
+  ...
+# Subtest: PowerShell bootstrap forwards all/subset/none/omitted skills and reports partial success
+ok 3 - PowerShell bootstrap forwards all/subset/none/omitted skills and reports partial success
+  ---
+  duration_ms: 14014.4949
+  type: 'test'
+  ...
+# Subtest: Bash bootstrap forwards skill choices for Linux/macOS and preserves partial-success status
+ok 4 - Bash bootstrap forwards skill choices for Linux/macOS and preserves partial-success status
+  ---
+  duration_ms: 15592.3836
+  type: 'test'
+  ...
+# Subtest: Windows uninstall validates ownership, running processes, links and exact PATH matching
+ok 5 - Windows uninstall validates ownership, running processes, links and exact PATH matching
+  ---
+  duration_ms: 5668.1097
+  type: 'test'
+  ...
+# Subtest: macOS/Linux uninstall validates ownership, preserves external data and removes only managed PATH blocks
+ok 6 - macOS/Linux uninstall validates ownership, preserves external data and removes only managed PATH blocks
+  ---
+  duration_ms: 8804.8105
+  type: 'test'
+  ...
+# Subtest: all selected clients receive skill and references; unchanged installs are idempotent
+ok 7 - all selected clients receive skill and references; unchanged installs are idempotent
+  ---
+  duration_ms: 389.9886
+  type: 'test'
+  ...
+# Subtest: all local Markdown reference links resolve inside the maintained skill
+ok 8 - all local Markdown reference links resolve inside the maintained skill
+  ---
+  duration_ms: 3.4346
+  type: 'test'
+  ...
+# Subtest: dry run does not create directories and customized skills are never overwritten
+ok 9 - dry run does not create directories and customized skills are never overwritten
+  ---
+  duration_ms: 73.3118
+  type: 'test'
+  ...
+# Subtest: destination junction/symlink cannot redirect installation outside the chosen project
+ok 10 - destination junction/symlink cannot redirect installation outside the chosen project
+  ---
+  duration_ms: 13.1789
+  type: 'test'
+  ...
+# Subtest: global all/subset/none copies complete skills only to selected current-user destinations
+ok 11 - global all/subset/none copies complete skills only to selected current-user destinations
+  ---
+  duration_ms: 382.4698
+  type: 'test'
+  ...
+# Subtest: global dry-run and documented config overrides are explicit; customized clients do not block others
+ok 12 - global dry-run and documented config overrides are explicit; customized clients do not block others
+  ---
+  duration_ms: 296.3757
+  type: 'test'
+  ...
+# Subtest: global installation refuses linked configuration roots and does not touch the redirect target
+ok 13 - global installation refuses linked configuration roots and does not touch the redirect target
+  ---
+  duration_ms: 12.1093
+  type: 'test'
+  ...
+# Subtest: CLI choices preserve project mode and require explicit scope
+ok 14 - CLI choices preserve project mode and require explicit scope
+  ---
+  duration_ms: 2.7539
+  type: 'test'
+  ...
+# Subtest: real CLI global installs honor a disposable user home without requiring a running MCP
+ok 15 - real CLI global installs honor a disposable user home without requiring a running MCP
+  ---
+  duration_ms: 989.6944
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 2
+# todo 0
+# duration_ms 29745.3371

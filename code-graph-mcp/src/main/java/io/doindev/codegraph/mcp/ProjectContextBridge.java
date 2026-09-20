@@ -19,7 +19,7 @@ public final class ProjectContextBridge implements ProjectContextHost {
         // The authenticated AgentTool supplies the combined context; never expose DBA summaries
         // through the anonymous graph-only tool.
         tools.removeIf(tool->tool.spec().name().equals("get_workspace_context"));
-        Set<String> reads=Set.of("search_symbols","get_symbol","get_call_graph","get_impact_radius","get_blast_score","find_dead_code","find_code_smells","compare_architectural_drift","get_file_outline","resolve_symbol_at_position","find_references","find_implementations","analyze_change","find_affected_tests");
+        Set<String> reads=Set.of("search_symbols","get_symbol_context","get_symbol","get_call_graph","get_impact_radius","get_blast_score","find_dead_code","find_code_smells","compare_architectural_drift","get_file_outline","resolve_symbol_at_position","find_references","find_implementations","analyze_change","find_affected_tests");
         for(int i=0;i<tools.size();i++){GraphTool delegate=tools.get(i);if(!reads.contains(delegate.spec().name()))continue;tools.set(i,new GraphTool(){
             public ToolSpec spec(){return delegate.spec();}
             public ToolResponse call(JsonNode args){String project=args.path("project").asText(workspace.defaultProject()==null?"":workspace.defaultProject().name());ToolResponse response=delegate.call(args);if(!response.error())dba.projectQueried(project);return response;}
@@ -40,7 +40,7 @@ public final class ProjectContextBridge implements ProjectContextHost {
                         var row=out.addObject().put("id",node.id().value()).put("path",node.relPath()).put("line",node.span().startLine()).put("column",node.span().startCol()).put("generation",generation);
                         row.put("kind",node.attrs().getOrDefault("relationship","references")).put("framework",node.attrs().getOrDefault("framework","unknown"));
                         row.put("confidence",Double.parseDouble(node.attrs().getOrDefault("confidence","0")));
-                        for(String key:List.of("schema","table","column","field","model","alias","sourceType","databaseType","nameResolution","uncertainty","coverage"))if(node.attrs().containsKey(key))row.put(key.equals("column")?"databaseColumn":key,node.attrs().get(key));
+                        for(String key:List.of("schema","table","column","field","model","alias","sourceType","databaseType","nameResolution","uncertainty","coverage","transport","ttlPolicy","required","nativeEvidence"))if(node.attrs().containsKey(key))row.put(key.equals("column")?"databaseColumn":key,node.attrs().get(key));
                         row.put("evidence","Incrementally indexed static mapping; no source or live-database read performed");
                     });
                     if(generation!=p.graph().status().generation())throw new IllegalArgumentException("Code generation changed during mapping lookup; retry");
@@ -56,7 +56,7 @@ public final class ProjectContextBridge implements ProjectContextHost {
                     if(out.size()>=100)return;var row=out.addObject().put("id",node.id().value()).put("path",node.relPath())
                             .put("line",node.span().startLine()).put("column",node.span().startCol()).put("generation",generation)
                             .put("confidence",Double.parseDouble(node.attrs().getOrDefault("confidence","0")));
-                    for(String key:List.of("schema","table","column","field","model","framework","relationship","sourceType","databaseType","nameResolution","uncertainty","coverage"))if(node.attrs().containsKey(key))row.put(key,node.attrs().get(key));
+                    for(String key:List.of("schema","table","column","field","model","framework","relationship","sourceType","databaseType","nameResolution","uncertainty","coverage","transport","ttlPolicy","required","nativeEvidence"))if(node.attrs().containsKey(key))row.put(key,node.attrs().get(key));
                 });if(generation!=p.graph().status().generation())throw new IllegalArgumentException("Code generation changed during contract mapping inventory; retry");return null;});
             }
         }return out;

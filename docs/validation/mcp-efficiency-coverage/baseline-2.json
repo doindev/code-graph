@@ -1,0 +1,1995 @@
+{
+  "phase": "baseline",
+  "run": 2,
+  "environment": {
+    "node": "v22.22.3",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "startup": {
+    "endpoint": "http://127.0.0.1:63067/mcp",
+    "indexAndStartupMs": 77881.6363,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 0,
+      "peakCacheUsedBytesEstimate": 0,
+      "cacheHits": 0,
+      "cacheMisses": 0,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1431876,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 383300,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 805306368,
+      "heapUsedBytes": 66638208,
+      "diskBytes": 89632768,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  },
+  "metrics": {
+    "heapUsedBytes": 85202904,
+    "heapPoolPeaksBytes": 265598528,
+    "gcCount": 181,
+    "gcTimeMs": 307,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 15524,
+      "peakCacheUsedBytesEstimate": 15524,
+      "cacheHits": 908,
+      "cacheMisses": 28,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1431876,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 383300,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 805306368,
+      "heapUsedBytes": 86775768,
+      "diskBytes": 89632768,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  },
+  "processMemory": {
+    "available": true,
+    "WorkingSet64": 391970816,
+    "PeakWorkingSet64": 394342400,
+    "PrivateMemorySize64": 421113856
+  },
+  "samples": [
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 152.24059999996098,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.1982999999891035,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.702099999994971,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.3025999999954365,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 4.833199999993667,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.091100000019651,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 4.119300000020303,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.920899999968242,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 4.215700000000652,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 33.76519999996526,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.28149999998277053,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.61040000000503,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.25530000001890585,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.419099999999162,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.27970000001369044,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.14079999999376,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.22999999998137355,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 306.60579999990296
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 130.64750000002095,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.45240000000922,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.856900000013411,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.17349999997532,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.6938000000081956,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.848600000026636,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.771599999978207,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.3624999999883585,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.2270999999600463,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.571899999980815,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.22769999998854473,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 30.40480000001844,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.3153999999631196,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.79430000000866,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.25339999998686835,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.526100000017323,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.29840000002877787,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 277.4258999999729
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 106.52879999997094,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.6036000000312924,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.1063000000431202,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.4900000000488944,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.1459999999497086,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.503599999996368,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.8131999999750406,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.086600000038743,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.6635999999707565,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.25059999997029,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2019999999902211,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.975600000005215,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.3645000000251457,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.463399999949615,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2833000000100583,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.67679999995744,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.21609999996144325,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 244.3739999998943
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 97.71230000001378,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.08109999995213,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.024299999990035,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.144299999985378,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 6.176899999962188,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.032400000025518,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.898300000000745,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.664199999999255,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.7453000000095926,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.960300000035204,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.21370000002207235,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.95240000000922,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.36040000000502914,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.933900000003632,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.24440000002505258,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 30.01829999999609,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.42199999996228144,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 242.5844999999972
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 97.67389999999432,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.031100000021979,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.5482999999658205,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.0961999999708496,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.228899999987334,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.4283000000286847,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.8303000000305474,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.116600000008475,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.0776000000187196,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.582600000023376,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.20679999998537824,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.481199999980163,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2031999999890104,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.898699999961536,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.22340000001713634,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.821100000001024,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.32400000002235174,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 232.7722000000067
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 95.1640999999945,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.881099999998696,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.7177999999839813,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.295400000002701,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.8976999999722466,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.370000000053551,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.37679999996908,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.0828999999794178,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.5566000000108033,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.68619999999646,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2074000000138767,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.10889999999199,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.3128999999607913,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.26579999999376,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.24329999997280538,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.275000000023283,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.3271999999997206,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 227.76909999991767
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 97.97240000002785,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.1385000000009313,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.1506999999983236,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.143700000015087,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.956000000005588,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.802099999971688,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.805599999963306,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.31150000001071,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.1031000000075437,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 31.82530000002589,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2635999999474734,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.520200000028126,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.31430000002728775,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 34.21989999996731,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2881999999517575,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 34.1368000000366,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.26750000001629815,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 254.21940000000177
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 99.3179999999702,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.8267999999807216,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.50089999998454,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.852000000013504,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.763700000010431,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.4786000000312924,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 8.044200000003912,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 4.25089999998454,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.1116000000038184,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.802800000004936,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.25569999997969717,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.743200000026263,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.23050000000512227,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 25.502800000016578,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.20429999998304993,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.100300000049174,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2171000000089407,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 239.20340000005672
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 91.30600000004051,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.8145999999833293,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.554699999978766,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.9773000000277534,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.9777999999932945,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.4492000000318512,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.6824999999953434,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.955499999981839,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.941999999980908,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.59130000002915,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.21679999999469146,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.31380000000354,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.27640000003157184,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.306199999991804,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.31439999997382984,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 25.942999999970198,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.19319999997969717,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 222.81469999998808
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 93.25719999999274,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.8634999999776483,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.01490000000922,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.7263999999850057,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 4.4773999999742955,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.087599999969825,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.766300000017509,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.2648999999510124,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.7159000000101514,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.6243999999715,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.21270000003278255,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.598300000012387,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2903999999980442,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.35720000002766,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.2163000000291504,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.20470000000205,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.31819999997969717,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 229.99629999994067
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 89.73190000001341,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.2118000000482425,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.7920000000158325,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.812999999965541,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.860500000009779,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.6867000000202097,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.614000000001397,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.28349999996135,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.68570000003092,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 29.9089999999851,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.28729999996721745,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 28.755000000004657,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.20369999995455146,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.856299999984913,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.1830000000190921,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.49770000000717,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.3157999999821186,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 226.6868999999715
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 93.40409999998519,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.181299999996554,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.4906000000191852,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 3.7406000000191852,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.6471000000019558,
+          "responseBytes": 520,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.8157000000355765,
+          "responseBytes": 940,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 3.9813999999896623,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol",
+          "purpose": "Get declaration for a known method; bulk context is unavailable",
+          "durationMs": 2.8442999999970198,
+          "responseBytes": 941,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "find_implementations",
+          "purpose": "Check advertised implementation evidence before choosing a fallback",
+          "durationMs": 2.7356000000145286,
+          "responseBytes": 521,
+          "error": true
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.79330000001937,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.17969999997876585,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow0.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 26.207600000023376,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.18930000002728775,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow1.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.802800000004936,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.18689999997150153,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow2.java"
+        },
+        {
+          "kind": "filesystem_search",
+          "purpose": "No method implementations in indexed evidence; inspect explicit nominal declarations",
+          "durationMs": 27.227499999979045,
+          "responseBytes": 31
+        },
+        {
+          "kind": "discovery_source_read",
+          "purpose": "Resolve the explicit method implementation after incomplete indexed evidence",
+          "durationMs": 0.22610000002896413,
+          "responseBytes": 147,
+          "path": "context-fixture/Workflow3.java"
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 9,
+      "filesystemSearches": 4,
+      "sourceReads": 4,
+      "responseBytes": 8247,
+      "acquisitionMs": 226.6539000000921
+    }
+  ]
+}

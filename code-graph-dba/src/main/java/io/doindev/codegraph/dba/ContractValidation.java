@@ -12,6 +12,7 @@ final class ContractValidation {
     static ObjectNode validate(JsonNode snapshot,JsonNode mappings,int limit){
         if(!snapshot.path("format").asText().equals("codegraph-schema-v1"))throw new IllegalArgumentException("Expected a retained schema snapshot");
         if(!mappings.isArray()||mappings.size()>100||limit<1||limit>100)throw new IllegalArgumentException("Contract validation bounds exceeded");
+        if(java.util.Set.of("mongodb","redis").contains(snapshot.path("engine").asText()))return NativeContracts.validate(snapshot,mappings,limit);
         Map<String,JsonNode> objects=new HashMap<>();for(JsonNode object:snapshot.path("objects")){
             String identity=key(object.path("schema").asText(),object.path("name").asText());JsonNode current=objects.get(identity);
             if(current==null||!current.path("columns").isArray()&&object.path("columns").isArray())objects.put(identity,object);

@@ -1,0 +1,42 @@
+docker.io/library/mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2: Pulling from library/mongo
+1aea056e9ccb: Pulling fs layer
+5e68fb960432: Pulling fs layer
+3bc1468bbf2a: Pulling fs layer
+edd1ed89f0d4: Pulling fs layer
+adf7abd1fe48: Pulling fs layer
+051f5efcc90f: Pulling fs layer
+730272832256: Pulling fs layer
+8d07092de802: Pulling fs layer
+d02286804d58: Download complete
+8d07092de802: Download complete
+1aea056e9ccb: Download complete
+0ced65528e40: Download complete
+3bc1468bbf2a: Download complete
+5e68fb960432: Download complete
+051f5efcc90f: Download complete
+adf7abd1fe48: Download complete
+edd1ed89f0d4: Download complete
+edd1ed89f0d4: Pull complete
+5e68fb960432: Pull complete
+adf7abd1fe48: Pull complete
+3bc1468bbf2a: Pull complete
+8d07092de802: Pull complete
+051f5efcc90f: Pull complete
+730272832256: Download complete
+1aea056e9ccb: Pull complete
+730272832256: Pull complete
+Digest: sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+Status: Downloaded newer image for mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+docker.io/library/mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+Owned native fixture: cgraph-native-mongodb-5b49dc695e014c689d72df6e04a2b1e2; image mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2; loopback port 58714
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+fac778625d51603a2eb90073ff6762b9a9a0db546b674c673a111a254a8e76fd
+Untagged: mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+Deleted: sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2

@@ -17,8 +17,10 @@ export function renderNativeConnection({template, profile, panel, field, el}) {
     field(auth,'authMechanism','Authentication mechanism',options.authMechanism??'SCRAM-SHA-256',{choices:['SCRAM-SHA-256','SCRAM-SHA-1']});
   }
   const network=panel('Network');
-  field(network,'topology','Topology',options.topology??'standalone',{choices:template.transport==='mongodb'?['standalone','replica_set','sharded','srv']:['standalone'],
-    help:template.transport==='mongodb'?'Additional topology live verification is pending. No silent standalone fallback.':'Sentinel and Cluster are not yet enabled.'});
+  field(network,'topology','Topology',options.topology??'standalone',{choices:template.transport==='mongodb'?['standalone','replica_set','sharded','srv']:['standalone','sentinel','cluster'],
+    help:template.transport==='mongodb'?'Explicit topology; unsupported discovery fails rather than falling back.':'Cluster requires database 0. Sentinel uses its primary name; authenticated Sentinel endpoints are not yet supported.'});
+  field(network,'seeds','Additional seed endpoints',(options.seeds??[]).join(', '),{help:'Optional comma-separated native scheme://host:port endpoints; at most 15 additional hosts. Keep TLS consistent. Leave empty for standalone and MongoDB SRV.'});
+  if(template.transport==='redis')field(network,'sentinelMaster','Sentinel primary name',options.sentinelMaster??'',{help:'Required only for Sentinel. The main endpoint and seeds refer to Sentinel servers.'});
   for(const [key,label,value] of [['connectTimeoutMS','Connect timeout (ms)',10000],['socketTimeoutMS','Socket timeout (ms)',30000]])
     field(network,key,label,options[key]??value,{type:'number'});
   if(template.transport==='mongodb'){
@@ -36,8 +38,9 @@ export function nativeConnectionDraft({template,profile,get,shade}) {
   const result={templateId:template.id,transport:template.transport,name:get('name'),color:shade,url:get('url'),
     username:get('username'),readOnly:get('native-access')!=='Allow reviewed writes',nativeOptions:{}};
   if(profile?.id)result.connectionId=profile.id;
-  for(const key of ['database','topology','authDatabase','authMechanism','replicaSet','readPreference'])
+  for(const key of ['database','topology','authDatabase','authMechanism','replicaSet','readPreference','sentinelMaster'])
     if(get(key)!=='')result.nativeOptions[key]=get(key);
+  if(get('seeds').trim())result.nativeOptions.seeds=get('seeds').split(',').map(value=>value.trim()).filter(Boolean);
   for(const key of ['connectTimeoutMS','socketTimeoutMS','maximumPoolSize','idleTimeoutMS'])
     if(get(key)!=='')result.nativeOptions[key]=Number(get(key));
   if(get('tls')!=='Endpoint default')result.nativeOptions.tls=get('tls')==='true';

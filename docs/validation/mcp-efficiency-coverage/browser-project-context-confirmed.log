@@ -1,0 +1,1 @@
+Project context browser checks passed: environment relationship, token/grant, activity scan, version, DDL/properties, exact SQL review, persistent read policy, agent profile creation without auto-access, rejection and cancellation.

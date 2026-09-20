@@ -96,10 +96,47 @@ class NativeVendorTest {
                 JsonNode submitted=runtime.agentCall(principal,session,"dba_request_native_command",input);
                 assertEquals("automatic",submitted.path("approvalChannel").asText(),submitted.toPrettyString());
                 JsonNode done=finish(runtime,principal,session,submitted);
-                if(command.contains("\"find\"")||command.contains("\"GET\""))assertTrue(done.toString().contains("updated"),done.toPrettyString());
+                if(command.contains("\"find\"")||command.contains("\"GET\"")){
+                    assertTrue(done.toString().contains("updated"),done.toPrettyString());
+                    verifyCatalogWorkflow(runtime,principal,session,target);
+                }
                 else assertEquals("acknowledged",done.path("job").path("result").path("outcome").asText(),done.toPrettyString());
             }
         }
+    }
+    private void verifyCatalogWorkflow(DbaRuntime runtime,String principal,String session,ObjectNode target)throws Exception{
+        var scope=target.deepCopy();scope.remove("collection");
+        var bad=scope.deepCopy().put("connectionName","wrong");
+        assertThrows(IllegalArgumentException.class,()->runtime.agentCall(principal,session,"dba_capture_schema",bad));
+        var snapshot=awaitJob(runtime,principal,session,runtime.agentCall(principal,session,"dba_capture_schema",scope));
+        String snapshotId=snapshot.path("id").asText();
+        try{
+            assertEquals("codegraph-schema-v1",snapshot.path("result").path("format").asText());
+            assertFalse(snapshot.path("result").path("objects").isEmpty(),snapshot.toPrettyString());
+            assertFalse(snapshot.path("result").toString().contains("updated"),"Snapshot must not retain document/key values");
+            var compared=awaitJob(runtime,principal,session,runtime.agentCall(principal,session,"dba_compare_schemas",
+                    Profiles.JSON.createObjectNode().put("leftSnapshotId",snapshotId).put("rightSnapshotId",snapshotId)));
+            assertEquals(0,compared.path("result").path("totalDifferences").asInt(-1),compared.toPrettyString());
+            runtime.agentCall(principal,session,"dba_release_job",Profiles.JSON.createObjectNode().put("jobId",compared.path("id").asText()));
+            runtime.agentCall(principal,session,"dba_refresh_catalog",scope);
+            var status=runtime.agentCall(principal,session,"dba_scan_status",scope.deepCopy().put("afterGeneration",0).put("waitMillis",5000));
+            assertTrue(status.path("generation").asLong()>0,status.toPrettyString());
+            var objects=runtime.agentCall(principal,session,"dba_search_objects",scope.deepCopy().put("limit",10));
+            assertFalse(objects.path("objects").isEmpty(),objects.toPrettyString());
+            String objectId=objects.path("objects").get(0).path("id").asText();
+            var properties=runtime.agentCall(principal,session,"dba_get_indexed_properties",scope.deepCopy().put("objectId",objectId));
+            assertTrue(properties.has("properties"),properties.toPrettyString());
+            assertFalse(properties.toString().contains("updated"));
+            assertThrows(IllegalArgumentException.class,()->runtime.agentCall(principal,session,"dba_search_objects",bad));
+        }finally{runtime.agentCall(principal,session,"dba_release_job",Profiles.JSON.createObjectNode().put("jobId",snapshotId));}
+    }
+    private JsonNode awaitJob(DbaRuntime runtime,String principal,String session,JsonNode initial)throws Exception{
+        JsonNode job=initial;long until=System.nanoTime()+20_000_000_000L;
+        while(!Set.of("complete","failed","cancelled").contains(job.path("state").asText())&&System.nanoTime()<until){
+            job=runtime.agentCall(principal,session,"dba_job_status",Profiles.JSON.createObjectNode()
+                    .put("jobId",initial.path("id").asText()).put("afterRevision",job.path("revision").asLong()).put("waitMillis",1000));
+        }
+        assertEquals("complete",job.path("state").asText(),job.toPrettyString());return job;
     }
     private JsonNode finish(DbaRuntime runtime,String principal,String session,JsonNode initial)throws Exception{
         JsonNode result=initial;long until=System.nanoTime()+30_000_000_000L;
@@ -194,6 +231,12 @@ class NativeVendorTest {
             assertEquals("users",names.path("entries").get(0).path("name").asText());
             JsonNode indexes=NativeReadExecutor.execute(lease,target,Profiles.JSON.readTree("{\"listIndexes\":\"users\"}"),new NativeReadExecutor.Limits(100,65536,10),()->false);
             assertEquals("_id_",indexes.path("entries").get(0).path("name").asText());
+            var snapshot=NativeSchemaObservations.capture(lease,target,"owned-snapshot",100,1<<20,10,2,()->false);
+            assertEquals("codegraph-schema-v1",snapshot.path("format").asText());assertEquals(1,snapshot.path("objects").size());
+            var observed=snapshot.path("objects").get(0);assertEquals("users",observed.path("name").asText());
+            assertTrue(observed.path("columns").isEmpty());assertEquals(2,observed.path("sampledDocuments").asInt());
+            assertTrue(observed.path("fieldObservations").size()>=3);assertFalse(snapshot.toString().contains("alpha"));
+            assertFalse(snapshot.path("inventoryComplete").asBoolean());
             assertThrows(java.util.concurrent.CancellationException.class,()->NativeReadExecutor.execute(lease,target,command,new NativeReadExecutor.Limits(100,65536,10),()->true));
             assertThrows(IllegalArgumentException.class,()->NativeReadExecutor.execute(lease,target,Profiles.JSON.readTree("{\"dropDatabase\":1}"),new NativeReadExecutor.Limits(100,65536,10),()->false));
             // Exercise more than two raw batches; large documents must never be
@@ -213,6 +256,10 @@ class NativeVendorTest {
             connection.sync().set(key,"x".repeat(16384).getBytes(StandardCharsets.UTF_8));
             connection.sync().set(binary,new byte[]{(byte)0xff,0,1});
             try {
+                var snapshot=NativeSchemaObservations.capture(lease,target,"owned-snapshot",100,1<<20,10,0,()->false);
+                assertTrue(snapshot.path("objects").size()>=2);assertFalse(snapshot.toString().contains("AP8B"));
+                assertTrue(snapshot.path("objects").findValuesAsText("nativeType").contains("string"));
+                assertFalse(snapshot.path("inventoryComplete").asBoolean());
                 var limits=new NativeReadExecutor.Limits(100,65536,10);
                 ObjectNode result=NativeReadExecutor.execute(lease,target,Profiles.JSON.createArrayNode().add("GET").add(prefix+"large"),limits,()->false);
                 JsonNode value=result.path("entries").get(0);assertTrue(value.path("truncated").asBoolean());assertEquals(8192,value.path("previewBytes").asInt());

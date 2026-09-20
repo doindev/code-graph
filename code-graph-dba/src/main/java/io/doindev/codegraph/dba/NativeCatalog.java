@@ -19,11 +19,11 @@ final class NativeCatalog {
         ObjectNode result=Profiles.JSON.createObjectNode().put("id",id).put("name",name).put("transport",transport)
                 .put("url",endpoint).put("icon","/dba/database.svg#"+transport).put("advancedMcp",false)
                 .put("driverSource","bundled_native").put("clientVersion",version)
-                .put("notes","Native protocol, not JDBC. Bounded reads and reviewed single-target CRUD are available. Administration, transactions and advanced topology remain capability-gated while validation continues.");
+                .put("notes","Native protocol, not JDBC. Bounded reads and reviewed single-target CRUD are available. Bounded native catalogs/observations and explicit Mongo replica/sharded and Redis Sentinel/Cluster topologies are supported; infrastructure administration and transactions remain unavailable.");
         result.putArray("properties");
         result.putObject("capabilities").put("draftTest",true).put("boundedReads",true)
                 .put("sql",false).put("writes",true).put("administration",false)
-                .put("verification","standalone disposable-server CRUD and bounded reads tested; additional workflows incomplete");
+                .put("verification","Disposable standalone, Mongo replica/sharded, Redis Sentinel failover and Cluster read/scan fixtures tested; see native-databases.md for exact boundaries");
         return result;
     }
     static ObjectNode describe(com.fasterxml.jackson.databind.JsonNode profile,NativeTarget target,boolean approvalsEnabled){
@@ -35,8 +35,9 @@ final class NativeCatalog {
         operations.putObject("boundedReads").put("available",true).put("requiresPermission",true);
         operations.putObject("reviewedMutations").put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
                 .put("restriction","Exact one-time approval or startup YOLO; no reusable native write policies; no automatic retry");
-        for(String name:List.of("sql","migrationApplication","transactions","changeStreams","pubSub","administration","automaticCatalogScanning"))
+        for(String name:List.of("sql","migrationApplication","transactions","changeStreams","pubSub","administration"))
             operations.putObject(name).put("available",false).put("reason","No verified native workflow is enabled for this feature yet");
+        for(String name:List.of("cachedCatalog","schemaCapture","schemaComparison","contractValidation"))operations.putObject(name).put("available",true).put("requiresPermission",true).put("restriction","Bounded native observations; samples are optional type-only evidence, never a complete schema");
         var commands=result.putArray("readCommands");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("find","aggregate (verified read stages)","explain (queryPlanner)","listCollections","listIndexes"))commands.add(name);
         else for(String name:List.of("GET (preview)","GETRANGE","TYPE","TTL","PTTL","STRLEN","EXISTS","EXPIRETIME","PEXPIRETIME","HLEN","LLEN","SCARD","ZCARD","XLEN","HEXISTS","SISMEMBER","ZSCORE","GETBIT","HGET","LINDEX","LRANGE","ZRANGE","ZREVRANGE","HSCAN","SSCAN","ZSCAN","XRANGE","XREVRANGE","SCAN","DBSIZE","PING"))commands.add(name);
@@ -48,7 +49,7 @@ final class NativeCatalog {
                 .add("Redis has an 8 MiB wire allowance per operation connection; COUNT is not a hard page limit")
                 .add("Redis key/value arguments accept text or canonical base64 objects; binary values are capped at 64 KiB, keys/fields 8 KiB; controls remain text")
                 .add("Native jobs reserve 64 MiB of shared DBA accounting; this is not a hard total-RAM cap")
-                .add("Advanced topologies, custom TLS credentials and native environment policy integration remain incomplete");
+                .add("Redis Sentinel/Cluster and Mongo replica/sharded/SRV endpoints are explicit; custom client TLS credentials and native environment policies remain incomplete");
         return result;
     }
     private NativeCatalog(){}

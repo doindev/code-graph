@@ -70,7 +70,9 @@ class WorkspaceToolsTest {
                 removed::add, time::get, () -> java.time.Instant.EPOCH.plusNanos(time.get()))) {
             tools = registry.tools();
             time.set(java.time.Duration.ofMinutes(30).toNanos());
-            tool("index_status").call(JSON.createObjectNode()); // implicit alpha
+            tool("index_status").call(JSON.createObjectNode()); // passive: no TTL renewal
+            assertEquals(java.time.Instant.EPOCH, registry.lifecycle().status("alpha").lastActivityAt());
+            tool("search_symbols").call(JSON.createObjectNode().put("query", "x")); // real activity, implicit alpha
             tool("search_symbols").call(JSON.createObjectNode().put("project", "missing").put("query", "x"));
             time.set(java.time.Duration.ofHours(1).toNanos());
             JsonNode roster = JSON.readTree(tool("list_projects").call(JSON.createObjectNode()).json());

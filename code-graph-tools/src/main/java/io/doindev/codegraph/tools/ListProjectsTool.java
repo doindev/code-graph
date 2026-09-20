@@ -18,9 +18,11 @@ final class ListProjectsTool implements GraphTool {
     private final Map<String, GraphQuery> graphs; // live view owned by WorkspaceTools
     private final java.util.function.Supplier<String> defaultProject;
     private final ProjectLifecycle lifecycle;
+    private final java.util.function.Supplier<java.util.List<Map<String,Object>>> onboarding;
 
     ListProjectsTool(Map<String, GraphQuery> graphs, java.util.function.Supplier<String> defaultProject,
-                     ProjectLifecycle lifecycle) {
+                     ProjectLifecycle lifecycle, java.util.function.Supplier<java.util.List<Map<String,Object>>> onboarding) {
+        this.onboarding=onboarding;
         this.lifecycle = lifecycle;
         this.graphs = graphs;
         this.defaultProject = defaultProject;
@@ -29,7 +31,7 @@ final class ListProjectsTool implements GraphTool {
     @Override
     public ToolSpec spec() {
         return new ToolSpec("list_projects",
-                "Projects indexed by this server; pass a name as the 'project' parameter of any other tool.",
+                "Ready projects plus a separate onboarding array with initial-scan phase/counts. Only projects are queryable; polling does not renew TTL. Pass a ready name as the 'project' parameter of other tools.",
                 "{ \"type\": \"object\", \"properties\": {} }");
     }
 
@@ -59,6 +61,7 @@ final class ListProjectsTool implements GraphTool {
             row.put("remainingSeconds", idle.remainingSeconds());
             row.put("activeOperations", idle.activeOperations());
         });
+        out.set("onboarding",JSON.valueToTree(onboarding.get()));
         return ToolResponse.ok(out.toString());
     }
 }

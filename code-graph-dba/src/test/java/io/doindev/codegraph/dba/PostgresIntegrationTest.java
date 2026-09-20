@@ -200,7 +200,13 @@ class PostgresIntegrationTest {
                     args.put("sql","SELECT value AS a, value AS a FROM "+schema+".items");var big=agentAwait(runtime,principal,"dba_execute_read_query",args);assertTrue(big.path("truncated").asBoolean());assertTrue(big.path("rowCount").asInt()<100);assertTrue(Profiles.JSON.writeValueAsBytes(big).length<1<<20);
                     args.put("sql","SELECT id FROM "+schema+".items WHERE id = ?");args.putArray("parameters").add(42);
                     assertEquals("42",agentAwait(runtime,principal,"dba_execute_read_query",args).path("rows").get(0).get(0).asText());
-                    for(String operation:List.of("dba_explain_query","dba_analyze_query_plan")){var plan=agentAwait(runtime,principal,operation,args);assertFalse(plan.path("executed").asBoolean(true));assertTrue(plan.path("rows").toString().contains("Plan"));assertFalse(plan.path("observations").isEmpty());assertTrue(plan.path("observations").get(0).has("Total Cost"));}
+                    for(String operation:List.of("dba_explain_query","dba_analyze_query_plan")){
+                        var plan=agentAwait(runtime,principal,operation,args);assertFalse(plan.path("executed").asBoolean(true));
+                        assertTrue(plan.path("raw").path("rows").toString().contains("Plan"),plan.toPrettyString());
+                        assertFalse(plan.path("nodes").isEmpty());assertTrue(plan.path("nodes").toString().contains("Total Cost"));
+                        if(operation.equals("dba_analyze_query_plan")){assertTrue(plan.path("analysisIncluded").asBoolean());assertFalse(plan.path("analysis").path("observations").isEmpty());}
+                        else {assertFalse(plan.path("analysisIncluded").asBoolean(true));assertTrue(plan.path("analysis").isTextual(),"Raw plans retain only the compatibility explanation, not structured analysis");}
+                    }
                     args.put("schema",schema).put("object","items");assertEquals(2,agentAwait(runtime,principal,"dba_get_metadata",args).path("rowCount").asInt());
                     var ddl=agentAwait(runtime,principal,"dba_get_object_ddl",args);assertFalse(ddl.path("executableScript").asBoolean(true));assertTrue(ddl.toString().contains("PRIMARY KEY"));
                     args.put("object","secret");assertThrows(SecurityException.class,()->runtime.agentCall(principal,"dba_get_object_ddl",args));

@@ -1,0 +1,54 @@
+mcr.microsoft.com/mssql/server@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090: Pulling from mssql/server
+77dbfa1fd1ae: Pulling fs layer
+3c5fc34894ab: Pulling fs layer
+cb5e374be662: Pulling fs layer
+cb5e374be662: Download complete
+cb5e374be662: Pull complete
+77dbfa1fd1ae: Download complete
+3c5fc34894ab: Download complete
+3c5fc34894ab: Pull complete
+77dbfa1fd1ae: Pull complete
+Digest: sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+Status: Downloaded newer image for mcr.microsoft.com/mssql/server@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+mcr.microsoft.com/mssql/server@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+Owned SQL Server fixture: cgraph-sqlserver-d7424eaf5fb04cbf815195b0ea2a9e4c; image mcr.microsoft.com/mssql/server@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090; loopback port 55905
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+DANGER: --yolo is active; validated local MCP agents are automatically authorized for database reads, writes, DDL, migrations, and administration.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Sep 19, 2026 6:48:29 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:1 ClientConnectionId: 899e20c5-732a-4a59-8852-695c0bdc6d89: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:2 ClientConnectionId: d4fa21b5-2a70-4cf5-8103-596acf2832c7: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:3 ClientConnectionId: 6386b73f-61ed-40ab-822f-505183075220: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:4 ClientConnectionId: f5623cad-bdb0-4f75-ac4f-132c22795237: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:5 ClientConnectionId: be02cf36-17ac-4b21-889a-fcc5d783f715: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:6 ClientConnectionId: 0760c28a-7614-45e6-83ef-25af7f80a4fd: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:7 ClientConnectionId: a8912a8c-3986-4413-abd9-05a426410690: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:30 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:8 ClientConnectionId: 8a9bc9a8-4a8c-495d-b2bc-b6aa753da42c: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:31 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:9 ClientConnectionId: 44e8caef-832c-47f2-a52c-d18e0620c7ce: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:31 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:10 ClientConnectionId: 75cc45ba-0ba7-4841-8e97-576b4d017e91: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:32 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:11 ClientConnectionId: 754260ff-f219-4465-883f-31ff0f1d572a: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:32 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:12 ClientConnectionId: 94b05f83-5b51-4c5f-8c7f-d9cd778e56be: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:34 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:14 ClientConnectionId: bd85c6af-9f6d-4eca-b9a5-17b582993178: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+Sep 19, 2026 6:48:35 PM com.microsoft.sqlserver.jdbc.TDSTokenHandler onColMetaData
+INFO: ConnectionID:15 ClientConnectionId: edcc7e7b-ebb6-4bad-bff7-ad1c6bc578eb: SQLServerConnection.supportsTransactions: Discarding extra metadata which can be a result of SHOWPLAN settings:  TDS_COLMETADATA (0x81)
+SQLSERVER_NATIVE_DELIVERY_BASELINE_VERIFIED
+06e0e0fcd224bd47dbfbb372422d7e1fc54ae3b85b0cbbed4a78980494aceffe
+Untagged: mcr.microsoft.com/mssql/server@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+Deleted: sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090

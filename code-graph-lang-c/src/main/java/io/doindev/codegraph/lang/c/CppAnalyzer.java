@@ -39,6 +39,18 @@ public final class CppAnalyzer extends CFamilyAnalyzer {
     }
 
     @Override
+    protected boolean isFunctionDeclaration(TSNode node){
+        if(super.isFunctionDeclaration(node))return true;
+        if(!node.getType().equals("field_declaration"))return false;
+        TSNode current=node.getChildByFieldName("declarator");
+        for(int depth=0;current!=null&&!current.isNull()&&depth<8;depth++){
+            if(current.getType().equals("function_declarator"))return true;
+            current=current.getChildByFieldName("declarator");
+        }
+        return false;
+    }
+
+    @Override
     protected List<SuperRef> supertypesOf(TSNode typeDecl, Src src) {
         List<SuperRef> refs = new ArrayList<>();
         int count = typeDecl.getNamedChildCount();

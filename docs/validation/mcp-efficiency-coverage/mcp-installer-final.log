@@ -1,0 +1,10 @@
+MCP codex: configured � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.codex\config.toml � Added user-level HTTP connection; restart/reload the client if needed.
+MCP windsurf: configured � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.codeium\windsurf\mcp_config.json � Added user-level HTTP connection; restart/reload the client if needed.
+Skill codex: installed � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.agents\skills\code-graph
+Skill windsurf: installed � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.codeium\windsurf\skills\code-graph
+Start cgraph separately. Clients may need reload/restart and their normal MCP trust approval. Cloud clients cannot reach this machine's loopback endpoint.
+MCP setup skipped; checking for existing code-graph connections before offering skills.
+Skill codex: already-installed � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.agents\skills\code-graph
+Skill windsurf: already-installed � C:\Users\timhj\AppData\Local\Temp\cgraph-build-16412752798627962020\flow home\.codeium\windsurf\skills\code-graph
+Start cgraph separately. Clients may need reload/restart and their normal MCP trust approval. Cloud clients cannot reach this machine's loopback endpoint.
+MCP installer checks passed: 149

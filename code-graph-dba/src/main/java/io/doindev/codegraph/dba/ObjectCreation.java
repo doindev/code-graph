@@ -8,7 +8,7 @@ import java.util.*;
 /** Deliberately small native CREATE adapter. Catalog visibility is not DDL permission. */
 final class ObjectCreation {
     static String engine(Connection c)throws SQLException {String p=c.getMetaData().getDatabaseProductName();return p.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(p);}
-    static boolean supports(String engine,String kind){return Set.of("postgresql","h2").contains(engine)&&(Set.of("schemas","tables","views","sequences","indexes").contains(kind)||engine.equals("postgresql")&&kind.equals("materialized_views"));}
+    static boolean supports(String engine,String kind){return engine.equals("sqlserver")&&kind.equals("tables")||Set.of("postgresql","h2").contains(engine)&&(Set.of("schemas","tables","views","sequences","indexes").contains(kind)||engine.equals("postgresql")&&kind.equals("materialized_views"));}
     static ObjectNode annotate(Connection c,ObjectNode result,boolean generic)throws SQLException {
         String engine=engine(c);
         for(JsonNode node:result.path("nodes"))if(!generic&&node.path("branch").asBoolean()&&supports(engine,node.path("kind").asText()))((ObjectNode)node).put("canCreate",true);

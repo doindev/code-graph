@@ -21,7 +21,9 @@ abstract class EcmaAnalyzer extends TreeWalkAnalyzer {
                 boolean typeOnly=Set.of("interface_declaration","function_signature","method_signature","abstract_method_signature").contains(node.getType());
                 for(TSNode parent=node.getParent();EcmaModules.present(parent);parent=parent.getParent())
                     if(parent.getType().equals("ambient_declaration"))typeOnly=true;
-                return typeOnly?java.util.Map.of("ecmaRuntime","false"):java.util.Map.of();
+                var attrs=new java.util.HashMap<String,String>();if(typeOnly)attrs.put("ecmaRuntime","false");
+                attrs.putAll(EcmaMethodEvidence.declaration(node,src));
+                return attrs;
             }
         };
     }
@@ -63,7 +65,7 @@ abstract class EcmaAnalyzer extends TreeWalkAnalyzer {
 
     @Override
     protected Set<String> typeDeclarationTypes() {
-        return Set.of("class_declaration", "interface_declaration", "enum_declaration");
+        return Set.of("class_declaration", "abstract_class_declaration", "interface_declaration", "enum_declaration");
     }
 
     @Override
@@ -158,10 +160,11 @@ abstract class EcmaAnalyzer extends TreeWalkAnalyzer {
 
     private static void collectIdentifiers(TSNode node, Src src, List<SuperRef> into, RefKind kind) {
         String type = node.getType();
-        if (type.equals("identifier") || type.equals("type_identifier")) {
-            into.add(new SuperRef(src.text(node), kind));
-            return;
+        if (Set.of("identifier","type_identifier","nested_type_identifier","member_expression","generic_type").contains(type)) {
+            // Preserve qualification and generic context; type arguments are not extra parents.
+            into.add(new SuperRef(src.text(node), kind));return;
         }
+        if(!Set.of("class_heritage","extends_type_clause","extends_clause","implements_clause").contains(type))return;
         int count = node.getNamedChildCount();
         for (int i = 0; i < count; i++) {
             collectIdentifiers(node.getNamedChild(i), src, into, kind);

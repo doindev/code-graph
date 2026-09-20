@@ -14,6 +14,11 @@ public final class DbaMcpTools {
     private static final ObjectMapper JSON=new ObjectMapper();
     private DbaMcpTools(){}
     public static List<GraphTool> tools(DbaRuntime runtime,Supplier<String> stdioPrincipal){
+        return tools(runtime,stdioPrincipal,runtime!=null&&runtime.editorPairingEnabled());
+    }
+    /** Schema-only inventory for documentation. Never starts a runtime or opens a connection. */
+    static List<GraphTool> definitions(){return tools(null,null,true);}
+    private static List<GraphTool> tools(DbaRuntime runtime,Supplier<String> stdioPrincipal,boolean editor){
         List<GraphTool> tools=new ArrayList<>();
         tools.add(tool(runtime,stdioPrincipal,"dba_capture_schema","Capture a bounded schema observation as an asynchronous retained job, requiring existing catalog permission for bindingId or exact connection UUID/name/database/schema. No data records or migration SQL are executed. Partial inventories never prove removal; release the job when no longer needed.",List.of(),Map.of("bindingId","string","connectionId","string","connectionName","string","database","string","schema","string")));
         tools.add(tool(runtime,stdioPrincipal,"dba_compare_schemas","Compare two completed retained schema capture job IDs owned by this agent. Reauthorizes both exact targets. Reports structural, definition-text and cross-engine compatibility differences; never infers renames, removals from incomplete inventories or generates migration SQL.",List.of("leftSnapshotId","rightSnapshotId"),Map.of("limit","integer")));
@@ -28,24 +33,24 @@ public final class DbaMcpTools {
         tools.add(tool(runtime,stdioPrincipal,"dba_list_project_databases","List authorized application database bindings with canonical environment, logical role, purpose, scope, freshness and effective permissions. Listing alone does not renew activity.",List.of(),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_get_my_permissions","List legacy grants and scoped exact/category reusable permissions, including active MCP-session grants, lifetimes, targets and last use. Never returns credentials.",List.of(),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_list_my_created_connections","List stable IDs, names, creation request IDs, timestamps and bindings for profiles created through this agent. Creation never grants access.",List.of(),Map.of()));
-        tools.add(tool(runtime,stdioPrincipal,"dba_search_objects","Search an authorized application database snapshot and renew its activity lease. Prefer generation-bound cursor pages; legacy offsets do not protect against scans between calls.",List.of("bindingId"),Map.of("query","string","kind","string","offset","integer","limit","integer","searchDefinitions","boolean","cursor","string")));
+        tools.add(tool(runtime,stdioPrincipal,"dba_search_objects","Search an authorized cached database snapshot. Supply bindingId OR standalone connectionId, exact connectionName and database, with optional schema. Standalone scopes scan on demand and expire after 30 idle minutes. Prefer generation-bound cursors.",List.of("bindingId"),Map.of("query","string","kind","string","offset","integer","limit","integer","searchDefinitions","boolean","cursor","string")));
         tools.add(tool(runtime,stdioPrincipal,"dba_get_indexed_ddl","Read bounded DDL chunks from an authorized cached snapshot.",List.of("bindingId","objectId"),Map.of("offset","integer","length","integer")));
         tools.add(tool(runtime,stdioPrincipal,"dba_get_indexed_properties","Read cached columns, indexes, primary keys, foreign keys or privileges in bounded pages.",List.of("bindingId","objectId"),Map.of("section","string","offset","integer","limit","integer")));
         tools.add(tool(runtime,stdioPrincipal,"dba_get_database_dependencies","Read bounded cached dependency edges for an indexed object.",List.of("bindingId","objectId"),Map.of("offset","integer","limit","integer")));
         tools.add(tool(runtime,stdioPrincipal,"dba_find_code_references","Find candidate code locations for an indexed database object; dynamic SQL can remain unresolved.",List.of("bindingId","objectId"),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_scan_status","Inspect snapshot freshness without renewing activity. Optionally wait up to 5000ms for generation > afterGeneration; at most four waiters, cancellation on interruption.",List.of("bindingId"),Map.of("afterGeneration","integer","waitMillis","integer")));
-        tools.add(tool(runtime,stdioPrincipal,"dba_refresh_catalog","Request a bounded catalog scan for an authorized enabled binding. Coalesces with existing scans and renews project activity; no database writes. Optionally wait for a newer generation.",List.of("bindingId"),Map.of("afterGeneration","integer","waitMillis","integer")));
+        tools.add(tool(runtime,stdioPrincipal,"dba_refresh_catalog","Request a bounded catalog scan for an authorized binding or explicit standalone connection/database/schema. Coalesces active scans; does not write to the database. Optionally wait for a newer generation.",List.of("bindingId"),Map.of("afterGeneration","integer","waitMillis","integer")));
 
         tools.add(tool(runtime,stdioPrincipal,"dba_list_connections","List stable connection IDs/names without credentials or URLs. Trusted local clients can discover connections without setup; database access still requires reviewed permission. Optional named-token clients retain their grant-filtered roster.",List.of(),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_get_metadata","Read capped metadata under legacy or scoped catalog permissions. Use bindingId or connectionId plus exact connectionName; unapproved access returns an approval request when a review channel is enabled.",List.of("connectionName"),Map.of("schema","string","object","string")));
-        tools.add(tool(runtime,stdioPrincipal,"dba_get_object_ddl","Inspect PostgreSQL definition fragments or MySQL/MariaDB SHOW CREATE through scoped catalog permission; never creates objects. May return an approval request, otherwise an asynchronous job.",List.of("connectionName","schema","object"),Map.of()));
+        tools.add(tool(runtime,stdioPrincipal,"dba_get_object_ddl","Inspect supported PostgreSQL, MySQL/MariaDB and SQL Server object definitions through scoped catalog permission; partial or inaccessible definitions are labeled. Never creates objects. May return an approval request, otherwise an asynchronous job.",List.of("connectionName","schema","object"),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_explain_query","Get an estimated SELECT plan without execution-based analysis under legacy or scoped explain permission. May return an approval request or an asynchronous job.",List.of("connectionName","sql"),Map.of("parameters","array")));
         tools.add(tool(runtime,stdioPrincipal,"dba_analyze_query_plan","Analyze an estimated SELECT plan without EXPLAIN ANALYZE or database ANALYZE.",List.of("connectionName","sql"),Map.of("parameters","array")));
         tools.add(tool(runtime,stdioPrincipal,"dba_execute_read_query","Run one structurally restricted SELECT asynchronously with at most 100 rows/1 MiB.",List.of("connectionName","sql"),Map.of("parameters","array")));
-        tools.add(tool(runtime,stdioPrincipal,"dba_job_status","Get this agent's bounded job state/result.",List.of("jobId"),Map.of()));
+        tools.add(tool(runtime,stdioPrincipal,"dba_job_status","Get this agent's bounded job state/result and revision. Optional waitMillis (0..5000) waits for a change after afterRevision or terminal completion; timeout does not mean completion.",List.of("jobId"),Map.of("afterRevision","integer","waitMillis","integer")));
         tools.add(tool(runtime,stdioPrincipal,"dba_cancel_job","Request cancellation of this agent's job.",List.of("jobId"),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_release_job","Release this agent's completed result.",List.of("jobId"),Map.of()));
-        if(runtime!=null&&runtime.editorPairingEnabled()){
+        if(editor){
             tools.add(tool(runtime,stdioPrincipal,"dba_pair_editor","Pair this logical MCP session with a user-selected DBA browser workspace using its short-lived code. Pairing grants revision-checked Script collaboration only and no database permissions.",List.of("pairingCode"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_list_editor_documents","List bounded Script document metadata and revisions in the explicitly paired browser workspace. Does not expose Table tabs or execute SQL.",List.of(),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_get_editor_document","Read one paired Script document with its exact revision for conflict-safe edits. Does not execute SQL or save a file.",List.of("documentId"),Map.of()));
@@ -66,10 +71,10 @@ public final class DbaMcpTools {
             tools.add(tool(runtime,stdioPrincipal,"dba_request_binding_update","Propose environment, role, purpose, enabled, scan or idle changes. Immutable target changes require replacement.",List.of("requestId","purpose","bindingId","binding"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_request_binding_delete","Propose removing an application/database association without deleting the connection or database.",List.of("requestId","purpose","bindingId"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_request_live_sql","Request SQL using bindingId, or standalone connectionId plus exact connectionName with optional database/schema. Server-verified categories may use exact or scoped reusable human permissions. Dangerous or unknown statements always require one-time review. Session policies end with this logical MCP session.",List.of("requestId","sql","purpose"),Map.of("bindingId","string","connectionId","string","connectionName","string","database","string","schema","string","parameters","array","autoCommit","boolean")));
-            tools.add(tool(runtime,stdioPrincipal,"dba_request_status","Poll an approval using the returned approval id (not the caller's idempotency requestId). Includes classification, eligible choices, exact scope, matched policy and authorization reason when available.",List.of("requestId"),Map.of()));
-            tools.add(tool(runtime,stdioPrincipal,"dba_cancel_request","Cancel this agent's pending request or request cancellation of its job.",List.of("requestId"),Map.of()));
-            tools.add(tool(runtime,stdioPrincipal,"dba_cancel_live_request","Compatibility alias for cancelling a live-SQL approval.",List.of("approvalId"),Map.of()));
-            tools.add(tool(runtime,stdioPrincipal,"dba_live_request_status","Compatibility alias for polling a live-SQL approval.",List.of("approvalId"),Map.of()));
+            tools.add(tool(runtime,stdioPrincipal,"dba_request_status","Poll using the server-returned approvalId, not the submission's idempotency requestId; the old polling field remains a deprecated alias. Includes classification, eligible choices, exact scope, matched policy and authorization reason when available.",List.of("requestId"),Map.of()));
+            tools.add(tool(runtime,stdioPrincipal,"dba_cancel_request","Cancel this agent's pending approvalId or request cancellation of its job; the old requestId polling field remains a deprecated alias.",List.of("requestId"),Map.of()));
+            tools.add(tool(runtime,stdioPrincipal,"dba_cancel_live_request","Compatibility alias for dba_cancel_request; use the canonical tool with approvalId.",List.of("approvalId"),Map.of()));
+            tools.add(tool(runtime,stdioPrincipal,"dba_live_request_status","Compatibility alias for dba_request_status; use the canonical tool with approvalId.",List.of("approvalId"),Map.of()));
         }
         if(runtime!=null&&stdioPrincipal!=null){
             String principal=stdioPrincipal.get(),session="stdio:"+UUID.randomUUID();
@@ -98,7 +103,8 @@ public final class DbaMcpTools {
             var standalone=choices.addObject();standalone.putArray("required").add("connectionId").add("connectionName");standalone.putObject("not").putArray("required").add("bindingId");
         }
         DbaInputSchemas.enrich(name,schema);
-        description+=" With startup --yolo, approval-dependent operations are automatically authorized once for validated local sessions; exact targets and all validation remain required. Standalone execution then requires connectionId, exact connectionName, database and applicable schema. Read tools remain read-only.";
+        if (name.startsWith("dba_request_") && !name.equals("dba_request_status") || Set.of("dba_get_metadata","dba_get_object_ddl","dba_explain_query","dba_analyze_query_plan","dba_execute_read_query","dba_get_connection_details").contains(name))
+            description+=" Authorization is required; startup --yolo supplies automatic consent without bypassing validation or changing read-only semantics.";
         return new AgentTool(runtime,stdio,new ToolSpec(name,description,schema.toString()));
     }
     static final class AgentTool implements GraphTool {

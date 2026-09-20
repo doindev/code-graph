@@ -18,6 +18,12 @@ from unknown servers. `live: true`, when advertised and authorized, returns a jo
 for one target's actual JDBC metadata or native server version. A PostgreSQL-compatible product is not
 automatically certified for all PostgreSQL administration.
 
+Cached catalog tools also accept a standalone connection UUID, exact name, explicit
+database/catalog, and optional schema when advertised. Do not invent a project
+binding. Standalone code-reference searches additionally need an explicit indexed
+project. Cache sharing never shares permissions; passive status does not renew
+its 30-minute idle retention.
+
 Catalog data is cached, scoped and potentially incomplete. Inspect generation,
 scan time, coverage, truncation and warnings. Request `dba_refresh_catalog` only
 within authorized scope, then use bounded status waits/polling. Listing and
@@ -59,6 +65,16 @@ requires refinement rather than guessing a cursor.
 Conditional Redis SET reports `applied: false` when its condition did not match.
 That is not a transport failure and should not trigger an unconditional retry.
 Native writes are not an atomic script. On partial/unknown outcomes, reconcile
-with authorized reads before requesting another mutation. Native snapshots,
-reusable policies, transactions and infrastructure capabilities must not be
-assumed merely because a native profile connects successfully.
+with authorized reads before requesting another mutation. Native schema capture and cached catalogs, when advertised, contain bounded
+definitions/observations, never a complete document/key inventory. Sampling is
+opt-in; field types observed in documents are not declared validator requirements.
+Redis prefixes/types/TTL classes are conventions, not a relational schema.
+Do not infer removed objects from missing samples or compare volatile TTL
+milliseconds as schema changes. Reusable policies, transactions and infrastructure
+capabilities must not be assumed merely because a native profile connects.
+
+For Sentinel/Cluster, preserve opaque SCAN cursors exactly. They are tied to the
+profile/database and observed primary/topology and can expire; restart from 0
+after a stale-cursor error rather than substituting a raw cursor. Cluster targets
+require logical database 0. Reads remain live and can repeat keys; changing
+topology does not authorize configuration or failover commands.

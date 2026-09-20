@@ -82,6 +82,8 @@ const shapes={
   "ellipsis-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1\" />\n  <circle cx=\"12\" cy=\"5\" r=\"1\" />\n  <circle cx=\"12\" cy=\"19\" r=\"1\" />",
   "database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" />\n  <path d=\"M3 5V19A9 3 0 0 0 21 19V5\" />\n  <path d=\"M3 12A9 3 0 0 0 21 12\" />"
 };
+shapes.info='<circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>';
+shapes.search='<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>';
 export function lucide(name){
   if(!shapes[name])throw new Error('Unknown tree icon');
   const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');

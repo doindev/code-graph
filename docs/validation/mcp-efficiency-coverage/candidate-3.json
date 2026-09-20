@@ -1,0 +1,699 @@
+{
+  "phase": "candidate",
+  "run": 3,
+  "environment": {
+    "node": "v22.22.3",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "startup": {
+    "endpoint": "http://127.0.0.1:58613/mcp",
+    "indexAndStartupMs": 89028.7245,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 0,
+      "peakCacheUsedBytesEstimate": 0,
+      "cacheHits": 0,
+      "cacheMisses": 0,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1290510,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 241934,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 805306368,
+      "heapUsedBytes": 78084528,
+      "diskBytes": 88969216,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  },
+  "metrics": {
+    "heapUsedBytes": 86230432,
+    "heapPoolPeaksBytes": 246258504,
+    "gcCount": 256,
+    "gcTimeMs": 453,
+    "storage": {
+      "mode": "hybrid",
+      "budgetBytes": 33554432,
+      "cacheCapacityBytes": 15728640,
+      "cacheUsedBytesEstimate": 4684,
+      "peakCacheUsedBytesEstimate": 4684,
+      "cacheHits": 100,
+      "cacheMisses": 4,
+      "cacheEvictions": 0,
+      "enginePageCacheBytes": 0,
+      "activeAndStagedStores": 1,
+      "metadataReserveBytes": 1048576,
+      "temporaryReserveBytes": 16777216,
+      "peakUnsavedBytesEstimate": 1290510,
+      "unsavedBytesEstimate": 0,
+      "cacheOverCapacityBytesEstimate": 0,
+      "peakDirtyThresholdOvershootBytesEstimate": 241934,
+      "accountingComplete": false,
+      "hardProcessMemoryLimit": false,
+      "heapMaxBytes": 805306368,
+      "heapUsedBytes": 87279008,
+      "diskBytes": 88969216,
+      "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+    }
+  },
+  "processMemory": {
+    "available": true,
+    "WorkingSet64": 351576064,
+    "PeakWorkingSet64": 355962880,
+    "PrivateMemorySize64": 379047936
+  },
+  "samples": [
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 282.71179999999003,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 16.617100000032224,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 299.32890000002226
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 182.04839999997057,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 20.401399999973364,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 202.44979999994393
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 314.62650000001304,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 40.12040000001434,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 354.7469000000274
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 175.14120000001276,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 23.73729999997886,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 198.87849999999162
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 261.0018000000273,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 36.117000000027474,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 297.11880000005476
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 192.1591999999946,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 15.09270000003744,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 207.25190000003204
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 153.29839999997057,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 14.506399999954738,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 167.8047999999253
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 140.4897999999812,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 16.232999999949243,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 156.72279999993043
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 151.29979999997886,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 15.321699999971315,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 166.62149999995017
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 154.3803000000189,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 17.040699999954086,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 171.420999999973
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 130.1657000000123,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 15.209399999934249,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 145.37509999994654
+    },
+    {
+      "answer": {
+        "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": {
+          "declaration": "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": {
+          "declaration": "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": {
+          "declaration": "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+          ]
+        },
+        "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": {
+          "declaration": "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1",
+          "implementations": [
+            "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+          ]
+        }
+      },
+      "events": [
+        {
+          "kind": "mcp",
+          "operation": "search_symbols",
+          "purpose": "Discover exact interface method identities once",
+          "durationMs": 179.68350000004284,
+          "responseBytes": 1692,
+          "error": false
+        },
+        {
+          "kind": "mcp",
+          "operation": "get_symbol_context",
+          "purpose": "Acquire declarations and verified implementation evidence in one generation",
+          "durationMs": 23.422300000092946,
+          "responseBytes": 10839,
+          "error": false
+        }
+      ],
+      "generation": 1,
+      "mcpCalls": 2,
+      "filesystemSearches": 0,
+      "sourceReads": 0,
+      "responseBytes": 12531,
+      "acquisitionMs": 203.1058000001358
+    }
+  ]
+}

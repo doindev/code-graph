@@ -1,20 +1,21 @@
 {
   "version": 1,
-  "updated": "2026-09-18",
+  "updated": "2026-09-19",
   "complete": true,
   "acceptance": "implementation_complete_with_documented_vendor_and_environment_gaps",
-  "policy": "Every current template remains in this matrix. Unsupported, externally blocked and unverified cases are explicit and are not presented as passes. Advanced operations require verified adapters, not merely JDBC connectivity.",
-  "licensing": "Review free non-expiring editions and driver entitlement before provisioning. No automatic vendor licence acceptance. The exercised fixtures required no acceptance flag.",
+  "policy": "Every JDBC template remains in this matrix; separately identified native MongoDB/Redis coverage is documented in native-databases.md. Unsupported, externally blocked and unverified cases are explicit and are not presented as passes. Advanced operations require verified adapters, not merely JDBC connectivity.",
+  "licensing": "Review free non-expiring editions and driver entitlement before provisioning. No automatic vendor licence acceptance. SQL Server Developer requires its explicit acceptance flag; the user authorized that licence for disposable local testing.",
   "defaultOperations": {
     "schemaCapture": "unverified unless listed under verified",
     "schemaComparison": "unverified unless listed under verified",
     "contractValidation": "available for authorized captures; verification depends on mapping and catalog coverage",
-    "migrationPreparation": "available only for live-observed PostgreSQL, MySQL, MariaDB and H2",
+    "migrationPreparation": "available only for live-observed PostgreSQL, MySQL, MariaDB, H2 and the verified SQL Server subset",
     "migrationRehearsal": "same-engine distinct authorized disposable target plus exact one-time approval",
     "migrationApplication": "exact one-time approval; unavailable for unverified engines"
   },
   "coverageClasses": {
     "full_live_workflow": ["h2", "postgresql", "mysql", "mariadb"],
+    "verified_native_definitions_and_ordinary_table_subset": ["sqlserver"],
     "free_local_or_container_but_advanced_adapter_unverified": ["cassandra", "clickhouse", "cockroachdb", "duckdb", "firebird", "greenplum", "hive", "hsqldb", "mongodb", "neo4j", "opensearch", "presto", "sqlite", "starrocks", "trino", "yugabytedb"],
     "managed_or_cloud_target_not_locally_reproducible": ["redshift", "azure-sql", "cosmos-cassandra", "databricks", "bigquery", "snowflake"],
     "license_or_eula_or_vendor_server_prerequisite": ["altibase", "db2", "db2-i", "db2-zos", "elasticsearch", "exasol", "informix", "oracle", "hana", "teradata"],
@@ -23,8 +24,8 @@
   },
   "limitations": [
     "Partial catalog coverage never proves removals",
-    "Only PostgreSQL, MySQL, MariaDB and H2 advertise verified migration workflows",
-    "Free-server templates outside that set remain explicitly unverified rather than inheriting generic SQL capabilities",
+    "PostgreSQL, MySQL, MariaDB and H2 retain existing migration gates; SQL Server adds explicitly bounded preparation and ordinary-table designer execution",
+    "Other free-server templates remain explicitly unverified rather than inheriting generic SQL capabilities",
     "Cloud, licence-gated and unavailable client environments remain external validation gaps"
   ],
   "tests": [
@@ -60,7 +61,7 @@
     {"id":"h2","name":"H2","driverCoordinates":"com.h2database:h2","imageDigest":null,"serverVersion":"2.4.240","driverVersion":"2.4.240","eligibility":"disposable_fixture","status":"verified_workflow_adapter","verified":["bounded_schema_capture","structured_column_comparison","no_application_records_captured","contract_validation","migration_prepare_validate_apply","isolated_rehearsal_with_synthetic_fixtures","estimated_plan_analysis_and_comparison"]},
     {"id":"hsqldb","name":"HSQLDB","driverCoordinates":"org.hsqldb:hsqldb","imageDigest":null,"serverVersion":null,"driverVersion":null,"eligibility":"review_pending","status":"incomplete_not_tested","verified":[]},
     {"id":"mariadb","name":"MariaDB","driverCoordinates":"org.mariadb.jdbc:mariadb-java-client","imageDigest":"mariadb@sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b","serverVersion":"11.4.13","driverVersion":"3.5.7","eligibility":"disposable_fixture","status":"verified_workflow_adapter","verified":["bounded_schema_capture","structured_column_comparison","no_application_records_captured","contract_validation","migration_prepare_validate_apply","isolated_rehearsal_with_synthetic_fixtures","estimated_plan_analysis_and_comparison"]},
-    {"id":"sqlserver","name":"Microsoft SQL Server","driverCoordinates":"com.microsoft.sqlserver:mssql-jdbc","imageDigest":null,"serverVersion":null,"driverVersion":null,"eligibility":"review_pending","status":"incomplete_not_tested","verified":[]},
+    {"id":"sqlserver","name":"Microsoft SQL Server","driverCoordinates":"com.microsoft.sqlserver:mssql-jdbc","imageDigest":"sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090","serverVersion":"2022 (16.x; pinned image)","driverVersion":"13.4.0.jre11","eligibility":"developer_eula_authorized_for_disposable_tests","status":"verified_bounded_subset","verified":["native_definitions_partial","schema_capture","cross_database_targeting","ordinary_table_creation_and_alteration","designer_rollback","structured_migration_preparation"],"restrictions":["No Azure SQL certification","Special tables and infrastructure administration remain unsupported","Migration artifacts report their own conservative transaction guarantees"]},
     {"id":"mysql","name":"MySQL","driverCoordinates":"com.mysql:mysql-connector-j","imageDigest":"mysql@sha256:85b9bf2e29cf836ecb8c2a15a935d4ba0c606631dff1dd79531a11983c638f2a","serverVersion":"8.4.11","driverVersion":"9.7.0","eligibility":"disposable_fixture","status":"verified_workflow_adapter","verified":["bounded_schema_capture","structured_column_comparison","no_application_records_captured","contract_validation","migration_prepare_validate_apply","isolated_rehearsal_with_synthetic_fixtures","estimated_plan_analysis_and_comparison"]},
     {"id":"mongodb","name":"MongoDB SQL Interface","driverCoordinates":"org.mongodb:mongodb-jdbc","imageDigest":null,"serverVersion":null,"driverVersion":null,"eligibility":"review_pending","status":"incomplete_not_tested","verified":[]},
     {"id":"neo4j","name":"Neo4j","driverCoordinates":"org.neo4j:neo4j-jdbc-full-bundle","imageDigest":null,"serverVersion":null,"driverVersion":null,"eligibility":"review_pending","status":"incomplete_not_tested","verified":[]},

@@ -47,5 +47,16 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-kotlin</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-scala</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-csharp</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-c</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-swift</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-dart</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-objc</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-go</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-rust</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-ruby</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>io.doindev</groupId><artifactId>code-graph-lang-php</artifactId><version>${project.version}</version><scope>test</scope></dependency>
   </dependencies>
 </project>

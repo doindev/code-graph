@@ -130,9 +130,8 @@ final class NativeOperations implements AutoCloseable {
                 if(lease.mongo!=null){
                     var info=lease.mongo.getDatabase(target.database()).runCommand(new org.bson.BsonDocument("buildInfo",new org.bson.BsonInt32(1)).append("maxTimeMS",new org.bson.BsonInt64(job.remainingSeconds()*1000L)),org.bson.RawBsonDocument.class);
                     version=info.getString("version").getValue();
-                }else try(var connection=lease.redis.connect(io.lettuce.core.codec.ByteArrayCodec.INSTANCE)){
-                    connection.setTimeout(java.time.Duration.ofSeconds(job.remainingSeconds()));
-                    String info=connection.sync().info("server");
+                }else try(var connection=NativeRedisSession.open(lease,target,job.remainingSeconds())){
+                    String info=connection.serverInfo();
                     version=info.lines().filter(line->line.startsWith("redis_version:")).map(line->line.substring(14).strip()).findFirst().orElse("unknown");
                 }
                 if(version.length()>128)throw new IllegalArgumentException("Invalid native server version response");
@@ -140,6 +139,28 @@ final class NativeOperations implements AutoCloseable {
                 result.set("target",scope.deepCopy());result.putObject("version").put("server",version);return result;
             }
         },()->{});
+    }
+    ObjectNode captureSchema(String owner,WorkflowTargets.Target observed,Runnable authorityCheck){
+        ObjectNode scope=observed.scope().deepCopy(),input=observed.request().deepCopy();
+        return jobs.local(owner,scope.path("connectionId").asText(),job->{
+            authorityCheck.run();job.schemaScope=scope;job.schemaRequest=input;
+            try(AutoCloseable projectLease=scope.has("bindingId")?contexts.hold(scope.path("bindingId").asText()):()->{};
+                var lease=connections.acquire(scope.path("connectionId").asText())){
+                authorityCheck.run();
+                if(!lease.revision.equals(scope.path("profileRevision").asText()))throw new IllegalArgumentException("Native profile changed before snapshot");
+                var target=NativeTarget.resolve(observed.profile(),scope);
+                ObjectNode value=NativeSchemaObservations.capture(lease,target,job.id,job.rowLimit,job.byteLimit,job.remainingSeconds(),ProjectContexts.number(input,"sampleLimit",0,0,32),()->job.cancelled);
+                authorityCheck.run();value.set("target",ApprovalScope.display(scope));return value.put("authorizationReason",observed.authorization());
+            }
+        },()->{});
+    }
+    ObjectNode catalog(CatalogCache.Target selected,java.util.function.BooleanSupplier cancelled)throws Exception{
+        ObjectNode profile=profiles.get(selected.connection());
+        var target=NativeTarget.resolve(profile,Profiles.JSON.createObjectNode().put("connectionId",selected.connection()).put("connectionName",profile.path("name").asText()).put("database",selected.database()));
+        try(var lease=connections.acquire(selected.connection())){
+            if(!selected.revision().equals(lease.revision))throw new IllegalArgumentException("Native profile changed before catalog scan");
+            return NativeSchemaObservations.capture(lease,target,UUID.randomUUID().toString(),100,1<<20,30,0,cancelled);
+        }
     }
     ObjectNode tree(String owner,JsonNode input){
         ObjectNode profile=profiles.get(NativeTarget.text(input,"connectionId",36)),selected=input.deepCopy();

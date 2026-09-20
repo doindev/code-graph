@@ -1,11 +1,13 @@
 import {installApprovalUI} from './approval-ui.js';
 import {lucide} from './tree-icons.js';
+import {installCatalogUI} from './catalog-ui.js';
 const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;};
 const time=value=>value?new Date(value).toLocaleString():'Not yet';
 const environments=['local','dev','test','stage','prod'];
 const typeName=value=>value.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 export function installProjectContext({api,profiles,notify,openConnection,reviewConnection}){
   const menu=document.getElementById('workspace-settings-menu'),toolbar=document.getElementById('workspace-toolbar-actions');
+  installCatalogUI({api,profiles,menu});
   const contextButton=el('button','Project databases');contextButton.id='project-databases';contextButton.setAttribute('role','menuitem');contextButton.prepend(lucide('database'));menu.append(contextButton);
   const approvalButton=el('button','Approvals');approvalButton.id='agent-approvals';approvalButton.title='Review agent database requests';approvalButton.setAttribute('aria-label','Agent database approvals');toolbar.prepend(approvalButton);
   const context=el('dialog',undefined,'project-context-dialog');context.id='project-context-dialog';context.setAttribute('aria-labelledby','project-context-title');

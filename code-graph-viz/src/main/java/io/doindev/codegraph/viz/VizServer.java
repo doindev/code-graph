@@ -286,6 +286,7 @@ public final class VizServer implements AutoCloseable {
         out.put("name", job.name());
         out.put("state", job.state());
         out.put("elapsedMs", job.elapsedMs());
+        out.set("progress", JSON.valueToTree(job.progress()));
         if (job.error() != null) {
             out.put("error", job.error());
         }

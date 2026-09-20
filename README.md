@@ -18,7 +18,7 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Data grid and session recovery. Tables expand into lazy, vendor-aware categories such as
   Columns, Constraints and Foreign Keys; see [catalog navigation](docs/dba-catalog-tree.md#table-children).
   A staged [Table Properties designer](docs/dba-table-designer.md) supports reviewed PostgreSQL/H2
-  schema edits; the capability matrix documents remaining vendor and advanced-editor gaps.
+  and verified SQL Server 2022 ordinary-table schema edits; the capability matrix documents remaining vendor and advanced-editor gaps.
   Supported PostgreSQL/H2 category menus offer [New with SQL review](docs/dba-catalog-tree.md#creating-objects-from-category-menus)
   and explicit Apply; Tables → New reuses the Properties tab, with Data/Diagram disabled until creation succeeds.
   The reusable [Visual Query Builder](docs/dba-query-builder.md) opens standalone, from selected
@@ -35,14 +35,16 @@ large text codebases into a queryable **code property graph** so AI agents can a
   The [approval broker](docs/approval-broker.md) routes requests to an active DBA browser or a
   JDK-only desktop consent prompt, with a restricted temporary browser editor for complex reviews.
   [Native MongoDB and Redis](docs/native-databases.md) add separate non-JDBC profiles,
-  typed command workspaces, bounded reads and reviewed CRUD. SQL Server gains bounded
-  catalog DDL inspection and disposable live-test coverage. Advanced native topology and
-  administration remain incomplete; see the [delivery checklist](docs/native-database-delivery.md).
+  typed command workspaces, bounded reads, reviewed CRUD and native catalog observations/contracts.
+  Mongo replica/sharded and Redis Sentinel/Cluster connections have disposable topology tests.
+  SQL Server gains native definitions, reviewed ordinary-table design and migration checks.
+  Infrastructure administration and other advanced workflows remain explicitly unsupported;
+  see the [current acceptance report](docs/mcp-efficiency-coverage-delivery.md).
 - **Tree-sitter AST parsing** for the top-10 languages: Java, JavaScript, TypeScript (+TSX),
   Python, C#, Go, Rust, C, C++, PHP — plus Ruby and Kotlin. New languages plug in behind a
   `LanguageAnalyzer` SPI.
 - **Unified code property graph**: files, types, functions and variables connected by
-  CONTAINS / IMPORTS / CALLS / REFERENCES / EXTENDS / IMPLEMENTS / READS / WRITES edges, every
+  CONTAINS / IMPORTS / CALLS / REFERENCES / EXTENDS / IMPLEMENTS / OVERRIDES / READS / WRITES edges, every
   cross-file edge carrying a resolution **confidence** score.
   [Java dependency precision](docs/dependency-precision.md) uses receiver/owner types, imports,
   lexical variables, inheritance and argument evidence instead of same-name guessing.
@@ -65,13 +67,18 @@ large text codebases into a queryable **code property graph** so AI agents can a
   bequest, temporal coupling (git co-change mining) and duplicate logic — every finding carries
   its metric evidence.
 - **MCP tools** (stdio or loopback-only streamable HTTP for local agents): `search_symbols`,
-  `get_symbol`, `get_impact_radius`, `get_call_graph`, `get_blast_score`, `find_dead_code`,
+  `get_symbol`, `get_symbol_context`, `find_implementations`, `get_impact_radius`, `get_call_graph`, `get_blast_score`, `find_dead_code`,
   `find_code_smells`, `compare_architectural_drift`, `index_status`, `reindex`,
   `list_projects`, `get_workspace_context`, `add_project`, `remove_project`.
   Tools publish backward-compatible text plus structured results. Symbol/catalog
   pagination uses expiring generation-bound cursors. DBA adds template discovery,
-  exact-target capability observations and authorized catalog refresh/waits.
-  See the [MCP tool reference](docs/guides/mcp-server.md), the
+  exact-target capability observations and authorized catalog refresh/waits, including standalone
+  connections. Opt-in symbol bundles share one bounded generation; `index_status` can wait
+  for exact file hashes/deletions and jobs support revision-aware bounded waiting. See
+  [method coverage](docs/method-implementation-coverage.md) and
+  [measured acquisition results](docs/mcp-efficiency-coverage-delivery.md).
+  See the [MCP tool reference](docs/guides/mcp-server.md),
+  [generated schemas and canonical descriptions](docs/mcp-tools-generated.md), the
   [workflow acceptance report](docs/mcp-workflow-acceptance.md), and the
   [42-template capability manifest](docs/workflow-capabilities.json).
 - **Headless CI mode**: scan a PR, compute the blast radius of the diff, post a markdown risk
@@ -379,9 +386,20 @@ The rule is directional: adding a parent of an existing project is currently all
 Hybrid mode additionally rejects project roots overlapping its session-storage directory.
 
 MCP `add_project` takes a **server-side** directory path and returns its assigned name after
-indexing completes. The UI provides a server-side directory browser and asynchronous progress.
+indexing completes. While it runs, `list_projects.onboarding` exposes initial-scan
+phase, elapsed time and file counts separately from queryable `projects`, without
+renewing TTLs. At most four runtime onboarding scans run concurrently; excess
+requests receive `onboarding_busy`. The UI scan dialog shows parsing, relationship
+resolution and publication stages. Counts describe completed work, not an estimated
+percentage; hybrid discovery and parsing overlap. Check pending/ready entries before
+retrying an uncertain add. The UI provides a server-side directory browser and asynchronous progress.
 Removal stops monitoring and releases the graph, without deleting source files. There is no
 automatic restoration or persistence of the runtime project roster.
+
+For known symbol IDs, `get_symbol_context` can combine selected evidence sections.
+Its optional `detail: "locations"` omits display name/kind/signature while preserving
+IDs, paths/spans, relationships, confidence, occurrence evidence and risk/coverage.
+Full detail remains the default; keep detail unchanged when following cursors.
 
 ## Configuration
 
@@ -425,8 +443,9 @@ process-wide whenever project configuration is loaded. There is no built-in `.en
 `90s`, `10m`, `1h`, `2d`. Default: `1h`. Zero, fractional durations, unitless values,
 `never` and overflowing durations are not supported.
 
-Project-specific MCP calls (including `index_status` and `reindex`), UI queries, relevant job
-polling and active graph interaction renew the relevant project's timer. `list_projects`,
+Project-specific evidence queries and explicit `reindex`, UI queries, relevant job
+activity and active graph interaction renew the relevant project's timer. `list_projects`
+and `index_status` (including bounded freshness waits),
 UI roster/countdown refreshes, browsing, settings, an idle browser tab and automatic
 file-watcher indexing do **not** renew it. The timer starts when onboarding is ready; active
 requests and explicit reindex jobs are protected until completion.

@@ -8,6 +8,14 @@ import java.util.Set;
 final class DbaInputSchemas {
     static void enrich(String operation, ObjectNode schema) {
         ObjectNode props = schema.withObject("properties");
+        if(Set.of("dba_request_status","dba_cancel_request").contains(operation)) {
+            props.putObject("approvalId").put("type","string").put("description","Server-returned approvalId (also exposed as legacy id); not the submission's idempotency requestId.");
+            props.withObject("requestId").put("deprecated",true).put("description","Deprecated polling alias for approvalId. If both are supplied they must match.");
+            schema.putArray("required");
+            var alternatives=schema.putArray("anyOf");
+            alternatives.addObject().putArray("required").add("approvalId");
+            alternatives.addObject().putArray("required").add("requestId");
+        } else if(props.has("requestId")) props.withObject("requestId").put("description","Caller-generated idempotency key for this exact submission; use the returned approvalId for polling or cancellation.");
         if(operation.equals("dba_request_native_command")){
             ObjectNode command=props.putObject("command").put("description","Bounded BSON Extended JSON command document or Redis argument vector. Redis keys/values may be {base64: canonical-padded-base64}; command names, flags, cursors, patterns and numbers must be strings. 128 KiB aggregate input limit; binary values at most 64 KiB, keys/fields 8 KiB.");
             var alternatives=command.putArray("oneOf");
@@ -22,6 +30,20 @@ final class DbaInputSchemas {
             for(String key:List.of("connectionId","connectionName","database","schema"))excluded.addObject().putArray("required").add(key);
             var standalone=targets.addObject();standalone.putArray("required").add("connectionId").add("connectionName").add("database");
             standalone.putObject("not").putArray("required").add("bindingId");
+        }
+        if(Set.of("dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies","dba_find_code_references","dba_scan_status","dba_refresh_catalog").contains(operation)){
+            for(String key:List.of("bindingId","connectionId","connectionName","database","schema"))props.putObject(key).put("type","string");
+            if(operation.equals("dba_find_code_references"))props.putObject("projectId").put("type","string").put("description","Required for standalone code-reference lookup; does not create a binding.");
+            var required=schema.putArray("required");
+            if(!Set.of("dba_search_objects","dba_scan_status","dba_refresh_catalog").contains(operation))required.add("objectId");
+            var forms=schema.putArray("oneOf");var bound=forms.addObject();bound.putArray("required").add("bindingId");
+            var excludes=bound.putObject("not").putArray("anyOf");
+            for(String key:List.of("connectionId","connectionName","database","schema"))excludes.addObject().putArray("required").add(key);
+            var standalone=forms.addObject();standalone.putArray("required").add("connectionId").add("connectionName").add("database");
+            if(operation.equals("dba_find_code_references"))standalone.withArray("required").add("projectId");
+            standalone.putObject("not").putArray("required").add("bindingId");
+            props.withObject("database").put("description","Explicit exact standalone database/catalog; no default is inferred.");
+            props.withObject("schema").put("description","Optional exact schema; omission inventories accessible objects in the selected database.");
         }
         props.properties().forEach(entry -> {
             ObjectNode value = (ObjectNode) entry.getValue();
@@ -51,8 +73,9 @@ final class DbaInputSchemas {
         if (props.has("length")) props.withObject("length").put("minimum", 1).put("maximum", 64000);
         if (props.has("waitMillis")) props.withObject("waitMillis").put("minimum", 0).put("maximum", 5000).put("default", 0);
         if (props.has("afterGeneration")) props.withObject("afterGeneration").put("minimum", 0);
+        if (props.has("afterRevision")) props.withObject("afterRevision").put("minimum",0).put("description","Revision from an earlier status of this exact job; required for positive waitMillis.");
         if (props.has("section")) props.withObject("section").putArray("enum")
-                .add("columns").add("indexes").add("primaryKeys").add("foreignKeys").add("privileges");
+                .add("columns").add("indexes").add("primaryKeys").add("foreignKeys").add("privileges").add("fieldObservations").add("nativeColumns").add("nativeKeys").add("nativeIndexes").add("constraints");
         if (props.has("parameters")) {
             ObjectNode params = props.withObject("parameters").put("maxItems", 128)
                     .put("description", "Positional JDBC bind values in marker order; JSON scalar types are preserved. Never interpolate SQL.");
@@ -79,6 +102,7 @@ final class DbaInputSchemas {
             props.withObject("saveUntested").put("description","Explicitly save without connectivity validation; required configuration and vault checks still apply.");
         }
         if(operation.equals("dba_request_connection_test"))bool(props,"confirmDriverEffects");
+        if(operation.equals("dba_capture_schema")){number(props,"sampleLimit",0,32);props.withObject("sampleLimit").put("description","MongoDB only: optional bounded document-type observations, default 0. Values are never returned; sampled types are not declared schema.");}
         if (props.has("profile")) profile(props.withObject("profile"), operation.endsWith("_create"));
         if (props.has("binding")) binding(props.withObject("binding"), operation);
         if (props.has("driverInstall")) driver(props.withObject("driverInstall"), true);
@@ -126,9 +150,10 @@ final class DbaInputSchemas {
         text(props,"transport",16).putArray("enum").add("jdbc").add("mongodb").add("redis");
         ObjectNode nativeOptions=object(props.putObject("nativeOptions"));
         text(nativeOptions,"database",256);text(nativeOptions,"authDatabase",256);text(nativeOptions,"replicaSet",256);
-        text(nativeOptions,"topology",32).putArray("enum").add("standalone").add("replica_set").add("sharded").add("srv");
+        text(nativeOptions,"topology",32).putArray("enum").add("standalone").add("replica_set").add("sharded").add("srv").add("sentinel").add("cluster");
         text(nativeOptions,"authMechanism",32).putArray("enum").add("SCRAM-SHA-256").add("SCRAM-SHA-1");
         text(nativeOptions,"readPreference",32).putArray("enum").add("primary").add("primaryPreferred").add("secondary").add("secondaryPreferred").add("nearest");
+        text(nativeOptions,"sentinelMaster",256);nativeOptions.putObject("seeds").put("type","array").put("minItems",1).put("maxItems",15).putObject("items").put("type","string").put("maxLength",8192);
         bool(nativeOptions,"tls");number(nativeOptions,"connectTimeoutMS",100,300000);number(nativeOptions,"socketTimeoutMS",100,300000);
         number(nativeOptions,"maximumPoolSize",1,16);number(nativeOptions,"idleTimeoutMS",1000,3600000);
         var jars = props.putObject("jars").put("type", "array").put("minItems", 1).put("maxItems", 64);

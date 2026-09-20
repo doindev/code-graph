@@ -34,7 +34,7 @@ final class SearchSymbolsTool implements GraphTool {
     @Override
     public ToolSpec spec() {
         return new ToolSpec("search_symbols",
-                "Find symbols by name to obtain valid symbol IDs (required by every other tool). "
+                "Find symbols by name to obtain stable IDs and declaration locations for symbol-based navigation. "
                         + "Case-insensitive substring match over simple and qualified names. Optional cursors expire after five minutes; restart discovery when the index generation changes.",
                 """
                 { "type": "object",

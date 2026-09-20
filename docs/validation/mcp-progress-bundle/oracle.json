@@ -1,0 +1,22 @@
+{
+  "methods": {
+    "java:context-fixture/Workflow0.java#benchprobe.Workflow0.run/1": [
+      "java:context-fixture/Workflow0.java#benchprobe.Worker0.run/1"
+    ],
+    "java:context-fixture/Workflow1.java#benchprobe.Workflow1.run/1": [
+      "java:context-fixture/Workflow1.java#benchprobe.Worker1.run/1"
+    ],
+    "java:context-fixture/Workflow2.java#benchprobe.Workflow2.run/1": [
+      "java:context-fixture/Workflow2.java#benchprobe.Worker2.run/1"
+    ],
+    "java:context-fixture/Workflow3.java#benchprobe.Workflow3.run/1": [
+      "java:context-fixture/Workflow3.java#benchprobe.Worker3.run/1"
+    ]
+  },
+  "files": {
+    "context-fixture/Workflow0.java": "2132045be6699ff1ee2e1bed8861bae1d4424c7fd5b04c9d2c931c7519a21700",
+    "context-fixture/Workflow1.java": "f37ced2d093e2bd4d7755c9fc553259a999476b7a2b16e8d7973e6ab18961e8a",
+    "context-fixture/Workflow2.java": "dbf7452491a84dbb68294bce438ec198d98f875b493d98e23916a7053f1f078f",
+    "context-fixture/Workflow3.java": "abbf592ac186ff6779842d73f32b7697b1c6486062865e554da4e4fdfedb3f33"
+  }
+}

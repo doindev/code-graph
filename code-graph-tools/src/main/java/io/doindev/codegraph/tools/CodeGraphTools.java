@@ -51,8 +51,10 @@ public final class CodeGraphTools {
         DeadCode deadCode = new DeadCode(graph, effective);
         // the mutation-adjacent tools go through the RiskGate so a high-score target always
         // carries its mandatory risk report
-        return List.of(
+        String indexInstance = java.util.UUID.randomUUID().toString();
+        return List.<GraphTool>of(
                 new SearchSymbolsTool(graph, effective),
+                new SymbolContextTool(graph, effective),
                 new RiskGate(new GetSymbolTool(graph, effective), blastScore, effective, "symbol_id"),
                 new RiskGate(new GetImpactRadiusTool(graph, effective), blastScore, effective, "target"),
                 new GetCallGraphTool(graph, effective),
@@ -60,13 +62,15 @@ public final class CodeGraphTools {
                 new FindDeadCodeTool(deadCode, effective),
                 new FindCodeSmellsTool(graph, effective, repoRoot),
                 new CompareDriftTool(graph, effective),
-                new IndexStatusTool(graph),
+                new IndexStatusTool(graph, repoRoot, effective, indexInstance),
                 new ReindexTool(reindexer),
                 new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.OUTLINE),
                 new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.POSITION),
                 new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.REFERENCES),
                 new CodeNavigationTool(graph,effective,CodeNavigationTool.Operation.IMPLEMENTATIONS),
                 new ChangeAnalysisTool(graph,effective,repoRoot,false),
-                new ChangeAnalysisTool(graph,effective,repoRoot,true));
+                new ChangeAnalysisTool(graph,effective,repoRoot,true)).stream()
+                .map(tool -> tool instanceof IndexStatusTool || tool instanceof ReindexTool ? tool
+                        : (GraphTool)new GenerationGuard(tool, graph, indexInstance)).toList();
     }
 }

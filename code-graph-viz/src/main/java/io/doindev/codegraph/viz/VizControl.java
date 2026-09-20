@@ -74,7 +74,10 @@ public interface VizControl {
     }
 
     /** An asynchronous "add project" job the UI can poll and cancel. */
-    record AddJob(String id, String name, String state, long elapsedMs, String error) {
+    record AddJob(String id, String name, String state, long elapsedMs, String error, java.util.Map<String,Object> progress) {
+        public AddJob(String id,String name,String state,long elapsedMs,String error) {
+            this(id,name,state,elapsedMs,error,java.util.Map.of());
+        }
         // state: "indexing" | "ready" | "cancelled" | "error"
     }
 

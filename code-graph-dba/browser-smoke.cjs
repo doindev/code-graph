@@ -18,6 +18,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     if(process.env.DBA_BROWSER_SUITE==='tree-context'){await require('./browser-tree-context.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='approval-review'){await require('./browser-approval-review.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='approvals'){await require('./browser-approvals.cjs')(browser,base,jar);return;}
+    if(process.env.DBA_BROWSER_SUITE==='catalog'){await require('./browser-catalog.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='project-context'){await require('./browser-project-context.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='editor-pairing'){await require('./browser-editor-pairing.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='view-query'){await require('./browser-view-query.cjs')(browser,base,jar,schema);return;}

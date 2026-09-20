@@ -90,7 +90,7 @@ class MigrationPlansTest {
         return new WorkflowTargets.Target(profiles.get(id),scope,Profiles.JSON.createObjectNode().put("connectionId",id).put("connectionName",profiles.get(id).path("name").asText()),"fixture");
     }
 
-    private static QueryJobs.Job await(QueryJobs jobs,String owner,JsonNode submitted)throws Exception{
+    static QueryJobs.Job await(QueryJobs jobs,String owner,JsonNode submitted)throws Exception{
         QueryJobs.Job job=jobs.require(owner,submitted.path("id").asText());long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10);
         while(job.finished==0&&System.nanoTime()<deadline)Thread.sleep(10);
         assertEquals("complete",job.state,job.json().toString());return job;

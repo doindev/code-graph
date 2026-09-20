@@ -72,7 +72,18 @@ class CodeNavigationTest {
         var tool=tool(graph(),"find_implementations");
         var result=call(tool,"{\"symbol_id\":\"java:src/Test.java#Base/0\"}");
         assertEquals(1,result.path("symbols").size());assertEquals("Child",result.path("symbols").get(0).path("name").asText());
-        assertTrue(tool.call(ToolSupport.JSON.createObjectNode().put("symbol_id","java:src/Test.java#Base.a/0")).error());
+        assertFalse(tool.call(ToolSupport.JSON.createObjectNode().put("symbol_id","java:src/Test.java#Base.a/0")).error());
+    }
+    @Test void verifiedMethodImplementationsDoNotBecomeCallReferences()throws Exception{
+        var graph=graph();var child=node("Child.a",NodeKind.FUNCTION,43,48);var base=node("Base.a",NodeKind.FUNCTION,4,8);
+        graph.apply(new GraphDelta(2,List.of(),List.of(child),List.of(new Edge(child.id(),base.id(),EdgeKind.OVERRIDES,1f,
+            Map.of("resolutionStatus","resolved","implementationKind","override","declaringType","Child","baseType","Base"))),List.of()));
+        var result=call(tool(graph,"find_implementations"),"{\"symbol_id\":\"java:src/Test.java#Base.a/0\"}");
+        assertEquals(1,result.path("symbols").size());var relationship=result.path("symbols").get(0);
+        assertEquals("declaration",relationship.path("locationPrecision").asText());
+        assertEquals("override",relationship.path("resolutionEvidence").path("implementationKind").asText());
+        var references=call(tool(graph,"find_references"),"{\"symbol_id\":\"java:src/Test.java#Base.a/0\"}");
+        for(var row:references.path("symbols"))assertNotEquals(child.id().value(),row.path("id").asText());
     }
     @Test void positionCanResolveExpressionTargetsWithoutClaimingExactTokenResolution()throws Exception{
         var graph=graph();

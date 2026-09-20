@@ -189,8 +189,7 @@ public final class PhpAnalyzer extends TreeWalkAnalyzer {
         int count = clause.getNamedChildCount();
         for (int i = 0; i < count; i++) {
             String text = stripLeadingBackslash(src.text(clause.getNamedChild(i)));
-            int lastSep = text.lastIndexOf('\\');
-            into.add(new SuperRef(lastSep >= 0 ? text.substring(lastSep + 1) : text, kind));
+            into.add(new SuperRef(text, kind));
         }
     }
 

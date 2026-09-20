@@ -18,9 +18,10 @@ mode omits approval-dependent operations; do not bypass it with browser APIs,
 direct JDBC, curl, a new identity or another target.
 
 Keep SQL and typed parameter values separate. Inspect an approval's returned
-state and ID. Poll `dba_request_status` with the returned approval ID in
-`requestId`, not the original idempotency key. The older live-request aliases use
-`approvalId`. Do not repeatedly submit the same intent to create extra prompts.
+state and IDs. Use the returned `approvalId` for request status/cancellation,
+not the caller's submission `requestId` idempotency key. Older status schemas
+accept that approval ID in `requestId`; use the advertised canonical field.
+Use `jobId` for execution. Do not resubmit intent to create extra prompts.
 
 Reusable permissions are exact requests or verified categories within the
 displayed scope and lifetime. Session grants end with that logical MCP session;
@@ -29,7 +30,9 @@ trusted-local policies can be shared between local agents. Creation permission
 does not grant routine execution or destructive alterations. Migration plans
 require their own exact review even when individual SQL has reusable permission.
 
-Poll asynchronous jobs with bounded waits/backoff. Submission and cancellation
+Poll asynchronous jobs with bounded waits/backoff. When advertised, pass the last
+job `revision` as `afterRevision` and `waitMillis` up to 5000. A timeout means no
+observed change, not completion. Submission and cancellation
 acknowledgements are not completion. Retain partial-result/partial-commit
 warnings; release completed results when no longer needed. Cancel only jobs
 owned by this task. Do not busy-poll, bypass row limits, or silently broaden

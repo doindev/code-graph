@@ -1,0 +1,75 @@
+docker.io/library/mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2: Pulling from library/mongo
+1aea056e9ccb: Pulling fs layer
+edd1ed89f0d4: Pulling fs layer
+adf7abd1fe48: Pulling fs layer
+3bc1468bbf2a: Pulling fs layer
+051f5efcc90f: Pulling fs layer
+730272832256: Pulling fs layer
+8d07092de802: Pulling fs layer
+5e68fb960432: Pulling fs layer
+d02286804d58: Download complete
+051f5efcc90f: Download complete
+0ced65528e40: Download complete
+5e68fb960432: Download complete
+3bc1468bbf2a: Download complete
+adf7abd1fe48: Download complete
+8d07092de802: Download complete
+1aea056e9ccb: Download complete
+edd1ed89f0d4: Download complete
+edd1ed89f0d4: Pull complete
+5e68fb960432: Pull complete
+adf7abd1fe48: Pull complete
+3bc1468bbf2a: Pull complete
+8d07092de802: Pull complete
+051f5efcc90f: Pull complete
+730272832256: Download complete
+730272832256: Pull complete
+1aea056e9ccb: Pull complete
+Digest: sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+Status: Downloaded newer image for mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+docker.io/library/mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+{
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1789861849, i: 1 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1789861849, i: 1 })
+}
+{
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1789861851, i: 1 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1789861851, i: 1 })
+}
+{
+  shardAdded: 'shard',
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1789861856, i: 20 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1789861856, i: 20 })
+}
+Owned sharded fixture cgraph-mongo-topology-f96909bed3b34eb18dfeaab8ebe8f3eb; pinned image mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2; loopback port 54417
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Program%20Files/Apache/Maven/3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+aca1c05fe7330d1b567fff557092867763392581db57ec810bc48da29c130c60
+Untagged: mongo@sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2
+Deleted: sha256:4968f22d0c6c10ef29952f3e807f62872ba22b3312f25803564fbfc08255efc2

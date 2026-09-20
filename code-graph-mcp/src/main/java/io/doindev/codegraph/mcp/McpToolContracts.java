@@ -11,7 +11,7 @@ import java.util.Set;
 final class McpToolContracts {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Set<String> LOCAL_READS = Set.of(
-            "search_symbols", "get_symbol", "get_impact_radius", "get_call_graph",
+            "search_symbols", "get_symbol", "get_symbol_context", "get_impact_radius", "get_call_graph",
             "get_blast_score", "find_dead_code", "find_code_smells", "compare_architectural_drift",
             "index_status", "list_projects", "get_workspace_context", "get_file_outline",
             "resolve_symbol_at_position", "find_references", "find_implementations", "analyze_change", "find_affected_tests",

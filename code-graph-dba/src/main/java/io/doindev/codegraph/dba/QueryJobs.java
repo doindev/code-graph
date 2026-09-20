@@ -38,7 +38,33 @@ final class QueryJobs implements AutoCloseable {
         private ScheduledFuture<?> activeDeadline;
         private long activeRemainingNanos,activeStartedNanos;
         Job(String owner,String connection){this.owner=owner;this.connection=connection;rowLimit=owner.startsWith("agent:")?Math.min(100,config.agentRows()):config.uiRows();byteLimit=owner.startsWith("agent:")?1<<20:4<<20;}
-        ObjectNode json(){long completed=finished;String visibleState=completed==0&&Set.of("complete","failed","cancelled").contains(state)?"running":state;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("state",visibleState).put("created",created).put("started",started).put("finished",completed).put("bytes",bytes).put("error",error).put("progress",progress);if(!outcome.isEmpty())n.put("outcome",outcome);if(result!=null)n.set("result",result);if(exception!=null)n.set("exception",exception);if(decision!=null)n.set("decision",decision.deepCopy());return n;}
+        private record Observation(String state,long started,long finished,long bytes,String error,String progress,
+                                   String outcome,boolean cancelled,boolean result,boolean exception,String decision) {}
+        private Observation observed;
+        private long revision;
+        private final Object revisionLock=new Object();
+        long revision(){return json().path("revision").asLong();}
+        ObjectNode json(){
+            synchronized(revisionLock){
+                // Derive the revision from the exact captured response, never from an earlier field read.
+                // finished is the volatile publication fence for terminal output.
+                long completed=finished;String visibleState=state;
+                if(completed==0&&Set.of("complete","failed","cancelled").contains(visibleState))visibleState="running";
+                ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("cancellationRequested",cancelled)
+                        .put("state",visibleState).put("created",created).put("started",started).put("finished",completed)
+                        .put("bytes",bytes).put("error",error).put("progress",progress);
+                String capturedOutcome=outcome;JsonNode capturedResult=result,capturedException=exception;ObjectNode capturedDecision=decision;
+                if(!capturedOutcome.isEmpty())n.put("outcome",capturedOutcome);
+                if(capturedResult!=null)n.set("result",capturedResult);
+                if(capturedException!=null)n.set("exception",capturedException);
+                if(capturedDecision!=null)n.set("decision",capturedDecision.deepCopy());
+                var current=new Observation(n.path("state").asText(),n.path("started").asLong(),completed,n.path("bytes").asLong(),
+                        n.path("error").asText(),n.path("progress").asText(),capturedOutcome,n.path("cancellationRequested").asBoolean(),
+                        capturedResult!=null,capturedException!=null,n.path("decision").path("id").asText());
+                if(!current.equals(observed)){observed=current;revision++;}
+                return n.put("revision",revision);
+            }
+        }
         synchronized void beginActiveBudget(int seconds){activeRemainingNanos=TimeUnit.SECONDS.toNanos(seconds);resumeActiveBudget();}
         synchronized void pauseActiveBudget(){if(activeStartedNanos==0)return;activeRemainingNanos=Math.max(0,activeRemainingNanos-(System.nanoTime()-activeStartedNanos));activeStartedNanos=0;if(activeDeadline!=null)activeDeadline.cancel(false);activeDeadline=null;}
         synchronized void resumeActiveBudget(){if(cancelled)return;if(activeRemainingNanos<=0){QueryJobs.this.cancel(this);return;}activeStartedNanos=System.nanoTime();activeDeadline=timer.schedule(()->QueryJobs.this.cancel(this),activeRemainingNanos,TimeUnit.NANOSECONDS);}
@@ -631,18 +657,14 @@ final class QueryJobs implements AutoCloseable {
         return local(owner,id,job->{
             ObjectNode snapshot=(ObjectNode)plan.path("snapshot"),selection=plan.path("createTable").asBoolean()?null:(ObjectNode)snapshot.path("selection");boolean creating=plan.path("createTable").asBoolean();
             String lockKey=id+snapshot.path("database")+snapshot.path("schema")+snapshot.path("name");var lock=DESIGNER_LOCKS[Math.floorMod(lockKey.hashCode(),DESIGNER_LOCKS.length)];
-            Connection c=null;Connections.DatabaseConnection external=null;boolean locked=false,committing=false;int completed=0;
+            Connection c=null;Connections.Target selected=null;boolean locked=false,committing=false;int completed=0;
             ObjectNode report=Profiles.JSON.createObjectNode().put("status","failed").put("atomic",plan.path("atomic").asBoolean());ArrayNode steps=report.putArray("steps");job.result=report;
             try{
                 if(!lock.tryLock(config.timeoutSeconds(),TimeUnit.SECONDS))throw new IllegalArgumentException("Another schema operation is active for this table");locked=true;
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
-                c=connections.open(id);String database=snapshot.path("database").asText();
-                if(!database.isBlank()&&!database.equals(c.getCatalog())){
-                    if(!snapshot.path("engine").asText().equals("postgresql"))throw new SQLFeatureNotSupportedException("This driver cannot safely target a different database for schema edits");
-                    c.close();c=null;external=connections.openDatabase(id,database,config.timeoutSeconds());c=external.connection();
-                }
+                selected=connections.target(id,snapshot.path("database").asText());c=selected.connection();
                 c.setReadOnly(false);c.setAutoCommit(!plan.path("atomic").asBoolean());
-                if(plan.path("atomic").asBoolean())try(var st=c.createStatement()){job.statement=st;st.setQueryTimeout(config.timeoutSeconds());st.execute("SET LOCAL statement_timeout = "+config.timeoutSeconds()*1000);st.execute("SET LOCAL lock_timeout = 3000");if(!creating)st.execute("LOCK TABLE "+TableDesigner.target(snapshot)+" IN ACCESS EXCLUSIVE MODE");}finally{job.statement=null;}
+                if(plan.path("atomic").asBoolean())try(var st=c.createStatement()){job.statement=st;st.setQueryTimeout(config.timeoutSeconds());if(snapshot.path("engine").asText().equals("sqlserver")){st.execute("SET XACT_ABORT ON");st.execute("SET LOCK_TIMEOUT 3000");if(!creating)st.execute("SELECT TOP(1) 1 FROM "+TableDesigner.target(snapshot)+" WITH (TABLOCKX,HOLDLOCK)");}else{st.execute("SET LOCAL statement_timeout = "+config.timeoutSeconds()*1000);st.execute("SET LOCAL lock_timeout = 3000");if(!creating)st.execute("LOCK TABLE "+TableDesigner.target(snapshot)+" IN ACCESS EXCLUSIVE MODE");}}finally{job.statement=null;}
                 ObjectNode current=creating?TableCreation.initialize(c,snapshot.path("creationTarget"),connections.genericOnly(id)):TableDesigner.load(job,c,selection,connections.genericOnly(id));if(!current.path("fingerprint").equals(snapshot.path("fingerprint")))throw new IllegalArgumentException("Table or target changed after review. Refresh and review the draft again.");
                 if(creating)TableCreation.absent(c,snapshot.path("schema").asText(),snapshot.path("name").asText());
                 for(JsonNode command:plan.path("commands")){
@@ -661,7 +683,7 @@ final class QueryJobs implements AutoCloseable {
                 if(e instanceof SQLException sql&&sql.getSQLState()!=null&&sql.getSQLState().startsWith("08"))outcome="unknown";
                 report.put("status","failed").put("outcome",outcome).put("message",connections.humanError(id,e));for(JsonNode step:steps)if(plan.path("atomic").asBoolean())((ObjectNode)step).put("status",outcome);
             }finally{
-                job.statement=null;if(external!=null)try{external.close();}catch(Exception ignored){}else if(c!=null)try{connections.discard(id,c);c.close();}catch(Exception ignored){}
+                job.statement=null;if(c!=null)try{connections.discard(id,c);}catch(Exception ignored){}if(selected!=null)try{selected.close();}catch(Exception ignored){}
                 if(locked)lock.unlock();
             }
             return report;
@@ -772,6 +794,37 @@ final class QueryJobs implements AutoCloseable {
         return ()->{if(released.compareAndSet(false,true))synchronized(QueryJobs.this){retained.forEach(job->job.retainedUses--);}};
     }
     synchronized ObjectNode status(String owner,String id){return require(owner,id).json();}
+    private final Semaphore statusWaiters=new Semaphore(4);
+    ObjectNode status(String owner,String id,JsonNode args,Runnable validate){
+        long wait=statusNumber(args,"waitMillis",0,5000);
+        long after=statusNumber(args,"afterRevision",-1,Long.MAX_VALUE);
+        if(wait>0&&after<0)throw new IllegalArgumentException("waitMillis requires afterRevision from a previous job status");
+        boolean admitted=false;long start=System.nanoTime(),deadline=start+wait*1_000_000L;
+        try {
+            validate.run();Job job=require(owner,id);
+            if(after>job.revision())throw new IllegalArgumentException("afterRevision is ahead of this job; use its current revision");
+            if(wait>0){if(!statusWaiters.tryAcquire())throw new IllegalArgumentException("job_wait_limit: four status waits are already active");admitted=true;}
+            while(true){
+                if(Thread.currentThread().isInterrupted())throw new CancellationException("Job status wait cancelled");
+                validate.run();if(!alive.test(owner))throw new SecurityException("Job owner is no longer active");
+                if(require(owner,id)!=job)throw new IllegalArgumentException("Unknown job");
+                long current=job.revision(),now=System.nanoTime();boolean changed=after<0||current>after,terminal=job.finished!=0;
+                if(changed||terminal||wait==0||now>=deadline){
+                    validate.run();ObjectNode out=job.json();
+                    boolean finalChanged=after<0||out.path("revision").asLong()>after,finalTerminal=out.path("finished").asLong()!=0;
+                    return out.put("revisionChanged",finalChanged).put("terminal",finalTerminal)
+                            .put("timedOut",wait>0&&!finalChanged&&!finalTerminal).put("waitedMillis",Math.max(0,(System.nanoTime()-start)/1_000_000));
+                }
+                java.util.concurrent.locks.LockSupport.parkNanos(Math.min(50_000_000L,deadline-now));
+            }
+        }finally{if(admitted)statusWaiters.release();}
+    }
+    private static long statusNumber(JsonNode args,String key,long fallback,long max){
+        if(!args.has(key))return fallback;JsonNode value=args.path(key);
+        if(!value.isIntegralNumber()||!value.canConvertToLong()||value.asLong()<0||value.asLong()>max)
+            throw new IllegalArgumentException(key+" must be an integer between 0 and "+max);
+        return value.asLong();
+    }
     void decision(String owner,String id,String decisionId,String action){if(!Set.of("cancel","continue","skip_similar").contains(action))throw new IllegalArgumentException("Unknown SQL error decision");require(owner,id).decide(decisionId,action);}
     synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
     void cancel(Job job){synchronized(job){if(job.cancelled)return;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
@@ -791,11 +844,23 @@ final class QueryJobs implements AutoCloseable {
     synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&j.retainedUses==0&&(!alive.test(j.owner)||now-j.finished>300_000));}
     synchronized void configure(DbaConfig next){int n=next.concurrency();if(n>workers.getMaximumPoolSize()){workers.setMaximumPoolSize(n);workers.setCorePoolSize(n);}else{workers.setCorePoolSize(n);workers.setMaximumPoolSize(n);}config=next;}
     private long auxiliaryBytes;
-    synchronized Runnable reserveRetained(long bytes){
-        if(bytes<1||reservedBytes()+bytes>config.memoryBytes())throw new IllegalArgumentException("DBA allowance full; release retained results/reviews");
-        auxiliaryBytes+=bytes;var released=new java.util.concurrent.atomic.AtomicBoolean();
-        return ()->{if(released.compareAndSet(false,true))synchronized(QueryJobs.this){auxiliaryBytes-=bytes;}};
+    synchronized long availableRetainedBytes(){return Math.max(0,config.memoryBytes()-reservedBytes());}
+    final class RetainedReservation implements AutoCloseable {
+        private long bytes;
+        private boolean closed;
+        private RetainedReservation(long bytes){this.bytes=bytes;}
+        void resize(long next){synchronized(QueryJobs.this){
+            if(closed||next<1)throw new IllegalStateException("Reservation closed or invalid");
+            if(reservedBytes()+next-bytes>config.memoryBytes())throw new IllegalArgumentException("DBA allowance full; release retained results/reviews");
+            auxiliaryBytes+=next-bytes;bytes=next;
+        }}
+        public void close(){synchronized(QueryJobs.this){if(!closed){closed=true;auxiliaryBytes-=bytes;}}}
     }
+    synchronized RetainedReservation retainAllowance(long bytes){
+        if(bytes<1||reservedBytes()+bytes>config.memoryBytes())throw new IllegalArgumentException("DBA allowance full; release retained results/reviews");
+        auxiliaryBytes+=bytes;return new RetainedReservation(bytes);
+    }
+    synchronized Runnable reserveRetained(long bytes){var lease=retainAllowance(bytes);return lease::close;}
     private long reservedBytes(){return auxiliaryBytes+jobs.values().stream().mapToLong(job->job.reservation).sum();}
     synchronized ObjectNode telemetry(){return Profiles.JSON.createObjectNode().put("memoryBudget",config.memoryBytes()).put("reservedBytes",reservedBytes()).put("retainedResultBytes",jobs.values().stream().mapToLong(j->j.bytes).sum()).put("activeJobs",workers.getActiveCount()).put("queuedJobs",workers.getQueue().size()).put("retainedJobs",jobs.size()).put("concurrency",config.concurrency()).put("heapUsed",Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()).put("hardProcessLimit",false);}
     private static long safeSize(JsonNode value){try{return Profiles.JSON.writeValueAsBytes(value).length;}catch(Exception ignored){return 0;}}

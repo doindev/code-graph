@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'src/main/resources/codegraph/viz');
 const theme=path.resolve(__dirname,'../code-graph-dba/src/main/resources/codegraph/dba/workspace-theme.css');
 (async()=>{
-  let info,failSave,failLoad=false,projects=[],requests=[],updates=[];
+  let info,failSave,failLoad=false,projects=[],requests=[],updates=[],scanStatus;
   const reset=()=>{info={mutable:true,mcpEndpoint:'http://localhost:3000/mcp',dbaEnabled:true,projectTtlSeconds:3600,
     graphStorage:{mode:'hybrid',budgetBytes:1610612736,cacheCapacityBytes:1509949440,cacheUsedBytesEstimate:10485760,diskBytes:20971520,cacheHits:24,cacheMisses:3}};failSave=null;failLoad=false;projects=[];requests=[];updates=[];};
   reset();
@@ -16,6 +16,9 @@ const theme=path.resolve(__dirname,'../code-graph-dba/src/main/resources/codegra
       if(p==='/api/server')return failLoad?json({error:'Temporary server outage'},503):json(info);
       if(p==='/api/projects')return json(projects);
       if(p==='/api/browse')return json({path:'C:/test',parent:null,entries:[]});
+      if(p==='/api/project'&&req.method==='POST')return json({job:'scan-1',name:'test',state:'indexing'},202);
+      if(p==='/api/project/status')return json(scanStatus);
+      if(p==='/api/project/cancel')return json({cancelled:true});
       if(p.startsWith('/api/p/'))return json({nodes:[],links:[],truncated:false});
       if(p==='/api/settings'){
         let data='';for await(const chunk of req)data+=chunk;
@@ -124,6 +127,16 @@ const theme=path.resolve(__dirname,'../code-graph-dba/src/main/resources/codegra
     assert.equal(await page.locator('#empty-state').isHidden(),true);
     await open();await node('ttl').click();await page.locator('#setting-projectTtl').fill('20m');await page.locator('#settings-cancel').click();
     assert.equal(updates.length,0);assert.deepEqual(errors,[]);
+    reset();await page.reload();await page.locator('#welcome-project:not(:disabled)').waitFor();
+    scanStatus={job:'scan-1',name:'test',state:'indexing',progress:{phase:'resolving',parsedFiles:10,resolvedFiles:4,discoveredFiles:10,inventoryComplete:true}};
+    await page.locator('#welcome-project').click();await page.locator('#browse-card').waitFor();
+    await page.locator('#browse-add').click();
+    await page.getByText('Resolving relationships test — 10 parsed, 4 resolved of 10 discovered files',{exact:true}).waitFor();
+    scanStatus.progress={phase:'scanning_and_parsing',parsedFiles:12,resolvedFiles:0,inventoryComplete:false,failedFiles:1};
+    await page.getByText('Scanning and parsing test — 12 parsed, 0 resolved (discovering files), 1 failed',{exact:true}).waitFor();
+    await page.locator('#scan-cancel').click();
+    await page.locator('#scan-overlay').waitFor({state:'hidden'});
+    assert.deepEqual(errors,[]);
     console.log('Root browser checks passed: uniform toolbar/welcome, empty/read-only/active workspaces, search, drafts, normalization, combined Apply, cancellation, resizing, errors and interrupted-save reconciliation.');
   }finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

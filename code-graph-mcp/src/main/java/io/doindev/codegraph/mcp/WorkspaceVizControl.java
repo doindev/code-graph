@@ -100,6 +100,7 @@ public final class WorkspaceVizControl implements VizControl {
         final long startNanos = System.nanoTime();
         volatile long finishedNanos;
         volatile long instanceId;
+        volatile java.util.function.Supplier<java.util.Map<String,Object>> progress = () -> java.util.Map.of("phase","configuration");
 
         Job(String id, Kind kind, String name) {
             this.id = id;
@@ -113,7 +114,12 @@ public final class WorkspaceVizControl implements VizControl {
         }
 
         VizControl.AddJob snapshot() {
-            return new VizControl.AddJob(id, name, state, elapsedMs(), error);
+            return new VizControl.AddJob(id, name, state, elapsedMs(), error, progress.get());
+        }
+
+        void finishProgress() {
+            var terminal = java.util.Map.copyOf(progress.get());
+            progress = () -> terminal; // A retained job must never pin its indexer/graph after TTL removal.
         }
     }
 
@@ -132,7 +138,10 @@ public final class WorkspaceVizControl implements VizControl {
             Workspace.Project project = null;
             try {
                 // the scan runs to completion here (it is not cooperatively interruptible)
-                project = onboarding.index(path);
+                project = onboarding.index(path, pending -> {
+                    job.name=pending.name();
+                    job.progress=pending.indexer()::fullIndexProgress;
+                });
                 job.name = project.name();
                 // Serialize publication with cancellation: cancel must also work for the first
                 // project and cannot race between the cancellation check and registration.
@@ -152,6 +161,7 @@ public final class WorkspaceVizControl implements VizControl {
                 job.error = e.getMessage() == null ? e.toString() : e.getMessage();
                 job.state = "error";
             } finally {
+                job.finishProgress();
                 job.finishedNanos = System.nanoTime();
             }
         });
@@ -170,6 +180,7 @@ public final class WorkspaceVizControl implements VizControl {
         }
         String id = java.util.UUID.randomUUID().toString();
         Job job = new Job(id, Kind.REINDEX, projectName);
+        job.progress=project.indexer()::fullIndexProgress;
         job.instanceId = use.instanceId();
         jobs.put(id, job);
         try {
@@ -182,6 +193,7 @@ public final class WorkspaceVizControl implements VizControl {
                 job.error = e.getMessage() == null ? e.toString() : e.getMessage();
                 job.state = "error";
             } finally {
+                job.finishProgress();
                 job.finishedNanos = System.nanoTime();
                 use.close();
             }

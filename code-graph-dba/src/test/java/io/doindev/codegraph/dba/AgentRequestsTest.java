@@ -74,6 +74,7 @@ class AgentRequestsTest {
     @Test void trustedLocalCreationAndTestsStillNeedHumanApproval()throws Exception{
         principal=agents.trustedLocal();ObjectNode input=request("local-create","Propose a disposable local database");input.set("profile",new DbaTest().input().put("name","Local proposal"));
         JsonNode pending=requests.request(principal,"connection_create",input);assertEquals("awaiting_approval",pending.path("state").asText());assertEquals(1,profiles.list().size());
+        assertEquals(pending.path("id"),pending.path("approvalId"));assertEquals("local-create",pending.path("requestId").asText());
         assertTrue(agents.agent(principal).path("grants").isEmpty());
         requests.decide("human",pending.path("id").asText(),"reject",false,Profiles.JSON.createObjectNode());assertEquals(1,profiles.list().size());
         var test=requests.maybeRead(principal,"connection_test",request("local-test","Test only after permission").put("connectionId",connection).put("connectionName","Development"));

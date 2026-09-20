@@ -32,6 +32,9 @@ public final class Workspace implements AutoCloseable {
     private final Map<String, Project> projects;
     private final Map<String, Watcher> watchers = new LinkedHashMap<>();
     private final Map<String, Path> reservedRoots = new LinkedHashMap<>();
+    private final Map<String,Project> indexing = new LinkedHashMap<>();
+    private final Map<String,Long> onboardingStarted = new LinkedHashMap<>();
+    private static final int MAX_ONBOARDING = 4;
     private boolean watching;
     private boolean closed;
     private final GraphStorage storage;
@@ -135,6 +138,11 @@ public final class Workspace implements AutoCloseable {
      */
     public Project add(String requestedName, Path rawRoot, Analyzers analyzers,
                        java.util.function.Function<Path, CodeGraphConfig> configLoader) {
+        return add(requestedName,rawRoot,analyzers,configLoader,p -> {});
+    }
+
+    public Project add(String requestedName, Path rawRoot, Analyzers analyzers,
+                       Function<Path,CodeGraphConfig> configLoader, java.util.function.Consumer<Project> started) {
         Path root = canonicalRoot(rawRoot);
         storage.checkRoot(root);
         String name;
@@ -152,7 +160,9 @@ public final class Workspace implements AutoCloseable {
             while (projects.containsKey(name) || reservedRoots.containsKey(name)) {
                 name = requestedName + "-" + ordinal++;
             }
+            if(reservedRoots.size()>=MAX_ONBOARDING)throw new IllegalStateException("onboarding_busy: at most four initial scans may run at once; retry after one finishes");
             reservedRoots.put(name, root);
+            onboardingStarted.put(name,System.nanoTime());
         }
 
         Project project;
@@ -163,6 +173,8 @@ public final class Workspace implements AutoCloseable {
             createdGraph = graph;
             IncrementalIndexer indexer = new IncrementalIndexer(root, analyzers, config, graph);
             project = new Project(name, root, config, graph, indexer);
+            synchronized(this) { indexing.put(name,project); }
+            started.accept(project);
             project.indexer().fullIndex();
         } catch (RuntimeException | Error e) {
             if (createdGraph != null) {
@@ -170,12 +182,14 @@ public final class Workspace implements AutoCloseable {
             }
             synchronized (this) {
                 reservedRoots.remove(name);
+                indexing.remove(name); onboardingStarted.remove(name);
             }
             throw e;
         }
 
         synchronized (this) {
             reservedRoots.remove(name);
+            indexing.remove(name); onboardingStarted.remove(name);
             if (closed) {
                 project.graph().close();
                 throw new IllegalStateException("workspace is closed");
@@ -191,6 +205,19 @@ public final class Workspace implements AutoCloseable {
             projects.put(name, project);
         }
         return project;
+    }
+
+    /** Initial scans only: separate from ready projects and never a graph read or TTL touch. */
+    public synchronized List<Map<String,Object>> onboardingStatus() {
+        var out=new java.util.ArrayList<Map<String,Object>>();
+        for(String name:reservedRoots.keySet()) {
+            var row=new LinkedHashMap<String,Object>(); var project=indexing.get(name);
+            row.put("name",name); row.put("state","indexing"); row.put("queryable",false);
+            row.put("progress",project==null?Map.of("phase","configuration"):project.indexer().fullIndexProgress());
+            row.put("elapsedMs",(System.nanoTime()-onboardingStarted.get(name))/1_000_000);
+            out.add(row);
+        }
+        return List.copyOf(out);
     }
 
     private final java.util.Set<Path> privateDirectories = new java.util.HashSet<>();
@@ -297,7 +324,7 @@ public final class Workspace implements AutoCloseable {
         watching = false;
         watchers.values().forEach(Watcher::close);
         watchers.clear();
-        reservedRoots.clear();
+        reservedRoots.clear(); indexing.clear(); onboardingStarted.clear();
         storage.close();
         projects.clear();
     }

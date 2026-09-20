@@ -30,7 +30,13 @@ public record FileFragment(FileId file, String lang, String contentHash,
     }
 
     public FileFragment {
-        declarations = List.copyOf(declarations);
+        declarations = declarations.stream().map(node -> {
+            if (!node.id().equals(file) || contentHash == null || contentHash.isBlank()) return node;
+            var attrs = new java.util.HashMap<>(node.attrs());
+            attrs.put("indexedContentHash", contentHash);
+            attrs.put("contentHashAlgorithm", "sha256-utf8-decoded-content");
+            return new Node(node.id(), node.kind(), node.name(), node.displaySignature(), node.span(), node.metrics(), attrs);
+        }).toList();
         localEdges = List.copyOf(localEdges);
         rawRefs = List.copyOf(rawRefs);
         imports = List.copyOf(imports);

@@ -44,6 +44,7 @@ offers Save, Discard and Cancel. Browser refresh does not restore designer draft
 | --- | --- |
 | PostgreSQL ordinary, non-inherited tables | Rename table, move schema, owner, comment, tablespace; add/drop/rename columns, standard datatype changes, nullability, primary key/order, defaults, comments; identity/generated columns when newly added |
 | H2 tables | Rename/comment table; the same basic column operations and new identity/generated columns; nontransactional warning required |
+| SQL Server 2022 ordinary disk tables | Reviewed creation, rename, supported scalar columns/defaults/nullability/comments, keys/CHECK/UNIQUE/FK and ordinary indexes; see restrictions below |
 | PostgreSQL Constraints / Foreign Keys | Add CHECK, UNIQUE, FK; delete non-primary constraints; primary key is controlled through Columns |
 | PostgreSQL Indexes | Add simple column indexes (optionally unique), rename, delete non-constraint indexes |
 | PostgreSQL Triggers | Add BEFORE/AFTER INSERT/UPDATE/DELETE triggers invoking an existing zero-argument trigger function; enable, disable, delete |
@@ -56,7 +57,7 @@ offers Save, Discard and Cancel. Browser refresh does not restore designer draft
 | Virtual | Placeholder; no database or local virtual metadata changes |
 
 This is not yet the complete all-vendor designer described in the implementation plan.
-Unimplemented areas include vendor editing adapters beyond PostgreSQL/H2, native partition
+Unimplemented areas include vendor editing adapters beyond PostgreSQL/H2 and the SQL Server subset below, native partition
 editing, advanced trigger/rule/policy/index configuration, full constraint replacement editors,
 existing identity/generated-column alteration, full-fidelity DDL export, and automatic
 remaining-draft rebasing after partial failures. Controls must not imply those features work.
@@ -85,6 +86,31 @@ Existing generated/identity settings are read-only. Composite PK positions must 
 - Application grid jobs on the connection are settled before Apply. Running Scripts block
   Apply. Other clients may still access/change the database; schema fingerprints are not a
   universal cross-vendor concurrency guarantee, particularly identical drop/recreate races.
+
+## SQL Server 2022 ordinary tables
+
+The verified SQL Server adapter supports table/column renaming, supported scalar
+datatypes, defaults (including named default-constraint replacement), nullability,
+comments, primary keys, CHECK/UNIQUE/foreign-key constraints and ordinary indexes.
+New tables use the same Properties draft/review flow. Identifier quoting preserves
+embedded brackets; column collation is retained when changing a type.
+
+Unsupported/generated, special storage, CDC/replicated, partitioned, temporal,
+ledger, encrypted, graph and memory-optimized objects remain read-only. Owner and
+schema relocation are not enabled. Native definition capture is explicitly partial,
+not a complete restore script.
+
+Apply obtains the fixed database target, serializes application changes, locks the
+table before revalidating its fingerprint and uses XACT_ABORT with a bounded lock
+timeout. Verified ordinary-table designer changes are transactional. Migration
+artifacts conservatively advertise their own guarantees rather than assuming every
+arbitrary SQL Server script is atomic. Cancellation/connection loss never triggers
+automatic retry: reconcile actual metadata before preparing another plan.
+
+The disposable SQL Server 2022 / Microsoft JDBC 13.4.0.jre11 gate verifies creation,
+populated edits, defaults/comments/indexes, failed-change rollback, native schema
+capture and same-named objects in a separate database. Azure SQL, other SQL Server
+versions and integrated/Entra authentication are not certified by this gate.
 
 ## Interfaces and limits
 

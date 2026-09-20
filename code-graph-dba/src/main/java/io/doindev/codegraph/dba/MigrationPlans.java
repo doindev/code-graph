@@ -39,7 +39,7 @@ final class MigrationPlans implements AutoCloseable {
         boolean structured=input.has("changes"),supplied=input.has("sql");
         if(structured==supplied)throw new IllegalArgumentException("Supply exactly one of changes or sql");
         String engine=snapshot.result.path("engine").asText();
-        if(!List.of("postgresql","mysql","mariadb","h2").contains(engine))throw new IllegalArgumentException("Migration planning is not verified for engine "+engine);
+        if(!List.of("postgresql","mysql","mariadb","h2","sqlserver").contains(engine))throw new IllegalArgumentException("Migration planning is not verified for engine "+engine);
         List<String> statements=structured?generate(engine,snapshot.schemaScope,input.path("changes")):supplied(input.path("sql").asText());
         ObjectNode plan=Profiles.JSON.createObjectNode().put("format","codegraph-migration-v1").put("name",input.path("name").asText("Migration"))
                 .put("purpose",input.path("purpose").asText("")).put("engine",engine).put("sourceSnapshotId",snapshot.id)
@@ -50,7 +50,7 @@ final class MigrationPlans implements AutoCloseable {
         int index=0;for(String statement:statements){String action=verb(statement);sql.add(statement);steps.addObject().put("index",++index).put("action",action).put("sql",statement).put("expectedPostcondition","Statement succeeds and subsequent schema fingerprint changes as reviewed");if(destructive(statement))risks.add("Step "+index+" is destructive and can permanently remove schema objects or dependent data.");}
         if(!engine.equals("postgresql"))risks.add("This engine can auto-commit DDL; partial completion is possible and successful steps must not be replayed blindly.");
         risks.add("DDL can acquire locks, scan data, rebuild indexes, or perform an internal table rewrite.");
-        plan.putObject("manifest").put("stepCount",statements.size()).put("sourceInventoryComplete",snapshot.result.path("inventoryComplete").asBoolean(false))
+        plan.withObject("manifest").put("stepCount",statements.size()).put("sourceInventoryComplete",snapshot.result.path("inventoryComplete").asBoolean(false))
                 .put("precondition","Exact target revision and schema fingerprint still match").put("rollback",engine.equals("postgresql")?"Atomic transaction requested; engine errors can still leave uncertain outcomes after connection loss":"No atomic rollback guarantee");
         plan.putArray("limitations").add("No rename was inferred from drop/add resemblance").add("No table data was copied into this artifact")
                 .add("Incomplete source inventories cannot prove dependency absence").add("Applying always requires exact one-time human review");
@@ -92,7 +92,7 @@ final class MigrationPlans implements AutoCloseable {
             statements.add(statement);steps.addObject().put("index",++index).put("phase",phase.getKey()).put("action",verb(statement)).put("sql",statement)
                     .put("expectedPostcondition",phase.getKey().equals("synthetic_fixture")?"Only bounded synthetic fixture values are inserted":"Statement succeeds on the reviewed disposable target");
         }
-        plan.putObject("manifest").put("stepCount",index).put("checkCount",checks.size()).put("sourceInventoryComplete",snapshot.result.path("inventoryComplete").asBoolean(false))
+        plan.withObject("manifest").put("stepCount",index).put("checkCount",checks.size()).put("sourceInventoryComplete",snapshot.result.path("inventoryComplete").asBoolean(false))
                 .put("precondition","Exact disposable target revision and schema fingerprint still match")
                 .put("rollback",engine.equals("postgresql")?"Atomic transaction requested":"Vendor DDL can auto-commit; partial rehearsal setup is possible");
         risks.add("The exact setup, fixture, and migration statements mutate the reviewed disposable target.")
@@ -148,8 +148,8 @@ final class MigrationPlans implements AutoCloseable {
             if(!change.isObject())throw new IllegalArgumentException("Each migration change must be an object");
             String action=required(change,"action",40),schema=scope.path("schema").asText();
             switch(action){
-                case "add_column"->{String table=required(change,"table",128),column=required(change,"column",128),type=dataType(change.path("type").asText());out.add("ALTER TABLE "+qualified(engine,schema,table)+" ADD COLUMN "+quote(engine,column)+" "+type+(change.path("nullable").asBoolean(true)?"":" NOT NULL"));}
-                case "create_table"->{String table=required(change,"table",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>256)throw new IllegalArgumentException("create_table columns must contain 1..256 entries");List<String> definitions=new ArrayList<>();for(JsonNode column:columns)definitions.add(quote(engine,required(column,"name",128))+" "+dataType(column.path("type").asText())+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));out.add("CREATE TABLE "+qualified(engine,schema,table)+" ("+String.join(", ",definitions)+")");}
+                case "add_column"->{String table=required(change,"table",128),column=required(change,"column",128),type=engine.equals("sqlserver")?SqlServerDesigner.type(change.path("type").asText()):dataType(change.path("type").asText());out.add("ALTER TABLE "+qualified(engine,schema,table)+(engine.equals("sqlserver")?" ADD ":" ADD COLUMN ")+quote(engine,column)+" "+type+(change.path("nullable").asBoolean(true)?"":" NOT NULL"));}
+                case "create_table"->{String table=required(change,"table",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>256)throw new IllegalArgumentException("create_table columns must contain 1..256 entries");List<String> definitions=new ArrayList<>();for(JsonNode column:columns)definitions.add(quote(engine,required(column,"name",128))+" "+(engine.equals("sqlserver")?SqlServerDesigner.type(column.path("type").asText()):dataType(column.path("type").asText()))+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));out.add("CREATE TABLE "+qualified(engine,schema,table)+" ("+String.join(", ",definitions)+")");}
                 case "create_index"->{String table=required(change,"table",128),name=required(change,"name",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>32)throw new IllegalArgumentException("create_index columns must contain 1..32 names");List<String> names=new ArrayList<>();for(JsonNode column:columns)names.add(quote(engine,identifier(column.asText())));out.add("CREATE "+(change.path("unique").asBoolean()?"UNIQUE ":"")+"INDEX "+quote(engine,name)+" ON "+qualified(engine,schema,table)+" ("+String.join(", ",names)+")");}
                 case "create_view"->{String name=required(change,"name",128),query=change.path("query").asText();SqlReadGuard.validate(query);out.add("CREATE VIEW "+qualified(engine,schema,name)+" AS "+query);}
                 default->throw new IllegalArgumentException("Unsupported structured migration action: "+action);
@@ -159,7 +159,7 @@ final class MigrationPlans implements AutoCloseable {
     private static String required(JsonNode node,String key,int max){String value=node.path(key).asText();if(value.isBlank()||value.length()>max)throw new IllegalArgumentException(key+" is required and must be at most "+max+" characters");return key.equals("action")?value:identifier(value);}
     private static String identifier(String value){if(value==null||value.isBlank()||value.length()>128||value.indexOf(0)>=0)throw new IllegalArgumentException("Invalid identifier");return value;}
     private static String dataType(String value){if(value==null||!value.matches("[A-Za-z][A-Za-z0-9_ ]{0,60}(?:\\([0-9]{1,9}(?:,[0-9]{1,9})?\\))?"))throw new IllegalArgumentException("Use a supported literal datatype name with optional numeric length/precision");return value.toUpperCase(Locale.ROOT);}
-    private static String quote(String engine,String value){String q=List.of("mysql","mariadb").contains(engine)?String.valueOf((char)96):"\"";return q+value.replace(q,q+q)+q;}
+    private static String quote(String engine,String value){if(engine.equals("sqlserver"))return SqlServerDesigner.quote(value);String q=List.of("mysql","mariadb").contains(engine)?String.valueOf((char)96):"\"";return q+value.replace(q,q+q)+q;}
     private static String qualified(String engine,String schema,String name){return schema.isBlank()?quote(engine,name):quote(engine,schema)+"."+quote(engine,name);}
     private static String verb(String sql){String normalized=sql.replaceFirst("(?s)^\\s*(?:--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/\\s*)*","").trim();int end=0;while(end<normalized.length()&&Character.isLetter(normalized.charAt(end)))end++;return normalized.substring(0,end).toUpperCase(Locale.ROOT);}
     private static boolean destructive(String sql){return sql.matches("(?is)^\\s*(DROP\\b|ALTER\\s+TABLE\\b.*\\bDROP\\b).*");}

@@ -6,6 +6,7 @@ import io.doindev.codegraph.config.CodeGraphConfig;
 import io.doindev.codegraph.model.*;
 import io.doindev.codegraph.query.*;
 import java.util.*;
+import static io.doindev.codegraph.tools.NavigationEvidence.*;
 
 /** Shared bounded navigation, with explicit distinction between occurrences and enclosing symbols. */
 final class CodeNavigationTool implements GraphTool {
@@ -13,7 +14,7 @@ final class CodeNavigationTool implements GraphTool {
         OUTLINE("get_file_outline","List indexed declarations in one relative file, with source spans and stable symbol IDs."),
         POSITION("resolve_symbol_at_position","Resolve indexed reference-expression candidates at a 1-based position, or return containing declarations when no reference is indexed. Confidence and range precision are explicit; this is not a token-level language server."),
         REFERENCES("find_references","Find indexed incoming call/reference/read/write/import relationships, with confidence and exact-versus-containing location precision. Not a complete textual occurrence search."),
-        IMPLEMENTATIONS("find_implementations","Find direct indexed EXTENDS/IMPLEMENTS relationships for a type. Method overrides and runtime dispatch are not inferred; follow returned types for indirect descendants.");
+        IMPLEMENTATIONS("find_implementations","Find direct type inheritance or indexed method override/implementation evidence. Includes confidence and coverage limits; this is not exhaustive runtime dispatch.");
         final String name,description;
         Operation(String name,String description){this.name=name;this.description=description;}
     }
@@ -90,31 +91,14 @@ final class CodeNavigationTool implements GraphTool {
         }else{
             NodeId id=ToolSupport.target(target);
             Node selected=graph.node(id).orElseThrow(()->new IllegalArgumentException("Unknown symbol; use search_symbols first"));
-            if(operation==Operation.IMPLEMENTATIONS&&selected.kind()!=NodeKind.TYPE)throw new IllegalArgumentException("Implementation discovery currently requires a type symbol; method override resolution is not indexed");
+            if(operation==Operation.IMPLEMENTATIONS&&selected.kind()!=NodeKind.TYPE&&selected.kind()!=NodeKind.FUNCTION)throw new IllegalArgumentException("Implementation discovery requires a type or method symbol");
             long[] ordinal={0};
-            graph.scanEdges(id,Direction.IN,operation==Operation.REFERENCES?REFERENCES:EnumSet.of(EdgeKind.EXTENDS,EdgeKind.IMPLEMENTS),edge->{
+            graph.scanEdges(id,Direction.IN,operation==Operation.REFERENCES?REFERENCES:selected.kind()==NodeKind.FUNCTION?EnumSet.of(EdgeKind.OVERRIDES):EnumSet.of(EdgeKind.EXTENDS,EdgeKind.IMPLEMENTS),edge->{
                 long index=ordinal[0]++;
                 if(edge.confidence()<confidence)return;
                 Node source=graph.node(edge.from()).orElse(null);
                 if(source==null)return;
-                ObjectNode row=symbol(source).put("relationship",edge.kind().name().toLowerCase(Locale.ROOT)).put("confidence",edge.confidence());
-                resolutionEvidence(row,edge);
-                row.put("targetId",id.value()).put("locationPrecision","containing_symbol");
-                String callLine=edge.attrs().getOrDefault("referenceStartLine",edge.attrs().getOrDefault("callSiteLine",edge.attrs().get("site")));
-                if(callLine!=null&&source.relPath()!=null)try{
-                    int at=Integer.parseInt(callLine);
-                    if(at>0){
-                        row.put("locationPrecision","line_only");
-                        var occurrence=row.putObject("occurrence").put("path",source.relPath()).put("line",at);
-                        if(edge.attrs().containsKey("referencePrecision")) {
-                            row.put("locationPrecision",edge.attrs().get("referencePrecision"));
-                            var span=occurrence.putObject("span");
-                            for(String part:List.of("StartLine","StartColumn","EndLine","EndColumn"))
-                                span.put(Character.toLowerCase(part.charAt(0))+part.substring(1),Integer.parseInt(edge.attrs().get("reference"+part)));
-                            occurrence.put("rangeConvention","1-based UTF-16; inclusive end");
-                        }
-                    }
-                }catch(NumberFormatException ignored){}
+                ObjectNode row=relationship(source,edge,id);
                 collector.accept(key(source)+"/"+edge.kind().name()+"/"+String.format(Locale.ROOT,"%012d",index),row);
             });
         }
@@ -130,7 +114,7 @@ final class CodeNavigationTool implements GraphTool {
         });
         BoundedPage chosen=resolvedReference[0]?referencesAtPosition:collector;
         out.put("inventoryComplete",false);
-        out.put("coverage",operation==Operation.IMPLEMENTATIONS?"Direct indexed type relationships only; indirect implementations and method overrides require additional analysis":"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent");
+        out.put("coverage",operation==Operation.IMPLEMENTATIONS?"Direct type relationships and adapter-verified method declarations; unresolved generic substitutions, external ancestors, exhausted budgets and runtime dispatch may be absent":"Indexed declarations/relationships only; dynamic, unresolved and unindexed occurrences may be absent");
         out.put("referenceCompleteness","not_guaranteed");
         if(operation==Operation.POSITION)out.put("resolution",resolvedReference[0]?"reference_expression_candidates":"containing_symbol_only").put("exactIdentifierResolved",false);
         return chosen.finish(out,cursors,scope,generation,position,config);
@@ -139,19 +123,8 @@ final class CodeNavigationTool implements GraphTool {
         return (line>span.startLine()||line==span.startLine()&&column>=span.startCol())
                 &&(line<span.endLine()||line==span.endLine()&&column<=span.endCol());
     }
-    private static void resolutionEvidence(ObjectNode row,Edge edge) {
-        var evidence=row.putObject("resolutionEvidence");
-        for(String key:List.of("resolution","resolutionStatus","dispatch","candidateCount","omittedCandidates","moduleSpecifier","modulePath","exportedName","localAlias","importKind"))
-            if(edge.attrs().containsKey(key))evidence.put(key,edge.attrs().get(key));
-        if(!evidence.has("resolutionStatus"))evidence.put("resolutionStatus","heuristic");
-    }
     private static String key(Node node){
         var span=node.span();return String.format(Locale.ROOT,"%010d/%010d/",span==null?0:span.startLine(),span==null?0:span.startCol())+node.id().value();
     }
-    private static ObjectNode symbol(Node node){
-        var row=ToolSupport.JSON.createObjectNode().put("id",node.id().value()).put("name",node.name()).put("kind",node.kind().name().toLowerCase(Locale.ROOT)).put("signature",node.displaySignature());
-        if(node.relPath()!=null)row.put("path",node.relPath());
-        if(node.span()!=null){var span=node.span();row.putObject("declarationSpan").put("startLine",span.startLine()).put("startColumn",span.startCol()).put("endLine",span.endLine()).put("endColumn",span.endCol());}
-        return row;
-    }
+
 }

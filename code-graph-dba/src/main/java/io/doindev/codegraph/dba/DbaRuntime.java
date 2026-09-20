@@ -45,7 +45,7 @@ public final class DbaRuntime implements AutoCloseable {
         try{agents=new AgentAccess(profiles.directory(),authorization);agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         setup=new ConnectionSetup(profiles,jobs);
-        contexts=new ProjectContexts(profiles,connections,agents);nativeOperations=new NativeOperations(profiles,jobs,contexts);
+        contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
         authorization.sessions(approvals.reusable.sessions);
         agentRequests.sessions(approvals.reusable.sessions);
@@ -93,6 +93,18 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/approvals/events")&&method.equals("GET")){
                 String query=x.getRequestURI().getRawQuery();String tab=query!=null&&query.startsWith("tabId=")?java.net.URLDecoder.decode(query.substring(6),StandardCharsets.UTF_8):"";
                 broker.events(x,session.id(),tab);return;
+            }
+            if(path.equals("/api/dba/catalog")&&method.equals("POST")){
+                JsonNode input=body(x);String operation="dba_"+Profiles.text(input,"operation",40);
+                if(!Set.of("dba_scan_status","dba_refresh_catalog","dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies").contains(operation))throw new IllegalArgumentException("Unsupported catalog operation");
+                json(x,200,contexts.standalone("browser:"+session.id(),operation,input,()->{
+                    if(!auth.alive(session.id()))throw new SecurityException("Browser session expired");
+                    ObjectNode profile=profiles.get(Profiles.text(input,"connectionId",36));
+                    if(!profile.path("name").asText().equals(Profiles.text(input,"connectionName",120)))throw new IllegalArgumentException("Exact connection name required");
+                    ObjectNode request=WorkflowTargets.explicitCacheTarget(profile,input),target=request.deepCopy();
+                    target.put("profileRevision",ProjectContexts.profileRevision(profile));
+                    return new WorkflowTargets.Target(profile,target,request,"Authenticated browser");
+                }));return;
             }
             if(path.equals("/api/dba/project-context")){
                 if(method.equals("GET"))json(x,200,contexts.state());
@@ -274,7 +286,8 @@ public final class DbaRuntime implements AutoCloseable {
         if(operation.equals("dba_capture_schema")){
             var resolver=new WorkflowTargets(profiles,agents,contexts,approvals.reusable);
             var target=resolver.catalog(principal,mcpSession,args);
-            return jobs.captureSchema(owner,target,()->{if(!target.scope().equals(resolver.catalog(principal,mcpSession,target.request()).scope()))throw new IllegalArgumentException("Schema target changed before capture; submit a fresh request");});
+            Runnable recheck=()->{if(!target.scope().equals(resolver.catalog(principal,mcpSession,target.request()).scope()))throw new IllegalArgumentException("Schema target changed before capture; submit a fresh request");};
+            return DatabaseTransport.of(target.profile())==DatabaseTransport.JDBC?jobs.captureSchema(owner,target,recheck):nativeOperations.captureSchema(owner,target,recheck);
         }
         if(operation.equals("dba_compare_schemas")){
             var left=jobs.require(owner,Profiles.text(args,"leftSnapshotId",36));var right=jobs.require(owner,Profiles.text(args,"rightSnapshotId",36));
@@ -350,12 +363,22 @@ public final class DbaRuntime implements AutoCloseable {
         if(operation.equals("dba_get_my_permissions"))return permissions(principal);
         if(operation.equals("dba_list_my_created_connections")){ArrayNode out=Profiles.JSON.createArrayNode();for(JsonNode p:profiles.list())if(p.path("agentProvenance").path("agentId").asText().equals(principal)){ObjectNode row=Profiles.JSON.createObjectNode().put("id",p.path("id").asText()).put("name",p.path("name").asText()).put("requestId",p.path("agentProvenance").path("requestId").asText()).put("createdAt",p.path("agentProvenance").path("createdAt").asLong()).put("creatorReceivesAccess",false);row.set("bindings",contexts.bindingsForConnection(p.path("id").asText()));out.add(row);}return out;}
         if(operation.equals("dba_request_native_command")){requireApprovalAvailable();return broker.decorate(agentRequests.request(principal,mcpSession,"native_command",args));}
-        if(operation.equals("dba_request_status")){String id=Profiles.text(args,"requestId",36);return broker.decorate(agentRequests.has(id)?agentRequests.get(principal,id):approvals.get(principal,id));}
-        if(operation.equals("dba_cancel_request")){String id=Profiles.text(args,"requestId",36);return agentRequests.has(id)?agentRequests.cancel(principal,id):approvals.cancel(principal,id);}
+        if(operation.equals("dba_request_status")){String id=ApprovalIds.resolve(args);return broker.decorate(agentRequests.has(id)?agentRequests.get(principal,id):approvals.get(principal,id));}
+        if(operation.equals("dba_cancel_request")){String id=ApprovalIds.resolve(args);return agentRequests.has(id)?agentRequests.cancel(principal,id):approvals.cancel(principal,id);}
         if(operation.equals("dba_get_connection_details")){requireApprovalAvailable();JsonNode result=agentRequests.maybeRead(principal,mcpSession,"connection_details",args);return result.has("state")?broker.decorate(result):result;}
         if(operation.equals("dba_request_connection_test")){requireApprovalAvailable();return broker.decorate(agentRequests.maybeRead(principal,mcpSession,"connection_test",args));}
         if(operation.startsWith("dba_request_connection_")||operation.startsWith("dba_request_binding_")){requireApprovalAvailable();String type=operation.substring("dba_request_".length());return broker.decorate(agentRequests.request(principal,mcpSession,type,args));}
         if(Set.of("dba_list_project_databases","dba_search_objects","dba_get_indexed_ddl","dba_get_indexed_properties","dba_get_database_dependencies","dba_find_code_references","dba_scan_status","dba_refresh_catalog").contains(operation)){
+            if(!operation.equals("dba_list_project_databases")&&!args.has("bindingId")){
+                WorkflowTargets resolver=new WorkflowTargets(profiles,agents,contexts,approvals.reusable);
+                var firstCheck=new java.util.concurrent.atomic.AtomicBoolean(true);
+                return contexts.standalone(principal,operation,args,()->{
+                    if(!agentAlive(principal)||mcpSession!=null&&!approvals.reusable.sessions.alive(mcpSession,principal))throw new SecurityException("Agent/session expired");
+                    return resolver.cached(principal,mcpSession,operation,args,firstCheck.getAndSet(false));
+                });
+            }
+            if(args.has("bindingId"))for(String field:List.of("connectionId","connectionName","database","schema"))
+                if(args.has(field))throw new IllegalArgumentException("A binding fixes the exact target; do not supply standalone overrides");
             var matched=new java.util.concurrent.atomic.AtomicReference<ObjectNode>();
             java.util.function.Consumer<ObjectNode> check=b->{
                 ObjectNode scope=ApprovalScope.resolve(profiles.get(b.path("connectionId").asText()),b,Profiles.JSON.createObjectNode());
@@ -374,7 +397,11 @@ public final class DbaRuntime implements AutoCloseable {
             // Ownership authorizes lifecycle access to already admitted jobs (including standalone
             // human-approved SQL/tests); it does not grant a new database operation.
             String id=Profiles.text(args,"jobId",36);QueryJobs.Job job=jobs.require(owner,id);
-            if(operation.equals("dba_job_status"))return jobs.status(owner,id);
+            if(operation.equals("dba_job_status"))return jobs.status(owner,id,args,()->{
+                if(!agentAlive(principal)||mcpSession!=null&&!approvals.reusable.sessions.alive(mcpSession,principal))
+                    throw new SecurityException("MCP agent/session expired during job status wait");
+                authorization.requireSession(principal,mcpSession);
+            });
             if(operation.equals("dba_cancel_job"))jobs.cancel(job);else jobs.remove(owner,id);
             return Profiles.JSON.createObjectNode().put("ok",true);
         }
@@ -543,7 +570,7 @@ public final class DbaRuntime implements AutoCloseable {
         }catch(SecurityException|IllegalArgumentException e){return false;}
     }
     static void asset(HttpExchange x,String path)throws IOException {
-        String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/native-connection-editor.js"->"native-connection-editor.js";case "/dba/native-workspace.js"->"native-workspace.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";case "/dba/workspace-theme.css"->"workspace-theme.css";default->null;};
+        String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/catalog-ui.js"->"catalog-ui.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/native-connection-editor.js"->"native-connection-editor.js";case "/dba/native-workspace.js"->"native-workspace.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";case "/dba/workspace-theme.css"->"workspace-theme.css";default->null;};
         if(file==null){json(x,404,Map.of("error","Asset not found"));return;}
         try(InputStream in=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+file)){
             if(in==null){json(x,404,Map.of("error","Asset not found"));return;}

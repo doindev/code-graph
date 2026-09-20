@@ -169,7 +169,7 @@ public final class SwiftAnalyzer extends TreeWalkAnalyzer {
                 continue;
             }
             TSNode from = child.getChildByFieldName("inherits_from");
-            TSNode name = from == null || from.isNull() ? null : lastTypeIdentifier(from);
+            TSNode name = from == null || from.isNull() ? null : from;
             if (name != null) {
                 refs.add(new SuperRef(src.text(name), RefKind.EXTENDS));
             }

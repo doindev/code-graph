@@ -46,6 +46,30 @@ class WorkflowTargetsTest {
             assertThrows(IllegalArgumentException.class,()->runtime.agentCall(principal,"dba_compare_schemas",compare));
         }
     }
+    @Test void nativeObservationsRequireExplicitScopeAndIndependentCatalogPermission()throws Exception{
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);
+            var policies=new ReusableApprovals(directory,System::currentTimeMillis)){
+            var input=Profiles.JSON.createObjectNode().put("name","native").put("templateId","mongodb-native").put("url","mongodb://localhost:27017");
+            input.putObject("nativeOptions").put("database","fixture");
+            String id=profiles.put(null,input).path("id").asText();var agents=new AgentAccess(directory);String principal=agents.trustedLocal();
+            try(var contexts=new ProjectContexts(profiles,connections,agents,System::currentTimeMillis,false)){
+                var resolver=new WorkflowTargets(profiles,agents,contexts,policies);
+                var scope=Profiles.JSON.createObjectNode().put("connectionId",id).put("connectionName","native").put("database","fixture");
+                assertThrows(SecurityException.class,()->resolver.catalog(principal,null,scope));
+                assertThrows(SecurityException.class,()->resolver.cached(principal,null,"dba_search_objects",scope));
+                var grant=agents.grantRead(principal,"always_connection_read","catalog",Profiles.JSON.createObjectNode().put("connectionId",id));
+                assertEquals("fixture",resolver.catalog(principal,null,scope).scope().path("database").asText());
+                assertEquals("fixture",resolver.cached(principal,null,"dba_search_objects",scope).scope().path("database").asText());
+                assertThrows(IllegalArgumentException.class,()->resolver.catalog(principal,null,scope.deepCopy().put("schema","public")));
+                var absent=scope.deepCopy();absent.remove("database");
+                assertThrows(IllegalArgumentException.class,()->resolver.cached(principal,null,"dba_search_objects",absent));
+                agents.removePolicy(principal,grant.path("id").asText());
+                assertThrows(SecurityException.class,()->resolver.catalog(principal,null,scope));
+                assertThrows(SecurityException.class,()->resolver.cached(principal,null,"dba_search_objects",scope));
+            }
+            assertEquals(0,connections.count(),"Authorization/discovery must not initialize JDBC pools");
+        }
+    }
     private static JsonNode await(DbaRuntime runtime,String principal,JsonNode job)throws Exception{
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10);JsonNode status=job;
         while(System.nanoTime()<deadline){status=runtime.agentCall(principal,"dba_job_status",Profiles.JSON.createObjectNode().put("jobId",job.path("id").asText()));if(status.path("finished").asLong()>0)break;Thread.sleep(10);}

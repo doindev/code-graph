@@ -86,6 +86,44 @@ class WorkspaceVizControlTest {
         return result;
     }
 
+    @Test @Timeout(20)
+    void uiAndMcpObserveTheSamePendingScanWithoutPublishingIt() throws Exception {
+        Files.writeString(temp.resolve("Hello.java"),"class Hello {}");
+        var entered=new java.util.concurrent.CountDownLatch(1);
+        var release=new java.util.concurrent.CountDownLatch(1);
+        var analyzer=new io.doindev.codegraph.parse.LanguageAnalyzer(){
+            public String languageId(){return "java";}
+            public java.util.Set<String> fileExtensions(){return java.util.Set.of("java");}
+            public io.doindev.codegraph.parse.FileFragment extract(io.doindev.codegraph.parse.SourceFile source){
+                entered.countDown();
+                try {if(!release.await(10,java.util.concurrent.TimeUnit.SECONDS))throw new IllegalStateException("timeout");}
+                catch(InterruptedException e){throw new IllegalStateException(e);}
+                return new io.doindev.codegraph.lang.java.JavaAnalyzer().extract(source);
+            }
+        };
+        var analyzers=Analyzers.of(List.of(analyzer));
+        try(var workspace=Workspace.open(List.of(),analyzers,p->CodeGraphConfig.defaults());
+            var registry=CodeGraphTools.workspace(List.of(),workspace::remove)){
+            var control=new WorkspaceVizControl(workspace,registry,analyzers,"stdio",true);
+            var job=control.startAdd(temp.toString());
+            var json=new com.fasterxml.jackson.databind.ObjectMapper();
+            var roster=registry.tools().stream().filter(t->t.spec().name().equals("list_projects")).findFirst().orElseThrow();
+            try {
+                assertTrue(entered.await(10,java.util.concurrent.TimeUnit.SECONDS));
+                var status=json.readTree(roster.call(json.createObjectNode()).json());
+                assertEquals(0,status.path("projects").size());assertEquals(1,status.path("onboarding").size());
+                assertEquals("parsing",status.path("onboarding").get(0).path("progress").path("phase").asText());
+                assertEquals("parsing",control.addStatus(job.id()).progress().get("phase"));
+            } finally {release.countDown();}
+            var ready=awaitTerminal(control,job.id());
+            assertEquals("ready",ready.state());assertEquals("ready",ready.progress().get("phase"));
+            assertEquals(0,json.readTree(roster.call(json.createObjectNode()).json()).path("onboarding").size());
+            registry.removeProject(ready.name());
+            // Retained job snapshots must remain readable without retaining an active graph/indexer.
+            assertEquals("ready",ready.progress().get("phase"));
+        }
+    }
+
     @Test
     @Timeout(20)
     void explicitUiAndMcpReindexJobsHoldTheirLeaseUntilTheScanFinishes() throws Exception {

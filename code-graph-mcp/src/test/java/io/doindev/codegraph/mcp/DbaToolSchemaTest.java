@@ -4,6 +4,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DbaToolSchemaTest {
+    @Test void approvalPollingHasCanonicalIdsAndLegacyCompatibility() throws Exception {
+        var mapper=new ObjectMapper();
+        for(var tool:DbaMcpTools.tools(null,()->null)) {
+            String name=tool.spec().name();
+            if(Set.of("dba_request_status","dba_cancel_request").contains(name)) {
+                var schema=mapper.readTree(tool.spec().inputSchemaJson());
+                assertEquals("uuid",schema.path("properties").path("approvalId").path("format").asText(),name);
+                assertTrue(schema.path("properties").path("requestId").path("deprecated").asBoolean(),name);
+                assertEquals(2,schema.path("anyOf").size(),name);
+                assertTrue(tool.spec().description().contains("approvalId"),name);
+            }
+            if(Set.of("dba_list_templates","dba_job_status","dba_list_connections").contains(name))
+                assertFalse(tool.spec().description().contains("Standalone execution then requires"),name);
+            if(name.equals("dba_get_object_ddl"))assertTrue(tool.spec().description().contains("SQL Server"));
+        }
+    }
     @Test void nativeConnectionAndCommandSchemasDoNotRequireJdbc()throws Exception{
         var mapper=new ObjectMapper();var tools=DbaMcpTools.tools(null,()->null);
         var create=mapper.readTree(tools.stream().filter(t->t.spec().name().equals("dba_request_connection_create")).findFirst().orElseThrow().spec().inputSchemaJson()).path("properties").path("profile");

@@ -35,7 +35,7 @@ public final class GoAnalyzer extends TreeWalkAnalyzer {
 
     @Override
     protected Set<String> functionDeclarationTypes() {
-        return Set.of("function_declaration", "method_declaration");
+        return Set.of("function_declaration", "method_declaration", "method_elem");
     }
 
     @Override

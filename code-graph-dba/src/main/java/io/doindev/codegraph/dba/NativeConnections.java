@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mongodb.*;
 import com.mongodb.client.*;
 import io.lettuce.core.*;
-import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.cluster.*;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.resource.DefaultClientResources;
 import org.bson.Document;
@@ -19,21 +19,25 @@ final class NativeConnections implements AutoCloseable {
         private final Runnable release;
         final MongoClient mongo;
         final RedisClient redis;
+        final RedisClusterClient cluster;
+        final byte[] cursorSecret;
         final String revision;
         private boolean closed;
-        Lease(MongoClient mongo, RedisClient redis, String revision, Runnable release) { this.mongo=mongo;this.redis=redis;this.revision=revision;this.release=release; }
+        Lease(MongoClient mongo, RedisClient redis, RedisClusterClient cluster, byte[] cursorSecret, String revision, Runnable release) { this.mongo=mongo;this.redis=redis;this.cluster=cluster;this.cursorSecret=cursorSecret;this.revision=revision;this.release=release; }
         public synchronized void close() { if(!closed) { closed=true;release.run(); } }
     }
     private static final class Entry {
         final String revision;
         final MongoClient mongo;
         final RedisClient redis;
+        RedisClusterClient cluster;
+        final byte[] cursorSecret=new byte[32];
         final long idleMillis;
         int uses;
         long lastUse=System.currentTimeMillis();
         boolean retired;
-        Entry(String revision,MongoClient mongo,RedisClient redis,long idleMillis) { this.revision=revision;this.mongo=mongo;this.redis=redis;this.idleMillis=idleMillis; }
-        void close() { if(mongo!=null)mongo.close();if(redis!=null)redis.shutdown(Duration.ZERO,Duration.ofSeconds(2)); }
+        Entry(String revision,MongoClient mongo,RedisClient redis,long idleMillis) { this.revision=revision;this.mongo=mongo;this.redis=redis;this.idleMillis=idleMillis;new java.security.SecureRandom().nextBytes(cursorSecret); }
+        void close() { if(mongo!=null)mongo.close();if(redis!=null)redis.shutdown(Duration.ZERO,Duration.ofSeconds(2));if(cluster!=null)cluster.shutdown(Duration.ZERO,Duration.ofSeconds(2)); }
     }
     private final Profiles profiles;
     private final Map<String,Entry> clients=new HashMap<>();
@@ -57,7 +61,7 @@ final class NativeConnections implements AutoCloseable {
             finally { credentials.clear(); }
         }
         entry.uses++;Entry owned=entry;
-        return new Lease(entry.mongo,entry.redis,entry.revision,()->release(owned));
+        return new Lease(entry.mongo,entry.redis,entry.cluster,entry.cursorSecret,entry.revision,()->release(owned));
     }
 
     private Entry create(JsonNode profile,Properties credentials,String revision) {
@@ -66,6 +70,9 @@ final class NativeConnections implements AutoCloseable {
         JsonNode opts=profile.path("nativeOptions");long idle=opts.path("idleTimeoutMS").asLong(60000);
         if(transport==DatabaseTransport.MONGODB)return new Entry(revision,mongo(profile,credentials),null,idle);
         if(redisResources==null)redisResources=DefaultClientResources.builder().ioThreadPoolSize(2).computationThreadPoolSize(2).nettyCustomizer(new NativeWireBudget()).build();
+        if(opts.path("topology").asText().equals("cluster")){
+            Entry entry=new Entry(revision,null,null,idle);entry.cluster=cluster(profile,credentials,redisResources);return entry;
+        }
         RedisURI uri=redisUri(profile,credentials);
         RedisClient client=RedisClient.create(redisResources,uri);
         client.setOptions(ClientOptions.builder().autoReconnect(false).requestQueueSize(32)
@@ -77,8 +84,8 @@ final class NativeConnections implements AutoCloseable {
         DatabaseTransport transport=DatabaseTransport.of(profile);
         if(transport==DatabaseTransport.JDBC)throw new IllegalArgumentException("Native profile required");
         JsonNode opts=profile.path("nativeOptions");
-        if(transport==DatabaseTransport.REDIS&&!opts.path("topology").asText("standalone").equals("standalone"))throw new IllegalArgumentException("Redis Sentinel/Cluster client adapters are pending; no standalone fallback is permitted");
-        if(opts.has("seeds"))throw new IllegalArgumentException("Explicit seed-list adapter is pending; MongoDB can use a multi-host endpoint");
+        if(transport==DatabaseTransport.REDIS&&opts.path("topology").asText().equals("cluster")&&!opts.path("database").asText("0").equals("0"))throw new IllegalArgumentException("Redis Cluster requires database 0");
+        if(transport==DatabaseTransport.MONGODB&&opts.has("seeds")&&opts.path("topology").asText().equals("srv"))throw new IllegalArgumentException("SRV supplies its own seeds; remove explicit seeds");
         if(opts.path("authMechanism").asText().equals("MONGODB-X509"))throw new IllegalArgumentException("X.509 requires a configured, verified client-certificate adapter");
         String url=profile.path("url").asText();
         if(url.startsWith("rediss:")&&opts.has("tls")&&!opts.path("tls").asBoolean())throw new IllegalArgumentException("rediss requires TLS; conflicting tls=false is not permitted");
@@ -97,6 +104,9 @@ final class NativeConnections implements AutoCloseable {
                 .applyToClusterSettings(cluster->{
                     cluster.serverSelectionTimeout(opts.path("connectTimeoutMS").asLong(10000),TimeUnit.MILLISECONDS);
                     if(opts.has("replicaSet"))cluster.requiredReplicaSetName(opts.path("replicaSet").asText());
+                    if(opts.has("seeds")){var hosts=new ArrayList<ServerAddress>(new ConnectionString(profile.path("url").asText()).getHosts().stream().map(ServerAddress::new).toList());for(JsonNode seed:opts.path("seeds"))hosts.addAll(new ConnectionString(seed.asText()).getHosts().stream().map(ServerAddress::new).toList());if(hosts.size()>16)throw new IllegalArgumentException("MongoDB seed allowance is 16 hosts");cluster.hosts(hosts);}
+                    if(opts.path("topology").asText().equals("sharded"))cluster.requiredClusterType(com.mongodb.connection.ClusterType.SHARDED);
+                    if(opts.path("topology").asText().equals("replica_set"))cluster.requiredClusterType(com.mongodb.connection.ClusterType.REPLICA_SET);
                     if(opts.path("topology").asText().equals("standalone"))cluster.mode(com.mongodb.connection.ClusterConnectionMode.SINGLE);
                 });
         if(opts.has("tls"))settings.applyToSslSettings(ssl->ssl.enabled(opts.path("tls").asBoolean()).invalidHostNameAllowed(false));
@@ -116,6 +126,14 @@ final class NativeConnections implements AutoCloseable {
     static RedisURI redisUri(JsonNode profile,Properties credentials) {
         JsonNode opts=profile.path("nativeOptions");
         RedisURI uri=RedisURI.create(profile.path("url").asText());
+        if(opts.path("topology").asText().equals("sentinel")){
+            RedisURI endpoint=uri;uri=new RedisURI();uri.setSentinelMasterId(opts.path("sentinelMaster").asText());uri.getSentinels().add(endpoint);
+            for(JsonNode seed:opts.path("seeds"))uri.getSentinels().add(RedisURI.create(seed.asText()));
+            if(uri.getSentinels().size()>16)throw new IllegalArgumentException("Redis Sentinel endpoint allowance is 16");
+            // Sentinel endpoints use no implicit copy of database credentials; authenticated Sentinel is not enabled.
+            for(RedisURI sentinel:uri.getSentinels()){sentinel.setTimeout(Duration.ofMillis(opts.path("connectTimeoutMS").asLong(10000)));sentinel.setVerifyPeer(true);if(opts.has("tls"))sentinel.setSsl(opts.path("tls").asBoolean());}
+            uri.setSsl(endpoint.isSsl());
+        }
         if(opts.has("tls"))uri.setSsl(opts.path("tls").asBoolean());
         uri.setVerifyPeer(true);uri.setDatabase(Integer.parseInt(opts.path("database").asText("0")));
         uri.setTimeout(Duration.ofMillis(opts.path("socketTimeoutMS").asLong(30000)));
@@ -123,6 +141,16 @@ final class NativeConnections implements AutoCloseable {
         try { if(!user.isEmpty())uri.setAuthentication(user,password);else if(password.length>0)uri.setAuthentication(password); }
         finally {Arrays.fill(password,'\0');}
         return uri;
+    }
+
+    static RedisClusterClient cluster(JsonNode profile,Properties credentials,DefaultClientResources resources){
+        var seeds=new ArrayList<RedisURI>();seeds.add(redisUri(profile,credentials));
+        for(JsonNode seed:profile.path("nativeOptions").path("seeds")){ObjectNode copy=profile.deepCopy();copy.put("url",seed.asText());seeds.add(redisUri(copy,credentials));}
+        if(seeds.size()>16)throw new IllegalArgumentException("Redis Cluster endpoint allowance is 16");
+        var client=RedisClusterClient.create(resources,seeds);
+        client.setOptions(ClusterClientOptions.builder().autoReconnect(false).requestQueueSize(32).maxRedirects(3)
+            .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS).validateClusterNodeMembership(true)
+            .topologyRefreshOptions(ClusterTopologyRefreshOptions.builder().dynamicRefreshSources(false).build()).build());return client;
     }
 
     static ObjectNode testDraft(ConnectionDraft draft) {
@@ -136,7 +164,13 @@ final class NativeConnections implements AutoCloseable {
             // Draft connections never enter saved-profile pools, and their resources are closed.
             var resources=DefaultClientResources.builder().ioThreadPoolSize(2).computationThreadPoolSize(2).nettyCustomizer(new NativeWireBudget()).build();
             try {
+                if(draft.profile().path("nativeOptions").path("topology").asText().equals("cluster")){
+                    var cluster=cluster(draft.profile(),credentials,resources);
+                    try{if(cluster.getPartitions().size()>16)throw new IllegalArgumentException("Redis topology exceeds the 16-node allowance");try(var connection=cluster.connect(ByteArrayCodec.INSTANCE)){connection.sync().ping();String info=connection.sync().info("server");String version=info.lines().filter(line->line.startsWith("redis_version:")).map(line->line.substring(14).strip()).findFirst().orElse("unknown");return Profiles.JSON.createObjectNode().put("connected",true).put("database","Redis Cluster").put("version",version).put("versionQuery","INFO server");}}
+                    finally{cluster.shutdown(Duration.ZERO,Duration.ofSeconds(2));}
+                }
                 RedisClient client=RedisClient.create(resources,redisUri(draft.profile(),credentials));
+                client.setOptions(ClientOptions.builder().autoReconnect(false).requestQueueSize(32).disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS).build());
                 try(var connection=client.connect(ByteArrayCodec.INSTANCE)) {
                     String info=connection.sync().info("server");
                     String version=info.lines().filter(line->line.startsWith("redis_version:")).map(line->line.substring(14).strip()).findFirst().orElse("unknown");

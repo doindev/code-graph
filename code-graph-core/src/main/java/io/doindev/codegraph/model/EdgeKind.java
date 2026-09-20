@@ -12,6 +12,8 @@ public enum EdgeKind {
     REFERENCES,
     EXTENDS,
     IMPLEMENTS,
+    /** Verified or explicitly qualified method-level override evidence; never a call site. */
+    OVERRIDES,
     READS,
     WRITES,
     /** Cross-language linker output (e.g. HTTP route literal in a TS client matching a Python route). */

@@ -9,8 +9,8 @@ import org.xml.sax.helpers.DefaultHandler;
 
 /** Deliberately static framework adapters. Naming strategies and computed expressions stay uncertain. */
 final class OrmMappings {
-    private record Annotation(String name,List<SourceTokens.Token> args,int offset,int end){}
-    private static List<Annotation> annotations(List<SourceTokens.Token> tokens,int from,int to){
+    record Annotation(String name,List<SourceTokens.Token> args,int offset,int end){}
+    static List<Annotation> annotations(List<SourceTokens.Token> tokens,int from,int to){
         var out=new ArrayList<Annotation>();
         for(int i=from;i+1<to;i++)if(tokens.get(i).text().equals("@")){
             int begin=i;String name=tokens.get(++i).text();
@@ -21,7 +21,7 @@ final class OrmMappings {
         }
         return out;
     }
-    private static String option(Annotation annotation,String key){
+    static String option(Annotation annotation,String key){
         var args=annotation.args();
         for(int i=0;i+2<args.size();i++)if(args.get(i).text().equals(key)&&Set.of("=",":").contains(args.get(i+1).text())){
             var value=args.get(i+2);if(value.dynamic())return null;
@@ -30,7 +30,7 @@ final class OrmMappings {
         }
         return null;
     }
-    private static String firstString(Annotation annotation){var args=annotation.args();return !args.isEmpty()&&args.getFirst().string()&&!args.getFirst().dynamic()&&(args.size()==1||args.get(1).text().equals(","))?args.getFirst().text():null;}
+    static String firstString(Annotation annotation){var args=annotation.args();return !args.isEmpty()&&args.getFirst().string()&&!args.getFirst().dynamic()&&(args.size()==1||args.get(1).text().equals(","))?args.getFirst().text():null;}
     private static String value(Annotation annotation,String key,String fallback){return Objects.toString(option(annotation,key),fallback);}
     static void annotations(MappingEvidence evidence,List<SourceTokens.Token> tokens,boolean java){
         int prior=0;

@@ -24,6 +24,7 @@ public final class CodeDatabaseMappings implements LanguageAnalyzer {
                 case "java","js","ts","tsx","javascript","typescript" -> {
                     var tokens=SourceTokens.lex(source.content());
                     OrmMappings.annotations(evidence,tokens,languageId().equals("java"));
+                    NativeMappings.extract(evidence,tokens,languageId().equals("java"));
                     int count=0;long deadline=System.nanoTime()+1_000_000_000L;
                     for(int i=0;i<tokens.size();i++){
                         var token=tokens.get(i);if(!token.string()||!token.text().stripLeading().matches("(?is)^(select|with|insert|update|delete|create|alter)\\b.*"))continue;
@@ -50,8 +51,12 @@ public final class CodeDatabaseMappings implements LanguageAnalyzer {
         var edges=new ArrayList<>(fragment.localEdges());edges.addAll(evidence.edges);
         return new FileFragment(fragment.file(),fragment.lang(),fragment.contentHash(),nodes,edges,fragment.rawRefs(),fragment.imports(),fragment.modules());
     }
+    private static String contentHash(String value) {
+        try { return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
+        catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+    }
     private FileFragment empty(SourceFile source){
         var file=new FileId(source.relPath());var node=new Node(file,NodeKind.FILE,source.relPath(),source.relPath(),new SourceSpan(source.relPath(),1,1,1,1),Metrics.NONE,Map.of("lang",languageId()));
-        return new FileFragment(file,languageId(),MappingEvidence.hash(source.content()),List.of(node),List.of(),List.of(),List.of());
+        return new FileFragment(file,languageId(),contentHash(source.content()),List.of(node),List.of(),List.of(),List.of());
     }
 }

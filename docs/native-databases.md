@@ -1,7 +1,8 @@
 # Native MongoDB and Redis; SQL Server expansion
 
-Status: **partial delivery, not full administration support**. The remaining
-work is tracked in [the delivery checklist](native-database-delivery.md).
+Status: **verified bounded developer workflows, not full administration support**.
+The current increment and evidence are recorded in [the acceptance report](mcp-efficiency-coverage-delivery.md).
+The broader [native roadmap](native-database-delivery.md) remains incomplete.
 
 ## Connection setup
 
@@ -25,9 +26,17 @@ are shared with the existing editor.
   make supported mutations available. This setting does not authorize agents.
 - Clients are lazy, revision-bound and idle-expiring. Old clients with active
   leases retire after those leases end. Redis operations use isolated connections.
-- Redis Sentinel/Cluster and custom/client-certificate TLS remain unavailable.
-  Mongo replica-set/SRV/router connection options are implemented but not yet
-  topology-certified by the current standalone integration gate.
+- Choose explicit topology in Network: Mongo standalone/replica set/sharded/SRV,
+  or Redis standalone/Sentinel/Cluster. Additional seed endpoints must use the
+  primary endpoint's scheme; at most 16 hosts total (15 additional seeds).
+  Sentinel requires its exact master name. Cluster allows database 0 only.
+- Disposable gates verify Mongo replica-set and sharded-router reads/observations,
+  Redis three-primary Cluster scans and cross-slot rejection, and Sentinel primary
+  promotion with old-cursor rejection. New operations rediscover topology; writes
+  are not automatically replayed. Cursors are opaque and expire after five minutes.
+- Custom/client-certificate TLS and separately authenticated Sentinel remain
+  unavailable. Actual SRV DNS, production TLS and cloud authentication/topologies
+  are not certified by local containers.
 
 ## Workspace and tree
 
@@ -94,10 +103,20 @@ or ["HSCAN","cache-key","0"]. For a binary value, use
 
 Bindings preserve application, canonical environment, logical role and purpose.
 A native binding fixes the database and has no SQL schema. Disabled/unloaded
-bindings and stale profile/binding revisions cannot execute. Legacy JDBC catalog
-scanning is **not** run against native profiles; the UI labels it unavailable.
-Native cached snapshots, contract mappings and reusable environment read policies
-are not yet implemented.
+bindings and stale profile/binding revisions cannot execute. Native profiles use
+bounded native catalog adapters, never JDBC queries. Authorized `dba_capture_schema`,
+`dba_compare_schemas`, catalog refresh/search/properties and contract validation
+support native observations. Standalone targets need no project binding.
+
+Mongo observations contain collection/view definitions, validators, indexes and
+explicit declared field types. Optional `sampleLimit` (0 by default; at most 32)
+records only field names/types, never record values. Sampling is incomplete evidence,
+not a schema declaration. Redis observes bounded key/type/prefix/TTL classes, never
+values; SCAN does not prove key absence. Comparisons ignore elapsed TTL milliseconds.
+Static Spring Data/Mongoose and Redis prefix/type mappings feed contract checks;
+dynamic names remain unknown. SQL grants never authorize native observations;
+existing native catalog permission or explicit startup YOLO is required. Reusable
+native environment read policies remain unsupported.
 
 Normal native operations use exact one-time review. SQL reusable grants do not
 automatically become native permissions. With startup --yolo, the same validated
@@ -159,9 +178,20 @@ Object-DDL inspection now uses bounded, parameterized SQL Server catalogs.
 Views/routines/triggers expose available module definitions; encrypted or
 inaccessible definitions remain unavailable. Table/constraint rows explicitly
 identify their **partial** coverage and must not be treated as complete recreate
-scripts. SQL Server native designers/migrations, integrated/Kerberos/Entra auth
-certification, SQL Agent, backup/restore and infrastructure workflows remain
-incomplete. Azure SQL is not certified by a local SQL Server container.
+scripts. SQL Server 2022 ordinary disk tables support reviewed column/name/type/default/
+nullability/comment, key/constraint/index changes and creation. Special tables
+(temporal, ledger, graph, CDC/replicated, partitioned, memory-optimized, sparse,
+encrypted or user-defined-type cases) remain read-only. Generated-column changes,
+owner/schema moves and infrastructure settings are unavailable.
+
+Designer Apply rechecks the fingerprint under an application lock and a database
+lock, uses XACT_ABORT and a bounded lock timeout, and supports rollback for the
+verified ordinary-table operation subset. Migration preparation has SQL Server
+identifier/type support and conservatively reports transaction guarantees separately.
+Native column/key/index/constraint capture supports structured comparisons.
+See [the designer](dba-table-designer.md) for recovery. Integrated/Kerberos/Entra
+auth certification, SQL Agent and backup/restore remain incomplete. Azure SQL is
+not certified by a local SQL Server container.
 
 ## Reproducible validation
 
@@ -169,6 +199,10 @@ Run from the repository root using JDK 25, Maven and Docker:
 
     ./code-graph-dba/test-native-vendors.ps1 -Engine mongodb
     ./code-graph-dba/test-native-vendors.ps1 -Engine redis
+    ./code-graph-dba/test-mongo-topologies.ps1 -Topology replica_set
+    ./code-graph-dba/test-mongo-topologies.ps1 -Topology sharded
+    ./code-graph-dba/test-redis-topologies.ps1 -Topology sentinel
+    ./code-graph-dba/test-redis-topologies.ps1 -Topology cluster
     ./code-graph-dba/test-native-vendors.ps1 -Engine mongodb -Performance
     ./code-graph-dba/test-native-vendors.ps1 -Engine redis -Performance
     ./code-graph-dba/test-sqlserver-native.ps1 -AcceptDeveloperEula -DriverJar <existing-microsoft-jdbc-jar>
@@ -196,5 +230,6 @@ For browser tests, assemble the module's test-lib dependencies with Maven, then 
 code-graph-dba/test-browser.ps1 -NodeModules <directory-containing-playwright>.
 DBA_BROWSER_SUITE=native selects the native suite; omit it for all browser suites.
 Live vendor tests skip when their owned fixture environment is absent; a skipped
-test is not live certification. Full topology, infrastructure, binary editing,
-streaming/subscription, performance and cross-platform gates remain in the checklist.
+test is not live certification. The tested local topology subset does not certify every production deployment.
+Infrastructure, binary editing, streaming/subscription and cross-platform gates
+remain in the broader checklist.

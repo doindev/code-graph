@@ -63,6 +63,7 @@ public final class NameResolver {
                 edges.addAll(resolved);
             }
         }
+        edges.addAll(MethodRelationships.resolve(fragment,table));
         return edges;
     }
 

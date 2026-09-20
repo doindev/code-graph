@@ -34,6 +34,8 @@ public final class WorkspaceTools implements AutoCloseable {
     private volatile String defaultProject;
     private final List<GraphTool> tools;
     private final ProjectLifecycle lifecycle;
+    private volatile Supplier<List<Map<String,Object>>> onboardingStatus = List::of;
+    public void onboardingStatus(Supplier<List<Map<String,Object>>> source) { onboardingStatus=java.util.Objects.requireNonNull(source); }
 
     WorkspaceTools(List<CodeGraphTools.ProjectTools> projects, RemovalListener listener) {
         this(projects, listener, System::nanoTime, java.time.Instant::now);
@@ -64,7 +66,7 @@ public final class WorkspaceTools implements AutoCloseable {
             built.add(new RouterTool(byToolThenProject.get(template.spec().name()),
                     defaultName, template.spec(), lifecycle));
         }
-        built.add(new ListProjectsTool(graphs, defaultName, lifecycle));
+        built.add(new ListProjectsTool(graphs, defaultName, lifecycle, () -> onboardingStatus.get()));
         built.add(new WorkspaceContextTool(graphs));
         built.add(new RemoveProjectTool(this));
         this.tools = List.copyOf(built);
@@ -144,7 +146,7 @@ public final class WorkspaceTools implements AutoCloseable {
                     public ToolSpec spec() { return tool.spec(); }
                     public ToolResponse call(com.fasterxml.jackson.databind.JsonNode args) {
                         // Reindex mutates the graph and must not attempt a read-to-write lock upgrade.
-                        if (tool instanceof ReindexTool) return tool.call(args);
+                        if (tool.spec().name().equals("reindex") || tool.spec().name().equals("index_status")) return tool.call(args);
                         try { return project.graph().read(() -> tool.call(args)); }
                         catch (RuntimeException e) { return ToolResponse.fail(e.getMessage()); }
                     }

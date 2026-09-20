@@ -1212,7 +1212,20 @@ function pollJob(jobId) {
       return;  // transient — keep polling until a terminal state or the user cancels
     }
     if (state.jobId !== jobId) return;  // cancelled while the request was in flight
-    if (status.state === 'indexing') return;  // still working; timer keeps ticking
+    if (status.state === 'indexing') {
+      const progress = status.progress;
+      if (progress?.phase) {
+        const phase = {waiting:'Preparing',configuration:'Reading configuration',scanning:'Scanning',
+          scanning_and_parsing:'Scanning and parsing',parsing:'Parsing',resolving:'Resolving relationships',
+          publishing:'Publishing index',ready:'Registering project'}[progress.phase] || 'Indexing';
+        const counts = Number.isFinite(progress.parsedFiles)
+          ? ' — ' + progress.parsedFiles + ' parsed, ' + (progress.resolvedFiles || 0) + ' resolved'
+            + (progress.inventoryComplete ? ' of ' + progress.discoveredFiles + ' discovered files' : ' (discovering files)')
+            + (progress.failedFiles ? ', ' + progress.failedFiles + ' failed' : '') : '';
+        $('scan-message').textContent = phase + ' ' + (status.name || state.jobName) + counts;
+      }
+      return; // Progress is work evidence, not a guessed percentage; timer keeps ticking.
+    }
 
     const kind = state.jobKind;
     const finalName = status.name || state.jobName;

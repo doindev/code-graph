@@ -87,10 +87,12 @@ final class NativeMutations {
                 if(errors){job.result=result;throw new IllegalArgumentException("MongoDB reported write or write-concern errors; inspect the bounded reply and reconcile before retry");}
                 job.outcome="acknowledged";return result;
             }
-            try(var connection=lease.redis.connect(ByteArrayCodec.INSTANCE)){
-                connection.setTimeout(java.time.Duration.ofSeconds(job.remainingSeconds()));
-                var redis=connection.sync();redis.select(Integer.parseInt(target.database()));if(job.cancelled)throw new java.util.concurrent.CancellationException();
+            try(var connection=NativeRedisSession.open(lease,target,job.remainingSeconds())){
+                var redis=connection.sync();if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 String name=command.get(0).asText().toUpperCase(Locale.ROOT);byte[] key=bytes(command,1);Object value;
+                if(target.topology().equals("cluster")&&Set.of("DEL","UNLINK","RENAME","RENAMENX").contains(name)){
+                    int slot=io.lettuce.core.cluster.SlotHash.getSlot(key);for(int i=2;i<command.size();i++)if(io.lettuce.core.cluster.SlotHash.getSlot(bytes(command,i))!=slot)throw new IllegalArgumentException("Cluster multi-key mutations must use one hash slot; no cross-shard partial execution is attempted");
+                }
                 job.outcome="partial_or_unknown";
                 switch(name){
                     case "SET" -> value=redis.set(key,bytes(command,2),setOptions(command));

@@ -1,0 +1,289 @@
+{
+  "methodology": "Three independent hybrid JVMs per build, alternating order, one warmup and twelve measured acquisitions each, identical frozen repository plus four explicit Java method fixtures. Warm OS caches; shared Windows host. Not an LLM coding-time benchmark.",
+  "baseline": "deffa3fd9e2749577b87403d0cdb61beb85fe202",
+  "limits": {
+    "heapMiB": 768,
+    "sharedGraphAllowanceMiB": 32
+  },
+  "caveats": [
+    "Initialization, tools/list and list_projects are equal bootstrap calls excluded from navigation counts/timing/bytes.",
+    "Acquisition timing sums navigation and conditional filesystem evidence operations, not model reasoning or user task completion.",
+    "The baseline falls back only when advertised method evidence is absent; local source review is bounded to the discovered explicit fixture declarations.",
+    "Candidate transports preserve text and structuredContent; richer implementation evidence can increase bytes despite fewer calls.",
+    "p99 uses only 36 acquisitions per build and is exploratory. Shared-host tests/indexing can affect tails.",
+    "Heap, process memory and accounted cache estimates are separate measurements; none is a hard process-RAM guarantee.",
+    "Fixture correctness and filesystem savings are not claims of compiler completeness or every coding task."
+  ],
+  "phases": {
+    "baseline": {
+      "correctAcquisitions": 36,
+      "correctMethodAnswers": 144,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "p50Ms": 232.28659999993397,
+      "p95Ms": 277.4258999999729,
+      "p99Ms": 306.60579999990296,
+      "acquisitionsPerSecond": 4.174288414852061,
+      "medianResponseBytes": 8247,
+      "perAcquisition": {
+        "mcpNavigationCalls": 9,
+        "filesystemSearches": 4,
+        "discoveryReads": 4
+      },
+      "runs": [
+        {
+          "run": 1,
+          "indexAndStartupMs": 86046.826,
+          "p50Ms": 230.46830000006594,
+          "heapUsedBytes": 54317600,
+          "heapPoolPeaksBytes": 334933552,
+          "gcCount": 131,
+          "gcTimeMs": 233,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 318263296,
+            "PeakWorkingSet64": 505241600,
+            "PrivateMemorySize64": 346669056
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 15524,
+            "peakCacheUsedBytesEstimate": 15524,
+            "cacheHits": 908,
+            "cacheMisses": 28,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1286536,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 237960,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 55366176,
+            "diskBytes": 88289280,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        },
+        {
+          "run": 2,
+          "indexAndStartupMs": 77881.6363,
+          "p50Ms": 232.7722000000067,
+          "heapUsedBytes": 85202904,
+          "heapPoolPeaksBytes": 265598528,
+          "gcCount": 181,
+          "gcTimeMs": 307,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 391970816,
+            "PeakWorkingSet64": 394342400,
+            "PrivateMemorySize64": 421113856
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 15524,
+            "peakCacheUsedBytesEstimate": 15524,
+            "cacheHits": 908,
+            "cacheMisses": 28,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1431876,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 383300,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 86775768,
+            "diskBytes": 89632768,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        },
+        {
+          "run": 3,
+          "indexAndStartupMs": 79121.3055,
+          "p50Ms": 234.30189999984577,
+          "heapUsedBytes": 105285496,
+          "heapPoolPeaksBytes": 446629712,
+          "gcCount": 92,
+          "gcTimeMs": 175,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 618369024,
+            "PeakWorkingSet64": 620384256,
+            "PrivateMemorySize64": 650473472
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 15524,
+            "peakCacheUsedBytesEstimate": 15524,
+            "cacheHits": 908,
+            "cacheMisses": 28,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1431876,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 383300,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 106334072,
+            "diskBytes": 89624576,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        }
+      ]
+    },
+    "candidate": {
+      "correctAcquisitions": 36,
+      "correctMethodAnswers": 144,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "p50Ms": 118.13759999998729,
+      "p95Ms": 299.32890000002226,
+      "p99Ms": 354.7469000000274,
+      "acquisitionsPerSecond": 6.644463821669841,
+      "medianResponseBytes": 12531,
+      "perAcquisition": {
+        "mcpNavigationCalls": 2,
+        "filesystemSearches": 0,
+        "discoveryReads": 0
+      },
+      "runs": [
+        {
+          "run": 1,
+          "indexAndStartupMs": 79273.8869,
+          "p50Ms": 104.71729999998934,
+          "heapUsedBytes": 62529720,
+          "heapPoolPeaksBytes": 251586408,
+          "gcCount": 271,
+          "gcTimeMs": 429,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 353701888,
+            "PeakWorkingSet64": 359530496,
+            "PrivateMemorySize64": 381984768
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 4684,
+            "peakCacheUsedBytesEstimate": 4684,
+            "cacheHits": 100,
+            "cacheMisses": 4,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1290510,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 241934,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 63578296,
+            "diskBytes": 89264128,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        },
+        {
+          "run": 2,
+          "indexAndStartupMs": 78331.2014,
+          "p50Ms": 111.7496000000101,
+          "heapUsedBytes": 68644528,
+          "heapPoolPeaksBytes": 260218840,
+          "gcCount": 144,
+          "gcTimeMs": 235,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 323088384,
+            "PeakWorkingSet64": 450166784,
+            "PrivateMemorySize64": 351850496
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 4684,
+            "peakCacheUsedBytesEstimate": 4684,
+            "cacheHits": 100,
+            "cacheMisses": 4,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1290510,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 241934,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 69693104,
+            "diskBytes": 89251840,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        },
+        {
+          "run": 3,
+          "indexAndStartupMs": 89028.7245,
+          "p50Ms": 198.87849999999162,
+          "heapUsedBytes": 86230432,
+          "heapPoolPeaksBytes": 246258504,
+          "gcCount": 256,
+          "gcTimeMs": 453,
+          "processMemory": {
+            "available": true,
+            "WorkingSet64": 351576064,
+            "PeakWorkingSet64": 355962880,
+            "PrivateMemorySize64": 379047936
+          },
+          "storage": {
+            "mode": "hybrid",
+            "budgetBytes": 33554432,
+            "cacheCapacityBytes": 15728640,
+            "cacheUsedBytesEstimate": 4684,
+            "peakCacheUsedBytesEstimate": 4684,
+            "cacheHits": 100,
+            "cacheMisses": 4,
+            "cacheEvictions": 0,
+            "enginePageCacheBytes": 0,
+            "activeAndStagedStores": 1,
+            "metadataReserveBytes": 1048576,
+            "temporaryReserveBytes": 16777216,
+            "peakUnsavedBytesEstimate": 1290510,
+            "unsavedBytesEstimate": 0,
+            "cacheOverCapacityBytesEstimate": 0,
+            "peakDirtyThresholdOvershootBytesEstimate": 241934,
+            "accountingComplete": false,
+            "hardProcessMemoryLimit": false,
+            "heapMaxBytes": 805306368,
+            "heapUsedBytes": 87279008,
+            "diskBytes": 88969216,
+            "note": "Cache accounting is estimated; parser objects, query results, engine metadata, JVM/native memory and OS file cache are not hard-capped. Hybrid file updates use copy-on-write generations; broad inventory changes fall back to staged rebuilds."
+          }
+        }
+      ]
+    }
+  }
+}

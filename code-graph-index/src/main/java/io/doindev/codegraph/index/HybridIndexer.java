@@ -23,8 +23,13 @@ final class HybridIndexer {
     private final FullIndexer scanner;
     private final PagedGraph graph;
     private volatile IncrementalIndexer.HybridUpdate lastUpdate;
+    private final IndexingProgress progress;
 
     HybridIndexer(Path root, Analyzers analyzers, CodeGraphConfig config, PagedGraph graph) {
+        this(root,analyzers,config,graph,new IndexingProgress());
+    }
+    HybridIndexer(Path root, Analyzers analyzers, CodeGraphConfig config, PagedGraph graph, IndexingProgress progress) {
+        this.progress=progress;
         this.root = root; this.analyzers = analyzers; this.scanner = new FullIndexer(analyzers, config); this.graph = graph;
     }
 
@@ -35,22 +40,33 @@ final class HybridIndexer {
     private FullIndexer.Result index(String mode) {
         long start = System.nanoTime();
         int[] files = {0}, nodes = {0}, edges = {0};
+        progress.start();
+        try {
         var result = graph.rebuild(builder -> {
             builder.auxiliary(FORMAT, FORMAT_VALUE);
             scanner.scanConfigurations(root, path -> replaceConfiguration(builder,
                     FullIndexer.relativize(root,path), ModuleConfigurations.read(path)));
+            progress.phase("scanning_and_parsing");
             scanner.scan(root, path -> {
+                progress.discovered();
                 FileFragment fragment = extract(path, null);
+                progress.parsed(fragment!=null);
                 if (fragment == null) return;
                 addFragment(builder, fragment);
                 files[0]++; nodes[0] += fragment.declarations().size();
             });
-            builder.scanAuxiliary("fragment/", (key, value) ->
-                    edges[0] += resolve(builder, decode(value)));
+            progress.inventoryComplete();
+            progress.phase("resolving");
+            builder.scanAuxiliary("fragment/", (key, value) -> {
+                edges[0] += resolve(builder, decode(value)); progress.resolved();
+            });
+            progress.phase("publishing");
             return new FullIndexer.Result(files[0], nodes[0], edges[0], List.of(), List.of());
         });
         record(mode, files[0], files[0], files[0], start);
+        progress.finish(true);
         return result;
+        } catch(RuntimeException | Error error) { progress.finish(false); throw error; }
     }
 
     void applyChanges(Collection<String> paths) {

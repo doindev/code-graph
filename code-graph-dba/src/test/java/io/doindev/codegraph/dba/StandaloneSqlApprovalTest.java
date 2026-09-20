@@ -36,6 +36,8 @@ class StandaloneSqlApprovalTest {
 
     @Test void writesRequireExactOneTimeApprovalWithoutAnyProject()throws Exception {
         JsonNode r=approvals.request(principal,request("INSERT INTO PUBLIC.ITEMS VALUES(2,'private_literal')"));String id=r.path("id").asText();
+        assertEquals(id,r.path("approvalId").asText());
+        assertNotEquals(id,r.path("requestId").asText());
         assertEquals("awaiting_approval",r.path("state").asText());assertFalse(r.has("bindingId"));assertFalse(r.has("projectId"));assertEquals(1,connections.count());assertEquals(1,count());
         assertEquals(connection,r.path("target").path("connectionId").asText());assertTrue(ApprovalPresentation.html(r).contains("Standalone test"));
         assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,"approve_once",false));

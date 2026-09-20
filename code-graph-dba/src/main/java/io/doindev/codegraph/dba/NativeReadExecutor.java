@@ -27,7 +27,7 @@ final class NativeReadExecutor {
         check(cancelled);
         NativeCommand.Classification classification=NativeCommand.classify(target,command);
         if(!classification.reusableRead())throw new IllegalArgumentException("This command has no verified native read adapter; request the appropriate reviewed operation");
-        ObjectNode result=target.transport()==DatabaseTransport.MONGODB?mongo(lease.mongo,target,command,limits,cancelled):redis(lease.redis,target,command,limits,cancelled);
+        ObjectNode result=target.transport()==DatabaseTransport.MONGODB?mongo(lease.mongo,target,command,limits,cancelled):redis(lease,target,command,limits,cancelled);
         result.set("target",target.json());result.set("classification",classification.json());
         result.put("consistency","live_non_snapshot").put("hardMemoryLimit",false);
         return result;
@@ -98,10 +98,9 @@ final class NativeReadExecutor {
         return result.add(Profiles.JSON.readTree(document.toJson(EXTENDED)));
     }
 
-    private static ObjectNode redis(RedisClient client,NativeTarget target,JsonNode command,Limits limits,BooleanSupplier cancelled) {
-        try(var connection=client.connect(ByteArrayCodec.INSTANCE)) {
-            connection.setTimeout(java.time.Duration.ofSeconds(limits.timeoutSeconds()));
-            var commands=connection.sync();commands.select(Integer.parseInt(target.database()));
+    private static ObjectNode redis(NativeConnections.Lease lease,NativeTarget target,JsonNode command,Limits limits,BooleanSupplier cancelled) {
+        try(var connection=NativeRedisSession.open(lease,target,limits.timeoutSeconds())) {
+            var commands=connection.sync();
             String operation=command.get(0).asText().toUpperCase(Locale.ROOT);
             var result=new NativeResults("values",limits.rows(),limits.bytes());
             switch(operation) {
@@ -124,13 +123,13 @@ final class NativeReadExecutor {
                 case "PING" -> { arity(command,1);result.add(Profiles.JSON.getNodeFactory().textNode(commands.ping())); }
                 case "SCAN" -> {
                     if(command.size()!=2&&command.size()!=4)throw new IllegalArgumentException("Bounded SCAN accepts cursor and optional MATCH pattern; COUNT is application-managed");
-                    String cursor=command.get(1).asText();if(!cursor.matches("[0-9]{1,20}"))throw new IllegalArgumentException("Invalid Redis scan cursor");
+                    String cursor=command.get(1).asText();
                     ScanArgs args=ScanArgs.Builder.limit(Math.min(64,limits.rows()));
                     if(command.size()==4) { if(!command.get(2).asText().equalsIgnoreCase("MATCH"))throw new IllegalArgumentException("Expected MATCH pattern");args.match(command.get(3).asText()); }
-                    KeyScanCursor<byte[]> page=commands.scan(ScanCursor.of(cursor),args);
-                    for(byte[] key:page.getKeys()){check(cancelled);if(!result.add(NativeResults.binary(key,8192)))break;}
-                    ObjectNode out=result.finish();out.put("scanComplete",page.isFinished()&&!out.path("truncated").asBoolean());
-                    if(!out.path("truncated").asBoolean())out.put("nextCursor",page.getCursor());
+                    NativeRedisSession.Page page=connection.scan(cursor,args);
+                    for(byte[] key:page.keys()){check(cancelled);if(!result.add(NativeResults.binary(key,8192)))break;}
+                    ObjectNode out=result.finish();out.put("scanComplete",page.complete()&&!out.path("truncated").asBoolean());
+                    if(!out.path("truncated").asBoolean())out.put("nextCursor",page.cursor());
                     else out.put("requiresRefinement",true).put("warning","Scan page exceeded allowance; refine the pattern. No continuation is returned because entries would be skipped.");
                     return out;
                 }

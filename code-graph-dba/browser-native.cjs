@@ -94,6 +94,18 @@ module.exports=async(browser,base)=>{
     await page.locator('#add').click();await page.getByRole('button',{name:'Redis',exact:true}).click();
     await page.locator('#ce-name').fill('Native Redis binary fixture');await page.locator('#ce-database').fill('0');
     await page.locator('#ce-native-access').selectOption({label:'Allow reviewed writes'});
+    await page.getByRole('tab',{name:'Network',exact:true}).click();
+    assert.deepEqual(await page.locator('#ce-topology option').allTextContents(),['standalone','sentinel','cluster']);
+    await page.locator('#ce-topology').selectOption('sentinel');await page.locator('#ce-sentinelMaster').fill('cgraph');
+    await page.locator('#ce-seeds').fill('redis://localhost:26380, redis://localhost:26381');
+    const nativeDraft=await page.evaluate(async()=>{
+      const {nativeConnectionDraft}=await import('/dba/native-connection-editor.js');
+      return nativeConnectionDraft({template:{id:'redis-native',transport:'redis'},get:key=>document.getElementById('ce-'+key)?.value??'',shade:''});
+    });
+    assert.equal(nativeDraft.nativeOptions.sentinelMaster,'cgraph');
+    assert.deepEqual(nativeDraft.nativeOptions.seeds,['redis://localhost:26380','redis://localhost:26381']);
+    await page.locator('#ce-topology').selectOption('standalone');await page.locator('#ce-sentinelMaster').fill('');await page.locator('#ce-seeds').fill('');
+    await page.getByRole('tab',{name:'General',exact:true}).click();
     page.once('dialog',dialog=>dialog.accept());await page.locator('#ce-save-untested').click();
     await page.locator('#connection-editor').waitFor({state:'hidden'});
     const redis=page.getByRole('treeitem',{name:'Native Redis binary fixture',exact:true});

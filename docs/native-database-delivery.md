@@ -1,6 +1,10 @@
 # Native MongoDB, Redis and SQL Server delivery plan
 
-Status: implementation in progress. Date: 2026-09-18.
+Status: broader roadmap remains incomplete. Current bounded catalog/contract,
+Sentinel/Cluster, Mongo replica/sharded and SQL Server ordinary-table additions
+are verified in [the 2026-09-19 acceptance report](mcp-efficiency-coverage-delivery.md).
+The unchecked compound items below include additional unsupported capabilities;
+they must not be interpreted as a claim that none of their subsets exists.
 
 This is a delivery checklist, not a declaration of implemented or tested support.
 The target is first-class UI and MCP workflows, including infrastructure

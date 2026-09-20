@@ -44,7 +44,7 @@ abstract class CFamilyAnalyzer extends TreeWalkAnalyzer {
     @Override
     protected String nameOf(TSNode decl, Src src) {
         String type = decl.getType();
-        if (functionDeclarationTypes().contains(type)) {
+        if (isFunctionDeclaration(decl)) {
             TSNode name = drillDeclarator(decl.getChildByFieldName("declarator"));
             return name == null ? null : src.text(name);
         }

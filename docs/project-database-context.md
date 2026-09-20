@@ -4,7 +4,32 @@ Use **DBA → Workspace settings → Project databases** to relate an onboarded 
 
 The same manager provides direct human create/edit/enable/disable/remove actions. Agent-originated connection and relationship changes enter the bounded Approvals queue and make no persistent change until the exact proposal is approved. Legacy binding labels migrate to deterministic roles. Recognized aliases such as `development`, `qa`, `staging`, and `production` migrate to canonical environments; unknown legacy values remain operational but are marked for review and cannot receive environment-wide policies.
 
-All 42 connection templates, including Custom, participate. Support means catalog discovery through the selected JDBC driver and the approval workflow; it does not promise complete native DDL or write support for every engine. Drivers, permissions, server versions and object classes determine coverage. The UI and each indexed definition report coverage instead of manufacturing a complete restore script.
+All 42 JDBC connection templates, including Custom, participate. Support means catalog discovery through the selected JDBC driver and the approval workflow; it does not promise complete native DDL or write support for every engine. Drivers, permissions, server versions and object classes determine coverage. The UI and each indexed definition report coverage instead of manufacturing a complete restore script.
+
+## Standalone cached catalogs
+
+A project is optional. Use **Workspace settings → Database catalog** or the same
+MCP catalog tools with explicit `connectionId`, exact `connectionName`,
+`database`, and optional `schema`. Never mix those fields with `bindingId`.
+Native profiles select a database without a SQL schema.
+
+`dba_refresh_catalog` requests a bounded scan; `dba_scan_status` can wait at most
+5,000 ms with `afterGeneration`. Status polling does not renew retention.
+Standalone scopes expire after 30 minutes without qualifying use. They share the
+same generation/store as equivalent bindings but **not authorization**. A profile
+revision or scope change invalidates old observations/cursors.
+
+The shared cache admits at most 128 scopes and 128 MiB of retained encoded
+catalogs, additionally constrained by the DBA allowance. Staging and old pinned
+read publications are accounted; insufficient budget fails a new scan and keeps
+the old published generation. This is not a hard total-JVM bound. No complete
+database inventory is kept in a second graph. Cursor scope/instance/generation
+checks prevent expiry/rescan from accidentally reusing a prior cursor.
+
+Native Mongo/Redis observations use their own bounded adapters; they are not
+converted to JDBC metadata. See [native coverage](native-databases.md).
+Standalone `dba_find_code_references` additionally requires an explicitly
+onboarded `projectId`; a database connection alone cannot identify a codebase.
 
 ## Activity and lifecycle
 
@@ -60,7 +85,8 @@ policies cover current and future bindings in that scope and can be revoked in t
 | `dba_get_indexed_properties` | Page `columns`, `indexes`, `primaryKeys`, `foreignKeys` or `privileges`. |
 | `dba_get_database_dependencies` | Page catalog dependencies touching an object. |
 | `dba_find_code_references` | Find candidate SQL/mapping references in already indexed project files. Returns locations/confidence, not source snippets; dynamic SQL and ambiguous names require review. |
-| `dba_scan_status` | Inspect scan state without extending activity. |
+| `dba_scan_status` | Inspect scan state without extending activity; optional `afterGeneration` / `waitMillis` (0–5000). |
+| `dba_refresh_catalog` | Request a bounded, authorized scan for a binding or explicit standalone target. |
 | `dba_get_my_permissions` | List effective exact grants and persistent binding/connection/application-environment read policies. |
 | `dba_get_connection_details` | Return an allowlisted non-secret profile when authorized, otherwise create an eligible read request. |
 | `dba_request_connection_create`, `dba_request_connection_update`, `dba_request_connection_delete` | Propose exact profile changes. Creation can include an optional Maven driver-install proposal, but the human must explicitly install or select the pinned driver in the review editor. Creation grants no automatic access; deletion removes application configuration only. |

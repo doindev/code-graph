@@ -3,7 +3,7 @@ package io.doindev.codegraph.dba;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.*;
 import io.lettuce.core.*;
-import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -11,7 +11,7 @@ import java.util.function.BooleanSupplier;
 
 /** Type-specific reads. Bounded ranges/cursors plus the transport's wire budget. */
 final class NativeRedisReads {
-    static ObjectNode execute(RedisCommands<byte[],byte[]> redis,JsonNode command,
+    static ObjectNode execute(RedisClusterCommands<byte[],byte[]> redis,JsonNode command,
             NativeReadExecutor.Limits limits,BooleanSupplier cancelled){
         String name=command.get(0).asText().toUpperCase(Locale.ROOT);
         var out=new NativeResults("values",limits.rows(),limits.bytes());

@@ -120,7 +120,7 @@ final class JavaCallResolver {
         }
         return result;
     }
-    private boolean inherits(String child,String parent) {
+    boolean inherits(String child,String parent) {
         var seen=new HashSet<String>();var queue=new ArrayDeque<String>();queue.add(child);
         while(!queue.isEmpty()&&seen.size()<64) {
             String next=queue.remove();if(!seen.add(next))continue;
@@ -128,7 +128,7 @@ final class JavaCallResolver {
         }
         return false;
     }
-    private List<String> parents(String owner) {
+    List<String> parents(String owner) {
         var result=new ArrayList<String>();
         for(var entry:qualified(owner)) if(entry.kind()==NodeKind.TYPE)
             for(String parent:split(entry.attrs().get("java.parents")))
@@ -249,7 +249,7 @@ final class JavaCallResolver {
         }
         return "?";
     }
-    private String declaredType(String name,SymbolTable.Entry entry) {
+    String declaredType(String name,SymbolTable.Entry entry) {
         String raw=erase(name);
         for(String variable:split(entry.attrs().get("java.typevars"))) {
             int equals=variable.indexOf('=');
@@ -294,12 +294,13 @@ final class JavaCallResolver {
         for(char c:input.toCharArray()) {if(c=='<'){depth++;continue;}if(c=='>'){depth--;continue;}if(depth==0&&!Character.isWhitespace(c))out.append(c);}
         return out.toString().replace("...","[]");
     }
-    private List<SymbolTable.Entry> qualified(String name) {
+    void resetBudget(){work=0;}
+    List<SymbolTable.Entry> qualified(String name) {
         if(++work>2048)throw new ResolutionLimit();
         return symbols.byQualifiedName(name,"java").stream().filter(e->e.id().lang().equals("java")).toList();
     }
     private static boolean unknown(String value) {return value==null||value.isEmpty()||value.startsWith("?");}
     private static boolean flag(SymbolTable.Entry e,String key) {return "true".equals(e.attrs().get("java."+key));}
     private static List<String> split(String text) {return text==null||text.isEmpty()?List.of():Arrays.asList(text.split("\t",-1));}
-    private static final class ResolutionLimit extends RuntimeException {}
+    static final class ResolutionLimit extends RuntimeException {}
 }

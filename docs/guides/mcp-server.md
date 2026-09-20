@@ -29,6 +29,38 @@ Progress goes to stderr; stdout belongs to the protocol.
 
 ## Tool reference
 
+### Efficient evidence and freshness
+
+Use `search_symbols` once to identify targets, then `get_symbol_context` for
+1–20 known IDs when declarations plus optional references/callers/callees/
+implementations would answer the question together. Sections are opt-in; the
+default is declarations and coverage, not every relationship. One generation,
+one byte/result allowance and a 100,000-edge inspection budget cover the entire
+request. Follow unchanged signed cursors; work-limit counts are lower bounds.
+
+`find_implementations` accepts methods and types. Its `OVERRIDES` evidence is
+declaration-based, not a claim of complete runtime dispatch.
+[Supported languages and exclusions](../method-implementation-coverage.md) matter
+more than an empty result.
+
+After edits, use `index_status` with up to 20 relative file paths and expected
+SHA-256 hashes or deletions, optionally `waitMillis: 5000`. Hash the UTF-8 decoded
+text re-encoded as UTF-8. A generation predicate additionally requires the returned
+`indexInstanceId`. Timeout is not freshness success. Waits do not renew TTL or
+hold the graph read lock; stale instances are rejected. Generation guards can
+bind subsequent navigation to the observed publication.
+
+DBA job status supports `afterRevision` and `waitMillis` up to 5,000 ms, bounded
+to four waiters and rechecking ownership. Accepted cancellation is not completion.
+For approvals, use the returned `approvalId` to poll/cancel; the caller's
+idempotency `requestId` is not the execution `jobId`. Compatibility aliases remain.
+
+Tool definitions vary by runtime mode: no DBA means no DBA definitions; reduced
+headless mode advertises only its existing safe subset. Enabling a capability or
+reading its description never grants permission. See the
+[generated canonical contracts](../mcp-tools-generated.md) and
+[acceptance results](../mcp-efficiency-coverage-delivery.md).
+
 ### Dependency precision and coverage
 
 Java call binding now uses explicit receivers, lexical types, imports, declared inheritance,

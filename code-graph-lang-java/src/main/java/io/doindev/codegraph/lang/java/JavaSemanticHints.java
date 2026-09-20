@@ -57,6 +57,7 @@ final class JavaSemanticHints implements SemanticHints {
                     collectParents(child,parents);
             }
             a.put("java.parents",String.join("\t",parents));
+            a.put("java.parameters",String.join("\t",parameterNames(node)));
             a.put("java.interface",String.valueOf(kind.equals("interface_declaration")));
             a.put("java.final",String.valueOf(modifier(node,"final")||kind.equals("record_declaration")||kind.equals("enum_declaration")));
             declarations.put(node.getStartByte(),Map.copyOf(a));
@@ -72,10 +73,13 @@ final class JavaSemanticHints implements SemanticHints {
             var a=attrs(scope); var types=new ArrayList<String>();
             for(TSNode p:children(field(node,"parameters"))) types.add(parameterType(p));
             a.put("java.params",String.join("\t",types));
+            a.put("java.methodTypeVariables",Boolean.toString(!parameterNames(node).isEmpty()));
             a.put("java.return",text(field(node,"type")));
             a.put("java.constructor",String.valueOf(kind.equals("constructor_declaration")));
             a.put("java.static",String.valueOf(modifier(node,"static")));
             a.put("java.private",String.valueOf(modifier(node,"private")));
+            a.put("java.visibility",modifier(node,"public")?"public":modifier(node,"protected")?"protected":modifier(node,"private")?"private":"package");
+            a.put("java.abstract",String.valueOf(modifier(node,"abstract")||field(node,"body")==null));
             a.put("java.final",String.valueOf(modifier(node,"final")));
             a.put("java.varargs",String.valueOf(children(field(node,"parameters")).stream().anyMatch(p->p.getType().equals("spread_parameter"))));
             declarations.put(node.getStartByte(),Map.copyOf(a));
@@ -133,6 +137,15 @@ final class JavaSemanticHints implements SemanticHints {
             if(c.getType().equals("variable_declarator")) name=text(field(c,"name"));
         }
         if(!name.isEmpty()) scope.variables.put(name,ValueHint.of("type",scopedType(parameterType(node),scope)));
+    }
+    private List<String> parameterNames(TSNode node) {
+        var names=new ArrayList<String>();
+        for(TSNode parameter:children(field(node,"type_parameters"))){
+            String name=text(field(parameter,"name"));
+            if(name.isEmpty())for(TSNode child:children(parameter))if(child.getType().equals("type_identifier")){name=text(child);break;}
+            if(!name.isEmpty())names.add(name);
+        }
+        return names.size()>32?List.of("?"):names;
     }
     private void typeParameters(TSNode node,Scope scope) {
         for(TSNode parameter:children(field(node,"type_parameters"))) {

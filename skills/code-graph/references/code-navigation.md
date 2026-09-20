@@ -15,8 +15,13 @@ evidence; do not turn every MCP query into an obligatory filesystem lookup.
   or containing declarations. Label these honestly. Do not invent precise tokens.
 - `resolve_symbol_at_position` uses 1-based line/UTF-16 column. A containing-symbol
   answer is not identifier resolution; overloads can remain ambiguous.
-- `find_implementations` covers direct type inheritance/interfaces, not complete
-  method overrides or runtime dispatch. Expand only when the question needs it.
+- `find_implementations` accepts types and supported method declarations. An
+  `overrides` edge is not a call site or exhaustive runtime dispatch. Check its
+  adapter evidence; unsupported signatures, external parents and generic
+  substitutions can remain unresolved. Java has a verified generic subset;
+  other typed adapters remain deliberately narrower. Python/Ruby/JavaScript
+  declaration ancestry is not proof of runtime dispatch. Empty results do not
+  prove non-use.
 - Follow needed pages with unchanged target/query and the returned cursor. Keep
   generation/completeness/truncation metadata. Do not lower confidence thresholds
   or discard uncertain entries and then claim the remainder is exhaustive.
@@ -68,6 +73,28 @@ each MCP/search/read call. Separate discovery searches from required implementat
 reads, and indexing/setup from steady-state work. Fewer total calls alone is not
 proof of speedup: measure latency and whether the answer remains correct.
 
+## Bundles and freshness
+
+Use `get_symbol_context` for 1–20 known IDs when a single bounded request can
+replace several lookups. Supply `project` explicitly. Defaults are declarations
+and coverage; opt into references, callers, callees or implementations only when
+needed. Sections share one result/byte/edge-work allowance. Per-target errors do
+not invalidate other targets. Counts from interrupted inspection are lower bounds.
+When advertised, choose `detail: "locations"` if IDs, paths and source spans are
+enough. It omits display names, kinds and signatures but retains relationship,
+confidence, occurrence and risk evidence. Keep the default full detail when those
+display fields are needed, and never change detail midway through pagination.
+
+After editing, when indexed freshness matters, use `index_status` with up to 20
+relative paths and their `sha256` or `deleted: true`. Hash the UTF-8 decoded source
+re-encoded as UTF-8; use text already available from editing when practical.
+Wait at most 5000 ms per request and inspect `freshnessSatisfied` and `timedOut`.
+A generation predicate also requires the returned `indexInstanceId`; generations
+are not interchangeable after removal/re-onboarding. Optional
+`expectedIndexInstance`/`expectedGeneration` on evidence queries prevent races
+between a successful freshness check and the query. Refresh stale evidence,
+not mutation requests. Status waiting does not renew project TTL.
+
 ## Discovery mismatches
 
 If an expected tool is missing, use only the connected client's advertised tools.
@@ -90,6 +117,9 @@ with normal Git tools and label findings accurately. Candidate tests are not
 executed tests or complete coverage.
 
 Static SQL/JPA/MyBatis/Prisma/TypeORM mappings provide names and source locations.
+Supported Spring Data/Mongoose declarations and literal Redis key-prefix uses
+also provide native mapping evidence; sampled documents and key conventions are
+not interchangeable with declared schemas.
 Dynamic strings, naming strategies, reflection and derived lineage can remain
 uncertain. Obtain separately authorized catalog evidence; a mapping grants no
 database access. Never infer a rename, safe drop or compatible type from an absent

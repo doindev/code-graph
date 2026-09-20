@@ -7,6 +7,14 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ToolCatalogTest {
+    @Test void referenceComesFromAllDefinitionsWithoutStartingDba() {
+        String reference=ToolReference.markdown();
+        assertTrue(reference.contains("## `search_symbols`"));
+        assertTrue(reference.contains("## `dba_pair_editor`"));
+        assertTrue(reference.contains("## `dba_request_status`"));
+        assertTrue(reference.contains("deprecated"));
+        assertFalse(reference.contains("required by every other tool"));
+    }
     private GraphTool tool(String name,String description,String schema) {
         return new GraphTool() {
             public ToolSpec spec(){return new ToolSpec(name,description,schema);}

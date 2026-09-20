@@ -1,0 +1,16 @@
+Native browser checks passed: picker, setup, exact targets, typed JSON/grid, safe rendering, reusable layout, recovery, review/cancel/apply, binary Redis commands and removed-connection cleanup.
+YOLO browser checks passed: persistent warning, no approval polling, and unchanged destructive confirmation.
+Tree context-menu browser checks passed (root, branches, objects, leaves, refresh, permissions, dismissal).
+Workspace toolbar checks passed: merged branding, preserved background, menu, keyboard/focus, dialogs, dismissal and narrow layout.
+Script selection: Run, Explain, Ctrl+Enter, exact submitted SQL, selection direction/scrolling, failure retention and later focus changes passed.
+Data Grid column-menu checks passed (exact menu, values, duplicates, keyboard, resizing, virtualization, cleanup).
+Refresh scheduler/browser checks passed: intervals, replacement, no overlap, disposal, failure stop, fixed toolbar, menu and viewport retention.
+Grid controller checks passed: standalone host, overlay, elapsed time, focus, cancellation races, terminal acknowledgement, remount, concurrency, uncertainty guards, schedule retention/clearing and column layout.
+Table tabs: tree activation, fixed targets, reuse, full-size grid, filters, independent schemas, mixed recovery, lazy loading, and close races passed
+Table designer browser checks passed: layout, drafts, Revert, review, acknowledgement, Apply, preserved data, refreshed grid and close protection.
+View query: canvas/grid dirty state, shared Save/Revert, reviewed database update, cancel/revert, saved baseline, workspace recovery, and hidden row actions passed.
+Canvas geometry: Query Output drag/keyboard, divider/window resize, canvas growth/shrinkage, zoom, card-edge endpoints, unobstructed cards, clickable joins, source movement and scrolling passed.
+Visual Query Builder: permanent tabs, manual canvas compilation, explicit joins, grid filters/sorts, retained rows, Explain, Detail/Summary, parameters, recovery, import and narrow layout passed.
+Builder lifecycle: 20 sources, explicit/composite joins, no auto execution, output independence, late responses, focus, failure retention, cancellation and release passed.
+New Table Properties checks passed: validation, disabled views, review/apply, metadata conversion, Revert, recovery exclusion and dedicated object draft tabs.
+Object editor browser checks passed: nested Properties/DDL, create/edit, exact large sequence values, reopen, workspace restore, native properties, menu order, and confirmed Truncate.

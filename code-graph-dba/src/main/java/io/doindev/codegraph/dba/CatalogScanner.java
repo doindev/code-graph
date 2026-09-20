@@ -95,6 +95,7 @@ final class CatalogScanner {
         }
     }
     private void nativeDefinition(ObjectNode o)throws Exception{
+        if(engine.equals("sqlserver")&&Set.of("table","base_table").contains(o.path("kind").asText())){optional("SQL Server table definition",()->SqlServerDefinitions.table(o,this::nativeRows));return;}
         String s=o.path("schema").asText(),name=o.path("name").asText(),kind=o.path("kind").asText(),target=qualified(s,name);
         optional("Definition for "+s+"."+name,()->{
             String sql=null;Object[] args={};int column=1;
@@ -144,6 +145,9 @@ final class CatalogScanner {
         String column=sql.substring(7,sql.indexOf(','));String scopedSql=sql+(sql.contains(" WHERE ")?" AND ":" WHERE ")+"LOWER("+column+") NOT IN ('information_schema','sys','system','mysql','performance_schema','syscat','sysibm','sysstat')"+(engine.equals("postgresql")?" AND "+column+" !~ '^pg_'":"")+(scope.isBlank()?"":" AND "+column+"=?");
         optional(label,()->query(scopedSql,r->{String schema=Objects.toString(r.getString(1),"");if(systemSchema(schema)||!scope.isBlank()&&!scope.equals(schema))return;ObjectNode o=object(schema,Objects.toString(r.getString(2),""),Objects.toString(r.getString(3),"object"),Objects.toString(r.getString(4),""));String ddl=definition(r,5);o.put("ddl",ddl).put("definitionSource","native").put("definitionCoverage",ddl.isBlank()?"unavailable":"native_fragment");emit(o);},scope.isBlank()?new Object[]{}:new Object[]{scope}));
     }
+    private ArrayNode nativeRows(String sql,Object... args)throws Exception{
+        ArrayNode out=Profiles.JSON.createArrayNode();query(sql,row->{bounded(out);ObjectNode value=out.addObject();var metadata=row.getMetaData();for(int i=1;i<=metadata.getColumnCount();i++)value.put(metadata.getColumnLabel(i).toLowerCase(Locale.ROOT),Set.of(Types.CHAR,Types.VARCHAR,Types.LONGVARCHAR,Types.NCHAR,Types.NVARCHAR,Types.LONGNVARCHAR,Types.CLOB,Types.NCLOB).contains(metadata.getColumnType(i))?definition(row,i):Objects.toString(row.getString(i),""));},args);return out;
+    }
     private String definition(ResultSet rows,int column)throws Exception{
         try(var reader=rows.getCharacterStream(column)){
             if(reader==null)return "";var text=new StringBuilder();char[] chunk=new char[4096];int count;
@@ -160,7 +164,7 @@ final class CatalogScanner {
                 String kind=VendorMetadata.kind(category);if(Set.of("tables","views","functions","procedures","triggers","table_triggers","schema_triggers").contains(kind))continue;
                 if(engine.equals("postgresql")||engine.equals("oracle"))continue;
                 String sql=VendorMetadata.catalogSql(engine,kind);if(sql==null)continue;
-                String singular=kind.equals("indices")?"index":kind.endsWith("s")?kind.substring(0,kind.length()-1):kind;
+                String singular=Set.of("indices","indexes").contains(kind)?"index":kind.endsWith("s")?kind.substring(0,kind.length()-1):kind;
                 optional(category+" in "+schema,()->query(sql,r->{ObjectNode object=object(schema,r.getString(2),singular,"");object.put("catalogIdentity",r.getString(1));nativeDefinition(object);emit(object);},schema));
             }
         }
@@ -171,7 +175,7 @@ final class CatalogScanner {
         if(!seen.add(object.path("id").asText()))return;if(++objects>limits.objects())throw new CaptureLimit("Catalog object limit reached; narrow the schema scope");
         String ddl=object.path("ddl").asText();if(ddl.length()>limits.ddlCharacters())throw new CaptureLimit("Definition exceeds capture limit; narrow the scope");
         object.put("objectHash",hash(stable(object))).put("definitionHash",hash(ddl)).put("observedAt",System.currentTimeMillis());String id=object.path("id").asText();
-        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);
+        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks","nativeColumns","nativeKeys","nativeIndexes","constraints","fieldObservations"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);
     }
     private void store(String key,JsonNode value){check();byte[] data=value.toString().getBytes(StandardCharsets.UTF_8);bytes+=data.length+key.length()*2L+128;if(bytes>limits.bytes())throw new CaptureLimit("Catalog byte limit reached; narrow its scope");writer.put(key,data);}
     private boolean inScope(String catalog,String schema){String db=binding.path("database").asText(),s=binding.path("schema").asText();return (db.isBlank()||catalog.isBlank()||db.equals(catalog))&&(s.isBlank()||s.equals(schema)||schema.isBlank()&&(s.equals(catalog)||engine.equals("sqlite")&&s.equals("main")));}

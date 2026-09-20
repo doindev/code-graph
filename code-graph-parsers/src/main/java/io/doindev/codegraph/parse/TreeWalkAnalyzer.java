@@ -150,10 +150,11 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
                 new Metrics(src.lineCount(root), 0, 0, 0, 0, 0, Float.NaN),
                 Map.of("lang", languageId())));
         walk.packagePrefix = packagePrefix(root, src);
+        walk.imports = importsOf(root,src);
         walk.visit(root, new Scope(fileId, "", null));
 
         return new FileFragment(fileId, languageId(), sha256(file.content()),
-                walk.declarations, walk.localEdges, walk.rawRefs, importsOf(root, src), modulesOf(root, src));
+                walk.declarations, walk.localEdges, walk.rawRefs, walk.imports, modulesOf(root, src));
     }
 
     /** Enclosing lexical scope: the owning node id and the qualified-name prefix. */
@@ -176,6 +177,7 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
         final SemanticHints hints;
         final Map<NodeId, int[]> typeCounters = new HashMap<>(); // [methodCount, fieldCount]
         String packagePrefix = "";
+        List<String> imports;
 
         Walk(SourceFile file, Src src, SemanticHints hints) {
             this.file = file;
@@ -213,7 +215,8 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
             String qualifiedName = scope.childQualifiedName(name, packagePrefix);
             SymbolId id = uniqueId(qualifiedName, 0, decl);
             localEdges.add(new Edge(scope.owner(), id, EdgeKind.CONTAINS));
-            for (SuperRef superRef : supertypesOf(decl, src)) {
+            List<SuperRef> parents=supertypesOf(decl,src);
+            for (SuperRef superRef : parents) {
                 rawRefs.add(new RawRef(id, superRef.kind(), superRef.name(), null, -1, src.span(decl)));
             }
             int[] counters = new int[2];
@@ -222,7 +225,18 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
             declarations.add(new Node(id, NodeKind.TYPE, name, name, src.span(decl),
                     new Metrics(src.lineCount(decl), counters[0], counters[1], 0,
                             0, 0, Float.NaN),
-                    hints.declaration(decl)));
+                    attributes(decl,scope,false,parents)));
+        }
+
+        private Map<String,String> attributes(TSNode decl,Scope scope,boolean method,List<SuperRef> parents){
+            var attrs=new HashMap<>(hints.declaration(decl));
+            if(NominalMethodEvidence.LANGUAGES.contains(languageId())&&(!method||typeCounters.containsKey(scope.owner()))){
+                 attrs.putAll(NominalMethodEvidence.extract(languageId(),decl,src,scope.qualifiedName(),packagePrefix,method,parents,imports));
+            }
+            if(languageId().equals("go"))attrs.putAll(GoMethodEvidence.extract(decl,src,scope.qualifiedName(),packagePrefix,method));
+            if(DynamicMethodEvidence.LANGUAGES.contains(languageId())&&(!method||typeCounters.containsKey(scope.owner())))
+                attrs.putAll(DynamicMethodEvidence.extract(languageId(),decl,src,scope.qualifiedName(),method));
+            return Map.copyOf(attrs);
         }
 
         private void visitFunctionDeclaration(TSNode decl, Scope scope) {
@@ -244,7 +258,7 @@ public abstract class TreeWalkAnalyzer implements LanguageAnalyzer {
                     src.span(decl),
                     new Metrics(src.lineCount(decl), 0, 0, arity,
                             nestingDepth(decl, 0), cyclomatic(decl), Float.NaN),
-                    hints.declaration(decl)));
+                    attributes(decl,scope,true,List.of())));
         }
 
         private void visitFieldDeclaration(TSNode decl, Scope scope) {

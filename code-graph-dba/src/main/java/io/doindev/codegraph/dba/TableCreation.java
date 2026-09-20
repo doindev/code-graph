@@ -9,7 +9,8 @@ import java.util.*;
 final class TableCreation {
     static ObjectNode initialize(Connection c,JsonNode target,boolean generic)throws Exception {
         String engine=ObjectCreation.engine(c),schema=target.path("schema").asText();
-        if(generic||!Set.of("postgresql","h2").contains(engine))throw new IllegalArgumentException("Table creation is not supported by this designer adapter");
+        if(generic||!Set.of("postgresql","h2","sqlserver").contains(engine))throw new IllegalArgumentException("Table creation is not supported by this designer adapter");
+        if(engine.equals("sqlserver")&&c.getMetaData().getDatabaseMajorVersion()<16)throw new IllegalArgumentException("SQL Server designer requires verified SQL Server 2022 or later metadata");
         TableDesigner.q(schema);boolean found=false;
         try(var rs=c.getMetaData().getSchemas()){while(rs.next())if(schema.equals(rs.getString("TABLE_SCHEM")))found=true;}
         if(!found)throw new IllegalArgumentException("Selected schema is unavailable; refresh the tree");
@@ -17,7 +18,7 @@ final class TableCreation {
         out.putObject("fields").put("name","").put("schema",schema).put("owner","").put("comment","").put("tablespace","");
         for(String key:List.of("columns","constraints","indexes","triggers","policies","rules"))out.putArray(key);
         ArrayNode categories=out.putArray("categories");TableMetadata.categories(engine,c.getMetaData().getDatabaseMajorVersion()).forEach(categories::add);categories.add("Statistics").add("Permissions").add("DDL").add("Virtual");
-        out.set("creationTarget",MetadataTree.request(target));
+        out.set("creationTarget",MetadataTree.request(target));if(engine.equals("sqlserver"))SqlServerDesigner.capabilities(out);
         ObjectNode identity=Profiles.JSON.createObjectNode().put("url",c.getMetaData().getURL()).put("user",c.getMetaData().getUserName()).put("database",c.getCatalog()).put("engine",engine).put("schema",schema);
         out.put("fingerprint",TableDesigner.hash(identity));return out;
     }
@@ -45,8 +46,8 @@ final class TableCreation {
         ObjectNode ordered=request.deepCopy();ObjectNode orderedDraft=(ObjectNode)ordered.path("draft");List<JsonNode> additions=new ArrayList<>();draft.path("objects").forEach(additions::add);
         additions.sort(Comparator.comparingInt(o->switch(o.path("category").asText()){case "Constraints"->o.path("kind").asText().equals("FOREIGN KEY")?2:0;case "Indexes"->1;case "Foreign Keys"->2;case "Permissions"->4;case "Statistics"->5;default->3;}));
         ArrayNode orderedObjects=orderedDraft.putArray("objects");additions.forEach(orderedObjects::add);
-        ObjectNode plan=TableDesigner.prepare(current,ordered);ArrayNode rest=Profiles.JSON.createArrayNode();List<String> definitions=new ArrayList<>();String prefix="ALTER TABLE "+TableDesigner.target(current)+" ADD COLUMN ";
-        for(JsonNode command:plan.path("commands")){String sql=command.path("sql").asText();if(sql.startsWith(prefix))definitions.add(sql.substring(prefix.length()));else rest.add(command);}
+        ObjectNode plan=TableDesigner.prepare(current,ordered);ArrayNode rest=Profiles.JSON.createArrayNode();List<String> definitions=new ArrayList<>();String prefix="ALTER TABLE "+TableDesigner.target(current)+(current.path("engine").asText().equals("sqlserver")?" ADD ":" ADD COLUMN ");
+        for(JsonNode command:plan.path("commands")){String sql=command.path("sql").asText();if(sql.startsWith(prefix)&&!sql.startsWith(prefix+"PRIMARY KEY")&&!sql.startsWith(prefix+"CONSTRAINT")&&!sql.startsWith(prefix+"DEFAULT"))definitions.add(sql.substring(prefix.length()));else rest.add(command);}
         if(definitions.isEmpty())throw new IllegalArgumentException("Add at least one named column with a supported datatype");
         ArrayNode commands=plan.putArray("commands");TableDesigner.add(commands,"CREATE TABLE "+TableDesigner.target(current)+" (\n  "+String.join(",\n  ",definitions)+"\n)",false);
         String ownerPrefix="ALTER TABLE "+TableDesigner.target(current)+" OWNER TO ";

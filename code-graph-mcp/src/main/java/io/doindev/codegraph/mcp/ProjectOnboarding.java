@@ -19,6 +19,7 @@ public final class ProjectOnboarding {
         this.workspace = workspace;
         this.registry = registry;
         this.analyzers = analyzers;
+        registry.onboardingStatus(workspace::onboardingStatus);
     }
 
     /** Blocks through initial indexing and tool registration, returning the assigned project name. */
@@ -37,13 +38,17 @@ public final class ProjectOnboarding {
 
     /** Split from publication so the UI can cancel an in-flight scan before registering tools. */
     Workspace.Project index(String path) {
+        return index(path,p -> {});
+    }
+
+    Workspace.Project index(String path, java.util.function.Consumer<Workspace.Project> started) {
         if (path == null || path.isBlank()) {
             throw new IllegalArgumentException("path must be a non-blank directory path string");
         }
         Path root = Path.of(path).toAbsolutePath().normalize();
         String requested = root.getFileName() == null ? "project" : root.getFileName().toString();
         // Preserve the raw path for real-path validation (a symlink followed by '..' is significant).
-        return workspace.add(requested, Path.of(path), analyzers, ConfigLoader::load);
+        return workspace.add(requested, Path.of(path), analyzers, ConfigLoader::load, started);
     }
 
     public long register(Workspace.Project project) {
