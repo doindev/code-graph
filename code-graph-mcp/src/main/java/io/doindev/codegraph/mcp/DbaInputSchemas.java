@@ -50,6 +50,14 @@ final class DbaInputSchemas {
             var setWatch=watchAlternatives.addObject();setWatch.putArray("required").add("member");setWatch.putObject("properties").putObject("expected").put("type","boolean");
             var setExcluded=setWatch.putObject("not").putArray("anyOf");for(String key:List.of("field","index","length"))setExcluded.addObject().putArray("required").add(key);
             var valueOptions=watchFields.putObject("expected").putArray("oneOf");valueOptions.addObject().put("type","string").put("maxLength",65536);valueOptions.add(binary.deepCopy());valueOptions.addObject().put("type","null");valueOptions.addObject().put("type","boolean");
+            for(var excluded:List.of(ordinary,exclusions,setExcluded))excluded.addObject().putArray("required").add("scoreMember");
+            var scoreMember=watchFields.putObject("scoreMember").put("description","Exact sorted-set member (8 KiB maximum). Requires an existing member with a finite expected score as a decimal string; cannot combine with field/index/length/member. Scores use Redis binary64 precision, not arbitrary decimal precision. Current state, not historical identity.");
+            scoreMember.set("oneOf",member.path("oneOf").deepCopy());
+            var scoreWatch=watchAlternatives.addObject();scoreWatch.putArray("required").add("scoreMember");
+            scoreWatch.putObject("properties").putObject("expected").put("type","string").put("minLength",1).put("maxLength",64)
+                    .put("pattern","^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$");
+            var scoreExcluded=scoreWatch.putObject("not").putArray("anyOf");for(String key:List.of("field","index","length","member"))scoreExcluded.addObject().putArray("required").add(key);
+            command.put("description",command.path("description").asText()+" Optional watch.scoreMember guards an existing sorted-set member against a finite decimal-string expected score (1..64 characters, binary64). Missing members, nonfinite/underflow scores and mixed expectation kinds fail; no silent recreation. GEO indexes also use zset storage; TYPE alone does not establish score semantics.");
             command.put("description",command.path("description").asText()+" MongoDB accepts {transaction: [CRUD command objects]} on explicit replica_set/sharded profiles: one exact existing ordinary collection, at most 32 commands and 100 total write entries. Atomic insert/update/delete; each update/delete entry must match one document. No DDL, views, capped/time-series collections, cross-collection commands or automatic commit retry.");
             var mongoBatch=alternatives.addObject().put("type","object").put("additionalProperties",false);
             mongoBatch.putArray("required").add("transaction");

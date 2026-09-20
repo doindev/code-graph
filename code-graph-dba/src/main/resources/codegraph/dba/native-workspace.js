@@ -1,7 +1,7 @@
 import {lucide} from './tree-icons.js';
 import {DataGridView} from './data-grid.js';
 import {RedisStringEditor} from './redis-string-editor.js';
-import {RedisSetEditor} from './redis-set-editor.js';
+import {RedisMemberEditor} from './redis-set-editor.js';
 
 const terminal=new Set(['complete','failed','cancelled']);
 // Enough for the bounded stream delivery/tombstone ID receipt even when payload display is full.
@@ -41,6 +41,7 @@ export class NativeWorkspace {
       this.hashButton=this.button(toolbar,'Edit Redis hash field','square-pen',()=>this.openValueEditor('hash'));
       this.listButton=this.button(toolbar,'Edit Redis list item','square-pen',()=>this.openValueEditor('list'));
       this.setButton=this.button(toolbar,'Edit Redis set member','square-pen',()=>this.openValueEditor('set'));
+      this.scoreButton=this.button(toolbar,'Edit Redis sorted-set score','square-pen',()=>this.openValueEditor('zset'));
       this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads and PFCOUNT require write review.';
       const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
       examples.push(['Pipeline: write and inspect',{pipeline:[['SET','{example}:key','value'],['GETRANGE','{example}:key','0','8191'],['TTL','{example}:key']]}],['Pipeline: read key metadata',{pipeline:[['TYPE','{example}:key'],['TTL','{example}:key'],['EXISTS','{example}:key']]}]);
@@ -86,16 +87,17 @@ export class NativeWorkspace {
   get dirty(){return !!(this.stringEditor?.dirty||this.stringEditor?.uncertain);}
   canClose(){return this.stringEditor?.canClose()??true;}
   updateProfile(profile){if(this.stringEditor&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
-  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton])if(button)button.disabled=locked;}
+  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton,this.scoreButton])if(button)button.disabled=locked;}
   openValueEditor(kind){
-    if(!['string','hash','list','set'].includes(kind))throw new Error('Unsupported Redis editor');
-    const hash=kind==='hash',list=kind==='list',set=kind==='set';
+    if(!['string','hash','list','set','zset'].includes(kind))throw new Error('Unsupported Redis editor');
+    const hash=kind==='hash',list=kind==='list',set=kind==='set',sorted=kind==='zset';
     if(this.stringEditor||this.operation||this.disposed||this.unavailable)return;
     try{this.account(this.displayBytes+256*1024);}catch(e){this.status.textContent=e.message;return;}
     let key='',field='',listIndex='0';try{const command=JSON.parse(this.editor.value);if(Array.isArray(command)&&(list?['LINDEX','LSET','LLEN','LRANGE']:hash?['HGET','HSET','HDEL','HEXISTS','HSCAN','HLEN']:['GET','GETRANGE','TYPE','STRLEN']).includes(command[0]?.toUpperCase())){key=command[1]??'';if(['HGET','HSET','HDEL','HEXISTS'].includes(command[0]?.toUpperCase()))field=command[2]??'';if(list&&['LINDEX','LSET'].includes(command[0]?.toUpperCase()))listIndex=String(command[2]??'0');}}catch{}
     let member='';if(set)try{const command=JSON.parse(this.editor.value);if(Array.isArray(command)&&['SISMEMBER','SADD','SREM','SCARD','SSCAN'].includes(command[0]?.toUpperCase())){key=command[1]??'';if(['SISMEMBER','SADD','SREM'].includes(command[0]?.toUpperCase()))member=command[2]??'';}}catch{}
-    const Editor=set?RedisSetEditor:RedisStringEditor;
-    this.stringEditor=new Editor({key,...(set?{member}:list?{listIndex}:hash?{field}:{}),run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
+    if(sorted)try{const command=JSON.parse(this.editor.value),name=command[0]?.toUpperCase();if(Array.isArray(command)&&['ZSCORE','ZADD','ZREM','ZCARD','ZRANGE'].includes(name)){key=command[1]??'';if(['ZSCORE','ZREM'].includes(name))member=command[2]??'';if(name==='ZADD')member=command[3]??'';}}catch{}
+    const Editor=set||sorted?RedisMemberEditor:RedisStringEditor;
+    this.stringEditor=new Editor({key,...(set||sorted?{member,sorted}:list?{listIndex}:hash?{field}:{}),run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
     this.editor.after(this.stringEditor.root);this.lockStringTarget();this.stringEditor.key.focus();
   }
   mount(host){host.replaceChildren(this.root);}

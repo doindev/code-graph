@@ -127,6 +127,13 @@ absent membership with an absent key or an empty member. Do not combine member
 with field/index/length. Use this guard for reviewed SADD/SREM; removing the last
 member removes its key/TTL. Current membership does not detect every historical
 remove/reinsert cycle. Never drop a failed guard to force a write through.
+When advertised, watch.scoreMember checks an existing sorted-set member against
+a finite decimal-string expected score (at most 64 characters, Redis binary64).
+Do not confuse a missing member with zero or combine it with other watch kinds.
+Guarded ZADD updates normally return zero newly added members; inspect the
+transaction outcome instead of interpreting zero as failure. GEO keys also use
+zset storage: establish their meaning before changing scores. Current score
+matching is not a historical identity guarantee; never remove a failed guard.
 Cluster requires all command/watch keys in one hash slot. Redis
 does not roll back execution-time errors: inspect per-command results, not just
 the job's final state. A WATCH conflict executes no batch commands; reread and

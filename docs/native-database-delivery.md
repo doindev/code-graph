@@ -125,6 +125,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Existing-sorted-set score editor: bounded binary identity, finite binary64
+  score drafts, exact current-score guards and shared member-editor lifecycle.
+  Standalone/Cluster/ACL-Sentinel, all 19 browser suites, the final packaged
+  native UI recheck and the full Maven reactor passed. Scope and evidence:
+  [the score-editor report](redis-sorted-set-editor.md).
+
 - [x] Existing-set-member graphical editor: bounded text/base64 identity,
   staged insertion/deletion, current membership guard and last-member warning.
   Standalone/Cluster/ACL-Sentinel, all 19 browser suites and the full reactor

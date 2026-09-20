@@ -39,7 +39,9 @@ module.exports=async(browser,base,jar)=>{
   assert.equal(state.state,'complete',JSON.stringify(state));assert.equal(state.result.name,'Reviewed synthetic proposal');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const deletion=await call('dba_request_connection_delete',{requestId:'reject-deletion',purpose:'Verify dismissal never authorizes deletion',connectionId:state.result.id,connectionName:state.result.name});
-  await b.locator('[data-approval="'+deletion.id+'"]').waitFor();await b.getByRole('button',{name:'Deny',exact:true}).click();
+  await b.locator('[data-approval="'+deletion.id+'"]').waitFor();
+  const [denied]=await Promise.all([b.waitForResponse(r=>r.url()===base+'/api/dba/approvals/'+deletion.id&&r.request().method()==='POST'),b.getByRole('button',{name:'Deny',exact:true}).click()]);
+  assert.equal(denied.status(),200,await denied.text());
   assert.equal((await call('dba_request_status',{requestId:deletion.id})).state,'rejected');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const standalone=await call('dba_request_live_sql',{requestId:'standalone-create',purpose:'Test standalone SQL without any project binding',connectionId:profile.id,connectionName:profile.name,sql:'CREATE TABLE PUBLIC.STANDALONE_QA(ID INT PRIMARY KEY)'});
@@ -66,7 +68,9 @@ module.exports=async(browser,base,jar)=>{
   assert.equal(await readRow.getByRole('menuitem',{name:'Always allow',exact:true}).getAttribute('aria-disabled'),'true');
   assert.match(await readRow.innerText(),/H2 has no verified per-session read-only/);
   await readRow.getByRole('menuitem',{name:'Always allow',exact:true}).click({force:true});assert.equal((await call('dba_request_status',{requestId:read.id})).state,'awaiting_approval');
-  await b.keyboard.press('Escape');await readRow.getByRole('button',{name:'Deny',exact:true}).click();
+  await b.keyboard.press('Escape');
+  const [readDenied]=await Promise.all([b.waitForResponse(r=>r.url()===base+'/api/dba/approvals/'+read.id&&r.request().method()==='POST'),readRow.getByRole('button',{name:'Deny',exact:true}).click()]);
+  assert.equal(readDenied.status(),200,await readDenied.text());assert.equal((await call('dba_request_status',{requestId:read.id})).state,'rejected');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   const category=await call('dba_request_live_sql',{requestId:'category-create',purpose:'Test session category permission',connectionId:profile.id,connectionName:profile.name,sql:'CREATE TABLE PUBLIC.CATEGORY_QA(ID INT)'});
   const categoryRow=b.locator('[data-approval="'+category.id+'"]');await categoryRow.waitFor();

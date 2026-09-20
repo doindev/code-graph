@@ -17,7 +17,7 @@ final class NativeRedisTransactions {
         fields(command,Set.of("transaction","watch"));
         JsonNode commands=command.path("transaction");
         if(!commands.isArray()||commands.isEmpty()||commands.size()>MAX_COMMANDS)throw new IllegalArgumentException("Redis transaction requires 1..32 supported mutation argument arrays");
-        boolean destructive=false,hashDeletion=false,listEdit=false,setDeletion=false;
+        boolean destructive=false,hashDeletion=false,listEdit=false,setDeletion=false,scoreEdit=false;
         List<byte[]> keys=new ArrayList<>();
         for(JsonNode entry:commands){
             if(!entry.isArray())throw new IllegalArgumentException("Nested transactions and non-array commands are not supported");
@@ -39,8 +39,8 @@ final class NativeRedisTransactions {
             if(!watch.isArray()||watch.size()>MAX_WATCH)throw new IllegalArgumentException("Redis watch must be an array of at most 16 key/expected pairs");
             Set<String> distinct=new HashSet<>();
             for(JsonNode item:watch){
-                fields(item,Set.of("key","field","index","length","member","expected"));
-                if(!item.has("key")||!item.has("expected"))throw new IllegalArgumentException("Each watched key requires an explicit expected string/base64 value or null for an absent key");
+                fields(item,Set.of("key","field","index","length","member","scoreMember","expected"));
+                if(!item.has("key")||!item.has("expected"))throw new IllegalArgumentException("Each watched key requires an explicit typed expected value for its expectation kind");
                 byte[] key=argument(item.path("key"),8192);
                 if(item.has("field"))argument(item.path("field"),8192);
                 if(item.has("index")||item.has("length")){
@@ -50,7 +50,12 @@ final class NativeRedisTransactions {
                     int index=item.path("index").asInt(),length=item.path("length").asInt();
                     if(index<0||length<1||length>MAX_LIST_LENGTH||index>=length)throw new IllegalArgumentException("List expectation requires 0 <= index < length <= 10000");
                 }
-                if(item.has("member")){
+                if(item.has("scoreMember")){
+                    scoreEdit=true;
+                    if(item.has("field")||item.has("index")||item.has("length")||item.has("member"))
+                        throw new IllegalArgumentException("Sorted-set score expectations cannot combine with field/index/length/member");
+                    argument(item.path("scoreMember"),8192);score(item.path("expected"));
+                }else if(item.has("member")){
                     if(item.has("field")||item.has("index")||item.has("length")||!item.path("expected").isBoolean())
                         throw new IllegalArgumentException("Set expectations require a member and boolean expected membership; no field/index/length");
                     argument(item.path("member"),8192);
@@ -67,7 +72,8 @@ final class NativeRedisTransactions {
         return new NativeCommand.Classification("redis.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,
                 NOTICE+(hashDeletion?" HDEL permanently deletes the selected fields; deleting the last field also removes the hash key and its TTL.":"")
                 +(listEdit?" LSET replaces an existing zero-based position and preserves key TTL. Positions are not stable identities; expectations compare current length/value, not change history.":"")
-                +(setDeletion?" SREM permanently removes the selected members; removing the last member deletes the set key and its TTL.":""));
+                +(setDeletion?" SREM permanently removes the selected members; removing the last member deletes the set key and its TTL.":"")
+                +(scoreEdit?" Score expectations compare Redis binary64 values on existing members, not change history. Updating a score can change member rank. GEO indexes also use zset storage; TYPE alone does not prove score semantics.":""));
     }
 
     static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job,Runnable beforeWrite){
@@ -84,7 +90,8 @@ final class NativeRedisTransactions {
                 redis.watch(watched);
                 for(int i=0;i<watch.size();i++){
                     check.run();JsonNode expected=watch.get(i).path("expected");String type=redis.type(watched[i]);
-                    boolean matches=watch.get(i).has("member")?type.equals("set")&&redis.sismember(watched[i],argument(watch.get(i).path("member"),8192))==expected.asBoolean()
+                    boolean matches=watch.get(i).has("scoreMember")?scoreMatches(redis,watched[i],watch.get(i),type)
+                            :watch.get(i).has("member")?type.equals("set")&&redis.sismember(watched[i],argument(watch.get(i).path("member"),8192))==expected.asBoolean()
                             :watch.get(i).has("index")?listMatches(redis,watched[i],watch.get(i),type):watch.get(i).has("field")?hashMatches(redis,watched[i],watch.get(i),type):expected.isNull()?type.equals("none"):type.equals("string")
                             &&redis.strlen(watched[i])<=65536
                             &&Arrays.equals(argument(expected,65536),redis.getrange(watched[i],0,65536));
@@ -118,6 +125,23 @@ final class NativeRedisTransactions {
     static int listIndex(JsonNode value){
         if(!value.isTextual()||!value.asText().matches("[0-9]{1,4}"))throw new IllegalArgumentException("LSET/pipeline LINDEX requires a zero-based text index 0..9999");
         return Integer.parseInt(value.asText());
+    }
+
+    /** Redis scores are binary64, not arbitrary-precision decimals; never coerce absence to zero. */
+    static double score(JsonNode value){
+        if(!value.isTextual()||value.asText().length()>64||!value.asText().matches("[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?"))
+            throw new IllegalArgumentException("Sorted-set expected score requires a finite decimal string of at most 64 characters");
+        String text=value.asText();double score=Double.parseDouble(text);
+        if(!Double.isFinite(score)||(score==0&&text.split("[eE]",2)[0].matches(".*[1-9].*")))
+            throw new IllegalArgumentException("Sorted-set score overflows or underflows Redis binary64 precision");
+        return score;
+    }
+
+    private static boolean scoreMatches(io.lettuce.core.cluster.api.sync.RedisClusterCommands<byte[],byte[]> redis,
+            byte[] key,JsonNode expectation,String type){
+        if(!type.equals("zset"))return false;
+        Double current=redis.zscore(key,argument(expectation.path("scoreMember"),8192));
+        return current!=null&&Double.isFinite(current)&&current==score(expectation.path("expected"));
     }
 
     private static boolean listMatches(io.lettuce.core.cluster.api.sync.RedisClusterCommands<byte[],byte[]> redis,

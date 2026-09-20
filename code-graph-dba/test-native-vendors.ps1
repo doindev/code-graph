@@ -27,7 +27,7 @@ try {
         if([DateTime]::UtcNow -gt $deadline){throw 'Native fixture readiness timed out.'}
         Start-Sleep -Milliseconds 500
     }while($true)
-    mvn -q -pl code-graph-dba -am test '-Dtest=NativeVendorTest,NativeReviewTest,NativeMongoRenameTest,NativeMongoSettingsTest,NativeRedisTransactionTest,NativeRedisListTest,NativeRedisSetTest,NativeRedisStreamTest,NativeRedisPipelineTest,NativeRedisValueTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
+    mvn -q -pl code-graph-dba -am test '-Dtest=NativeVendorTest,NativeReviewTest,NativeMongoRenameTest,NativeMongoSettingsTest,NativeRedisTransactionTest,NativeRedisListTest,NativeRedisSetTest,NativeRedisScoreTest,NativeRedisStreamTest,NativeRedisPipelineTest,NativeRedisValueTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
     if($LASTEXITCODE -ne 0){throw 'Native vendor gate failed.'}
     if($Performance){
         $env:NATIVE_TEST_PERFORMANCE='true'

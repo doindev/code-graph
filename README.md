@@ -57,6 +57,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   and TTL preservation. A position is not a stable record identity.
   A [set-member editor](docs/redis-set-editor.md) checks one exact member and
   stages reviewed insertion/deletion with membership conflict checks.
+  The [sorted-set score editor](docs/redis-sorted-set-editor.md) changes one
+  existing member's finite score with exact current-score guards and TTL
+  preservation; it does not load or replace the whole sorted set.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

@@ -12,13 +12,20 @@ const [base,jar,schema='']=process.argv.slice(2);
   context.close=async(...options)=>{
     if(closing)return;closing=true; // browser.newPage owns its context and closes it recursively.
     try{
-      // Stop polling before logout: a still-open page can renew an expired session.
+      // Block new renewals, then verify logout against an exact cookie snapshot.
+      // Page closure can drop requestfinished events and late responses can change the jar.
+      await context.route(base+'/api/dba/bootstrap',route=>route.abort());
       await Promise.all(context.pages().map(page=>page.close()));
-      const r=await context.request.get(base+'/api/dba/session');
+      for(let attempt=0;attempt<3;attempt++){
+      const cookie=(await context.cookies(base)).map(c=>c.name+'='+c.value).join('; '),headers={Cookie:cookie};
+      const r=await context.request.get(base+'/api/dba/session',{headers});
       if(r.ok()){
-        const s=await r.json(),logout=await context.request.post(base+'/api/dba/logout',{headers:{Origin:base,'X-Dba-CSRF':s.csrf}});
+        const s=await r.json(),logout=await context.request.post(base+'/api/dba/logout',{headers:{...headers,Origin:base,'X-Dba-CSRF':s.csrf}});
         assert.equal(logout.status(),200,'Fixture logout must release its browser session');
-        assert.equal((await context.request.get(base+'/api/dba/session')).status(),403,'A closed fixture session must not be renewed');
+        assert.equal((await context.request.get(base+'/api/dba/session',{headers})).status(),403,'The exact revoked fixture session must remain unauthorized');
+      }
+      if((await context.cookies(base)).map(c=>c.name+'='+c.value).join('; ')===cookie)break;
+      assert.ok(attempt<2,'Fixture cookie kept changing after page closure');
       }
     }finally{await close(...options);}
   };return context;};
