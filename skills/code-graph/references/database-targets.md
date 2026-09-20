@@ -75,6 +75,13 @@ capabilities must not be assumed merely because a native profile connects.
 
 ### Redis pipelines and transactions
 
+For a small string replacement, first establish that the read is complete, not a
+truncated preview. When supported, an exact string WATCH expectation followed by
+`SET key value XX KEEPTTL` avoids recreating a deleted key and preserves the current
+expiry. This is the browser string editor's workflow, not a new permission or a
+guarantee that a string contains ordinary text. A conflict requires reconciliation;
+never remove its expectation or replay an uncertain write automatically.
+
 Conditional single-command SET reports `applied: false` when its condition did
 not match. That is not a transport failure and must not trigger an unconditional
 retry. Pipeline receipts instead carry the command's value; an `acknowledged`

@@ -46,6 +46,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Bounded Redis transactions](docs/redis-transactions.md) add reviewed batches and
   optimistic WATCH expectations, including single-slot Cluster execution; Redis
   execution errors do not roll back successful commands.
+  A [bounded Redis string editor](docs/redis-string-editor.md) adds binary-safe
+  drafts, conflict checks and reviewed TTL-preserving saves for existing small values.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

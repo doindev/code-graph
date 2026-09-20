@@ -4,6 +4,15 @@ module.exports=async(browser,base)=>{
   try{
     await page.goto(base+'/dba');const gear=page.getByRole('button',{name:'Workspace settings',exact:true}),menu=page.getByRole('menu',{name:'Workspace settings',exact:true});await gear.locator('svg').waitFor();await page.locator('#project-databases').waitFor({state:'attached'});
     assert.equal(await page.locator('body > header').count(),0);assert.equal(await page.locator('#logout').count(),0);
+    // SVG presence alone is insufficient: an unstyled Lucide is oversized and has no stroke.
+    for(const id of ['new-query-builder','selection-query-builder']){
+      const icon=page.locator('#'+id+' svg[data-lucide="workflow"]');assert.equal(await icon.count(),1);
+      const style=await icon.evaluate(svg=>{const s=getComputedStyle(svg),b=getComputedStyle(svg.parentElement);return{width:s.width,height:s.height,fill:s.fill,stroke:s.stroke,color:b.color,buttonWidth:b.width,buttonHeight:b.height};});
+      assert.equal(style.width,'16px',id+' icon width');assert.equal(style.height,'16px',id+' icon height');assert.equal(style.fill,'none');assert.equal(style.stroke,style.color);assert.notEqual(style.stroke,'none');assert.equal(style.buttonWidth,'30px');assert.equal(style.buttonHeight,'30px');
+      assert.equal(await icon.getAttribute('aria-hidden'),'true');
+    }
+    const newBuilder=page.getByRole('button',{name:'New Visual Query Builder',exact:true});assert.equal(await newBuilder.getAttribute('title'),'New Visual Query Builder');
+    await newBuilder.focus();assert.equal(await newBuilder.evaluate(e=>e===document.activeElement),true);assert.notEqual(await newBuilder.evaluate(e=>getComputedStyle(e).outlineStyle),'none');
     const bar=await page.locator('#workspace-toolbar').boundingBox(),brand=await page.locator('#toolbar-brand').boundingBox(),files=await page.locator('#file-tools').boundingBox(),settings=await gear.boundingBox();assert.equal(bar.y,0);assert.equal(bar.height,36);assert.equal((await page.locator('#layout').boundingBox()).y,36);assert.ok(files.x>=brand.x+brand.width);assert.equal(settings.height,30);assert.ok(settings.x+settings.width<=1440&&settings.x>1400);
     assert.equal(await page.locator('#toolbar-brand').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(18, 26, 38)');assert.match(await page.locator('#appname').innerText(),/◈ code-graph/);assert.equal(await page.locator('#appname').getAttribute('href'),'/');assert.equal(await page.locator('#counterpart-new-tab').getAttribute('target'),'_blank');assert.equal(await page.locator('#counterpart-new-tab').getAttribute('href'),'/');
     await gear.click();assert.equal(await gear.getAttribute('aria-expanded'),'true');assert.deepEqual(await menu.getByRole('menuitem').allTextContents(),['RAM','Agent access','Pair editor','Cached catalogs','Project databases']);assert.equal(await menu.locator('button svg[data-lucide]').count(),5);

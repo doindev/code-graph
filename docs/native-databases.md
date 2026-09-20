@@ -43,6 +43,11 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
+Redis workspaces include a [bounded string value editor](redis-string-editor.md):
+text/base64 drafts, exact-byte optimistic checks, reviewed TTL-preserving Save,
+and conflict/uncertain-outcome recovery. It does not enable collection editors or
+unrestricted string loading.
+
 Open **Native workspace** from the connection menu or create a new document while
 a native connection is selected. Mongo commands are BSON Extended JSON objects;
 Redis commands are argument arrays. Keys and values accept text or explicit

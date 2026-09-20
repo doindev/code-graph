@@ -122,6 +122,11 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Existing-string graphical editor (up to 8 KiB), text/base64 modes,
+  reviewed exact WATCH expectations, TTL preservation, bounded memory-only
+  drafts and native-tab cleanup. Remaining collection editors are still listed
+  below. See [scope and validation](redis-string-editor.md).
+
 - [x] Bounded bitmap/bitfield, HyperLogLog and geospatial command adapters,
   shared read/reviewed dispatch, exact primary/Cluster targeting, UI examples and
   typed receipt handling. PFCOUNT requires write review; BITOP and module-specific

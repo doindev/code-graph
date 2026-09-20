@@ -10,13 +10,33 @@ module.exports=async(browser,base,jar)=>{
       window.gridApi=api;
       await api('/settings','PUT',{uiRows:1000});
       const p=await api('/connections','POST',{name:'Editable grid fixture',url:'jdbc:h2:mem:editable_browser;DB_CLOSE_DELAY=-1',jar,driverClass:'org.h2.Driver',username:'sa',saveUntested:true});
-      const job=await api('/query/execute','POST',{connectionId:p.id,sql:"CREATE TABLE PUBLIC.GRID_DATA(ID INT PRIMARY KEY, LABEL VARCHAR(80), AMOUNT DECIMAL(18,3) DEFAULT 4); INSERT INTO PUBLIC.GRID_DATA SELECT X, 'row-'||X, X FROM SYSTEM_RANGE(1,451)",parameters:[]});
+      const job=await api('/query/execute','POST',{connectionId:p.id,sql:"CREATE TABLE PUBLIC.GRID_DATA(ID INT PRIMARY KEY, LABEL VARCHAR(80), AMOUNT DECIMAL(18,3) DEFAULT 4, REQUIRED_VALUE VARCHAR(80) NOT NULL DEFAULT 'defaulted'); INSERT INTO PUBLIC.GRID_DATA SELECT X, 'row-'||X, X, 'required' FROM SYSTEM_RANGE(1,451)",parameters:[]});
       for(;;){const current=await api('/jobs/'+job.id);if(current.finished){if(current.state!=='complete')throw Error(current.error);await api('/jobs/'+job.id,'DELETE');break;}await new Promise(r=>setTimeout(r,30));}return p;
     },jar);
     await page.reload();await page.locator('.connection-row[data-connection="'+profile.id+'"] .connection-select').click();await page.locator('#new-tab').click();await page.locator('#sql').fill('SELECT * FROM PUBLIC.GRID_DATA');await page.locator('#run').click();
     await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–200'));
     const footer=page.locator('#grid .data-grid-footer'),rows=page.locator('#grid .grid-body .grid-row');
     assert.equal(await footer.getByRole('textbox',{name:'Rows per page'}).inputValue(),'200');
+    // Only render a mode selector when NULL or DEFAULT offers a real alternative.
+    await rows.first().locator('[data-column-id=c1]').dblclick();
+    const editor=page.locator('.grid-cell-editor'),input=editor.locator('textarea');
+    assert.equal(await editor.getByRole('combobox',{name:'Value mode'}).count(),0);
+    assert.equal(await input.evaluate(e=>e===document.activeElement),true);
+    assert.equal(await editor.evaluate(e=>Math.abs(e.querySelector('textarea').getBoundingClientRect().right-e.getBoundingClientRect().right)<=2),true);
+    await input.fill('999');await input.press('Escape');assert.equal(await rows.first().locator('[data-column-id=c1]').innerText(),'1');
+    for(const [column,nullable,hasDefault] of [['c2',true,false],['c3',true,true],['c4',false,true]]){
+      await rows.first().locator('[data-column-id='+column+']').dblclick();
+      const mode=editor.getByRole('combobox',{name:'Value mode'});assert.equal(await mode.isVisible(),true);
+      assert.equal(await mode.locator('option[value=null]').isEnabled(),nullable);
+      assert.equal(await mode.locator('option[value=default]').isEnabled(),hasDefault);
+      await mode.focus();
+      for(const alternative of [...(nullable?['null']:[]),...(hasDefault?['default']:[])]){
+        await mode.selectOption(alternative);assert.equal(await input.isDisabled(),true);
+        await mode.selectOption('value');assert.equal(await input.isEnabled(),true);
+      }
+      await input.press('Escape');
+    }
+    assert.equal(await footer.getByRole('button',{name:'Save',exact:true}).isDisabled(),true);
     await rows.nth(0).locator('.row-number').click();await rows.nth(3).locator('.row-number').click({modifiers:['Shift']});assert.match(await page.locator('.grid-row-status').innerText(),/4 selected/);
     await rows.nth(1).locator('.row-number').click({modifiers:['Control']});assert.match(await page.locator('.grid-row-status').innerText(),/3 selected/);
     await rows.nth(0).locator('[data-column-id=c2]').dblclick();await page.locator('.grid-cell-editor textarea').fill('edited');await page.locator('.grid-cell-editor textarea').press('Enter');
@@ -46,7 +66,7 @@ module.exports=async(browser,base,jar)=>{
     await footer.getByRole('button',{name:'First row',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–200'));
     await rows.nth(0).locator('.row-number').click();await footer.getByRole('button',{name:'Delete',exact:true}).click();assert.equal(await page.locator('.grid-row-deleted').count(),1);await footer.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await page.locator('.grid-row-deleted').count(),0);
     await rows.nth(0).locator('[data-column-id=c2]').dblclick();await page.locator('.grid-cell-editor textarea').fill('not saved');await page.locator('.grid-cell-editor textarea').press('Escape');assert.match(await rows.nth(0).innerText(),/saved before disconnect/);
-    await footer.getByRole('button',{name:'Grid settings',exact:true}).click();const settings=page.getByRole('dialog',{name:'Grid settings'});await settings.locator('input[type=checkbox]').last().uncheck();await settings.getByRole('button',{name:'Apply',exact:true}).click();assert.equal(await page.locator('.data-column-header').count(),2);
+    await footer.getByRole('button',{name:'Grid settings',exact:true}).click();const settings=page.getByRole('dialog',{name:'Grid settings'});await settings.locator('input[type=checkbox]').last().uncheck();await settings.getByRole('button',{name:'Apply',exact:true}).click();assert.equal(await page.locator('.data-column-header').count(),3);
     await footer.getByRole('textbox',{name:'Rows per page'}).fill('20');await footer.getByRole('textbox',{name:'Rows per page'}).press('Enter');await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–20'));
     for(const format of ['csv','xlsx','txt','sql']){
       await footer.getByRole('button',{name:'Export data',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Export data'});await dialog.getByRole('combobox',{name:'File format'}).selectOption(format);
@@ -66,6 +86,6 @@ module.exports=async(browser,base,jar)=>{
     await footer.getByRole('button',{name:'First row',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–20'));
     await page.setViewportSize({width:760,height:720});assert.equal(await footer.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true);
     await page.screenshot({path:'code-graph-dba/target/editable-grid.png'});
-    assert.deepEqual(errors,[]);console.log('Editable grids: staging, Save/Stay/Cancel, row selection, first/last paging, settings, all export downloads and narrow footer passed.');
+    assert.deepEqual(errors,[]);console.log('Editable grids: conditional Value/NULL/DEFAULT selector, staging, Save/Stay/Cancel, row selection, first/last paging, settings, all export downloads and narrow footer passed.');
   }catch(error){console.error('Grid browser diagnostics',JSON.stringify({errors,status:await page.locator('#status').textContent(),error:await page.locator('#error').textContent(),grid:await page.locator('#grid').innerText()}));throw error;}finally{await context.close();}
 };

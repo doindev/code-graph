@@ -57,6 +57,10 @@ class NativeRedisTransactionTest {
             var profile=profiles.put(null,Profiles.JSON.createObjectNode().put("name","Redis").put("templateId","redis-native").put("url","redis://localhost:1").put("readOnly",false));
             var input=Profiles.JSON.createObjectNode().put("connectionId",profile.path("id").asText()).put("connectionName","Redis").put("database","0");input.set("command",transaction("a","b"));
             var review=ops.prepareBrowser("owner",input);assertFalse(review.path("eligiblePersistentRead").asBoolean());assertTrue(review.path("transactionNotice").asText().contains("does not roll back"));
+            input.put("expectedTargetRevision",review.path("targetRevision").asText());ops.prepare(input);
+            input.put("expectedTargetRevision","wrong-revision");assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));
+            input.putNull("expectedTargetRevision");assertThrows(IllegalArgumentException.class,()->ops.prepare(input));
+            input.put("expectedTargetRevision",review.path("targetRevision").asText());
             assertThrows(SecurityException.class,()->ops.applyBrowser("other",review.path("id").asText()));
             input.set("command",transaction("a","changed"));assertThrows(IllegalArgumentException.class,()->ops.validate(review,input));
             ops.discardBrowser("owner",review.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
@@ -64,6 +68,7 @@ class NativeRedisTransactionTest {
             var batch=transaction("a","b");batch.withArray("transaction").addArray().add("SET").add("a").add("c");
             assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(null,target("standalone"),batch,limited,()->fail("No authority callback before admission")));
             profiles.put(profile.path("id").asText(),Profiles.JSON.createObjectNode().put("readOnly",true));assertThrows(IllegalArgumentException.class,()->ops.prepare(input));
+            input.remove("expectedTargetRevision");assertThrows(IllegalArgumentException.class,()->ops.prepare(input));
         }
     }
     @Test @Timeout(120) void disposableTransactionsConflictsCancellationPartialErrorsAndCleanup()throws Exception{
@@ -101,6 +106,24 @@ class NativeRedisTransactionTest {
                 NativeMutations.execute(lease,target,binary,jobs.new Job("human",target.connectionId()),()->{});
                 binary.putArray("watch").addObject().put("key",key).set("expected",json("{\"base64\":\"AP8=\"}"));
                 assertEquals("acknowledged",NativeMutations.execute(lease,target,binary,jobs.new Job("human",target.connectionId()),()->{}).path("outcome").asText());redis.del(bytes(key));
+                // The graphical string editor uses this exact binary-safe optimistic command.
+                byte[] binaryKey=Arrays.copyOf(bytes(key),bytes(key).length+2);binaryKey[binaryKey.length-1]=(byte)255;
+                redis.set(binaryKey,new byte[]{0,(byte)255});redis.pexpire(binaryKey,60000);
+                var edit=Profiles.JSON.createObjectNode();var set=edit.putArray("transaction").addArray().add("SET");
+                var encodedKey=Profiles.JSON.createObjectNode().put("base64",Base64.getEncoder().encodeToString(binaryKey));
+                set.add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","AQI=")).add("XX").add("KEEPTTL");
+                var watch=edit.putArray("watch").addObject();watch.set("key",encodedKey);watch.set("expected",Profiles.JSON.createObjectNode().put("base64","AP8="));
+                long ttlBefore=redis.pttl(binaryKey);
+                var saved=NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{});
+                assertEquals("OK",saved.path("entries").get(0).path("value").asText());
+                assertArrayEquals(new byte[]{1,2},redis.get(binaryKey));assertTrue(redis.pttl(binaryKey)>0);assertTrue(redis.pttl(binaryKey)<=ttlBefore);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
+                assertArrayEquals(new byte[]{1,2},redis.get(binaryKey));
+                watch.set("expected",Profiles.JSON.createObjectNode().put("base64","AQI="));redis.persist(binaryKey);
+                NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{});assertEquals(-1L,redis.pttl(binaryKey));
+                redis.del(binaryKey);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
+                assertEquals(0L,redis.exists(binaryKey),"Expired/deleted keys must not be recreated by the editor");
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());
         }

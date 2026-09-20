@@ -227,3 +227,12 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .native-result-tabs button[aria-selected="true"]{border-bottom-color:#67b7ef;background:#20344b;color:#e6f1ff}
 .native-grid,.native-workspace>.data-grid-host{flex:1;min-height:0}
 .native-workspace [hidden]{display:none!important}
+.redis-string-editor{display:flex;flex-direction:column;gap:8px;flex:1 0 260px;min-height:220px;max-height:70vh;overflow:auto;padding:12px;border:1px solid var(--line);border-radius:8px;background:#101722}
+.redis-string-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.redis-string-actions label{display:flex;align-items:center;gap:6px;min-width:0}
+.redis-string-actions input{min-width:80px;max-width:300px}
+.redis-string-actions button{display:inline-flex;gap:6px;align-items:center}
+.redis-string-actions svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.redis-string-editor textarea{flex:1;min-height:80px;resize:vertical;white-space:pre;overflow:auto;font:14px/1.8 Consolas,monospace;background:#101722;color:#b9e8dd;border:1px solid var(--line);border-radius:6px;padding:8px}
+.redis-string-editor p{margin:0;color:var(--muted)}
+.native-workspace:has(.redis-string-editor){overflow:auto}

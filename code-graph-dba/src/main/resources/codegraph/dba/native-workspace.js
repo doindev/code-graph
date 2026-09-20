@@ -1,5 +1,6 @@
 import {lucide} from './tree-icons.js';
 import {DataGridView} from './data-grid.js';
+import {RedisStringEditor} from './redis-string-editor.js';
 
 const terminal=new Set(['complete','failed','cancelled']);
 // Enough for the bounded stream delivery/tombstone ID receipt even when payload display is full.
@@ -35,6 +36,7 @@ export class NativeWorkspace {
     this.cancelButton=this.button(toolbar,'Cancel current operation','square',()=>this.cancel());this.cancelButton.disabled=true;
     if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;}
     if(profile.transport==='redis'){
+      this.stringButton=this.button(toolbar,'Edit Redis string value','square-pen',()=>this.openStringEditor());
       this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads and PFCOUNT require write review.';
       const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
       examples.push(['Pipeline: write and inspect',{pipeline:[['SET','{example}:key','value'],['GETRANGE','{example}:key','0','8191'],['TTL','{example}:key']]}],['Pipeline: read key metadata',{pipeline:[['TYPE','{example}:key'],['TTL','{example}:key'],['EXISTS','{example}:key']]}]);
@@ -76,6 +78,18 @@ export class NativeWorkspace {
   button(parent,label,icon,action){const button=el('button');button.type='button';button.title=label;button.setAttribute('aria-label',label);button.append(lucide(icon));button.onclick=action;parent.append(button);return button;}
   sync(){if(!this.editor)return;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;this.state.database=this.database.value;this.state.collection=this.collection?.value??'';this.state.commandText=this.editor.value;this.changed();}
   signature(){return JSON.stringify([this.profile.id,this.profile.name,this.database.value,this.collection?.value??'',this.editor.value]);}
+  retain(bytes){this.account(this.disposed?0:bytes+(this.stringEditor?256*1024:0));}
+  get dirty(){return !!(this.stringEditor?.dirty||this.stringEditor?.uncertain);}
+  canClose(){return this.stringEditor?.canClose()??true;}
+  updateProfile(profile){if(this.stringEditor&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
+  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(this.stringButton)this.stringButton.disabled=locked;}
+  openStringEditor(){
+    if(this.stringEditor||this.operation||this.disposed||this.unavailable)return;
+    try{this.account(this.displayBytes+256*1024);}catch(e){this.status.textContent=e.message;return;}
+    let key='';try{const command=JSON.parse(this.editor.value);if(Array.isArray(command)&&['GET','GETRANGE','TYPE','STRLEN'].includes(command[0]?.toUpperCase()))key=command[1]??'';}catch{}
+    this.stringEditor=new RedisStringEditor({key,run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
+    this.editor.after(this.stringEditor.root);this.lockStringTarget();this.stringEditor.key.focus();
+  }
   mount(host){host.replaceChildren(this.root);}
   unmount(){this.root.remove();}
   selectView(name){
@@ -86,8 +100,8 @@ export class NativeWorkspace {
   }
   showResult(result){
     let receiptOnly=false,text=JSON.stringify(result,null,2),cost=new TextEncoder().encode(text).length*6+(Array.isArray(result.entries)?result.entries.length*256*16:0);
-    try{this.account(cost);}catch(error){
-      if(!['stream','pipeline','redis_value'].includes(result.kind))throw error;
+    try{this.retain(cost);}catch(error){
+      if(!['stream','pipeline','redis_value','transaction'].includes(result.kind))throw error;
       // Reserve was admitted before dispatch. Never lose delivered IDs merely because the UI cannot retain payloads.
       const receipt={kind:'stream',truncated:true,truncationReason:'browser_memory_limit',entries:[],automaticAcknowledgement:false,
         notice:'Payloads omitted because the browser result allowance is full. Delivery IDs/outcome are retained. These messages are not fully processed; inspect pending state and complete values before any explicit ACK. Do not blindly rerun.'};
@@ -103,9 +117,15 @@ export class NativeWorkspace {
         receipt.notice='Values omitted under the browser memory allowance. Command outcome retained; reconcile uncertain mutations before retrying.';
         receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,valueOmitted:true}));
       }
+      if(result.kind==='transaction'){
+        receipt.kind='transaction';delete receipt.automaticAcknowledgement;
+        receipt.notice='Transaction values omitted under the browser allowance. Inspect per-command outcomes; never retry uncertain writes automatically.';
+        receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,state:entry.state,...(entry.value==='OK'?{value:'OK'}:{valueOmitted:true})}));
+        for(const key of ['reason','executed','atomic','rollbackSupported'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+      }
       receiptOnly=true;result=receipt;text=JSON.stringify(result,null,2);cost=new TextEncoder().encode(text).length*6;
       if(cost>RECEIPT_RESERVE)throw new Error('Stream receipt exceeds its reserved UI allowance; reconcile pending entries before retrying.');
-      this.account(cost);
+      this.retain(cost);
     }
     this.displayBytes=cost;this.displayTruncated=!!result.truncated;
     const model=!receiptOnly&&Array.isArray(result.entries)?nativeGridModel(result.entries):null;
@@ -117,10 +137,10 @@ export class NativeWorkspace {
     }else{this.grid?.destroy();this.grid=null;this.gridModel=null;}
     this.selectView(model?this.viewName:'json');
   }
-  async run(next=false){
-    if(this.operation||this.disposed||this.unavailable)return;
+  async run(next=false,supplied=null){
+    if(this.operation||this.disposed||this.unavailable||(this.stringEditor&&!supplied))return;
     const continuation=next?this.nextBatch:null;if(next&&(!continuation||continuation.signature!==this.signature()))return;
-    try{this.account(this.displayBytes+RECEIPT_RESERVE);}catch(error){this.status.textContent='Not started · '+error.message;return;}
+    try{this.retain(this.displayBytes+RECEIPT_RESERVE);}catch(error){this.status.textContent='Not started · '+error.message;return{ok:false,error:error.message};}
     const operation={cancelled:false,id:null};this.operation=operation;const started=performance.now();
     this.runButton.disabled=true;this.cancelButton.disabled=false;this.root.setAttribute('aria-busy','true');
     if(this.streamExamples)this.streamExamples.disabled=true;
@@ -128,14 +148,18 @@ export class NativeWorkspace {
     update();const timer=setInterval(update,1000);
     try{
       this.sync();if(new TextEncoder().encode(this.editor.value).length>131072)throw new Error('Command exceeds 128 KiB.');
-      const command=JSON.parse(this.editor.value);
+      const command=supplied?.command??JSON.parse(this.editor.value);
       operation.signature=this.signature();if(continuation)command.cursor=continuation.cursor;
       const input={connectionId:this.profile.id,connectionName:this.profile.name,database:this.database.value,command};
+      if(supplied?.expectedTargetRevision)input.expectedTargetRevision=supplied.expectedTargetRevision;
       if(this.collection?.value)input.collection=this.collection.value;
       const review=await this.api('/native/prepare','POST',input);operation.reviewId=review.id;
+      operation.targetRevision=review.targetRevision;
+      if(supplied){if(!review.targetRevision)throw new Error('Server lacks revision-bound native value editing. Reload an updated application.');input.expectedTargetRevision=review.targetRevision;}
       if(operation.cancelled||this.disposed)throw new Error('Cancelled before execution');
       if(review.mutation&&!await this.confirmMutation(review,operation))throw new Error('Cancelled before execution · no changes submitted');
       if(operation.cancelled||this.disposed)throw new Error('Cancelled before execution');
+      operation.writeSubmitted=!!review.mutation;
       const job=review.mutation?await this.api('/native/apply','POST',{planId:review.id}):await this.api('/native/execute','POST',input);
       operation.id=job.id;
       if(operation.cancelled||this.disposed)await this.api('/jobs/'+job.id+'/cancel','POST',{});
@@ -143,6 +167,7 @@ export class NativeWorkspace {
         const current=await this.api('/jobs/'+job.id);
         if(terminal.has(current.state)&&current.finished){
           operation.settled=true;
+          operation.result=current.result;
           if(current.state!=='complete'){
             if(current.result&&!this.disposed){this.showResult(current.result);this.selectView('json');}
             throw new Error(current.error||current.state);
@@ -152,14 +177,14 @@ export class NativeWorkspace {
             if(current.result.kind==='change_stream'&&current.result.nextCursor&&!current.result.requiresRestart&&operation.signature===this.signature())this.nextBatch={cursor:current.result.nextCursor,signature:operation.signature};
             if(current.result.kind==='change_stream')this.status.textContent+=' · '+current.result.stopReason+' · '+(current.result.requiresRestart?'History gap: review before starting again':'Read next batch explicitly; no subscription retained');
             if(current.result.kind==='stream'&&current.result.acknowledgementRequired)this.status.textContent+=' · '+current.result.deliveredIds.length+' delivered IDs · acknowledgement is a separate reviewed command; inspect complete payloads first';
-          }else if(!this.disposed&&['stream','pipeline','redis_value'].includes(current.result?.kind)){
+          }else if(!this.disposed&&['stream','pipeline','redis_value','transaction'].includes(current.result?.kind)){
             this.showResult(current.result);this.selectView('json');this.status.textContent='Cancellation requested · received command receipts retained; inspect outcomes before retrying';
           }else this.status.textContent='Cancelled · previous results retained';
-          break;
+          return{ok:!operation.cancelled,result:current.result,targetRevision:operation.targetRevision,uncertain:operation.writeSubmitted&&!['acknowledged','conflict','not_started'].includes(current.result?.outcome)};
         }
         await new Promise(resolve=>setTimeout(resolve,250));
       }
-    }catch(error){if(operation.id&&!operation.cancelled&&!operation.settled)await this.cancel();if(!this.disposed)this.status.textContent=error.message;}
+    }catch(error){if(operation.id&&!operation.cancelled&&!operation.settled)await this.cancel();if(!this.disposed)this.status.textContent=error.message;return{ok:false,error:error.message,result:operation.result,uncertain:operation.writeSubmitted&&!['acknowledged','conflict','not_started','rollback_acknowledged'].includes(operation.result?.outcome)};}
     finally{
       clearInterval(timer);
       if(operation.id)await this.api('/jobs/'+operation.id,'DELETE').catch(()=>{});
@@ -168,7 +193,7 @@ export class NativeWorkspace {
       if(this.streamExamples)this.streamExamples.disabled=this.disposed||!!this.unavailable;
       if(this.nextButton)this.nextButton.disabled=this.disposed||!!this.unavailable||!this.nextBatch||this.nextBatch.signature!==this.signature();
       if(this.unavailable)this.status.textContent=this.unavailable;
-      this.account(this.disposed?0:this.displayBytes);
+      this.lockStringTarget();this.retain(this.displayBytes);
     }
   }
   confirmMutation(review,operation){
@@ -187,6 +212,6 @@ export class NativeWorkspace {
     });
   }
   async cancel(){const operation=this.operation;if(!operation||operation.cancelled)return;operation.cancelled=true;operation.dismiss?.();this.cancelButton.disabled=true;if(operation.id)try{await this.api('/jobs/'+operation.id+'/cancel','POST',{});}catch(error){this.status.textContent='Cancellation not confirmed: '+error.message;}}
-  invalidate(message){this.unavailable=message;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;if(this.streamExamples)this.streamExamples.disabled=true;this.runButton.disabled=true;this.cancel();this.status.textContent=message;}
-  dispose(){this.disposed=true;this.nextBatch=null;this.cancel();this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
+  invalidate(message){this.unavailable=message;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;if(this.streamExamples)this.streamExamples.disabled=true;this.runButton.disabled=true;this.stringEditor?.invalidate(message);this.lockStringTarget();this.cancel();this.status.textContent=message;}
+  dispose(){this.disposed=true;this.nextBatch=null;this.cancel();this.stringEditor?.dispose();this.stringEditor=null;this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
 }

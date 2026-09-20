@@ -154,6 +154,10 @@ The frozen source ZIP SHA-256 is
   HyperLogLog and geo commands, with typed results, reviewed PFCOUNT, same-slot
   multi-key validation and standalone/Cluster/ACL-Sentinel acceptance. Module
   operations and graphical native-value editing remain separate unfinished work.
+  The subsequent [small-string editor](redis-string-editor.md) adds bounded
+  text/base64 drafts, revision-bound exact-value saves and TTL preservation.
+  Collection editors and native administration remain unfinished; this increment
+  does not claim the whole roadmap is complete.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

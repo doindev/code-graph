@@ -33,6 +33,8 @@ final class NativeOperations implements AutoCloseable {
             effective.put("connectionId",profile.path("id").asText()).put("connectionName",profile.path("name").asText()).put("database",binding.path("database").asText());
         }
         ObjectNode profile=profiles.get(NativeTarget.text(effective,"connectionId",36));
+        if(input.has("expectedTargetRevision")&&!ProjectContexts.profileRevision(profile).equals(NativeTarget.text(input,"expectedTargetRevision",128)))
+            throw new IllegalArgumentException("Native connection changed since loading the value; reopen and reconcile before saving");
         return new Resolved(profile,NativeTarget.resolve(profile,effective),binding);
     }
     private static ObjectNode scope(Resolved resolved){
