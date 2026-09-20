@@ -26,6 +26,9 @@ Alternatively, integer index and length select a list-position expectation
 (0 <= index < length <= 10000), with non-null complete expected bytes and no field.
 This checks current position/length, not change history; see the
 [list-item editor](redis-list-editor.md).
+Optional member selects a set-membership expectation instead, with boolean
+expected and an existing set key (including for false). It cannot combine with
+field/index/length. The member is capped at 8 KiB. See [set editing](redis-set-editor.md).
 Watching starts during execution, **not while the approval is open**. The server
 checks the supplied expectations after WATCH and Redis detects subsequent changes
 before EXEC. Expiration/eviction can also cause conflicts.

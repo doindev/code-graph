@@ -121,6 +121,12 @@ not stable identities: matching current length/value cannot detect every prior
 reorder or remove/reinsert cycle. Pipeline LINDEX accepts text indexes 0–9999;
 its 8 KiB preview must be complete before using it as an original value.
 Never replace a rejected list expectation with an unguarded retry.
+When advertised, watch.member selects one exact set member (up to 8 KiB) with
+boolean expected membership. The set must exist even for false; do not confuse
+absent membership with an absent key or an empty member. Do not combine member
+with field/index/length. Use this guard for reviewed SADD/SREM; removing the last
+member removes its key/TTL. Current membership does not detect every historical
+remove/reinsert cycle. Never drop a failed guard to force a write through.
 Cluster requires all command/watch keys in one hash slot. Redis
 does not roll back execution-time errors: inspect per-command results, not just
 the job's final state. A WATCH conflict executes no batch commands; reread and

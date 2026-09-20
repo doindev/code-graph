@@ -10,7 +10,9 @@ class DbaToolSchemaTest {
         var watch=schema.path("properties").path("command").path("oneOf").get(2).path("properties").path("watch").path("items");
         assertEquals(9999,watch.path("properties").path("index").path("maximum").asInt());
         assertEquals(10000,watch.path("properties").path("length").path("maximum").asInt());
-        assertEquals(2,watch.path("oneOf").size());
+        assertEquals(3,watch.path("oneOf").size());
+        assertEquals("boolean",watch.path("oneOf").get(2).path("properties").path("expected").path("type").asText());
+        assertEquals(10924,watch.path("properties").path("member").path("oneOf").get(1).path("properties").path("base64").path("maxLength").asInt());
         assertTrue(watch.path("oneOf").get(1).path("required").toString().contains("length"));
         assertEquals("null",watch.path("oneOf").get(1).path("not").path("anyOf").get(1).path("properties").path("expected").path("type").asText());
         assertFalse(watch.path("additionalProperties").asBoolean(true));

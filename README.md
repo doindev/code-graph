@@ -55,6 +55,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   The [list-item editor](docs/redis-list-editor.md) adds bounded text/base64 editing
   at an existing zero-based position, with reviewed exact length/value checks
   and TTL preservation. A position is not a stable record identity.
+  A [set-member editor](docs/redis-set-editor.md) checks one exact member and
+  stages reviewed insertion/deletion with membership conflict checks.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

@@ -125,6 +125,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Existing-set-member graphical editor: bounded text/base64 identity,
+  staged insertion/deletion, current membership guard and last-member warning.
+  Standalone/Cluster/ACL-Sentinel, all 19 browser suites and the full reactor
+  passed; see [the acceptance report](redis-set-editor.md). General set lifecycle
+  and the compound collection-editor scope below remain incomplete.
+
 - [x] Existing-list-position editor: bounded text/base64 drafts, current
   length/value expectations, reviewed LSET, TTL preservation and uncertain-outcome
   reconciliation. No item insertion/deletion/reordering or stable record identity

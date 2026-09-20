@@ -43,6 +43,11 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
+The [set-member editor](redis-set-editor.md) stages one binary-safe member
+insertion/deletion in an existing set, with exact membership expectations and
+review. It never inventories or recreates the set; deleting its last member
+removes the key and TTL.
+
 The [list-item editor](redis-list-editor.md) updates one existing position using
 reviewed LSET and current length/value WATCH expectations. It preserves key TTL,
 caps values at 8 KiB and list length at 10,000, and does not insert/delete/reorder

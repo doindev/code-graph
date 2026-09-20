@@ -8,9 +8,19 @@ const [base,jar,schema='']=process.argv.slice(2);
   // Closing an isolated test context should end its server session as well. Otherwise
   // the full suite legitimately exhausts the application's eight-session allowance.
   const newContext=browser.newContext.bind(browser);
-  browser.newContext=async(...args)=>{const context=await newContext(...args),close=context.close.bind(context);
+  browser.newContext=async(...args)=>{const context=await newContext(...args),close=context.close.bind(context);let closing=false;
   context.close=async(...options)=>{
-    try{const r=await context.request.get(base+'/api/dba/session');if(r.ok()){const s=await r.json();await context.request.post(base+'/api/dba/logout',{headers:{Origin:base,'X-Dba-CSRF':s.csrf}});}}finally{await close(...options);}
+    if(closing)return;closing=true; // browser.newPage owns its context and closes it recursively.
+    try{
+      // Stop polling before logout: a still-open page can renew an expired session.
+      await Promise.all(context.pages().map(page=>page.close()));
+      const r=await context.request.get(base+'/api/dba/session');
+      if(r.ok()){
+        const s=await r.json(),logout=await context.request.post(base+'/api/dba/logout',{headers:{Origin:base,'X-Dba-CSRF':s.csrf}});
+        assert.equal(logout.status(),200,'Fixture logout must release its browser session');
+        assert.equal((await context.request.get(base+'/api/dba/session')).status(),403,'A closed fixture session must not be renewed');
+      }
+    }finally{await close(...options);}
   };return context;};
   try {
     if(process.env.DBA_BROWSER_SUITE==='editable-grid'){await require('./browser-editable-grid.cjs')(browser,base,jar);return;}

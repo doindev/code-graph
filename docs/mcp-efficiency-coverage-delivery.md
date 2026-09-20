@@ -165,6 +165,9 @@ The frozen source ZIP SHA-256 is
   The [list-item editor follow-up](redis-list-editor.md) adds bounded replacement
   of one current position with length/value checks, not a general list lifecycle
   or historical identity guarantee.
+  The [set-member follow-up](redis-set-editor.md) adds explicit staged membership
+  changes in existing sets. It does not close general set lifecycle, sorted-set
+  editing or infrastructure administration gaps.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

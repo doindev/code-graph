@@ -52,6 +52,7 @@ class ApprovalReviewServerTest {
         assertEquals(200,send("/dba/review","GET",null,false).statusCode());
         assertEquals(200,send("/dba/native-connection-editor.js","GET",null,false).statusCode());
         assertEquals(403,send("/dba/native-workspace.js","GET",null,false).statusCode());
+        assertEquals(403,send("/dba/redis-set-editor.js","GET",null,false).statusCode());
         assertEquals(403,send("/api/dba/bootstrap","POST",Profiles.JSON.createObjectNode(),false).statusCode());
         assertEquals(403,send("/api/dba/connections","GET",null,false).statusCode());
         for(int i=0;i<5;i++)assertEquals(403,send("/api/dba/review-bootstrap","POST",Profiles.JSON.createObjectNode().put("code","wrong"),false).statusCode());
