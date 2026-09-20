@@ -30,6 +30,8 @@ class DbaToolSchemaTest {
         for(String url:List.of("mongodb://localhost:27017","mongodb+srv://example.org","redis://localhost:6379","rediss://localhost:6379","jdbc:h2:mem:test"))assertTrue(java.util.regex.Pattern.compile(pattern).matcher(url).find(),url);
         var command=mapper.readTree(tools.stream().filter(t->t.spec().name().equals("dba_request_native_command")).findFirst().orElseThrow().spec().inputSchemaJson());
         assertEquals(2,command.path("properties").path("command").path("oneOf").size());
+        assertTrue(command.path("properties").path("command").path("description").asText().contains("renameCollection"));
+        assertTrue(command.path("properties").path("command").path("description").asText().contains("dropTarget must be false or omitted"));
         var binary=command.path("properties").path("command").path("oneOf").get(1).path("items").path("oneOf").get(1);
         assertFalse(binary.path("additionalProperties").asBoolean(true));
         assertEquals("base64",binary.path("required").get(0).asText());
@@ -46,6 +48,8 @@ class DbaToolSchemaTest {
         var profile = create.path("profile").path("properties");
         assertTrue(profile.path("password").path("writeOnly").asBoolean());
         assertTrue(profile.path("secretProperties").path("writeOnly").asBoolean());
+        assertEquals(256,profile.path("nativeOptions").path("properties").path("sentinelUsername").path("maxLength").asInt());
+        assertTrue(profile.path("secretProperties").path("description").asText().contains("sentinelPassword"));
         assertEquals(64, profile.path("jars").path("maxItems").asInt());
         assertEquals(16, profile.path("pool").path("properties").path("maximumPoolSize").path("maximum").asInt());
         assertEquals(5, create.path("binding").path("properties").path("environment").path("enum").size());

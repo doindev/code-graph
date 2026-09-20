@@ -121,9 +121,14 @@ The frozen source ZIP SHA-256 is
   Dynamic loading, unsupported generic substitutions, unresolved external types,
   implicit implementations and language-specific exclusions remain documented.
 - Native infrastructure administration, subscriptions/change streams, native
-  migrations/transactions, custom client TLS and separately authenticated Sentinel
+  migrations/transactions and custom client TLS
   are outside this increment. SRV DNS, cloud auth/topologies and Azure SQL were
   not certified by local Docker fixtures.
+  Separate Sentinel authentication is delivered in the subsequent
+  [authenticated Sentinel follow-up](redis-sentinel-auth.md).
+  A further [MongoDB collection-rename follow-up](mongodb-collection-rename.md)
+  adds bounded, reviewed same-database renames without replacement; broader
+  native administration and editing workflows remain incomplete.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

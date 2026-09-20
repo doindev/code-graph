@@ -9,7 +9,7 @@ import java.util.*;
 final class NativeProfile {
     private static final Set<String> OPTIONS = Set.of("topology", "database", "authDatabase", "replicaSet",
             "authMechanism", "readPreference", "tls", "connectTimeoutMS", "socketTimeoutMS",
-            "maximumPoolSize", "idleTimeoutMS", "sentinelMaster", "seeds");
+            "maximumPoolSize", "idleTimeoutMS", "sentinelMaster", "sentinelUsername", "seeds");
 
     static ConnectionDraft create(JsonNode input, ObjectNode oldSecret) {
         DatabaseTransport transport = DatabaseTransport.of(input);
@@ -64,8 +64,8 @@ final class NativeProfile {
             hosts += endpoint.getRawAuthority().split(",").length;
         }
         if (hosts > 16) throw new IllegalArgumentException("Native topology seed allowance is 16 hosts total");
-        if (options.has("sentinelMaster") && !topology.equals("sentinel"))
-            throw new IllegalArgumentException("sentinelMaster is only valid for Sentinel topology");
+        if ((options.has("sentinelMaster") || options.has("sentinelUsername")) && !topology.equals("sentinel"))
+            throw new IllegalArgumentException("Sentinel name and username are only valid for Redis Sentinel topology");
         if (transport == DatabaseTransport.REDIS) {
             for (String key : List.of("authDatabase", "authMechanism", "replicaSet", "readPreference"))
                 if (options.has(key)) throw new IllegalArgumentException("MongoDB options cannot be used with Redis");
@@ -80,8 +80,23 @@ final class NativeProfile {
             if (options.has("readPreference") && !Set.of("primary", "primaryPreferred", "secondary", "secondaryPreferred", "nearest").contains(options.path("readPreference").asText())) throw new IllegalArgumentException("Invalid MongoDB read preference");
             if (options.has("authMechanism") && !Set.of("SCRAM-SHA-256", "SCRAM-SHA-1", "MONGODB-X509").contains(options.path("authMechanism").asText())) throw new IllegalArgumentException("Authentication method requires a separately verified adapter");
         }
-        if (input.path("properties").size() > 0 || input.path("secretProperties").size() > 0) throw new IllegalArgumentException("Use verified nativeOptions and dedicated secret fields; arbitrary native options are not yet supported");
-        ObjectNode secret = oldSecret.deepCopy(); secret.remove("properties");
+        if (input.path("properties").size() > 0) throw new IllegalArgumentException("Use verified nativeOptions and dedicated secret fields; arbitrary native options are not yet supported");
+        JsonNode changes = input.path("secretProperties");
+        if (!changes.isMissingNode() && !changes.isObject()) throw new IllegalArgumentException("secretProperties must be an object");
+        changes.fields().forEachRemaining(entry -> {
+            if (!entry.getKey().equals("sentinelPassword")) throw new IllegalArgumentException("Unsupported native secret property; Redis Sentinel accepts only sentinelPassword");
+            JsonNode value=entry.getValue();
+            if (!value.isNull() && (!value.isTextual() || value.asText().length()>32768))
+                throw new IllegalArgumentException("Sentinel password must be text and at most 32768 characters, or null to remove");
+        });
+        ObjectNode secret = oldSecret.deepCopy();
+        ObjectNode hidden = secret.withObject("properties");
+        if (input.path("replaceSecretProperties").asBoolean()) hidden.removeAll();
+        changes.fields().forEachRemaining(entry -> {
+            if(entry.getValue().isNull())hidden.remove(entry.getKey());else hidden.set(entry.getKey(),entry.getValue().deepCopy());
+        });
+        if (!hidden.isEmpty() && (hidden.size()!=1 || !hidden.has("sentinelPassword") || transport!=DatabaseTransport.REDIS || !topology.equals("sentinel")))
+            throw new IllegalArgumentException("Remove saved Sentinel credentials before changing topology; only Redis Sentinel accepts sentinelPassword");
         if (input.path("removePassword").asBoolean()) secret.remove("password");
         if (input.has("password")) {
             if (!input.path("password").isTextual() || input.path("password").asText().length() > 32768) throw new IllegalArgumentException("Password must be text and at most 32768 characters");

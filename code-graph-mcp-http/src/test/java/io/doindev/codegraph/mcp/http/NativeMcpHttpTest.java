@@ -24,22 +24,29 @@ class NativeMcpHttpTest {
         JsonNode result=JSON.readTree(reply.path("content").get(0).path("text").asText());
         assertEquals(result,reply.path("structuredContent").path("data"));return result;
     }
-    @Test @Timeout(60) void nativeRequestsAreReviewedAndBrowserMutationCannotBypassItsPlan()throws Exception{
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"redis","mongodb"})
+    @Timeout(60) void nativeRequestsAreReviewedAndBrowserMutationCannotBypassItsPlan(String engine)throws Exception{
         try(var client=HttpClient.newHttpClient();var server=start(0)){
             String base="http://localhost:"+server.vizPort(),endpoint="http://localhost:"+server.port()+"/mcp";
             var login=rest(client,base,"/bootstrap","POST",JSON.createObjectNode(),null,null);
             String cookie=login.headers().firstValue("Set-Cookie").orElseThrow().split(";")[0],csrf=JSON.readTree(login.body()).path("csrf").asText();
-            var profile=JSON.createObjectNode().put("name","Native protocol fixture").put("templateId","redis-native").put("url","redis://127.0.0.1:1").put("readOnly",false).put("saveUntested",true);
-            profile.putObject("nativeOptions").put("database","0");
+            String database=engine.equals("mongodb")?"app":"0";
+            var profile=JSON.createObjectNode().put("name","Native protocol fixture").put("templateId",engine+"-native").put("url",engine+"://127.0.0.1:1").put("readOnly",false).put("saveUntested",true);
+            profile.putObject("nativeOptions").put("database",database);
             var saved=rest(client,base,"/connections","POST",profile,cookie,csrf);assertEquals(201,saved.statusCode(),saved.body());
             String id=JSON.readTree(saved.body()).path("id").asText(),session=initialize(client,endpoint,null);
             assertTrue(rpc(client,endpoint,session,null,"tools/list",JSON.createObjectNode()).body().contains("dba_request_native_command"));
-            var input=JSON.createObjectNode().put("connectionId",id).put("connectionName","Native protocol fixture").put("database","0")
+            var input=JSON.createObjectNode().put("connectionId",id).put("connectionName","Native protocol fixture").put("database",database)
                     .put("requestId",UUID.randomUUID().toString()).put("purpose","Review-only native HTTP regression");
-            input.putArray("command").add("SET").add("reviewed-key").add("never-executed");
+            if(engine.equals("mongodb"))input.put("collection","items").putObject("command").put("renameCollection","app.items").put("to","app.next").put("dropTarget",false);
+            else input.putArray("command").add("SET").add("reviewed-key").add("never-executed");
             JsonNode pending=call(client,endpoint,session,"dba_request_native_command",input);
             assertEquals("awaiting_approval",pending.path("state").asText());assertFalse(pending.has("jobId"));
-            assertEquals("0",pending.path("target").path("database").asText());
+            assertEquals(database,pending.path("target").path("database").asText());
+            if(engine.equals("mongodb")){
+                assertTrue(pending.path("destructive").asBoolean());
+                assertEquals("app.next",pending.path("affectedNamespaces").get(1).asText());
+            }
             assertEquals(400,rest(client,base,"/native/execute","POST",input,cookie,csrf).statusCode());
             assertEquals(403,rest(client,base,"/native/prepare","POST",input,cookie,null).statusCode());
             var prepared=rest(client,base,"/native/prepare","POST",input,cookie,csrf);assertEquals(200,prepared.statusCode(),prepared.body());

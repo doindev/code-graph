@@ -52,6 +52,7 @@ final class NativeMutations {
                     }else if(command.size()==1)throw new IllegalArgumentException("Supply an explicit validator or validation setting");
                 }
                 case "createIndexes" -> {fields(command,Set.of("createIndexes","indexes"));array(command.path("indexes"),"indexes");}
+                case "renameCollection" -> MongoCollectionRename.validate(target,command);
                 case "drop" -> fields(command,Set.of("drop"));
                 case "dropIndexes" -> {fields(command,Set.of("dropIndexes","index"));if(!command.path("index").isTextual()||command.path("index").asText().isBlank())throw new IllegalArgumentException("An exact index name or explicitly reviewed * is required");}
                 default -> throw new IllegalArgumentException("No verified native mutation adapter for this MongoDB command");
@@ -72,19 +73,24 @@ final class NativeMutations {
             }
         }
     }
-    static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job)throws Exception {
+    static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job,Runnable beforeWrite)throws Exception {
         validate(target,command);job.outcome="not_started";
         try{
             if(job.cancelled)throw new java.util.concurrent.CancellationException();
             if(target.transport()==DatabaseTransport.MONGODB){
+                boolean rename=command.has("renameCollection");
+                if(rename)MongoCollectionRename.checkSource(lease,target,job);
                 BsonDocument request=BsonDocument.parse(command.toString());
                 request.put("maxTimeMS",new BsonInt64(job.remainingSeconds()*1000L));
+                beforeWrite.run();
+                if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 job.outcome="partial_or_unknown";
-                RawBsonDocument reply=lease.mongo.getDatabase(target.database()).runCommand(request,RawBsonDocument.class);
+                RawBsonDocument reply=lease.mongo.getDatabase(rename?"admin":target.database()).runCommand(request,RawBsonDocument.class);
                 var bounded=new NativeResults("mutation",1,job.byteLimit);NativeReadExecutor.addDocument(bounded,reply);
                 boolean errors=reply.containsKey("writeErrors")||reply.containsKey("writeConcernError");
                 ObjectNode result=bounded.finish().put("outcome",errors?"partial_or_unknown":"acknowledged");
                 if(errors){job.result=result;throw new IllegalArgumentException("MongoDB reported write or write-concern errors; inspect the bounded reply and reconcile before retry");}
+                if(rename)result.putObject("renamed").put("database",target.database()).put("from",target.collection()).put("to",MongoCollectionRename.validate(target,command));
                 job.outcome="acknowledged";return result;
             }
             try(var connection=NativeRedisSession.open(lease,target,job.remainingSeconds())){
@@ -93,6 +99,7 @@ final class NativeMutations {
                 if(target.topology().equals("cluster")&&Set.of("DEL","UNLINK","RENAME","RENAMENX").contains(name)){
                     int slot=io.lettuce.core.cluster.SlotHash.getSlot(key);for(int i=2;i<command.size();i++)if(io.lettuce.core.cluster.SlotHash.getSlot(bytes(command,i))!=slot)throw new IllegalArgumentException("Cluster multi-key mutations must use one hash slot; no cross-shard partial execution is attempted");
                 }
+                beforeWrite.run();if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 job.outcome="partial_or_unknown";
                 switch(name){
                     case "SET" -> value=redis.set(key,bytes(command,2),setOptions(command));

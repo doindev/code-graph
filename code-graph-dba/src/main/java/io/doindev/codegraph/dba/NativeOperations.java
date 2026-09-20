@@ -70,6 +70,7 @@ final class NativeOperations implements AutoCloseable {
         if(resolved.binding.has("id"))review.put("bindingRevision",ProjectContexts.profileRevision(resolved.binding));
         review.set("after",Profiles.JSON.createObjectNode().set("nativeCommand",command.deepCopy()));
         review.put("commandHash",CatalogScanner.hash(command.toString()));
+        if(target.transport()==DatabaseTransport.MONGODB&&command.has("renameCollection"))MongoCollectionRename.describe(review,command);
         return review;
     }
     synchronized ObjectNode prepareBrowser(String owner,JsonNode input){
@@ -111,7 +112,7 @@ final class NativeOperations implements AutoCloseable {
             job.progress="Executing bounded native read";
             if(review.path("mutation").asBoolean()){
                 job.progress="Executing reviewed native mutation";
-                return NativeMutations.execute(lease,target,input.path("command"),job);
+                return NativeMutations.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
             }
             return NativeReadExecutor.execute(lease,target,input.path("command"),
                     new NativeReadExecutor.Limits(job.rowLimit,job.byteLimit,job.remainingSeconds()),()->job.cancelled);

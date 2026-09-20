@@ -34,8 +34,11 @@ are shared with the existing editor.
   Redis three-primary Cluster scans and cross-slot rejection, and Sentinel primary
   promotion with old-cursor rejection. New operations rediscover topology; writes
   are not automatically replayed. Cursors are opaque and expire after five minutes.
-- Custom/client-certificate TLS and separately authenticated Sentinel remain
-  unavailable. Actual SRV DNS, production TLS and cloud authentication/topologies
+- Redis Sentinel supports separate password-only or ACL authentication on all
+  configured seed endpoints. Enter Sentinel credentials in **Authentication & TLS**;
+  General's username/password belong only to data nodes. See
+  [configuration, security and validation](redis-sentinel-auth.md).
+- Custom/client-certificate TLS remains unavailable. Actual SRV DNS, production TLS and cloud authentication/topologies
   are not certified by local containers.
 
 ## Workspace and tree
@@ -80,6 +83,7 @@ are not rolled back as an atomic script and uncertain writes are never replayed.
 |---|---|---|
 | MongoDB | find, verified read aggregation stages, queryPlanner Explain, listCollections, listIndexes | No executable expressions, cross-namespace pipelines or automatic executionStats |
 | MongoDB | insert, single-document update/delete entries, create/drop collection or verified view, collMod validators/view definitions, create/drop index | At most 100 write entries; update/delete require nonempty selectors; delete limit is 1 per entry; views use validated same-database read pipelines; no w:0 override |
+| MongoDB | renameCollection | Exact same-database ordinary/capped collection rename; destination replacement, system namespaces, views and time-series collections are rejected; see [rename workflow](mongodb-collection-rename.md) |
 | Redis | GET preview, GETRANGE, TYPE, TTL/PTTL, cardinality/existence/score reads, HGET, LINDEX | Large values are previews, not complete editable payloads |
 | Redis | SCAN/HSCAN/SSCAN/ZSCAN, bounded LRANGE/ZRANGE/ZREVRANGE and XRANGE/XREVRANGE | No automatic KEYS, HGETALL or whole-container materialization; COUNT is managed by the application |
 | Redis | SET, DEL/UNLINK, RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH, SADD/SREM, ZADD/ZREM | SET supports NX/XX with EX/PX or KEEPTTL and reports applied=false on an unmet condition; text/base64 keys and values; graphical value editing and transactions remain incomplete |
@@ -202,6 +206,8 @@ Run from the repository root using JDK 25, Maven and Docker:
     ./code-graph-dba/test-mongo-topologies.ps1 -Topology replica_set
     ./code-graph-dba/test-mongo-topologies.ps1 -Topology sharded
     ./code-graph-dba/test-redis-topologies.ps1 -Topology sentinel
+    ./code-graph-dba/test-redis-topologies.ps1 -Topology sentinel -SentinelAuth password -BuildRoot <isolated-source>
+    ./code-graph-dba/test-redis-topologies.ps1 -Topology sentinel -SentinelAuth acl -BuildRoot <isolated-source>
     ./code-graph-dba/test-redis-topologies.ps1 -Topology cluster
     ./code-graph-dba/test-native-vendors.ps1 -Engine mongodb -Performance
     ./code-graph-dba/test-native-vendors.ps1 -Engine redis -Performance

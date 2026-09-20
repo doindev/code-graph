@@ -69,6 +69,27 @@ class AgentRequestsTest {
         Properties secrets=profiles.credentials(profiles.get(id));try{assertEquals("never-publish-native",secrets.getProperty("password"));}finally{secrets.clear();}
         assertFalse(Files.readString(directory.resolve("agent-administration-approvals.jsonl")).contains("never-publish-native"));
     }
+    @Test void sentinelProposalSecretsSurviveReviewAndNeverAppearInStatusOrAudit()throws Exception{
+        ObjectNode proposed=NativeSentinelAuthTest.input();
+        ObjectNode input=request("sentinel-create","Configure independent Sentinel authentication");input.set("profile",proposed);
+        JsonNode pending=requests.request(principal,"connection_create",input);String approval=pending.path("id").asText();
+        assertEquals("awaiting_approval",pending.path("state").asText());
+        assertFalse(pending.toString().contains("sentinel-secret"));
+        JsonNode editor=requests.reviewDraft("human",approval);
+        assertTrue(editor.path("secretPropertyNames").toString().contains("sentinelPassword"));
+        assertFalse(editor.toString().contains("sentinel-secret"));
+        ObjectNode revision=Profiles.JSON.createObjectNode().put("color","#223344");
+        revision.putObject("secretProperties").put("sentinelPassword","reviewer-secret");
+        requests.reviseDraft("human",approval,revision);
+        JsonNode result=requests.decide("human",approval,"approve_once",true,Profiles.JSON.createObjectNode().put("saveUntested",true));
+        String id=result.path("result").path("id").asText();
+        assertFalse(result.toString().contains("reviewer-secret"));
+        Properties secrets=profiles.credentials(profiles.get(id));
+        try{assertEquals("reviewer-secret",secrets.getProperty("sentinelPassword"));assertEquals("data-secret",secrets.getProperty("password"));}finally{secrets.clear();}
+        String audit=Files.readString(directory.resolve("agent-administration-approvals.jsonl"));
+        for(String secret:List.of("sentinel-secret","reviewer-secret","data-secret"))assertFalse(audit.contains(secret));
+        assertFalse(result.path("result").path("creatorReceivesAccess").asBoolean());
+    }
     ObjectNode binding(String role){return Profiles.JSON.createObjectNode().put("projectId",project).put("connectionId",connection).put("database","sample").put("environment","dev").put("role",role).put("purpose",role+" database").put("scanIntervalSeconds",60).put("idleTimeoutSeconds",120).put("enabled",true);}
     ObjectNode request(String id,String purpose){return Profiles.JSON.createObjectNode().put("requestId",id).put("purpose",purpose);}
     @Test void trustedLocalCreationAndTestsStillNeedHumanApproval()throws Exception{

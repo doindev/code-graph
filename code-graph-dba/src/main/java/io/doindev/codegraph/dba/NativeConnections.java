@@ -130,15 +130,26 @@ final class NativeConnections implements AutoCloseable {
             RedisURI endpoint=uri;uri=new RedisURI();uri.setSentinelMasterId(opts.path("sentinelMaster").asText());uri.getSentinels().add(endpoint);
             for(JsonNode seed:opts.path("seeds"))uri.getSentinels().add(RedisURI.create(seed.asText()));
             if(uri.getSentinels().size()>16)throw new IllegalArgumentException("Redis Sentinel endpoint allowance is 16");
-            // Sentinel endpoints use no implicit copy of database credentials; authenticated Sentinel is not enabled.
-            for(RedisURI sentinel:uri.getSentinels()){sentinel.setTimeout(Duration.ofMillis(opts.path("connectTimeoutMS").asLong(10000)));sentinel.setVerifyPeer(true);if(opts.has("tls"))sentinel.setSsl(opts.path("tls").asBoolean());}
+            // Discovery credentials never fall back to the data-node credentials (or vice versa).
+            char[] sentinelPassword=credentials.getProperty("sentinelPassword","").toCharArray();
+            try {
+                for(RedisURI sentinel:uri.getSentinels()) {
+                    sentinel.setTimeout(Duration.ofMillis(opts.path("connectTimeoutMS").asLong(10000)));
+                    sentinel.setVerifyPeer(true);
+                    if(opts.has("tls"))sentinel.setSsl(opts.path("tls").asBoolean());
+                    String sentinelUser=opts.path("sentinelUsername").asText("");
+                    // Lettuce retains the array. Give each URI its own driver-lifetime copy.
+                    if(!sentinelUser.isEmpty())sentinel.setAuthentication(sentinelUser,sentinelPassword.clone());
+                    else if(credentials.containsKey("sentinelPassword"))sentinel.setAuthentication(sentinelPassword.clone());
+                }
+            } finally {Arrays.fill(sentinelPassword,'\0');}
             uri.setSsl(endpoint.isSsl());
         }
         if(opts.has("tls"))uri.setSsl(opts.path("tls").asBoolean());
         uri.setVerifyPeer(true);uri.setDatabase(Integer.parseInt(opts.path("database").asText("0")));
         uri.setTimeout(Duration.ofMillis(opts.path("socketTimeoutMS").asLong(30000)));
         String user=credentials.getProperty("user","");char[] password=credentials.getProperty("password","").toCharArray();
-        try { if(!user.isEmpty())uri.setAuthentication(user,password);else if(password.length>0)uri.setAuthentication(password); }
+        try { if(!user.isEmpty())uri.setAuthentication(user,password.clone());else if(password.length>0)uri.setAuthentication(password.clone()); }
         finally {Arrays.fill(password,'\0');}
         return uri;
     }

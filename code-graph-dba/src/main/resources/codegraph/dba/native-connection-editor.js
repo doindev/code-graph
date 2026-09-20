@@ -16,9 +16,16 @@ export function renderNativeConnection({template, profile, panel, field, el}) {
     field(auth,'authDatabase','Authentication database',options.authDatabase??'admin');
     field(auth,'authMechanism','Authentication mechanism',options.authMechanism??'SCRAM-SHA-256',{choices:['SCRAM-SHA-256','SCRAM-SHA-1']});
   }
+  if(template.transport==='redis'){
+    const saved=profile?.secretPropertyNames?.includes('sentinelPassword');
+    auth.append(el('p','Sentinel authentication is separate from the data-node credentials on General. Configure these fields only for Sentinel topology; leave both blank for unauthenticated Sentinel. Never enter credentials in endpoint URLs.'));
+    field(auth,'sentinelUsername','Sentinel username / ACL user',options.sentinelUsername??'',{help:'Optional. Leave blank for password-only Sentinel authentication.'});
+    field(auth,'sentinelPassword','Sentinel password · write-only OS vault','',{type:'password',placeholder:saved?'Unchanged unless replaced':'Not saved until Save'});
+    field(auth,'sentinel-password-action','Saved Sentinel password',saved?'Keep':'Replace',{choices:['Keep','Replace','Remove'],help:'Remove clears only the Sentinel secret, not the data-node password. Clear these settings before switching away from Sentinel.'});
+  }
   const network=panel('Network');
   field(network,'topology','Topology',options.topology??'standalone',{choices:template.transport==='mongodb'?['standalone','replica_set','sharded','srv']:['standalone','sentinel','cluster'],
-    help:template.transport==='mongodb'?'Explicit topology; unsupported discovery fails rather than falling back.':'Cluster requires database 0. Sentinel uses its primary name; authenticated Sentinel endpoints are not yet supported.'});
+    help:template.transport==='mongodb'?'Explicit topology; unsupported discovery fails rather than falling back.':'Cluster requires database 0. Sentinel uses its primary name; separate Sentinel credentials are in Authentication & TLS.'});
   field(network,'seeds','Additional seed endpoints',(options.seeds??[]).join(', '),{help:'Optional comma-separated native scheme://host:port endpoints; at most 15 additional hosts. Keep TLS consistent. Leave empty for standalone and MongoDB SRV.'});
   if(template.transport==='redis')field(network,'sentinelMaster','Sentinel primary name',options.sentinelMaster??'',{help:'Required only for Sentinel. The main endpoint and seeds refer to Sentinel servers.'});
   for(const [key,label,value] of [['connectTimeoutMS','Connect timeout (ms)',10000],['socketTimeoutMS','Socket timeout (ms)',30000]])
@@ -44,6 +51,12 @@ export function nativeConnectionDraft({template,profile,get,shade}) {
   for(const key of ['connectTimeoutMS','socketTimeoutMS','maximumPoolSize','idleTimeoutMS'])
     if(get(key)!=='')result.nativeOptions[key]=Number(get(key));
   if(get('tls')!=='Endpoint default')result.nativeOptions.tls=get('tls')==='true';
+  if(template.transport==='redis'){
+    if(get('sentinelUsername')!=='')result.nativeOptions.sentinelUsername=get('sentinelUsername');
+    const action=get('sentinel-password-action'),password=get('sentinelPassword');
+    if(action==='Remove')result.secretProperties={sentinelPassword:null};
+    else if(password||action==='Replace'&&profile?.secretPropertyNames?.includes('sentinelPassword'))result.secretProperties={sentinelPassword:password};
+  }
   if(get('password-action')==='Remove')result.removePassword=true;
   else if(get('password')||get('password-action')==='Replace'&&profile)result.password=get('password');
   return result;

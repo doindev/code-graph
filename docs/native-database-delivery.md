@@ -79,6 +79,10 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Reviewed same-database collection rename with non-replacement, exact target
+  checks, bounded metadata preflight and final authority revalidation. See the
+  [rename delivery/validation report](mongodb-collection-rename.md); this does not
+  complete the compound collection/settings or graphical-editor items below.
 - [ ] Standalone, replica-set, SRV and sharded-router connections; SCRAM/TLS,
   optional client certificates and supported externally provisioned auth modes.
 - [ ] Lazy databases/collections/views/indexes tree and bounded metadata.
@@ -101,6 +105,9 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Separate Sentinel password-only/ACL discovery credentials, with vault-backed
+  keep/replace/remove, browser/MCP proposals, data-node isolation and authenticated
+  failover coverage. See [the follow-up](redis-sentinel-auth.md).
 - [ ] Standalone, Sentinel and Cluster connectivity; ACL auth/TLS; isolated
   transactional/blocking/subscription connections and topology refresh.
 - [ ] Incremental keyspace browsing, cluster-wide cursors, bounded duplicate

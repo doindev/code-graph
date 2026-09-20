@@ -40,6 +40,11 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Native MongoDB and Redis](docs/native-databases.md) add separate non-JDBC profiles,
   typed command workspaces, bounded reads, reviewed CRUD and native catalog observations/contracts.
   Mongo replica/sharded and Redis Sentinel/Cluster connections have disposable topology tests.
+  Redis Sentinel supports separate password-only or ACL discovery credentials,
+  stored write-only in the OS vault; data-node credentials remain independent.
+  See [Sentinel authentication and validation](docs/redis-sentinel-auth.md).
+  MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)
+  without replacing destinations or silently retargeting open workspaces.
   SQL Server gains native definitions, reviewed ordinary-table design and migration checks.
   Infrastructure administration and other advanced workflows remain explicitly unsupported;
   see the [current acceptance report](docs/mcp-efficiency-coverage-delivery.md).

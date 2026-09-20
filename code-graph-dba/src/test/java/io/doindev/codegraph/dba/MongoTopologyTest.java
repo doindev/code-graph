@@ -12,8 +12,10 @@ class MongoTopologyTest {
         String port=System.getenv("MONGO_TOPOLOGY_PORT"),topology=System.getenv("MONGO_TOPOLOGY_KIND");
         Assumptions.assumeTrue(port!=null&&Set.of("replica_set","sharded").contains(Objects.toString(topology,"")),"Owned MongoDB topology not configured");
         assertTrue(Objects.toString(System.getenv("MONGO_TOPOLOGY_OWNER"),"").startsWith("cgraph-mongo-topology-"));
-        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var clients=new NativeConnections(profiles)){
-            var draft=Profiles.JSON.createObjectNode().put("name","Topology").put("templateId","mongodb-native").put("url","mongodb://127.0.0.1:"+port);
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var clients=new NativeConnections(profiles);
+            var jdbc=new Connections(profiles);var jobs=new QueryJobs(jdbc,new DbaConfig(root,256L<<20,2,100,100,15),owner->true);
+            var operations=new NativeOperations(profiles,jobs)){
+            var draft=Profiles.JSON.createObjectNode().put("name","Topology").put("templateId","mongodb-native").put("url","mongodb://127.0.0.1:"+port).put("readOnly",false);
             var options=draft.putObject("nativeOptions").put("database","fixture").put("topology",topology).put("maximumPoolSize",1).put("connectTimeoutMS",3000).put("socketTimeoutMS",5000);
             if(topology.equals("replica_set"))options.put("replicaSet","cgraph");
             var tested=NativeProfile.create(draft,Profiles.JSON.createObjectNode());try{assertTrue(NativeConnections.testDraft(tested).path("connected").asBoolean());}finally{tested.clear();}
@@ -29,6 +31,14 @@ class MongoTopologyTest {
                 assertTrue(snapshot.path("objects").size()>0);assertFalse(snapshot.toString().contains("fixture-only"));
                 assertTrue(snapshot.toString().contains("declared_validator"));
                 assertThrows(java.util.concurrent.CancellationException.class,()->NativeSchemaObservations.capture(lease,target,"cancelled",100,1<<20,10,0,()->true));
+                if(topology.equals("sharded"))lease.mongo.getDatabase("admin").runCommand(new org.bson.Document("shardCollection","fixture.items").append("key",new org.bson.Document("_id",1)));
+                var input=target.json();input.putObject("command").put("renameCollection","fixture.items").put("to","fixture.renamed").put("dropTarget",false);
+                var review=operations.prepareBrowser("human",input);
+                var renamed=ConnectionSetupTest.await(jobs,"human",operations.applyBrowser("human",review.path("id").asText()));
+                assertEquals("complete",renamed.path("state").asText(),renamed.toPrettyString());
+                assertEquals("fixture-only",db.getCollection("renamed").find().first().getString("name"));
+                assertFalse(db.listCollectionNames().into(new ArrayList<>()).contains("items"));
+                jobs.remove("human",renamed.path("id").asText());
             }
             // A wrong topology must fail selection, not fall back to a reachable server.
             var wrong=draft.deepCopy();wrong.withObject("nativeOptions").put("topology",topology.equals("sharded")?"replica_set":"sharded").remove("replicaSet");

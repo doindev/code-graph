@@ -17,7 +17,7 @@ final class DbaInputSchemas {
             alternatives.addObject().putArray("required").add("requestId");
         } else if(props.has("requestId")) props.withObject("requestId").put("description","Caller-generated idempotency key for this exact submission; use the returned approvalId for polling or cancellation.");
         if(operation.equals("dba_request_native_command")){
-            ObjectNode command=props.putObject("command").put("description","Bounded BSON Extended JSON command document or Redis argument vector. Redis keys/values may be {base64: canonical-padded-base64}; command names, flags, cursors, patterns and numbers must be strings. 128 KiB aggregate input limit; binary values at most 64 KiB, keys/fields 8 KiB.");
+            ObjectNode command=props.putObject("command").put("description","Bounded BSON Extended JSON command document or Redis argument vector. Mongo renameCollection requires the exact selected database.collection source and a same-database to namespace; dropTarget must be false or omitted. No system/view/time-series renames or destination replacement. Redis keys/values may be {base64: canonical-padded-base64}; command names, flags, cursors, patterns and numbers must be strings. 128 KiB aggregate input limit; binary values at most 64 KiB, keys/fields 8 KiB.");
             var alternatives=command.putArray("oneOf");
             alternatives.addObject().put("type","object").put("minProperties",1).put("maxProperties",64);
             var redisArguments=alternatives.addObject().put("type","array").put("minItems",1).put("maxItems",1024).putObject("items").putArray("oneOf");
@@ -154,6 +154,7 @@ final class DbaInputSchemas {
         text(nativeOptions,"authMechanism",32).putArray("enum").add("SCRAM-SHA-256").add("SCRAM-SHA-1");
         text(nativeOptions,"readPreference",32).putArray("enum").add("primary").add("primaryPreferred").add("secondary").add("secondaryPreferred").add("nearest");
         text(nativeOptions,"sentinelMaster",256);nativeOptions.putObject("seeds").put("type","array").put("minItems",1).put("maxItems",15).putObject("items").put("type","string").put("maxLength",8192);
+        text(nativeOptions,"sentinelUsername",256).put("minLength",1).put("description","Redis Sentinel ACL username only; omit for password-only or unauthenticated discovery. Separate from the Redis data-node username. Supply its write-only password in secretProperties.sentinelPassword.");
         bool(nativeOptions,"tls");number(nativeOptions,"connectTimeoutMS",100,300000);number(nativeOptions,"socketTimeoutMS",100,300000);
         number(nativeOptions,"maximumPoolSize",1,16);number(nativeOptions,"idleTimeoutMS",1000,3600000);
         var jars = props.putObject("jars").put("type", "array").put("minItems", 1).put("maxItems", 64);
@@ -167,7 +168,7 @@ final class DbaInputSchemas {
             choices.addObject().put("type", "string").put("maxLength", 32768);
             choices.addObject().put("type", "number"); choices.addObject().put("type", "boolean");
             if (name.equals("secretProperties")) {
-                values.put("writeOnly", true).put("description", "Write-only secret property changes. Null removes one; omission keeps it. replaceSecretProperties first clears the old set.");
+                values.put("writeOnly", true).put("description", "Write-only secret property changes. Null removes one; omission keeps it. replaceSecretProperties first clears the old set. Native Redis Sentinel supports only sentinelPassword (string up to 32768 characters), separate from the data-node password; other native transports reject secret properties. Client transcripts may retain submitted secrets.");
                 choices.addObject().put("type", "null");
             }
         }
