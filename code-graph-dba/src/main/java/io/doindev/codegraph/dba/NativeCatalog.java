@@ -42,8 +42,12 @@ final class NativeCatalog {
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("find","aggregate (verified read stages)","explain (queryPlanner)","listCollections","listIndexes"))commands.add(name);
         else for(String name:List.of("GET (preview)","GETRANGE","TYPE","TTL","PTTL","STRLEN","EXISTS","EXPIRETIME","PEXPIRETIME","HLEN","LLEN","SCARD","ZCARD","XLEN","HEXISTS","SISMEMBER","ZSCORE","GETBIT","HGET","LINDEX","LRANGE","ZRANGE","ZREVRANGE","HSCAN","SSCAN","ZSCAN","XRANGE","XREVRANGE","SCAN","DBSIZE","PING"))commands.add(name);
         var writes=result.putArray("mutationCommands");
-        if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("insert","update (single-document entries)","delete (limit 1 entries)","create (collection or verified view)","collMod (validator or verified view definition)","createIndexes","renameCollection (same database, no replacement, ordinary/capped collections only)","drop","dropIndexes"))writes.add(name);
+        if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("insert","update (single-document entries)","delete (limit 1 entries)","create (collection or verified view)","collMod (validator/view, existing TTL index, time-series retention/granularity, capped limits)","createIndexes","renameCollection (same database, no replacement, ordinary/capped collections only)","drop","dropIndexes"))writes.add(name);
         else for(String name:List.of("SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL","LPUSH","RPUSH","SADD","SREM","ZADD","ZREM"))writes.add(name);
+        if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("collectionSettings")
+                .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
+                .put("verification","MongoDB 8.0 disposable fixtures; server privileges/version remain authoritative")
+                .put("restriction","Exact non-system collection; one settings family per command. Existing single-field TTL index only; no conversion. Time-series retention uses integer seconds or off; granularity only increases. Capped resizing requires server 6.0+. Retention/capped changes may permanently delete data; no rollback or automatic retry.");
         result.putArray("restrictions").add("Capabilities describe adapters, not authorization or observed server support")
                 .add("Mongo documents above 256 KiB remain raw and are omitted with an explicit truncation notice")
                 .add("Redis has an 8 MiB wire allowance per operation connection; COUNT is not a hard page limit")

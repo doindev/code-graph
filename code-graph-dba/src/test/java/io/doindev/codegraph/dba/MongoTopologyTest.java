@@ -39,6 +39,14 @@ class MongoTopologyTest {
                 assertEquals("fixture-only",db.getCollection("renamed").find().first().getString("name"));
                 assertFalse(db.listCollectionNames().into(new ArrayList<>()).contains("items"));
                 jobs.remove("human",renamed.path("id").asText());
+                db.runCommand(org.bson.Document.parse("{createIndexes:'renamed',indexes:[{key:{at:1},name:'expiry',expireAfterSeconds:3600}]}"));
+                input.put("collection","renamed").putObject("command").put("collMod","renamed")
+                        .putObject("index").put("name","expiry").put("expireAfterSeconds",7200);
+                var settingReview=operations.prepareBrowser("human",input);assertTrue(settingReview.path("destructive").asBoolean());
+                var changed=ConnectionSetupTest.await(jobs,"human",operations.applyBrowser("human",settingReview.path("id").asText()));
+                assertEquals("complete",changed.path("state").asText(),changed.toPrettyString());
+                assertEquals(7200,((Number)db.getCollection("renamed").listIndexes().into(new ArrayList<>()).stream().filter(i->i.getString("name").equals("expiry")).findFirst().orElseThrow().get("expireAfterSeconds")).intValue());
+                assertEquals(1,db.getCollection("renamed").countDocuments());jobs.remove("human",changed.path("id").asText());
             }
             // A wrong topology must fail selection, not fall back to a reachable server.
             var wrong=draft.deepCopy();wrong.withObject("nativeOptions").put("topology",topology.equals("sharded")?"replica_set":"sharded").remove("replicaSet");

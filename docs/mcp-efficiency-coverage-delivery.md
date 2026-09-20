@@ -129,6 +129,9 @@ The frozen source ZIP SHA-256 is
   A further [MongoDB collection-rename follow-up](mongodb-collection-rename.md)
   adds bounded, reviewed same-database renames without replacement; broader
   native administration and editing workflows remain incomplete.
+  The [collection-settings follow-up](mongodb-collection-settings.md) adds reviewed
+  retention/capped settings with bounded preflight; it does not close the broader
+  native administration, transaction or graphical-editor backlog.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

@@ -84,6 +84,7 @@ are not rolled back as an atomic script and uncertain writes are never replayed.
 | MongoDB | find, verified read aggregation stages, queryPlanner Explain, listCollections, listIndexes | No executable expressions, cross-namespace pipelines or automatic executionStats |
 | MongoDB | insert, single-document update/delete entries, create/drop collection or verified view, collMod validators/view definitions, create/drop index | At most 100 write entries; update/delete require nonempty selectors; delete limit is 1 per entry; views use validated same-database read pipelines; no w:0 override |
 | MongoDB | renameCollection | Exact same-database ordinary/capped collection rename; destination replacement, system namespaces, views and time-series collections are rejected; see [rename workflow](mongodb-collection-rename.md) |
+| MongoDB | collMod collection settings | Reviewed existing TTL index changes, time-series retention/granularity and capped limits; bounded metadata preflight and data-loss warnings; see [settings workflow](mongodb-collection-settings.md) |
 | Redis | GET preview, GETRANGE, TYPE, TTL/PTTL, cardinality/existence/score reads, HGET, LINDEX | Large values are previews, not complete editable payloads |
 | Redis | SCAN/HSCAN/SSCAN/ZSCAN, bounded LRANGE/ZRANGE/ZREVRANGE and XRANGE/XREVRANGE | No automatic KEYS, HGETALL or whole-container materialization; COUNT is managed by the application |
 | Redis | SET, DEL/UNLINK, RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH, SADD/SREM, ZADD/ZREM | SET supports NX/XX with EX/PX or KEEPTTL and reports applied=false on an unmet condition; text/base64 keys and values; graphical value editing and transactions remain incomplete |
@@ -91,6 +92,12 @@ are not rolled back as an atomic script and uncertain writes are never replayed.
 Unknown or unsupported commands fail explicitly. Classification does not grant
 execution rights. This is not a claim of support for every command in these families.
 Exact argument validation still applies.
+
+Time-series collections appear beneath Collections; their internal system bucket
+collections are omitted. Collection-setting changes execute from the native command
+workspace or MCP, not a dedicated graphical settings form. The adapter checks the
+actual collection kind before writing; connectivity alone does not enable arbitrary
+`collMod` options or infrastructure changes.
 
 ## MCP and application bindings
 

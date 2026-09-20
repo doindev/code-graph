@@ -95,6 +95,18 @@ module.exports=async(browser,base)=>{
     await page.getByRole('button',{name:'Run native command',exact:true}).click();
     await page.locator('.native-status').filter({hasText:'exactly match'}).waitFor();assert.equal(applied,2);
     assert.equal(await review.count(),0);await page.locator('.native-command').fill(mutation);
+    for(const setting of [{collMod:'items',index:{name:'expiry',expireAfterSeconds:60}},{collMod:'items',expireAfterSeconds:'off'},{collMod:'items',cappedMax:200}]){
+      await page.locator('.native-command').fill(JSON.stringify(setting));
+      await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();
+      assert.match(await review.innerText(),/Review destructive database change/);assert.match(await review.innerText(),/delete/);
+      assert.match(await review.innerText(),/items/);assert.equal(applied,2);
+      await review.getByRole('button',{name:'Cancel',exact:true}).click();await review.waitFor({state:'hidden'});
+    }
+    await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();
+    await review.getByRole('button',{name:'Apply once',exact:true}).click();await page.locator('.native-status').filter({hasText:'Complete'}).waitFor();assert.equal(applied,3);
+    await page.locator('.native-command').fill('{"collMod":"items","expireAfterSeconds":60,"cappedMax":10}');
+    await page.getByRole('button',{name:'Run native command',exact:true}).click();await page.locator('.native-status').filter({hasText:'mixed collection setting'}).waitFor();
+    assert.equal(await review.count(),0);assert.equal(applied,3);await page.locator('.native-command').fill(mutation);
     await mongo.getByRole('button',{name:'Actions for Native Mongo fixture',exact:true}).click();
     await page.getByRole('menuitem',{name:'Delete',exact:true}).click();await page.locator('#remove-connection-dialog').waitFor();
     await page.locator('#remove-connection-confirm').click();await page.locator('#remove-connection-dialog').waitFor({state:'hidden'});
@@ -161,13 +173,13 @@ module.exports=async(browser,base)=>{
     await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();
     assert.match(await review.innerText(),/Native Redis binary fixture/);
     assert.match(await review.innerText(),/AP8B/);assert.match(await review.innerText(),/\/wA=/);
-    assert.equal(applied,2,'Binary commands must still wait for exact review');
+    assert.equal(applied,3,'Binary commands must still wait for exact review');
     await review.getByRole('button',{name:'Apply once',exact:true}).click();
-    await page.locator('.native-status').filter({hasText:'Complete'}).waitFor();assert.equal(applied,3);
+    await page.locator('.native-status').filter({hasText:'Complete'}).waitFor();assert.equal(applied,4);
     assert.match(await page.locator('.native-result').innerText(),/AP8B/);
     await page.waitForFunction(async()=>{const r=await fetch('/api/dba/workspace');return(await r.json()).tabs.some(t=>t.type==='native'&&t.commandText.includes('AP8B'));});
     await page.reload();await page.locator('.native-workspace').waitFor();
-    assert.equal(await page.locator('.native-command').inputValue(),binaryCommand);assert.equal(applied,3);
+    assert.equal(await page.locator('.native-command').inputValue(),binaryCommand);assert.equal(applied,4);
     assert.deepEqual(errors,[]);
     await page.screenshot({path:'code-graph-dba/target/native-workspace.png'});
     console.log('Native browser checks passed: picker, setup, exact targets, typed JSON/grid, safe rendering, reusable layout, recovery, review/cancel/apply, binary Redis commands and removed-connection cleanup.');

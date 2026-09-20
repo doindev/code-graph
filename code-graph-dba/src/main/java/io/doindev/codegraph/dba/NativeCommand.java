@@ -76,6 +76,11 @@ final class NativeCommand {
             MongoCollectionRename.validate(target,command);
             return new Classification("mongo.renameCollection",Effect.DESTRUCTIVE,false,"Exact same-database rename; locks and invalidates cursors, never replaces the destination");
         }
+        if(MongoCollectionSettings.handles(command)){
+            MongoCollectionSettings.validate(target,command);
+            return new Classification("mongo.collMod",MongoCollectionSettings.destructive(command)?Effect.DESTRUCTIVE:Effect.WRITE,false,
+                    "Exact collection-setting review; retention/capped changes may permanently remove data");
+        }
         if (name.equals("find")) {
             fields(command, Set.of("find", "filter", "projection", "sort", "skip", "limit", "hint", "collation", "comment", "maxTimeMS", "batchSize"));
             return read("mongo.find", safeExpressions(command), "Unrecognized or executable expressions require exact one-time review");

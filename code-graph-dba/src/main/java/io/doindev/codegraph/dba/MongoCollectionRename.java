@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bson.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.TimeUnit;
 
 /** Exact same-database rename. The admin command transport never expands its target scope. */
 final class MongoCollectionRename {
@@ -39,19 +37,10 @@ final class MongoCollectionRename {
     }
 
     static void checkSource(NativeConnections.Lease lease,NativeTarget target,QueryJobs.Job job){
-        if(job.cancelled)throw new CancellationException();
-        // Exact-name lookup, one raw definition; never enumerate the database or retain its documents.
-        try(var cursor=lease.mongo.getDatabase(target.database()).listCollections(RawBsonDocument.class)
-                .filter(new BsonDocument("name",new BsonString(target.collection()))).batchSize(1)
-                .maxTime(job.remainingSeconds(),TimeUnit.SECONDS).iterator()){
-            if(!cursor.hasNext())throw new IllegalArgumentException("Source collection no longer exists; refresh metadata before retrying");
-            RawBsonDocument source=cursor.next();
-            if(source.getByteBuffer().remaining()>256*1024)throw new IllegalArgumentException("Collection definition exceeds the bounded rename validation allowance");
-            if(!source.getString("type",new BsonString("")).getValue().equals("collection")
-                    ||source.getDocument("options",new BsonDocument()).containsKey("timeseries"))
-                throw new IllegalArgumentException("Only ordinary or capped collections can be renamed; views and time-series collections are unsupported");
-        }
-        if(job.cancelled)throw new CancellationException();
+        var source=MongoCollectionMetadata.load(lease,target,job);
+        if(!source.getString("type",new BsonString("")).getValue().equals("collection")
+                ||source.getDocument("options",new BsonDocument()).containsKey("timeseries"))
+            throw new IllegalArgumentException("Only ordinary or capped collections can be renamed; views and time-series collections are unsupported");
     }
     private MongoCollectionRename(){}
 }

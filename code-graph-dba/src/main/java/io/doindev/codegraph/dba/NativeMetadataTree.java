@@ -24,7 +24,13 @@ final class NativeMetadataTree {
         JsonNode command;
         if(kind.equals("native_collections")||kind.equals("native_views")){
             ObjectNode metadata=Profiles.JSON.createObjectNode().put("listCollections",1);
-            metadata.putObject("filter").put("type",kind.equals("native_views")?"view":"collection");command=metadata;
+            var filter=metadata.putObject("filter");
+            if(kind.equals("native_views"))filter.put("type","view");
+            else{
+                filter.putObject("type").putArray("$in").add("collection").add("timeseries");
+                filter.putObject("name").putObject("$not").put("$regex","^system\\.");
+            }
+            command=metadata;
         }else if(kind.equals("native_indexes"))command=Profiles.JSON.createObjectNode().put("listIndexes",target.collection());
         else if(kind.equals("native_keys")){
             command=Profiles.JSON.createArrayNode().add("SCAN").add(request.path("offset").asText("0")).add("MATCH").add(request.path("pattern").asText("*"));

@@ -71,6 +71,7 @@ final class NativeOperations implements AutoCloseable {
         review.set("after",Profiles.JSON.createObjectNode().set("nativeCommand",command.deepCopy()));
         review.put("commandHash",CatalogScanner.hash(command.toString()));
         if(target.transport()==DatabaseTransport.MONGODB&&command.has("renameCollection"))MongoCollectionRename.describe(review,command);
+        if(target.transport()==DatabaseTransport.MONGODB&&MongoCollectionSettings.handles(command))MongoCollectionSettings.describe(review,target,command);
         return review;
     }
     synchronized ObjectNode prepareBrowser(String owner,JsonNode input){

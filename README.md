@@ -45,6 +45,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   See [Sentinel authentication and validation](docs/redis-sentinel-auth.md).
   MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)
   without replacing destinations or silently retargeting open workspaces.
+  [Reviewed collection settings](docs/mongodb-collection-settings.md) support existing TTL
+  indexes, time-series retention/granularity and capped limits. Retention or size
+  reductions can delete data and always carry a destructive-operation warning.
   SQL Server gains native definitions, reviewed ordinary-table design and migration checks.
   Infrastructure administration and other advanced workflows remain explicitly unsupported;
   see the [current acceptance report](docs/mcp-efficiency-coverage-delivery.md).

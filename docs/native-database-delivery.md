@@ -79,6 +79,10 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Reviewed TTL-index, time-series retention/granularity and capped-limit
+  changes with bounded collection/index preflight, strict option families and
+  destructive warnings. See [collection settings](mongodb-collection-settings.md).
+  This is not a graphical editor or complete collection administration support.
 - [x] Reviewed same-database collection rename with non-replacement, exact target
   checks, bounded metadata preflight and final authority revalidation. See the
   [rename delivery/validation report](mongodb-collection-rename.md); this does not

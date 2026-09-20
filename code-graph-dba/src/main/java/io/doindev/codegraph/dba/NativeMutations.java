@@ -45,6 +45,7 @@ final class NativeMutations {
                     }
                 }
                 case "collMod" -> {
+                    if(MongoCollectionSettings.handles(command)){MongoCollectionSettings.validate(target,command);break;}
                     fields(command,Set.of("collMod","validator","validationLevel","validationAction","viewOn","pipeline"));
                     if(command.has("viewOn")||command.has("pipeline")){
                         fields(command,Set.of("collMod","viewOn","pipeline"));
@@ -80,6 +81,7 @@ final class NativeMutations {
             if(target.transport()==DatabaseTransport.MONGODB){
                 boolean rename=command.has("renameCollection");
                 if(rename)MongoCollectionRename.checkSource(lease,target,job);
+                if(MongoCollectionSettings.handles(command))MongoCollectionSettings.checkSource(lease,target,command,job);
                 BsonDocument request=BsonDocument.parse(command.toString());
                 request.put("maxTimeMS",new BsonInt64(job.remainingSeconds()*1000L));
                 beforeWrite.run();

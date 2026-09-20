@@ -24,8 +24,9 @@ class NativeMcpHttpTest {
         JsonNode result=JSON.readTree(reply.path("content").get(0).path("text").asText());
         assertEquals(result,reply.path("structuredContent").path("data"));return result;
     }
-    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"redis","mongodb"})
-    @Timeout(60) void nativeRequestsAreReviewedAndBrowserMutationCannotBypassItsPlan(String engine)throws Exception{
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"redis","mongodb","mongodb-settings"})
+    @Timeout(60) void nativeRequestsAreReviewedAndBrowserMutationCannotBypassItsPlan(String scenario)throws Exception{
+        String engine=scenario.startsWith("mongodb")?"mongodb":"redis";
         try(var client=HttpClient.newHttpClient();var server=start(0)){
             String base="http://localhost:"+server.vizPort(),endpoint="http://localhost:"+server.port()+"/mcp";
             var login=rest(client,base,"/bootstrap","POST",JSON.createObjectNode(),null,null);
@@ -38,14 +39,18 @@ class NativeMcpHttpTest {
             assertTrue(rpc(client,endpoint,session,null,"tools/list",JSON.createObjectNode()).body().contains("dba_request_native_command"));
             var input=JSON.createObjectNode().put("connectionId",id).put("connectionName","Native protocol fixture").put("database",database)
                     .put("requestId",UUID.randomUUID().toString()).put("purpose","Review-only native HTTP regression");
-            if(engine.equals("mongodb"))input.put("collection","items").putObject("command").put("renameCollection","app.items").put("to","app.next").put("dropTarget",false);
+            if(scenario.equals("mongodb-settings"))input.put("collection","items").putObject("command").put("collMod","items").put("cappedMax",200);
+            else if(engine.equals("mongodb"))input.put("collection","items").putObject("command").put("renameCollection","app.items").put("to","app.next").put("dropTarget",false);
             else input.putArray("command").add("SET").add("reviewed-key").add("never-executed");
             JsonNode pending=call(client,endpoint,session,"dba_request_native_command",input);
             assertEquals("awaiting_approval",pending.path("state").asText());assertFalse(pending.has("jobId"));
             assertEquals(database,pending.path("target").path("database").asText());
             if(engine.equals("mongodb")){
                 assertTrue(pending.path("destructive").asBoolean());
-                assertEquals("app.next",pending.path("affectedNamespaces").get(1).asText());
+                if(scenario.equals("mongodb-settings")){
+                    assertEquals("app.items",pending.path("affectedNamespaces").get(0).asText());
+                    assertTrue(pending.path("transactionNotice").asText().contains("delete"));
+                }else assertEquals("app.next",pending.path("affectedNamespaces").get(1).asText());
             }
             assertEquals(400,rest(client,base,"/native/execute","POST",input,cookie,csrf).statusCode());
             assertEquals(403,rest(client,base,"/native/prepare","POST",input,cookie,null).statusCode());

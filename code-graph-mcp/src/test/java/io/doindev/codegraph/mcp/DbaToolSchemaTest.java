@@ -32,6 +32,7 @@ class DbaToolSchemaTest {
         assertEquals(2,command.path("properties").path("command").path("oneOf").size());
         assertTrue(command.path("properties").path("command").path("description").asText().contains("renameCollection"));
         assertTrue(command.path("properties").path("command").path("description").asText().contains("dropTarget must be false or omitted"));
+        assertTrue(command.path("properties").path("command").path("description").asText().contains("retention/capped changes may permanently delete data"));
         var binary=command.path("properties").path("command").path("oneOf").get(1).path("items").path("oneOf").get(1);
         assertFalse(binary.path("additionalProperties").asBoolean(true));
         assertEquals("base64",binary.path("required").get(0).asText());
