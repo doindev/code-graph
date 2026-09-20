@@ -14,6 +14,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   existing-file RSA key-pair authentication are described in [Connection setup](docs/dba-connections.md).
   [Grid query editing and the expanded JDBC catalog](docs/dba-grid-and-drivers.md) covers
   alias-aware sorting/filtering, editable Boolean filters, driver recipes and validation limits.
+  [Editable, pageable grids and exports](docs/dba-editable-grids.md) add staged
+  transactional row changes, 200-row server pages, selection/navigation, grid
+  settings, and bounded CSV/XLSX/TXT/SQL downloads with explicit capability gates.
   Double-click a table in the database tree to open a fixed-connection **Table** tab with a reusable
   Data grid and session recovery. Tables expand into lazy, vendor-aware categories such as
   Columns, Constraints and Foreign Keys; see [catalog navigation](docs/dba-catalog-tree.md#table-children).

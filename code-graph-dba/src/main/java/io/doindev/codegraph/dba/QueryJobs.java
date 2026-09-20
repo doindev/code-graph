@@ -15,7 +15,8 @@ final class QueryJobs implements AutoCloseable {
     private static final int MAX_CELL=8192,MAX_COLUMNS=256;
     final class Job {
         final String id=UUID.randomUUID().toString(),owner,connection;
-        final int rowLimit,byteLimit;
+        int rowLimit;
+        final int byteLimit;
         final long created=System.currentTimeMillis();
         volatile long started,finished,bytes;
         volatile long reservation=JOB_RESERVATION;
@@ -87,6 +88,7 @@ final class QueryJobs implements AutoCloseable {
     private final ThreadPoolExecutor workers;
     private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("dba-deadlines").factory());
     private volatile DbaConfig config;
+    GridResults grids;
     QueryJobs(Connections connections,DbaConfig config,Predicate<String> alive){this.connections=connections;this.config=config;this.alive=alive;
         workers=new ThreadPoolExecutor(config.concurrency(),config.concurrency(),30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(16),Thread.ofPlatform().daemon().name("dba-query-",0).factory(),new ThreadPoolExecutor.AbortPolicy());
         timer.scheduleAtFixedRate(this::reap,1,1,TimeUnit.SECONDS);
@@ -136,6 +138,7 @@ final class QueryJobs implements AutoCloseable {
         }finally{
             job.stopActiveBudget();job.statement=null;
             if(c!=null)try{connections.discard(job.connection,c);}catch(Exception ignored){}
+            if(grids!=null)grids.finished(job);
             job.finished=System.currentTimeMillis();
         }
     }
@@ -159,7 +162,7 @@ final class QueryJobs implements AutoCloseable {
             job.exception=exceptionInfo(e);
             // SQLException messages can contain passwords, SQL literals and driver URLs.
             job.error=job.cancelled?"Cancelled or timed out":task instanceof CatalogTask?connections.humanError(job.connection,e): e instanceof IllegalArgumentException?e.getMessage():"Database operation failed; verify connection, permissions, and driver settings";
-        }finally{deadline.cancel(false);job.statement=null;job.finished=System.currentTimeMillis();}
+        }finally{deadline.cancel(false);job.statement=null;if(grids!=null)grids.finished(job);job.finished=System.currentTimeMillis();}
     }
     synchronized ObjectNode local(String owner,LocalTask task,Runnable cleanup){
         return local(owner,"",task,cleanup);
@@ -182,7 +185,7 @@ final class QueryJobs implements AutoCloseable {
             job.started=System.currentTimeMillis();job.state="running";job.thread=Thread.currentThread();
             var deadline=timer.schedule(()->cancel(job),config.timeoutSeconds(),TimeUnit.SECONDS);
             try{if(job.cancelled||!alive.test(owner))throw new CancellationException();JsonNode result=task.run(job);
-                if(job.cancelled||!alive.test(owner))throw new CancellationException();byte[] bytes=Profiles.JSON.writeValueAsBytes(result);
+                if((job.cancelled||!alive.test(owner))&&!"commit_acknowledged".equals(job.outcome))throw new CancellationException();byte[] bytes=Profiles.JSON.writeValueAsBytes(result);
                 if(bytes.length>job.byteLimit)throw new IllegalArgumentException("Setup result too large");job.bytes=bytes.length;job.result=result;job.state="complete";
             }catch(Exception e){job.state=job.cancelled?"cancelled":"failed";job.error=job.cancelled?"Cancelled or deadline exceeded; a driver may take time to stop":e instanceof IllegalArgumentException?e.getMessage():"Connection setup failed; check driver, network, credentials and vault availability";job.exception=exceptionInfo(e);}
             finally{deadline.cancel(false);job.thread=null;Thread.interrupted();try{cleanup.run();}finally{job.reservation=JOB_RESERVATION;job.finished=System.currentTimeMillis();}}
@@ -329,7 +332,11 @@ final class QueryJobs implements AutoCloseable {
         if(owner.startsWith("agent:"))throw new SecurityException("Human SQL is not available to agents");
         if(sql==null||sql.isBlank()||sql.length()>16384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
         HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();
-        return submit(owner,id,(job,c)->HumanSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e)),true,autoCommit);
+        return submit(owner,id,(job,c)->{
+            if(grids!=null)job.rowLimit=Math.min(200,job.rowLimit);
+            ObjectNode result=HumanSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e));
+            if(grids!=null)grids.capture(job,c,result,values);return result;
+        },true,autoCommit);
     }
     /** Browser table grids: one validated SELECT, fixed catalog context, no script decisions. */
     ObjectNode tableQuery(String owner,String id,String sql,JsonNode parameters,String database){
@@ -338,13 +345,15 @@ final class QueryJobs implements AutoCloseable {
         ObjectNode validation=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");validation.set("parameters",parameters);
         String validated=GridSql.prepare(validation).path("sql").asText();HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();
         return catalogRead(owner,id,Profiles.JSON.createObjectNode().put("database",database),(job,c)->{
+            if(grids!=null)job.rowLimit=Math.min(200,job.rowLimit);
             try(PreparedStatement statement=c.prepareStatement(validated,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());statement.setFetchSize(64);statement.setMaxRows(job.rowLimit+1);
                 for(int i=0;i<values.size();i++){JsonNode v=values.get(i);if(v.isNull())statement.setNull(i+1,Types.NULL);else if(v.isBoolean())statement.setBoolean(i+1,v.asBoolean());else if(v.isNumber())statement.setBigDecimal(i+1,v.decimalValue());else statement.setString(i+1,v.asText());}
                 try(ResultSet rs=statement.executeQuery()){
                     ObjectNode entry=rows(rs,job.rowLimit,job.byteLimit/2).put("kind","rows").put("statementIndex",1);GridSql.describeColumns(validated,entry);
                     ObjectNode result=Profiles.JSON.createObjectNode().put("rowCount",entry.path("rowCount").asInt()).put("truncated",entry.path("truncated").asBoolean());
-                    result.putArray("results").add(entry);result.putArray("statements").addObject().put("index",1).put("sql",validated);return result;
+                    result.putArray("results").add(entry);result.putArray("statements").addObject().put("index",1).put("sql",validated).put("parameterOffset",0).put("parameterCount",values.size());
+                    if(grids!=null)grids.capture(job,c,result,values);return result;
                 }
             }finally{job.statement=null;}
         });

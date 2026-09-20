@@ -18,6 +18,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final AgentAccess agents;
     private final Connections connections;
     private final QueryJobs jobs;
+    private final GridResults grids;
     private final ConnectionSetup setup;
     private final NativeOperations nativeOperations;
     private final ProjectContexts contexts;
@@ -44,6 +45,7 @@ public final class DbaRuntime implements AutoCloseable {
         profiles=new Profiles(config.directory(),vault);
         try{agents=new AgentAccess(profiles.directory(),authorization);agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
+        grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         setup=new ConnectionSetup(profiles,jobs);
         contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
@@ -59,7 +61,7 @@ public final class DbaRuntime implements AutoCloseable {
         broker.detailed(id->{if(uiEnabled&&browserAddress!=null)return new ApprovalBroker.Handoff(browserAddress.resolve("/dba#approval="+id),"");return reviewServer.open(id);});
         approvals.onPending(broker::published);agentRequests.onPending(broker::published);
         profiles.onAuthorizationChange(id->{approvals.reusable.invalidateConnection(id);nativeOperations.invalidate(id);});contexts.onAuthorizationChange(approvals.reusable::invalidateBinding);
-        contextTimer.scheduleWithFixedDelay(()->{try{approvals.tick();agentRequests.tick();nativeOperations.reap();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
+        contextTimer.scheduleWithFixedDelay(()->{try{approvals.tick();agentRequests.tick();nativeOperations.reap();grids.reap();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
         shutdownHook=new Thread(this::close,"dba-shutdown");Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
     private volatile java.net.URI browserAddress;
@@ -89,6 +91,26 @@ public final class DbaRuntime implements AutoCloseable {
             }
             BrowserAuth.Session session=auth.require(x);
             if(scope!=null)ApprovalReviewServer.requireRoute(path,method,scope);
+            if(path.equals("/api/dba/grids/dispose")&&method.equals("POST")){
+                JsonNode ids=body(x,8192).path("ids");
+                if(!ids.isArray()||ids.size()>GridResults.MAX_CONTEXTS)throw new IllegalArgumentException("Supply a bounded grid ID list.");
+                for(JsonNode id:ids){UUID.fromString(id.asText());grids.release(session.id(),id.asText());}
+                json(x,200,Map.of("released",true));return;
+            }
+            if(path.startsWith("/api/dba/grids/exports/")){
+                String id=path.substring("/api/dba/grids/exports/".length());UUID.fromString(id);
+                if(method.equals("GET"))grids.exports.download(session.id(),id,x);
+                else if(method.equals("DELETE")){grids.exports.remove(session.id(),id);json(x,200,Map.of("released",true));}
+                else throw new IllegalArgumentException("Unsupported export method");
+                return;
+            }
+            if(path.startsWith("/api/dba/grids/")){
+                String[] parts=path.substring("/api/dba/grids/".length()).split("/",-1);UUID.fromString(parts[0]);
+                if(parts.length==1&&method.equals("GET")){json(x,200,grids.status(session.id(),parts[0]));return;}
+                if(parts.length==1&&method.equals("DELETE")){grids.release(session.id(),parts[0]);json(x,200,Map.of("released",true));return;}
+                if(parts.length==2&&method.equals("POST")){json(x,202,grids.operation(session.id(),parts[0],parts[1],body(x,2<<20)));return;}
+                throw new IllegalArgumentException("Unsupported grid endpoint");
+            }
             if(path.equals("/api/dba/approvals/presence")&&method.equals("POST")){json(x,200,broker.poll(session.id(),body(x)));return;}
             if(path.equals("/api/dba/approvals/events")&&method.equals("GET")){
                 String query=x.getRequestURI().getRawQuery();String tab=query!=null&&query.startsWith("tabId=")?java.net.URLDecoder.decode(query.substring(6),StandardCharsets.UTF_8):"";
@@ -245,7 +267,7 @@ public final class DbaRuntime implements AutoCloseable {
         finally{x.close();}
     }
     private static String optional(JsonNode n,String key){return n.hasNonNull(key)?n.get(key).asText():null;}
-    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
+    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("grids",grids.telemetry());n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
     public String authenticateAgent(String token){return agents.authenticate(token);}
     /** Only loopback-validated HTTP and local stdio transports may establish this identity. */
     public String trustedLocalAgent(){return agents.trustedLocal();}
@@ -570,6 +592,11 @@ public final class DbaRuntime implements AutoCloseable {
         }catch(SecurityException|IllegalArgumentException e){return false;}
     }
     static void asset(HttpExchange x,String path)throws IOException {
+        if(Set.of("/dba/grid-state.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js").contains(path)){
+            String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
+                if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
+            }
+        }
         String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/catalog-ui.js"->"catalog-ui.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/native-connection-editor.js"->"native-connection-editor.js";case "/dba/native-workspace.js"->"native-workspace.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";case "/dba/workspace-theme.css"->"workspace-theme.css";default->null;};
         if(file==null){json(x,404,Map.of("error","Asset not found"));return;}
         try(InputStream in=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+file)){
@@ -580,5 +607,5 @@ public final class DbaRuntime implements AutoCloseable {
     }
     private static void json(HttpExchange x,int status,Object data)throws IOException{byte[] bytes=Profiles.JSON.writeValueAsBytes(data);x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");x.sendResponseHeaders(status,bytes.length);x.getResponseBody().write(bytes);}
     private static void jsonBytes(HttpExchange x,int status,byte[] bytes)throws IOException{try{x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");x.sendResponseHeaders(status,bytes.length);x.getResponseBody().write(bytes);}finally{Arrays.fill(bytes,(byte)0);}}
-    @Override public void close(){if(!closed.compareAndSet(false,true))return;contextTimer.shutdownNow();broker.close();reviewServer.close();if(editorPairings!=null)editorPairings.close();agentRequests.close();approvals.close();migrations.close();contexts.close();jobs.close();nativeOperations.close();connections.close();if(auth!=null)auth.close();try{profiles.close();}catch(IOException ignored){}if(Thread.currentThread()!=shutdownHook)try{Runtime.getRuntime().removeShutdownHook(shutdownHook);}catch(IllegalStateException ignored){}}
+    @Override public void close(){if(!closed.compareAndSet(false,true))return;contextTimer.shutdownNow();broker.close();reviewServer.close();if(editorPairings!=null)editorPairings.close();agentRequests.close();approvals.close();migrations.close();contexts.close();grids.close();jobs.close();nativeOperations.close();connections.close();if(auth!=null)auth.close();try{profiles.close();}catch(IOException ignored){}if(Thread.currentThread()!=shutdownHook)try{Runtime.getRuntime().removeShutdownHook(shutdownHook);}catch(IllegalStateException ignored){}}
 }

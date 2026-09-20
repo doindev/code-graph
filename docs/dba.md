@@ -1,5 +1,9 @@
 # DBA implementation status and preview
 
+For browser row editing, paging, downloads, API routes, and recovery, see
+[Editable, pageable Data Grids](dba-editable-grids.md). These additions do not
+expand MCP permissions or change agent result limits.
+
 **Startup override:** explicitly launching with `--dba --yolo` (or `cgraph --yolo`)
 automatically authorizes local-agent operations without existing grants or review.
 All normal approval descriptions below assume YOLO is off. Validation, audit,
