@@ -46,6 +46,12 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Bounded Redis transactions](docs/redis-transactions.md) add reviewed batches and
   optimistic WATCH expectations, including single-slot Cluster execution; Redis
   execution errors do not roll back successful commands.
+  [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
+  scalar/range commands into one dispatch with per-command receipts. Pipelines
+  are not atomic; partial failures and cancellation never imply rollback.
+  [Bounded bitmap, HyperLogLog and geo operations](docs/redis-values.md) add
+  typed bitfield results, cardinality workflows and limited geo searches.
+  PFCOUNT requires write review because Redis can update its cached count.
   [Bounded Redis streams](docs/redis-streams.md) provide finite consumer-group
   reads, pending inspection, reviewed claims/ACKs and group lifecycle commands.
   Message delivery is a write; no automatic acknowledgement or subscription.

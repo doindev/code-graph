@@ -39,6 +39,8 @@ module.exports=async(browser,base)=>{
     await items.getByRole('button',{name:'items',exact:true}).dblclick();await page.locator('.native-workspace').waitFor();
     assert.equal(await page.locator('.native-workspace input[aria-label=Collection]').inputValue(),'items');
     assert.match(await page.locator('.native-command').inputValue(),/"find": "items"/);
+    const editorTheme=await page.evaluate(()=>{const native=getComputedStyle(document.querySelector('.native-command')),sql=getComputedStyle(document.querySelector('#sql'));return ['backgroundColor','color','fontSize','fontFamily'].map(name=>[name,native[name],sql[name]]);});
+    for(const [property,native,sql] of editorTheme)assert.equal(native,sql,'Native editor matches Script editor '+property);
     await mongo.getByRole('button',{name:'Actions for Native Mongo fixture',exact:true}).click();
     await page.getByRole('menuitem',{name:'Native workspace',exact:true}).click();await page.locator('.native-workspace').waitFor();
     assert.equal(await page.locator('#document').isHidden(),true);assert.equal(await page.locator('#file-save').isDisabled(),true);
@@ -229,7 +231,7 @@ module.exports=async(browser,base)=>{
     await page.locator('.native-status').filter({hasText:'partially failed'}).waitFor();assert.equal(applied,beforeRedisApply+2);
     assert.match(await page.locator('.native-result').innerText(),/acknowledged/);assert.match(await page.locator('.native-result').innerText(),/rollbackSupported/);
     assert.equal(await page.locator('.native-command').inputValue(),JSON.stringify(transaction),'Failure retains the exact transaction draft');
-    const examples=page.getByRole('combobox',{name:'Redis stream command example'});
+    const examples=page.getByRole('combobox',{name:'Redis command example'});
     page.once('dialog',dialog=>dialog.dismiss());await examples.selectOption({label:'Read consumer group'});assert.equal(await page.locator('.native-command').inputValue(),JSON.stringify(transaction));
     page.once('dialog',dialog=>dialog.accept());await examples.selectOption({label:'Read consumer group'});
     assert.deepEqual(JSON.parse(await page.locator('.native-command').inputValue()),['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']);
@@ -254,6 +256,44 @@ module.exports=async(browser,base)=>{
     });
     assert.equal(retained.applies,1);assert.deepEqual(retained.receipt.deliveredIds,['1-0']);assert.equal(retained.receipt.outcome,'acknowledged');assert.equal(retained.receipt.truncationReason,'browser_memory_limit');assert.equal(retained.receipt.automaticAcknowledgement,false);assert.ok(retained.kept<512*1024);assert.equal(retained.allocation,0);assert.equal(retained.rejectedCalls,0);assert.match(retained.refusedStatus,/Not started/);
     assert.equal(retained.viewName,'json');assert.equal(retained.gridDisabled,true);
+    page.once('dialog',dialog=>dialog.accept());await examples.selectOption({label:'Pipeline: write and inspect'});
+    assert.equal(JSON.parse(await page.locator('.native-command').inputValue()).pipeline.length,3);assert.equal(applied,beforeRedisApply+3,'Pipeline examples never execute');
+    await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();
+    assert.match(await review.innerText(),/not transactions/);assert.match(await review.innerText(),/other clients may interleave/);
+    await review.getByRole('button',{name:'Cancel',exact:true}).click();await review.waitFor({state:'hidden'});assert.equal(applied,beforeRedisApply+3);
+    await page.route('**/api/dba/jobs/native-browser-binary',route=>route.fulfill({json:route.request().method()==='DELETE'?{}:{id:'native-browser-binary',state:'complete',finished:Date.now(),result:{kind:'pipeline',outcome:'acknowledged',atomic:false,entries:[{index:0,command:'SET',state:'acknowledged',value:'OK'}],truncated:false}}}));
+    await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();await review.getByRole('button',{name:'Apply once',exact:true}).click();await page.locator('.native-status').filter({hasText:'Complete'}).waitFor();assert.equal(applied,beforeRedisApply+4);
+    const pipelineReceipt=await page.evaluate(async()=>{
+      const {NativeWorkspace}=await import('/dba/native-workspace.js');let allocation=0;
+      const view=new NativeWorkspace({api:async()=>{},profile:{transport:'redis'},state:{},changed:()=>{},account:bytes=>{if(bytes>700000)throw Error('Full');allocation=bytes;}});
+      view.showResult({kind:'pipeline',outcome:'partial_or_unknown',dispatchedCount:2,entries:[{index:0,command:'GETRANGE',state:'acknowledged',value:'x'.repeat(300000)},{index:1,command:'SET',state:'unknown'}]});
+      const receipt=JSON.parse(view.result.textContent),gridDisabled=view.viewButtons.grid.disabled;view.dispose();return{receipt,allocation,gridDisabled};
+    });
+    assert.equal(pipelineReceipt.receipt.kind,'pipeline');assert.equal(pipelineReceipt.receipt.entries[1].state,'unknown');assert.equal(pipelineReceipt.receipt.entries[0].valueOmitted,true);assert.equal(pipelineReceipt.receipt.dispatchedCount,2);assert.equal(pipelineReceipt.allocation,0);assert.equal(pipelineReceipt.gridDisabled,true);
+    const lateReceipt=await page.evaluate(async()=>{
+      const {NativeWorkspace}=await import('/dba/native-workspace.js');let view;
+      const api=async(path,method)=>{if(path==='/native/prepare')return{id:'review',mutation:true};if(path==='/native/apply')return{id:'job'};if(path==='/jobs/job'&&method!=='DELETE'){view.operation.cancelled=true;return{state:'complete',finished:1,result:{kind:'pipeline',outcome:'acknowledged',entries:[{index:0,state:'acknowledged'}]}};}return{};};
+      view=new NativeWorkspace({api,profile:{transport:'redis'},state:{database:'0',commandText:JSON.stringify({pipeline:[['SET','key','value']]})},changed:()=>{},account:()=>{}});view.confirmMutation=async()=>true;await view.run();const retained={receipt:JSON.parse(view.result.textContent),status:view.status.textContent};view.dispose();return retained;
+    });
+    assert.equal(lateReceipt.receipt.outcome,'acknowledged');assert.match(lateReceipt.status,/received command receipts retained/);
+    for(const label of ['Bitmap: set bit','Bitfield: increment','HyperLogLog: count (write review)','Geo: add location']){
+      page.once('dialog',dialog=>dialog.accept());await examples.selectOption({label});
+      await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();
+      assert.match(await review.innerText(),/64 KiB/);assert.match(await review.innerText(),/cached cardinality/);
+      await review.getByRole('button',{name:'Cancel',exact:true}).click();await review.waitFor({state:'hidden'});
+    }
+    assert.equal(applied,beforeRedisApply+4,'Value examples and cancelled reviews never execute');
+    page.once('dialog',dialog=>dialog.accept());await examples.selectOption({label:'HyperLogLog: count (write review)'});
+    await page.route('**/api/dba/jobs/native-browser-binary',route=>route.fulfill({json:route.request().method()==='DELETE'?{}:{id:'native-browser-binary',state:'complete',finished:Date.now(),result:{kind:'redis_value',operation:'PFCOUNT',outcome:'acknowledged',entries:[{index:0,value:2}]}}}));
+    await page.getByRole('button',{name:'Run native command',exact:true}).click();await review.waitFor();await review.getByRole('button',{name:'Apply once',exact:true}).click();await page.locator('.native-status').filter({hasText:'Complete'}).waitFor();
+    assert.equal(applied,beforeRedisApply+5);assert.match(await page.locator('.native-result').innerText(),/PFCOUNT/);
+    const valueReceipt=await page.evaluate(async()=>{
+      const {NativeWorkspace}=await import('/dba/native-workspace.js');let allocation=0;
+      const view=new NativeWorkspace({api:async()=>{},profile:{transport:'redis'},state:{},changed:()=>{},account:bytes=>{if(bytes>700000)throw Error('Full');allocation=bytes;}});
+      view.showResult({kind:'redis_value',operation:'BITFIELD',outcome:'acknowledged',entries:[{index:0,value:'x'.repeat(300000)}]});
+      const result=JSON.parse(view.result.textContent);view.dispose();return{result,allocation};
+    });
+    assert.equal(valueReceipt.result.kind,'redis_value');assert.equal(valueReceipt.result.outcome,'acknowledged');assert.equal(valueReceipt.result.entries[0].valueOmitted,true);assert.equal(valueReceipt.allocation,0);
     assert.deepEqual(errors,[]);
     await page.screenshot({path:'code-graph-dba/target/native-workspace.png'});
     console.log('Native browser checks passed: picker, setup, exact targets, typed JSON/grid, safe rendering, reusable layout, recovery, review/cancel/apply, finite change-stream continuation, Redis stream examples/explicit ACK notices, binary Redis commands and removed-connection cleanup.');

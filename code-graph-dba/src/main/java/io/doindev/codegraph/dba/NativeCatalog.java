@@ -41,6 +41,10 @@ final class NativeCatalog {
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
                 .put("maximumCommands",32).put("maximumWatchedKeys",16).put("maximumKeyReferences",100).put("rollbackSupported",false)
                 .put("restriction","Reviewed transaction object containing supported scalar-reply mutations and optional string/absent WATCH expectations. Cluster requires one hash slot; no scripts, read arrays, cross-slot routing, rollback or retries.");
+        if(target.transport()==DatabaseTransport.REDIS)operations.putObject("pipelines")
+                .put("available",true).put("requiresPermission",true).put("maximumCommands",32).put("maximumKeyReferences",100)
+                .put("writesAvailable",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("atomic",false)
+                .put("restriction",NativeRedisPipelines.NOTICE).put("replyPolicy","Scalar key reads, GETRANGE <=8192 bytes, and verified scalar-reply mutations only. Complete per-command receipts; values may be omitted under the byte allowance.");
         if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("transactions")
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)&&Set.of("replica_set","sharded").contains(target.topology()))
                 .put("requiresPermission",true).put("maximumCommands",32).put("maximumWriteEntries",100).put("atomic",true)
@@ -55,9 +59,14 @@ final class NativeCatalog {
                 .put("maximumEvents",100).put("maximumWaitMillis",10000).put("cursorLifetimeSeconds",300)
                 .put("continuousSubscription",false).put("restriction",NativeMongoStreams.NOTICE);
         var commands=result.putArray("readCommands");
+        if(target.transport()==DatabaseTransport.REDIS)operations.putObject("bitmapCardinalityGeo")
+                .put("available",true).put("requiresPermission",true).put("writesAvailable",approvalsEnabled&&!profile.path("readOnly").asBoolean(true))
+                .put("maximumBitAddressBytes",65536).put("maximumBitfieldOperations",32).put("maximumGeoResults",100).put("maximumKeyReferences",100)
+                .put("restriction",NativeRedisValues.NOTICE).put("verification","Redis 7.4.1 fixture target; version and ACL remain authoritative");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("find","aggregate (verified read stages)","explain (queryPlanner)","listCollections","listIndexes"))commands.add(name);
         else for(String name:List.of("GET (preview)","GETRANGE","TYPE","TTL","PTTL","STRLEN","EXISTS","EXPIRETIME","PEXPIRETIME","HLEN","LLEN","SCARD","ZCARD","XLEN","HEXISTS","SISMEMBER","ZSCORE","GETBIT","HGET","LINDEX","LRANGE","ZRANGE","ZREVRANGE","HSCAN","SSCAN","ZSCAN","XRANGE","XREVRANGE","SCAN","DBSIZE","PING"))commands.add(name);
         var writes=result.putArray("mutationCommands");
+        if(target.transport()==DatabaseTransport.REDIS){NativeRedisValues.READS.stream().sorted().forEach(commands::add);NativeRedisValues.WRITES.stream().sorted().forEach(writes::add);}
         if(target.transport()==DatabaseTransport.REDIS){commands.add("XREAD (single stream, required COUNT, no BLOCK)");commands.add("XPENDING (bounded extended form)");}
         if(target.transport()==DatabaseTransport.MONGODB&&Set.of("replica_set","sharded").contains(target.topology()))commands.add("watch (bounded exact-collection change batches)");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("insert","update (single-document entries)","delete (limit 1 entries)","create (collection or verified view)","collMod (validator/view, existing TTL index, time-series retention/granularity, capped limits)","createIndexes","renameCollection (same database, no replacement, ordinary/capped collections only)","drop","dropIndexes"))writes.add(name);

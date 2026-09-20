@@ -72,6 +72,8 @@ final class NativeOperations implements AutoCloseable {
         review.set("after",Profiles.JSON.createObjectNode().set("nativeCommand",command.deepCopy()));
         review.put("commandHash",CatalogScanner.hash(command.toString()));
         if(classification.category().equals("redis.transaction"))review.put("transactionNotice",NativeRedisTransactions.NOTICE);
+        if(classification.category().equals("redis.pipeline"))review.put("transactionNotice",NativeRedisPipelines.NOTICE);
+        if(classification.category().startsWith("redis.value."))review.put("transactionNotice",NativeRedisValues.NOTICE);
         if(classification.category().equals("mongo.transaction"))review.put("transactionNotice",NativeMongoTransactions.NOTICE);
         if(classification.category().equals("mongo.watch"))review.put("transactionNotice",NativeMongoStreams.NOTICE);
         if(classification.category().startsWith("redis.stream.")){review.put("transactionNotice",NativeRedisStreams.NOTICE);review.set("streamScope",NativeRedisStreams.scope(command));}
@@ -116,7 +118,12 @@ final class NativeOperations implements AutoCloseable {
             authorityCheck.run();validate(review,input);
             if(!lease.revision.equals(review.path("targetRevision").asText()))throw new IllegalArgumentException("Native client revision changed; review again");
             job.progress="Executing bounded native read";
+            if(target.transport()==DatabaseTransport.REDIS&&input.path("command").has("pipeline")){
+                job.progress=review.path("mutation").asBoolean()?"Executing reviewed Redis pipeline":"Executing bounded Redis read pipeline";
+                return NativeRedisPipelines.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
+            }
             if(target.transport()==DatabaseTransport.REDIS&&NativeRedisStreams.handles(input.path("command")))return NativeRedisStreams.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
+            if(target.transport()==DatabaseTransport.REDIS&&NativeRedisValues.handles(input.path("command")))return NativeRedisValues.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
             if(review.path("classification").path("category").asText().equals("mongo.watch"))return streams.execute(lease,target,input.path("command"),job,review,()->{authorityCheck.run();validate(review,input);});
             if(review.path("mutation").asBoolean()){
                 job.progress="Executing reviewed native mutation";

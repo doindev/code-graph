@@ -95,7 +95,9 @@ class NativeVendorTest {
                     "[\"XADD\",\"cg-stream\",\"1-0\",\"field\",\"value\"]",
                     "[\"XREADGROUP\",\"GROUP\",\"workers\",\"one\",\"COUNT\",\"1\",\"STREAMS\",\"cg-stream\",\">\"]",
                     "[\"XPENDING\",\"cg-stream\",\"workers\",\"-\",\"+\",\"10\"]",
-                    "[\"XACK\",\"cg-stream\",\"workers\",\"1-0\"]","[\"DEL\",\"cg-stream\"]"};
+                    "[\"XACK\",\"cg-stream\",\"workers\",\"1-0\"]","[\"DEL\",\"cg-stream\"]",
+                    "{\"pipeline\":[[\"SET\",\"cg-pipe\",\"value\"],[\"GETRANGE\",\"cg-pipe\",\"0\",\"20\"],[\"DEL\",\"cg-pipe\"]]}"};
+            if(engine.equals("redis"))commands=withValueCommands(commands);
             for(String command:commands){
                 var input=target.deepCopy().put("requestId",UUID.randomUUID().toString()).put("purpose","Owned native command verification");
                 input.set("command",Profiles.JSON.readTree(command));
@@ -106,9 +108,19 @@ class NativeVendorTest {
                     assertTrue(done.toString().contains("updated"),done.toPrettyString());
                     verifyCatalogWorkflow(runtime,principal,session,target);
                 }
-                else assertEquals(command.contains("\"XPENDING\"")?"read":"acknowledged",done.path("job").path("result").path("outcome").asText(),done.toPrettyString());
+                else assertEquals(command.contains("\"XPENDING\"")||command.contains("\"BITCOUNT\"")||command.contains("\"GEOSEARCH\"")?"read":"acknowledged",done.path("job").path("result").path("outcome").asText(),done.toPrettyString());
             }
         }
+    }
+    private static String[] withValueCommands(String[] initial){
+        var commands=new ArrayList<>(Arrays.asList(initial));
+        for(String[] args:List.of(new String[]{"SETBIT","{value-review}:bits","7","1"},new String[]{"BITCOUNT","{value-review}:bits"},
+                new String[]{"PFADD","{value-review}:hll","a","b"},new String[]{"PFCOUNT","{value-review}:hll"},
+                new String[]{"GEOADD","{value-review}:geo","1","2","a"},new String[]{"GEOSEARCH","{value-review}:geo","FROMMEMBER","a","BYRADIUS","1","km","COUNT","1"},
+                new String[]{"DEL","{value-review}:bits","{value-review}:hll","{value-review}:geo"})){
+            var command=Profiles.JSON.createArrayNode();for(String arg:args)command.add(arg);commands.add(command.toString());
+        }
+        return commands.toArray(String[]::new);
     }
     private void verifyCatalogWorkflow(DbaRuntime runtime,String principal,String session,ObjectNode target)throws Exception{
         var scope=target.deepCopy();scope.remove("collection");
@@ -193,8 +205,11 @@ class NativeVendorTest {
                 "[\"XADD\",\""+key+"\",\"1-0\",\"field\",\"value\"]",
                 "[\"XREADGROUP\",\"GROUP\",\"workers\",\"one\",\"COUNT\",\"1\",\"STREAMS\",\""+key+"\",\">\"]",
                 "[\"XPENDING\",\""+key+"\",\"workers\",\"-\",\"+\",\"10\"]",
-                "[\"XACK\",\""+key+"\",\"workers\",\"1-0\"]","[\"DEL\",\""+key+"\"]"
+                "[\"XACK\",\""+key+"\",\"workers\",\"1-0\"]","[\"DEL\",\""+key+"\"]",
+                "{\"pipeline\":[[\"SET\",\""+key+"\",\"pipeline\"],[\"GETRANGE\",\""+key+"\",\"0\",\"20\"],[\"DEL\",\""+key+"\"]]}",
+                "{\"pipeline\":[[\"TYPE\",\""+key+"\"],[\"TTL\",\""+key+"\"]]}"
             };
+            if(engine.equals("redis"))commands=withValueCommands(commands);
             int index=0;
             for(String text:commands){
                 var command=Profiles.JSON.readTree(text);

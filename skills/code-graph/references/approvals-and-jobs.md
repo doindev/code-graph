@@ -18,7 +18,8 @@ mode omits approval-dependent operations; do not bypass it with browser APIs,
 direct JDBC, curl, a new identity or another target.
 
 Keep SQL and typed parameter values separate. Inspect an approval's returned
-state and IDs. Use the returned `approvalId` for request status/cancellation,
+state and IDs. Prefer `dba_request_status` / `dba_cancel_request` over legacy
+live-request aliases. Use the returned `approvalId` for request status/cancellation,
 not the caller's submission `requestId` idempotency key. Older status schemas
 accept that approval ID in `requestId`; use the advertised canonical field.
 Use `jobId` for execution. Do not resubmit intent to create extra prompts.
@@ -37,6 +38,11 @@ acknowledgements are not completion. Retain partial-result/partial-commit
 warnings; release completed results when no longer needed. Cancel only jobs
 owned by this task. Do not busy-poll, bypass row limits, or silently broaden
 queries to obtain complete datasets.
+
+For native batches, retain per-command outcomes and delivery IDs even if the job
+ends in failure/cancellation or omits values to stay within its byte allowance.
+Release only after collecting the evidence needed to report or reconcile effects.
+Do not conflate a successful MCP response with successful database execution.
 
 On uncertain commit/connection loss, stop mutation retries. Reconcile actual
 metadata/data through authorized reads and report what is known, unknown, and

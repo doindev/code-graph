@@ -53,7 +53,7 @@ final class NativeCommand {
         bound(command);
         return switch (target.transport()) {
             case MONGODB -> command.has("transaction") ? NativeMongoTransactions.classify(target,command) : mongo(target, command);
-            case REDIS -> command.isObject() ? NativeRedisTransactions.classify(target,command) : redis(command);
+            case REDIS -> command.has("pipeline") ? NativeRedisPipelines.classify(target,command) : command.isObject() ? NativeRedisTransactions.classify(target,command) : NativeRedisValues.handles(command) ? NativeRedisValues.classify(target,command) : redis(command);
             default -> throw new IllegalArgumentException("Use SQL tools for JDBC connections");
         };
     }

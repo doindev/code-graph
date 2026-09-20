@@ -122,6 +122,16 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Bounded bitmap/bitfield, HyperLogLog and geospatial command adapters,
+  shared read/reviewed dispatch, exact primary/Cluster targeting, UI examples and
+  typed receipt handling. PFCOUNT requires write review; BITOP and module-specific
+  commands remain unsupported. See [grammar and validation](redis-values.md).
+
+- [x] Finite command pipelines with complete-batch preflight, operation-owned
+  primary sockets, ordered bounded replies and per-command outcome receipts.
+  This does not enable scripts/functions or unrestricted command batching.
+  See [pipeline scope and validation](redis-pipelines.md).
+
 - [x] Finite single-stream consumer-group commands: bounded reads/pending
   inspection, reviewed delivery/claim/ACK and group lifecycle, independent
   delivery receipts, cancellation outcomes and primary-socket pinning.
@@ -141,7 +151,7 @@ authentication and operation coverage remains tracked in later phases.
   handling, empty pages and clear non-snapshot semantics; never automatic KEYS *.
 - [ ] Binary-safe key/value previews and editors for strings, hashes, lists,
   sets, sorted sets, streams; TTL, rename, deletion and conditional writes.
-- [ ] Bitmaps, bitfields, HyperLogLog, geospatial operations; detected JSON,
+- [ ] Broader bitmap variants and detected JSON,
   search/vector/time-series/probabilistic capabilities where available. Do not
   pretend storage representation proves the semantic key type.
 - [ ] Native command editor, bounded pipelines and WATCH/MULTI/EXEC with no

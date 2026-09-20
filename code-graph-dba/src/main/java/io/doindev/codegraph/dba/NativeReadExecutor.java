@@ -27,7 +27,7 @@ final class NativeReadExecutor {
         check(cancelled);
         NativeCommand.Classification classification=NativeCommand.classify(target,command);
         if(!classification.reusableRead())throw new IllegalArgumentException("This command has no verified native read adapter; request the appropriate reviewed operation");
-        ObjectNode result=target.transport()==DatabaseTransport.MONGODB?mongo(lease.mongo,target,command,limits,cancelled):redis(lease,target,command,limits,cancelled);
+        ObjectNode result=target.transport()==DatabaseTransport.MONGODB?mongo(lease.mongo,target,command,limits,cancelled):NativeRedisValues.handles(command)?NativeRedisValues.read(lease,target,command,limits,cancelled):redis(lease,target,command,limits,cancelled);
         result.set("target",target.json());result.set("classification",classification.json());
         result.put("consistency","live_non_snapshot").put("hardMemoryLimit",false);
         return result;

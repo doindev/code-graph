@@ -72,7 +72,7 @@ try {
     $env:NATIVE_TEST_TOPOLOGY=$Topology;$env:NATIVE_TEST_PORT=[string]$(if($Topology -eq 'cluster'){$base}else{$base+2});$env:NATIVE_TEST_OWNER=$owner
     $env:NATIVE_TEST_SENTINEL_AUTH=$SentinelAuth
     Write-Output "Owned $Topology fixture $owner on $env:NATIVE_TEST_PORT; authentication=$SentinelAuth; image=$imageId"
-    mvn -q -f (Join-Path $build 'pom.xml') -pl code-graph-dba -am test '-Dtest=NativeTopologyTest,NativeSentinelAuthTest,NativeRedisTransactionTest,NativeRedisStreamTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
+    mvn -q -f (Join-Path $build 'pom.xml') -pl code-graph-dba -am test '-Dtest=NativeTopologyTest,NativeSentinelAuthTest,NativeRedisTransactionTest,NativeRedisStreamTest,NativeRedisPipelineTest,NativeRedisValueTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
     if($LASTEXITCODE -ne 0){throw 'Redis topology gate failed'}
 }finally{
     if($container){$label=docker inspect $container --format '{{index .Config.Labels "io.doindev.codegraph.test"}}';if($label -eq $owner){docker rm --force --volumes $container}else{Write-Warning 'Ownership mismatch; container preserved'}}

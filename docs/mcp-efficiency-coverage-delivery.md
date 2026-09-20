@@ -146,6 +146,14 @@ The frozen source ZIP SHA-256 is
   The [Redis stream increment](redis-streams.md) adds finite, reviewed consumer
   delivery/claims/ACKs and group lifecycle, with capped payloads and complete
   delivery-ID receipts. This does not enable permanent consumers or Pub/Sub.
+  The [pipeline follow-up](redis-pipelines.md) adds finite scalar/range command
+  batching, complete per-command receipts and explicit partial/unknown outcomes.
+  Pub/Sub still requires server/channel scope rather than database-local grants;
+  scripts/functions and infrastructure administration remain incomplete.
+  The [value-operation follow-up](redis-values.md) adds bounded bitmaps/bitfields,
+  HyperLogLog and geo commands, with typed results, reviewed PFCOUNT, same-slot
+  multi-key validation and standalone/Cluster/ACL-Sentinel acceptance. Module
+  operations and graphical native-value editing remain separate unfinished work.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

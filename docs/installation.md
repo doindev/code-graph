@@ -385,6 +385,12 @@ the application installation succeeds; optional skill failures are reported as a
 partial installation with a nonzero exit, not as a failed application build.
 Rerunning with `none` does not uninstall previously selected skills.
 
+For an update, compare the entire installed folder with `skills/code-graph`, not
+just `SKILL.md`: most workflow details live in the references. Preserve local
+customizations while merging. A differing copy can also be an older unmodified
+release; confirm that against repository history before replacing its stock
+files. The installer intentionally does not guess whether differences are yours.
+
 To install skills separately, without rebuilding the application, use the optional
 Node.js helper from a checkout. It requires explicit scope and never downloads anything:
 

@@ -21,6 +21,7 @@ final class NativeRedisTransactions {
         for(JsonNode entry:commands){
             if(!entry.isArray())throw new IllegalArgumentException("Nested transactions and non-array commands are not supported");
             if(NativeRedisStreams.handles(entry))throw new IllegalArgumentException("Stream operations require their dedicated finite workflow, not a scalar transaction");
+            if(NativeRedisValues.handles(entry))throw new IllegalArgumentException("Bitmap, cardinality and geo commands require their dedicated single-command workflow");
             NativeMutations.validate(target,entry);
             var classification=NativeCommand.classify(target,entry);
             if(classification.effect()==NativeCommand.Effect.DESTRUCTIVE)destructive=true;

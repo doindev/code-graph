@@ -59,8 +59,8 @@ final class NativeMutations {
             }
             if(command.has("ordered")&&!command.path("ordered").isBoolean())throw new IllegalArgumentException("ordered must be boolean");
         }else{
-            if(command.isObject())return; // Managed transactions were fully validated by classification above.
-            if(NativeRedisStreams.handles(command))return; // Reviewed separately on a pinned operation connection.
+            if(command.isObject())return; // Managed transactions/pipelines were fully validated by classification above.
+            if(NativeRedisStreams.handles(command)||NativeRedisValues.handles(command))return; // Reviewed separately on a pinned operation connection.
             String name=command.get(0).asText().toUpperCase(Locale.ROOT);int size=command.size();
             switch(name){
                 case "SET" -> {arity(size,3,6);setOptions(command);}
@@ -97,8 +97,10 @@ final class NativeMutations {
                 if(rename)result.putObject("renamed").put("database",target.database()).put("from",target.collection()).put("to",MongoCollectionRename.validate(target,command));
                 job.outcome="acknowledged";return result;
             }
+            if(command.has("pipeline"))return NativeRedisPipelines.execute(lease,target,command,job,beforeWrite);
             if(command.isObject())return NativeRedisTransactions.execute(lease,target,command,job,beforeWrite);
             if(NativeRedisStreams.handles(command))return NativeRedisStreams.execute(lease,target,command,job,beforeWrite);
+            if(NativeRedisValues.handles(command))return NativeRedisValues.execute(lease,target,command,job,beforeWrite);
             try(var connection=NativeRedisSession.open(lease,target,job.remainingSeconds())){
                 var redis=connection.sync();if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 String name=command.get(0).asText().toUpperCase(Locale.ROOT);byte[] key=bytes(command,1);Object value;

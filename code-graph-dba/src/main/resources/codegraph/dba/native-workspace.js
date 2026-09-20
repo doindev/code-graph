@@ -35,10 +35,13 @@ export class NativeWorkspace {
     this.cancelButton=this.button(toolbar,'Cancel current operation','square',()=>this.cancel());this.cancelButton.disabled=true;
     if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;}
     if(profile.transport==='redis'){
-      this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis stream command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads require write review.';
+      this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads and PFCOUNT require write review.';
       const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
+      examples.push(['Pipeline: write and inspect',{pipeline:[['SET','{example}:key','value'],['GETRANGE','{example}:key','0','8191'],['TTL','{example}:key']]}],['Pipeline: read key metadata',{pipeline:[['TYPE','{example}:key'],['TTL','{example}:key'],['EXISTS','{example}:key']]}]);
+      examples[0][0]='Redis examples…';
+      examples.push(['Bitmap: set bit',['SETBIT','{example}:bits','7','1']],['Bitmap: count bits',['BITCOUNT','{example}:bits']],['Bitfield: read integer',['BITFIELD_RO','{example}:bits','GET','i64','0']],['Bitfield: increment',['BITFIELD','{example}:bits','OVERFLOW','FAIL','INCRBY','u8','0','1']],['HyperLogLog: add members',['PFADD','{example}:visitors','member-1','member-2']],['HyperLogLog: count (write review)',['PFCOUNT','{example}:visitors']],['Geo: add location',['GEOADD','{example}:places','13.361389','38.115556','Palermo']],['Geo: nearby locations',['GEOSEARCH','{example}:places','FROMMEMBER','Palermo','BYRADIUS','200','km','ASC','COUNT','100','WITHDIST','WITHCOORD']]);
       for(const [index,[label]] of examples.entries()){const option=el('option',label);option.value=String(index);this.streamExamples.append(option);}
-      this.streamExamples.onchange=()=>{const command=examples[Number(this.streamExamples.value)]?.[1];this.streamExamples.value='0';if(!command||this.operation||this.disposed||this.unavailable)return;if(this.editor.value.trim()&&!window.confirm('Replace this command draft with a stream example? Nothing will execute.'))return;this.editor.value=JSON.stringify(command,null,2);this.sync();this.editor.focus();};
+      this.streamExamples.onchange=()=>{const command=examples[Number(this.streamExamples.value)]?.[1];this.streamExamples.value='0';if(!command||this.operation||this.disposed||this.unavailable)return;if(this.editor.value.trim()&&!window.confirm('Replace this command draft with a Redis example? Nothing will execute.'))return;this.editor.value=JSON.stringify(command,null,2);this.sync();this.editor.focus();};
       toolbar.append(this.streamExamples);
     }
     this.status=el('span','Ready · no query has run','native-status');this.status.setAttribute('role','status');toolbar.append(this.status);
@@ -46,6 +49,8 @@ export class NativeWorkspace {
     this.editor=el('textarea',null,'native-command');this.editor.setAttribute('aria-label','Native command JSON');this.editor.spellcheck=false;this.editor.wrap='off';
     if(profile.transport==='redis')this.editor.title='Redis argument array, or {"transaction":[["SET","key","value"]],"watch":[{"key":"key","expected":null}]}. At most 32 mutations, 16 expected string/absent keys; Cluster requires one hash slot. No rollback or retries. Keys and values may use {"base64":"AP8="}; controls stay text. Binary values: 64 KiB; keys/fields: 8 KiB.';
     if(profile.transport==='mongodb')this.editor.title='MongoDB Extended JSON command, or {"transaction":[{"insert":"items","documents":[{"_id":"example"}]}]}. Transactions require an explicit replica-set/sharded profile and one existing ordinary collection; at most 32 CRUD commands and 100 write entries. Updates/deletes must each match one document. No automatic retries.';
+    if(profile.transport==='redis')this.editor.title+=' Pipelines: {"pipeline":[["SET","{example}:key","value"],["TTL","{example}:key"]]}. Up to 32 scalar commands; all reviewed together, not atomic. Later commands can succeed after errors. Cluster requires one slot; no scripts or automatic retry.';
+    if(profile.transport==='redis')this.editor.title+=' Bitmap/bitfield writes address at most 64 KiB; at most 32 bitfield subcommands. Geo searches require COUNT 1..100. PFCOUNT may update cached cardinality, so requires write review. Multi-key cardinality/geo storage commands require one Cluster hash slot. These workflows run separately, not inside pipelines or transactions.';
     if(profile.transport==='mongodb')this.editor.title+=' Change streams: {"watch":"items","waitMillis":1000,"limit":100}. Finite batches, no initial snapshot. Read next change batch resumes explicitly; Run without a cursor starts at now and may miss intervening history.';
     if(profile.transport==='redis')this.editor.title+=' Stream examples are finite, single-key commands with COUNT at most 100. No BLOCK/NOACK or automatic acknowledgement. Consumer-group reads/claims change pending delivery state; inspect all delivered IDs and complete payloads before explicitly acknowledging them. No subscriptions retained.';
     this.editor.value=state.commandText??(profile.transport==='mongodb'?'{\n  "find": "collection",\n  "filter": {},\n  "limit": 100\n}':'["SCAN", "0", "MATCH", "*"]');
@@ -82,11 +87,22 @@ export class NativeWorkspace {
   showResult(result){
     let receiptOnly=false,text=JSON.stringify(result,null,2),cost=new TextEncoder().encode(text).length*6+(Array.isArray(result.entries)?result.entries.length*256*16:0);
     try{this.account(cost);}catch(error){
-      if(result.kind!=='stream')throw error;
+      if(!['stream','pipeline','redis_value'].includes(result.kind))throw error;
       // Reserve was admitted before dispatch. Never lose delivered IDs merely because the UI cannot retain payloads.
       const receipt={kind:'stream',truncated:true,truncationReason:'browser_memory_limit',entries:[],automaticAcknowledgement:false,
         notice:'Payloads omitted because the browser result allowance is full. Delivery IDs/outcome are retained. These messages are not fully processed; inspect pending state and complete values before any explicit ACK. Do not blindly rerun.'};
       for(const key of ['operation','outcome','target','deliveredIds','deletedPendingIds','deletedPendingIdsReported','nextCursor','scanComplete','acknowledgementRequired','pendingDeliveryStateChanged','value'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+      if(result.kind==='pipeline'){
+        receipt.kind='pipeline';delete receipt.automaticAcknowledgement;receipt.atomic=false;receipt.rollbackSupported=false;
+        receipt.notice='Values omitted under the browser memory allowance. Per-command receipts retained. Pipelines are not atomic; reconcile unknown/partial outcomes before any retry.';
+        receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,command:entry.command,state:entry.state,valueOmitted:true}));
+        for(const key of ['dispatchedCount','unknownCount','rejectedCount'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+      }
+      if(result.kind==='redis_value'){
+        receipt.kind='redis_value';delete receipt.automaticAcknowledgement;
+        receipt.notice='Values omitted under the browser memory allowance. Command outcome retained; reconcile uncertain mutations before retrying.';
+        receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,valueOmitted:true}));
+      }
       receiptOnly=true;result=receipt;text=JSON.stringify(result,null,2);cost=new TextEncoder().encode(text).length*6;
       if(cost>RECEIPT_RESERVE)throw new Error('Stream receipt exceeds its reserved UI allowance; reconcile pending entries before retrying.');
       this.account(cost);
@@ -136,6 +152,8 @@ export class NativeWorkspace {
             if(current.result.kind==='change_stream'&&current.result.nextCursor&&!current.result.requiresRestart&&operation.signature===this.signature())this.nextBatch={cursor:current.result.nextCursor,signature:operation.signature};
             if(current.result.kind==='change_stream')this.status.textContent+=' · '+current.result.stopReason+' · '+(current.result.requiresRestart?'History gap: review before starting again':'Read next batch explicitly; no subscription retained');
             if(current.result.kind==='stream'&&current.result.acknowledgementRequired)this.status.textContent+=' · '+current.result.deliveredIds.length+' delivered IDs · acknowledgement is a separate reviewed command; inspect complete payloads first';
+          }else if(!this.disposed&&['stream','pipeline','redis_value'].includes(current.result?.kind)){
+            this.showResult(current.result);this.selectView('json');this.status.textContent='Cancellation requested · received command receipts retained; inspect outcomes before retrying';
           }else this.status.textContent='Cancelled · previous results retained';
           break;
         }

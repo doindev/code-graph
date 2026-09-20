@@ -47,6 +47,21 @@ test('all local Markdown reference links resolve inside the maintained skill',as
   }
 });
 
+test('skill MCP tool references exist in the generated server contract',async()=>{
+  const catalog=await readFile(new URL('../docs/mcp-tools-generated.md',import.meta.url),'utf8');
+  const names=new Set([...catalog.matchAll(/^## `([a-z][a-z0-9_]+)`$/gm)].map(match=>match[1]));
+  assert.ok(names.size>0,'generated tool catalog must not be empty');
+  const references=new Set();
+  for(const [file,body] of Object.entries(await inventory(source))) {
+    if(!file.endsWith('.md'))continue;
+    for(const match of body.matchAll(/`((?:dba_|get_|find_|search_|resolve_|analyze_|compare_|validate_|index_|list_|add_|remove_|reindex_)[a-z0-9_]+)`/g)) {
+      references.add(match[1]);
+      assert.ok(names.has(match[1]),file+' refers to an unadvertised tool: '+match[1]);
+    }
+  }
+  assert.ok(references.size>0,'skill must expose useful workflow tool references');
+});
+
 test('dry run does not create directories and customized skills are never overwritten',async()=>{
   const project=await mkdtemp(path.join(os.tmpdir(),'cgraph-skill-test-'));
   try {

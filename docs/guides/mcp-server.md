@@ -84,6 +84,12 @@ and change impact, while retaining file reads and text search for exact contents
 and unindexed files. It uses only standard `name`/`description` frontmatter and
 does not configure or start an MCP server.
 
+Its focused references cover bundled symbol evidence, freshness barriers,
+standalone catalogs, canonical approval/job IDs, schema/migration workflows,
+editor pairing, and bounded native MongoDB/Redis batches. Pipeline/stream receipts
+remain important after cancellation or partial failure. The skill follows actual
+advertised capabilities; it does not imply the entire vendor roadmap is complete.
+
 Copy the `skills/code-graph` folder into the target repository's skill directory:
 
 - GitHub Copilot: `.github/skills/code-graph/SKILL.md`.
@@ -132,7 +138,7 @@ this helper never changes listener exposure.
 
 | Tool | Purpose |
 |---|---|
-| `search_symbols` | Find symbols by name — call this FIRST to obtain valid symbol IDs |
+| `search_symbols` | Find symbols by name when their IDs/locations are not already known |
 | `get_symbol` | Signature, location, dependency counts for one ID |
 | `get_file_outline` | Cursor-paged declarations and spans in an explicit relative file |
 | `resolve_symbol_at_position` | Indexed reference-expression candidates or containing declarations; 1-based position and explicit precision/confidence |
@@ -270,8 +276,10 @@ graph. Test-path conventions remain heuristic and do not establish complete cove
 
 Compatibility aliases remain supported: `dba_live_request_status` →
 `dba_request_status`, and `dba_cancel_live_request` → `dba_cancel_request`.
-Aliases take `approvalId`; canonical operations take the returned approval ID
-in `requestId` (not the caller's idempotency key).
+Canonical operations and aliases accept the server-returned `approvalId`.
+Canonical operations temporarily also accept `requestId` as a deprecated polling
+alias for that same approval ID, not the caller's submission idempotency key.
+If both fields are supplied, they must match.
 
 ### Onboarding projects through MCP
 
@@ -297,9 +305,10 @@ restriction. The same safety rule applies to UI onboarding and startup roots.
 ### Idle project expiry
 
 Both entry points accept `--project-ttl 1h` (default); `90s`, `30m`, and `2d` are also valid.
-Each resolved project-specific MCP call resets that project's idle timer, including `index_status`.
-When `project` is omitted, only the resolved default project is renewed. `list_projects` is
-passive: its `lastActivityAt`, `expiresAt`, `remainingSeconds`, `activeOperations`, and `instanceId`
+Resolved project-evidence MCP calls reset that project's idle timer. When `project`
+is omitted, only the resolved default project is renewed. `list_projects` and
+`index_status` (including bounded waits) are passive and do not renew TTL.
+The roster's `lastActivityAt`, `expiresAt`, `remainingSeconds`, `activeOperations`, and `instanceId`
 fields let clients observe lifetimes without keeping projects alive. Tool discovery and MCP
 connection traffic do not count as project use.
 

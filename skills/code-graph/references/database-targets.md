@@ -15,8 +15,10 @@ When several bindings match, resolve the ambiguity before submitting work.
 `dba_list_templates` returns recipes, not proof a driver is installed or an
 operation is verified. `dba_get_capabilities` distinguishes cached observations
 from unknown servers. `live: true`, when advertised and authorized, returns a job
-for one target's actual JDBC metadata or native server version. A PostgreSQL-compatible product is not
-automatically certified for all PostgreSQL administration.
+for one target's actual JDBC metadata or native server version. A
+PostgreSQL-compatible product is not automatically certified for all PostgreSQL
+administration. Connectivity does not mean complete vendor support; use reported
+capability restrictions rather than the broader feature roadmap as authority.
 
 Cached catalog tools also accept a standalone connection UUID, exact name, explicit
 database/catalog, and optional schema when advertised. Do not invent a project
@@ -46,10 +48,9 @@ connections. Native clients are bundled and require no JDBC driver installation.
 
 When advertised, `dba_request_native_command` accepts an Extended JSON command
 object for MongoDB or an argument array for Redis (text and supported base64
-key/value fields). Discover managed transaction support from the actual schema.
-Supply the exact binding
-or standalone UUID/name/database; add `collection` matching Mongo collection
-commands. Native bindings have no SQL schema. A database or collection discovered
+key/value fields). Discover managed transaction/pipeline support from the actual
+schema. Supply the exact binding or standalone UUID/name/database; add `collection`
+matching Mongo collection commands. Native bindings have no SQL schema. A database or collection discovered
 in metadata does not grant permission to use it.
 
 Native operations currently use exact one-time review, or automatic authorization
@@ -64,22 +65,66 @@ value. Use projections, ranges or supported scans to keep results bounded.
 SCAN is live and may repeat entries; a truncated page without a continuation
 requires refinement rather than guessing a cursor.
 
-Conditional Redis SET reports `applied: false` when its condition did not match.
-That is not a transport failure and should not trigger an unconditional retry.
-Individual native writes are not an atomic script. When advertised, Redis managed
-transactions accept a bounded batch plus optional exact string/absent WATCH
-expectations. Cluster requires all command/watch keys in one hash slot. Redis
-does not roll back execution-time errors: inspect per-command results, not just
-the job's final state. A WATCH conflict executes no batch commands; reread and
-review a new request rather than retrying or removing expectations automatically.
-On partial/unknown outcomes, reconcile
-with authorized reads before requesting another mutation. Native schema capture and cached catalogs, when advertised, contain bounded
+Native schema capture and cached catalogs, when advertised, contain bounded
 definitions/observations, never a complete document/key inventory. Sampling is
 opt-in; field types observed in documents are not declared validator requirements.
 Redis prefixes/types/TTL classes are conventions, not a relational schema.
 Do not infer removed objects from missing samples or compare volatile TTL
 milliseconds as schema changes. Reusable policies, transactions and infrastructure
 capabilities must not be assumed merely because a native profile connects.
+
+### Redis pipelines and transactions
+
+Conditional single-command SET reports `applied: false` when its condition did
+not match. That is not a transport failure and must not trigger an unconditional
+retry. Pipeline receipts instead carry the command's value; an `acknowledged`
+receipt means a reply arrived, not necessarily that a conditional write applied.
+
+When advertised, Redis `pipeline` batches submit supported scalar/range operations
+in order on one exact target, including read-after-write sequences. For example,
+the command portion of a read request can be
+`{"pipeline":[["TYPE","key"],["TTL","key"]]}`; supply the ordinary exact target,
+request ID and purpose separately. Current bounds are 1–32 commands, 100 key
+references and 128 KiB input. GETRANGE is restricted to a nonnegative range of at
+most 8,192 bytes; arbitrary GET, scans, aggregate replies, stream commands and
+scripts do not become valid merely by placing them inside a pipeline.
+
+Pipelines are not transactions:
+other clients may interleave and later commands still execute after errors. Use
+the returned per-command receipts (`not_sent`, `acknowledged`, `rejected`,
+`unknown`), including omitted values and unknown outcomes;
+a cancelled job does not prove its commands were cancelled. Prefer the managed
+transaction workflow when non-interleaving is required, and never automatically
+replay either batch. A pipeline grants no extra permissions and does not make
+an unbounded command safe. Cluster pipelines require one shared hash slot.
+
+Individual native writes are not an atomic script. When advertised, Redis managed
+transactions accept a bounded batch plus optional exact string/absent WATCH
+expectations. Cluster requires all command/watch keys in one hash slot. Redis
+does not roll back execution-time errors: inspect per-command results, not just
+the job's final state. A WATCH conflict executes no batch commands; reread and
+review a new request rather than retrying or removing expectations automatically.
+On partial/unknown outcomes, reconcile with authorized reads before requesting
+another mutation. Inspect retained results even when the job failed or was
+cancelled: the terminal state alone cannot establish which commands ran.
+
+### Redis bitmap, cardinality and geo workflows
+
+Discover the command grammar first. Bitmap/bitfield writes are restricted to the
+first 64 KiB and 32 bitfield operations; do not split a larger mutation merely to
+bypass those limits. `BITFIELD_RO` supports GET only. Geo searches require explicit
+COUNT (at most 100); COUNT bounds returned members, not the server's search work.
+Multi-key cardinality/geo storage commands require one Cluster hash slot. These
+commands are not accepted inside the managed pipeline/transaction forms.
+
+`PFCOUNT` can update Redis's cached cardinality, so it requires write review and
+is unavailable on read-only profiles. Do not infer a read grant from its name.
+HyperLogLog counts are approximate. Bitmap and HyperLogLog keys have Redis type
+string, and geo indexes have type zset; TYPE alone cannot prove their semantics.
+Respect typed integer/null results and binary-preview truncation. After cancellation,
+inspect retained outcomes; an acknowledged mutation is not undone by cancellation.
+
+### MongoDB transactions and change streams
 
 When advertised, MongoDB managed transactions use a `transaction` array of CRUD
 objects, unlike Redis argument arrays. They require an explicit replica-set or
@@ -98,6 +143,8 @@ batch only when the task needs it, rather than creating a polling keepalive.
 Expiry, collection invalidation and history loss are gaps: never remove the cursor
 and silently restart. Oversized events may block continuation; do not claim that
 later events were consumed or that an empty batch means complete history.
+
+### Redis key scans and stream delivery
 
 For Sentinel/Cluster, preserve opaque SCAN cursors exactly. They are tied to the
 profile/database and observed primary/topology and can expire; restart from 0

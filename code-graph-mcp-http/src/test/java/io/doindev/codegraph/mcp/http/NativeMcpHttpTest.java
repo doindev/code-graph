@@ -37,7 +37,7 @@ class NativeMcpHttpTest {
         JsonNode result=JSON.readTree(reply.path("content").get(0).path("text").asText());
         assertEquals(result,reply.path("structuredContent").path("data"));return result;
     }
-    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"redis","redis-transaction","redis-stream","mongodb","mongodb-settings","mongodb-transaction"})
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"redis","redis-transaction","redis-stream","redis-pipeline","redis-values","mongodb","mongodb-settings","mongodb-transaction"})
     @Timeout(60) void nativeRequestsAreReviewedAndBrowserMutationCannotBypassItsPlan(String scenario)throws Exception{
         String engine=scenario.startsWith("mongodb")?"mongodb":"redis";
         try(var client=HttpClient.newHttpClient();var server=start(0)){
@@ -57,6 +57,8 @@ class NativeMcpHttpTest {
             else if(scenario.equals("mongodb-settings"))input.put("collection","items").putObject("command").put("collMod","items").put("cappedMax",200);
             else if(engine.equals("mongodb"))input.put("collection","items").putObject("command").put("renameCollection","app.items").put("to","app.next").put("dropTarget",false);
             else if(scenario.equals("redis-transaction"))input.putObject("command").putArray("transaction").addArray().add("SET").add("reviewed-key").add("never-executed");
+            else if(scenario.equals("redis-pipeline"))input.putObject("command").putArray("pipeline").addArray().add("SET").add("reviewed-key").add("never-executed");
+            else if(scenario.equals("redis-values"))input.putArray("command").add("PFCOUNT").add("reviewed-key");
             else if(scenario.equals("redis-stream"))input.putArray("command").add("XREADGROUP").add("GROUP").add("workers").add("consumer").add("COUNT").add("2").add("STREAMS").add("reviewed-stream").add(">");
             else input.putArray("command").add("SET").add("reviewed-key").add("never-executed");
             JsonNode pending=call(client,endpoint,session,"dba_request_native_command",input);
@@ -64,6 +66,8 @@ class NativeMcpHttpTest {
             assertEquals(database,pending.path("target").path("database").asText());
             if(scenario.equals("redis-stream")){assertTrue(pending.path("mutation").asBoolean());assertFalse(pending.path("eligiblePersistentRead").asBoolean());assertTrue(pending.path("transactionNotice").asText().contains("pending/delivery"));}
             if(scenario.equals("redis-transaction"))assertTrue(pending.path("transactionNotice").asText().contains("does not roll back"));
+            if(scenario.equals("redis-pipeline")){assertTrue(pending.path("mutation").asBoolean());assertFalse(pending.path("eligiblePersistentRead").asBoolean());assertTrue(pending.path("transactionNotice").asText().contains("not transactions"));}
+            if(scenario.equals("redis-values")){assertTrue(pending.path("mutation").asBoolean());assertFalse(pending.path("eligiblePersistentRead").asBoolean());assertTrue(pending.path("transactionNotice").asText().contains("cached cardinality"));}
             if(scenario.equals("mongodb-transaction"))assertTrue(pending.path("transactionNotice").asText().contains("atomic"));
             else if(engine.equals("mongodb")){
                 assertTrue(pending.path("destructive").asBoolean());
