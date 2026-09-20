@@ -1,19 +1,23 @@
-# Bounded Redis sorted-set score editor
+# Bounded Redis sorted-set member editor
 
-The native Redis workspace offers **Edit Redis sorted-set score**. This increment
-edits one existing member's finite score. It is not a sorted-set inventory,
-creation/deletion/rename tool or complete sorted-set lifecycle editor.
+The native Redis workspace offers **Edit Redis sorted-set member**: update a
+finite score, explicitly stage an absent member's insertion, or stage a member's
+deletion within an existing sorted set. It is not an inventory, key-creation,
+rename or bulk editing tool.
 
 1. Enter a nonempty key and member as text or canonical base64, at most 8 KiB
    each. Empty members are valid.
 2. **Load member score** runs TYPE, ZSCORE, ZCARD and PTTL as one finite read
-   pipeline. A complete response, existing zset, existing member and finite
-   score are required. A missing member is not score zero.
-3. Change the score locally. Save remains disabled for invalid or numerically
-   unchanged scores; **Revert score draft** restores the last confirmed score.
-4. **Save member score** reviews the fixed target and exact guarded ZADD. Save
-   rechecks the member's score after WATCH; concurrent key changes invalidate
-   EXEC. The key and member cannot change within that checked draft.
+   pipeline. A complete response and existing zset are required. Existing
+   scores must be finite; an absent member is represented distinctly from zero.
+3. Change an existing score locally, **Stage member insertion** and enter a
+   finite score for an absent member, or **Mark member for deletion**. Typing
+   a score alone never stages insertion. **Revert sorted-set draft** restores
+   the last confirmed state without writing.
+4. **Save sorted-set member** reviews the fixed target and exact guarded ZADD
+   or ZREM. Save rechecks score/absence after WATCH; concurrent key changes
+   invalidate EXEC. Key/member identity stays fixed throughout the draft.
+   Deletion is destructive review; deleting the last member removes key and TTL.
 
 Switching tabs retains the draft. Closing or choosing another member asks before
 discarding changes. Read-only profiles prohibit editing/saving. Removal or
@@ -26,7 +30,8 @@ Neither client nor server automatically retries a write.
 Redis scores use binary64 precision, not arbitrary-precision decimals. The UI and
 watch validator accept decimal/exponent text up to 64 characters, reject NaN,
 infinity, overflow, nonzero underflow to zero, whitespace, hexadecimal forms and
-non-text expectations. Finite decimals round according to Redis's binary64
+non-text numeric expectations. Explicit null is absence, not a numeric score.
+Finite decimals round according to Redis's binary64
 semantics. Positive and negative zero compare equally. Do not use this editor to
 promise exact large-integer/decimal accounting.
 
@@ -41,27 +46,33 @@ The managed transaction shape is:
 
 Use the existing native API/MCP target selection, review and job lifecycle.
 Discover actual schemas before using scoreMember. It cannot combine with
-field/index/length/member; expected must be a finite decimal string, never null,
-a JSON number or boolean. Existing key, member, command, aggregate-byte and
+field/index/length/member; expected must be a finite decimal string for an
+existing member, or explicit null for a new member. JSON numbers/booleans are
+invalid. Existing key, member, command, aggregate-byte and
 Cluster single-slot limits still apply. There is one expectation per key.
 
-The guard requires both an existing sorted set and an existing member. A removed
-or expired member/key is not silently recreated by this editor. Ordinary raw ZADD
-commands retain their previously supported creation behavior; the graphical
-editor always supplies its score expectation. Current score checks cannot detect
-every remove/reinsert cycle before WATCH.
+The guard always requires an existing sorted set. An update/deletion additionally
+requires an existing member matching its original score; insertion requires
+explicit absence. Missing/expired keys are never recreated. A successful deletion
+clears the baseline and requires another load before editing again. Ordinary raw
+ZADD retains its existing creation behavior; the editor always supplies its
+expectation. Current-state checks cannot detect every remove/reinsert cycle
+before WATCH.
 
 ZADD reports **new members added**, so zero is the expected successful receipt
-for an existing-member score update. An unexpected receipt is treated as uncertain,
+for an existing-member score update, one for insertion. Guarded single-member
+ZREM must report one removal. An unexpected receipt is treated as uncertain,
 not blindly retried. Redis transactions do not roll back execution-time errors.
 Cancellation can arrive after execution: reconcile retained receipts.
 
-Updating a score can change rank and preserves the existing key TTL. GEO indexes
+Updating/adding a score can change rank and preserves the existing key TTL.
+Deleting a member preserves TTL unless it removes the last member and key. GEO indexes
 also use zset storage; TYPE cannot prove a key contains ordinary ranking scores.
 The UI and review explicitly warn about this. Only known ordinary sorted-set
 fixtures are certified by this increment.
 See [ZADD](https://redis.io/docs/latest/commands/zadd/),
-[ZSCORE](https://redis.io/docs/latest/commands/zscore/) and
+[ZSCORE](https://redis.io/docs/latest/commands/zscore/),
+[ZREM](https://redis.io/docs/latest/commands/zrem/), and
 [Redis transactions](https://redis.io/docs/latest/develop/using-commands/transactions/).
 
 The set and sorted-set editors share binary identity controls, dirty-state
@@ -87,7 +98,7 @@ mvn -B -ntp package '-Djava.awt.headless=true'
 node --test skills/install-skill.test.mjs installer/skill-bootstrap.test.mjs
 ```
 
-## Acceptance
+## Initial score-update acceptance (prior checkpoint)
 
 Validated on Windows with OpenJDK 25, Maven 3.9.11, Node 22.22.3 and Docker:
 
@@ -139,9 +150,69 @@ was preserved; no unrelated images, containers or databases were removed.
 The post-reactor inventory contained no newly introduced images or leftover
 owned native/Testcontainers fixtures.
 
-The already-committed set-editor build was restarted on MCP 3000/UI 8137 before
-this increment. This score-editor increment has not been deployed. Code-graph
+At that checkpoint the set-editor build ran on MCP 3000/UI 8137. The score-editor
+build was subsequently committed as `8679473` and restarted on those ports.
+Code-graph
 navigation tools were not exposed to this coding session, so focused source
 reads were used; no claim of MCP navigation savings is made for this increment.
 Native macOS/Linux UI sessions and a new three-run performance benchmark were
 not exercised. The remaining native roadmap is not completed by this editor.
+
+## Member insertion/deletion follow-up
+
+The shared member editor now stages insertion and deletion within existing
+sorted sets. An insertion uses explicit null in its scoreMember expectation;
+an update/deletion uses the last confirmed finite score. It never recreates a
+missing, expired or wrong-type key, and a stale expectation does not fall back
+to an unguarded command. Typing an absent member's score is protected as an
+unsaved draft but is not sufficient to enable Save: insertion must be staged.
+
+Deletion retains its original-score guard even when an unfinished new-score
+draft is invalid. Canceling review preserves the draft. Successful deletion
+invalidates the local baseline; unexpected integer receipts and lost/cancelled
+outcomes require explicit reload/reconciliation rather than automatic retry.
+
+Validation checkpoint (September 20, 2026):
+
+- Focused Java/security/schema gate: 55 tests, 50 passed and five opt-in live
+  skips. Live tests subsequently exercised the score suite in every topology.
+- Standalone Redis: 37 passed, four Mongo-only skips. Cluster and authenticated
+  Sentinel: 34 passed each, no skips or failures. These overlapping suites
+  are separate gates, not additive coverage. New live assertions cover binary
+  insertion, pre-existing member rejection, score-change and WATCH races,
+  deletion, last-member key/TTL removal, missing/expired/wrong-type keys,
+  cancellation and authority revocation before EXEC, and resource release.
+- Native browser gate passed: explicit staging, NULL versus zero, keyboard
+  staging, Cancel/Revert/close protection, exact destructive review, receipts,
+  unknown outcomes, read-only guards, tab remounting, cleanup and 420 px layout.
+- All 25 DBA JavaScript modules passed syntax checks. The optional skill passed
+  frontmatter/reference validation and its 12 installer/bootstrap tests.
+  Windows bootstrap, 39 launcher, 149 MCP installer, 50 skill installer and
+  two uninstaller checks passed without modifying actual client configuration.
+- All 19 browser suites passed. A final packaged-resource native pass also
+  covered unstaging deletion and deleting despite an invalid unfinished score
+  draft, using the original score guard. No page errors were reported.
+- Full 35-module Maven package: 900 tests across 182 suites, 837 passed, 63
+  environment/opt-in skips, zero failures/errors, in 4 minutes 5 seconds.
+  Live Redis gates ran separately; skipped environments are not claimed passed.
+
+Reproducible commands are above. Raw logs, isolated source, screenshots and
+per-topology XML are retained under
+`target/mcp-efficiency-coverage/redis-sorted-set-lifecycle-bdaae8f7379f4c7eb970cdac412ec01d/`.
+Fixtures ran sequentially on the same pinned Redis/Lettuce versions and
+256 MiB heap/64 MiB direct-memory limits as the prior checkpoint. No user
+database was mutated. Owned Redis containers were removed; the pre-existing
+Redis image was preserved.
+No owned native/Testcontainers resources remained after the reactor. All 55
+pre-existing image IDs were preserved and no new image IDs remained. Logs:
+`focused.log`, `redis-standalone.log`, `redis-cluster.log`, `redis-sentinel.log`,
+`browser-all.log`, `browser-native-packaged.log`, `reactor.log`, `skill-tests.log`
+and the five `installer-*.log` files; XML is under `live-reports/`.
+
+This follow-up is not deployed or committed by this validation step. The
+running application remains the pushed score-editor build `8679473` on
+MCP 3000/admin UI 8137. No new cross-platform native UI certification or
+three-run performance claim is made. Whole-key lifecycle, bulk collection
+editing, streams UI and broader native administration remain unfinished.
+Code-graph navigation tools were still unavailable in this coding session;
+focused source reads were used without a claim of MCP navigation savings.

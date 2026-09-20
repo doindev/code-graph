@@ -11,7 +11,7 @@ class DbaToolSchemaTest {
         assertEquals(9999,watch.path("properties").path("index").path("maximum").asInt());
         assertEquals(10000,watch.path("properties").path("length").path("maximum").asInt());
         assertEquals(4,watch.path("oneOf").size());
-        assertEquals("string",watch.path("oneOf").get(3).path("properties").path("expected").path("type").asText());
+        assertEquals("[\"string\",\"null\"]",watch.path("oneOf").get(3).path("properties").path("expected").path("type").toString());
         assertEquals(64,watch.path("oneOf").get(3).path("properties").path("expected").path("maxLength").asInt());
         assertEquals(8192,watch.path("properties").path("scoreMember").path("oneOf").get(0).path("maxLength").asInt());
         assertEquals("boolean",watch.path("oneOf").get(2).path("properties").path("expected").path("type").asText());

@@ -170,6 +170,8 @@ The frozen source ZIP SHA-256 is
   editing or infrastructure administration gaps.
   The [sorted-set score follow-up](redis-sorted-set-editor.md) adds guarded
   updates of existing finite member scores, not whole-set lifecycle management.
+  Its member-lifecycle follow-up stages guarded insertion/deletion within
+  existing sorted sets; key creation, rename and bulk editing remain separate.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

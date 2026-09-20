@@ -29,10 +29,12 @@ This checks current position/length, not change history; see the
 Optional member selects a set-membership expectation instead, with boolean
 expected and an existing set key (including for false). It cannot combine with
 field/index/length. The member is capped at 8 KiB. See [set editing](redis-set-editor.md).
-Optional scoreMember instead checks an existing sorted-set member's finite score.
-Expected is decimal text (1–64 characters, Redis binary64), never absence or a
-JSON number. It cannot combine with field/index/length/member. See the
-[score editor](redis-sorted-set-editor.md) for precision and GEO-storage caveats.
+Optional scoreMember checks a sorted-set member's finite score or absence.
+Expected is decimal text (1–64 characters, Redis binary64) for an existing
+member, or explicit null for an absent member within an existing sorted set.
+Null never permits key creation; JSON numbers/booleans are not score expectations.
+It cannot combine with field/index/length/member. ZREM of the last member also
+removes the key and TTL. See the [member editor](redis-sorted-set-editor.md).
 Watching starts during execution, **not while the approval is open**. The server
 checks the supplied expectations after WATCH and Redis detects subsequent changes
 before EXEC. Expiration/eviction can also cause conflicts.

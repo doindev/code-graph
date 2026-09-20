@@ -17,7 +17,7 @@ final class NativeRedisTransactions {
         fields(command,Set.of("transaction","watch"));
         JsonNode commands=command.path("transaction");
         if(!commands.isArray()||commands.isEmpty()||commands.size()>MAX_COMMANDS)throw new IllegalArgumentException("Redis transaction requires 1..32 supported mutation argument arrays");
-        boolean destructive=false,hashDeletion=false,listEdit=false,setDeletion=false,scoreEdit=false;
+        boolean destructive=false,hashDeletion=false,listEdit=false,setDeletion=false,scoreEdit=false,scoreDeletion=false;
         List<byte[]> keys=new ArrayList<>();
         for(JsonNode entry:commands){
             if(!entry.isArray())throw new IllegalArgumentException("Nested transactions and non-array commands are not supported");
@@ -30,6 +30,7 @@ final class NativeRedisTransactions {
             if(name.equals("HDEL"))hashDeletion=true;
             if(name.equals("LSET"))listEdit=true;
             if(name.equals("SREM"))setDeletion=true;
+            if(name.equals("ZREM"))scoreDeletion=true;
             int end=Set.of("DEL","UNLINK").contains(name)?entry.size():Set.of("RENAME","RENAMENX").contains(name)?3:2;
             for(int i=1;i<end;i++)keys.add(NativeRedisArguments.bytes(entry,i));
             if(keys.size()>MAX_KEYS)throw new IllegalArgumentException("Redis transaction exceeds the 100-key reference allowance");
@@ -54,7 +55,7 @@ final class NativeRedisTransactions {
                     scoreEdit=true;
                     if(item.has("field")||item.has("index")||item.has("length")||item.has("member"))
                         throw new IllegalArgumentException("Sorted-set score expectations cannot combine with field/index/length/member");
-                    argument(item.path("scoreMember"),8192);score(item.path("expected"));
+                    argument(item.path("scoreMember"),8192);if(!item.path("expected").isNull())score(item.path("expected"));
                 }else if(item.has("member")){
                     if(item.has("field")||item.has("index")||item.has("length")||!item.path("expected").isBoolean())
                         throw new IllegalArgumentException("Set expectations require a member and boolean expected membership; no field/index/length");
@@ -73,7 +74,8 @@ final class NativeRedisTransactions {
                 NOTICE+(hashDeletion?" HDEL permanently deletes the selected fields; deleting the last field also removes the hash key and its TTL.":"")
                 +(listEdit?" LSET replaces an existing zero-based position and preserves key TTL. Positions are not stable identities; expectations compare current length/value, not change history.":"")
                 +(setDeletion?" SREM permanently removes the selected members; removing the last member deletes the set key and its TTL.":"")
-                +(scoreEdit?" Score expectations compare Redis binary64 values on existing members, not change history. Updating a score can change member rank. GEO indexes also use zset storage; TYPE alone does not prove score semantics.":""));
+                +(scoreDeletion?" ZREM permanently removes the selected members; removing the last member deletes the sorted-set key and its TTL.":"")
+                +(scoreEdit?" Score expectations compare Redis binary64 values or explicit member absence within an existing sorted set, not change history. Missing keys are never created by this guard. Updating a score can change member rank. GEO indexes also use zset storage; TYPE alone does not prove score semantics.":""));
     }
 
     static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job,Runnable beforeWrite){
@@ -141,6 +143,8 @@ final class NativeRedisTransactions {
             byte[] key,JsonNode expectation,String type){
         if(!type.equals("zset"))return false;
         Double current=redis.zscore(key,argument(expectation.path("scoreMember"),8192));
+        // Explicit null means an absent member of an existing zset, never an absent key.
+        if(expectation.path("expected").isNull())return current==null;
         return current!=null&&Double.isFinite(current)&&current==score(expectation.path("expected"));
     }
 

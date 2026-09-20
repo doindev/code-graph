@@ -43,10 +43,12 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
-The [sorted-set score editor](redis-sorted-set-editor.md) updates one existing
-member's finite binary64 score with a current-score WATCH guard. Missing members
-and infinite scores are not editable; GEO key semantics cannot be inferred from
-zset storage alone. General sorted-set lifecycle editing remains unsupported.
+The [sorted-set member editor](redis-sorted-set-editor.md) stages finite binary64
+score updates, explicit member insertion and deletion in existing sorted sets.
+Current-score/absence WATCH guards never recreate missing keys; deleting the
+last member removes its key and TTL. Infinite scores are not editable and GEO
+semantics cannot be inferred from zset storage alone. General key lifecycle,
+inventories and bulk editing remain unsupported.
 
 The [set-member editor](redis-set-editor.md) stages one binary-safe member
 insertion/deletion in an existing set, with exact membership expectations and

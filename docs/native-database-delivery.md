@@ -125,6 +125,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Sorted-set member-lifecycle follow-up: explicit insertion and staged
+  deletion inside an existing key, score/absence guards, TTL/last-key warnings
+  and exact review. Focused/live topology, all 19 browser suites, packaged native
+  recheck, installer and full 35-module Maven gates passed. See
+  [the follow-up acceptance checkpoint](redis-sorted-set-editor.md#member-insertiondeletion-follow-up).
+
 - [x] Existing-sorted-set score editor: bounded binary identity, finite binary64
   score drafts, exact current-score guards and shared member-editor lifecycle.
   Standalone/Cluster/ACL-Sentinel, all 19 browser suites, the final packaged

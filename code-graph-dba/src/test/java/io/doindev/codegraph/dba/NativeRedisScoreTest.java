@@ -31,10 +31,18 @@ class NativeRedisScoreTest {
             var invalid=update.deepCopy();invalid.withArray("watch").get(0).withObject("").put("expected",score);
             assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,invalid),score);
         }
-        for(JsonNode value:List.of(Profiles.JSON.nullNode(),Profiles.JSON.getNodeFactory().numberNode(1.25),Profiles.JSON.getNodeFactory().booleanNode(true))){
+        for(JsonNode value:List.of(Profiles.JSON.getNodeFactory().numberNode(1.25),Profiles.JSON.getNodeFactory().booleanNode(true))){
             var invalid=update.deepCopy();invalid.withArray("watch").get(0).withObject("").set("expected",value);
             assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,invalid));
         }
+        var insertion=edit("z",text(""),null,"2.5");NativeMutations.validate(target,insertion);
+        assertEquals(NativeCommand.Effect.WRITE,NativeCommand.classify(target,insertion).effect());
+        var deletion=Profiles.JSON.createObjectNode();deletion.putArray("transaction").addArray().add("ZREM").add("z").add("");
+        deletion.set("watch",update.path("watch").deepCopy());NativeMutations.validate(target,deletion);
+        assertEquals(NativeCommand.Effect.DESTRUCTIVE,NativeCommand.classify(target,deletion).effect());
+        assertTrue(NativeCommand.classify(target,deletion).reason().contains("last member"));
+        var missingExpected=insertion.deepCopy();missingExpected.withArray("watch").get(0).withObject("").remove("expected");
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,missingExpected));
         for(String field:List.of("field","index","length","member")){
             var invalid=update.deepCopy();invalid.withArray("watch").get(0).withObject("").put(field,"x");
             assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,invalid));
@@ -64,8 +72,21 @@ class NativeRedisScoreTest {
             input.put("expectedTargetRevision","stale");assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));input.remove("expectedTargetRevision");
             input.set("command",edit("z",text("x"),"1.25","3"));assertThrows(IllegalArgumentException.class,()->ops.validate(review,input));
             ops.discardBrowser("owner",review.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
+            for(boolean delete:List.of(false,true)){
+                var change=delete?Profiles.JSON.createObjectNode():edit("z",text("x"),null,"3");
+                if(delete){change.putArray("transaction").addArray().add("ZREM").add("z").add("x");change.putArray("watch").addObject().put("key","z").put("scoreMember","x").put("expected","3");}
+                input.set("command",change);var memberReview=ops.prepareBrowser("owner",input);
+                assertEquals(change,memberReview.path("after").path("nativeCommand"));assertTrue(memberReview.path("mutation").asBoolean());
+                assertEquals(delete,memberReview.path("destructive").asBoolean());assertFalse(memberReview.path("eligiblePersistentRead").asBoolean());
+                assertThrows(SecurityException.class,()->ops.applyBrowser("other",memberReview.path("id").asText()));
+                var changed=input.deepCopy();changed.withObject("/command").withArray("watch").get(0).withObject("").put("expected","99");
+                assertThrows(IllegalArgumentException.class,()->ops.validate(memberReview,changed));
+                ops.discardBrowser("owner",memberReview.path("id").asText());
+            }
+            assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
             profiles.put(profile.path("id").asText(),Profiles.JSON.createObjectNode().put("readOnly",true));
             assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));
+            input.set("command",edit("z",text("x"),null,"3"));assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));
         }
     }
     @Test @Timeout(120) void ownedFixtureGuardsScoresMembershipExpiryAndTtl()throws Exception{
@@ -112,6 +133,34 @@ class NativeRedisScoreTest {
                     redis.del(key);redis.set(key,bytes("wrong type"));assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,update,jobs.new Job("human",target.connectionId()),()->{}));assertArrayEquals(bytes("wrong type"),redis.get(key));redis.del(key);
                     redis.zadd(key,1.25,binary);redis.pexpire(key,1);while(redis.exists(key)>0)Thread.sleep(2);
                     assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,update,jobs.new Job("human",target.connectionId()),()->{}));assertEquals(0,redis.exists(key));
+
+                    var insert=edit(name,member,null,"-2");
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{}),"Explicit absent-member intent must not create a key");
+                    redis.zadd(key,9,bytes("keep"));redis.pexpire(key,120000);ttl=redis.pttl(key);
+                    var insertResult=NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{});
+                    assertEquals(1,insertResult.path("entries").get(0).path("value").asInt());assertEquals(-2d,redis.zscore(key,binary));
+                    assertTrue(redis.pttl(key)>0&&redis.pttl(key)<=ttl);assertEquals(9d,redis.zscore(key,bytes("keep")));
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{}),"An insertion must not become an update when the member appears");
+                    var remove=Profiles.JSON.createObjectNode();remove.putArray("transaction").addArray().add("ZREM").add(name).add(member);
+                    remove.putArray("watch").addObject().put("key",name).put("expected","-2").set("scoreMember",member);
+                    redis.zadd(key,-3,binary);assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,remove,jobs.new Job("human",target.connectionId()),()->{}));assertEquals(-3d,redis.zscore(key,binary));
+                    remove.withArray("watch").get(0).withObject("").put("expected","-3");
+                    assertEquals(1,NativeMutations.execute(lease,target,remove,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asInt());
+                    assertNull(redis.zscore(key,binary));assertEquals(9d,redis.zscore(key,bytes("keep")));assertTrue(redis.pttl(key)>0);
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,remove,jobs.new Job("human",target.connectionId()),()->{}),"A repeated deletion must not report a successful change");
+                    checks.set(0);var racedInsert=jobs.new Job("human",target.connectionId());
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,racedInsert,()->{if(checks.incrementAndGet()==2)redis.zadd(key,77,binary);}));
+                    assertEquals("watched_key_changed",racedInsert.result.path("reason").asText());assertEquals(77d,redis.zscore(key,binary));
+                    redis.zrem(key,binary);checks.set(0);var cancelledInsert=jobs.new Job("human",target.connectionId());
+                    assertThrows(java.util.concurrent.CancellationException.class,()->NativeMutations.execute(lease,target,insert,cancelledInsert,()->{if(checks.incrementAndGet()==2)cancelledInsert.cancelled=true;}));assertNull(redis.zscore(key,binary));
+                    checks.set(0);assertThrows(SecurityException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{if(checks.incrementAndGet()==2)throw new SecurityException("revoked");}));assertNull(redis.zscore(key,binary));
+                    NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{});redis.zrem(key,bytes("keep"));remove.withArray("watch").get(0).withObject("").put("expected","-2");
+                    assertEquals(1,NativeMutations.execute(lease,target,remove,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asInt());
+                    assertEquals(0,redis.exists(key));assertEquals(-2,redis.pttl(key));
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{}));
+                    redis.zadd(key,1,bytes("keep"));redis.pexpire(key,1);while(redis.exists(key)>0)Thread.sleep(2);
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{}));
+                    redis.set(key,bytes("wrong type"));assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,insert,jobs.new Job("human",target.connectionId()),()->{}));assertArrayEquals(bytes("wrong type"),redis.get(key));
                 }finally{redis.del(key);}
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());

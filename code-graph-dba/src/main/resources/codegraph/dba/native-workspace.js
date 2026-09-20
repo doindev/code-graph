@@ -41,7 +41,7 @@ export class NativeWorkspace {
       this.hashButton=this.button(toolbar,'Edit Redis hash field','square-pen',()=>this.openValueEditor('hash'));
       this.listButton=this.button(toolbar,'Edit Redis list item','square-pen',()=>this.openValueEditor('list'));
       this.setButton=this.button(toolbar,'Edit Redis set member','square-pen',()=>this.openValueEditor('set'));
-      this.scoreButton=this.button(toolbar,'Edit Redis sorted-set score','square-pen',()=>this.openValueEditor('zset'));
+      this.scoreButton=this.button(toolbar,'Edit Redis sorted-set member','square-pen',()=>this.openValueEditor('zset'));
       this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads and PFCOUNT require write review.';
       const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
       examples.push(['Pipeline: write and inspect',{pipeline:[['SET','{example}:key','value'],['GETRANGE','{example}:key','0','8191'],['TTL','{example}:key']]}],['Pipeline: read key metadata',{pipeline:[['TYPE','{example}:key'],['TTL','{example}:key'],['EXISTS','{example}:key']]}]);
