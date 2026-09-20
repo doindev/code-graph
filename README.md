@@ -49,7 +49,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   A [bounded Redis string editor](docs/redis-string-editor.md) adds binary-safe
   drafts, conflict checks and reviewed TTL-preserving saves for existing small values.
   The [hash-field editor](docs/redis-hash-editor.md) adds the same bounded workflow
-  for existing fields, rejecting field-expiry loss and concurrent changes.
+  for existing fields, plus explicit new-field drafts and staged deletion. Every
+  Save is reviewed; absent/original-value checks reject concurrent changes.
+  Expiring fields remain unsupported and last-field deletion removes its hash key.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

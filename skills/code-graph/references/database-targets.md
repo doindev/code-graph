@@ -110,7 +110,10 @@ transactions accept a bounded batch plus optional exact string/absent WATCH
 expectations. When advertised, `watch[].field` selects an exact hash field instead;
 the hash must exist and null means field absence, not key absence. Field checks
 require Redis 7.4+ and HPTTL permission and reject field expiry. Do not remove a
-rejected expectation or switch to an unguarded HSET to force an edit through.
+rejected expectation or switch to an unguarded HSET/HDEL to force an edit through.
+An empty field value is not absence: use `expected: null` only for a new field,
+or complete original bytes for an update/deletion. Deleting the last field also
+removes the hash key and TTL; disclose this effect before requesting deletion.
 Cluster requires all command/watch keys in one hash slot. Redis
 does not roll back execution-time errors: inspect per-command results, not just
 the job's final state. A WATCH conflict executes no batch commands; reread and

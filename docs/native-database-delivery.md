@@ -122,6 +122,13 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Hash-field lifecycle follow-up: explicit absent-field preparation, reviewed
+  insertion and staged exact-value deletion. Standalone/Cluster/ACL-Sentinel,
+  full reactor and all 19 browser suites pass; see the
+  [lifecycle acceptance checkpoint](redis-hash-editor.md#field-lifecycle-follow-up--2026-09-20).
+  Last-field deletion removes its hash key; expiring fields, rename and multi-field
+  editing remain unsupported.
+
 - [x] Existing-hash-field graphical editor: binary-safe bounded drafts, optional
   exact field WATCH expectations, expiry-loss rejection, review/reconciliation.
   Standalone/Cluster/ACL-Sentinel, reactor and browser gates pass for Redis 7.4.1;

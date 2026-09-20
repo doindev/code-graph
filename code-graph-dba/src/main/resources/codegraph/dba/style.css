@@ -235,4 +235,7 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .redis-string-actions svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .redis-string-editor textarea{flex:1;min-height:80px;resize:vertical;white-space:pre;overflow:auto;font:14px/1.8 Consolas,monospace;background:#101722;color:#b9e8dd;border:1px solid var(--line);border-radius:6px;padding:8px}
 .redis-string-editor p{margin:0;color:var(--muted)}
+.redis-string-editor.redis-pending-delete{border-color:#d88383}
+.redis-pending-delete textarea{opacity:.65;text-decoration:line-through}
+.redis-string-actions button[aria-pressed="true"]{background:#462b34;color:#ffc5c5;border-color:#d88383}
 .native-workspace:has(.redis-string-editor){overflow:auto}

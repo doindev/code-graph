@@ -4,14 +4,15 @@ In a Redis Native workspace, choose **Edit Redis hash field**. HGET/HSET/HDEL/
 HEXISTS command drafts prefill the exact key and field; HSCAN/HLEN prefill only
 the key. Otherwise enter them explicitly. Nothing executes when opening it.
 
-The shared value editor loads one existing field, never the whole hash. Key,
+The shared value editor loads one existing field or explicitly prepares one new
+field in an existing hash, never the whole hash. Key,
 field and value inputs support UTF-8 text or canonical base64, capped at 8 KiB
 each. Empty field names and empty values are valid; this editor requires a
 nonempty key. Missing, truncated or oversized values cannot become editable
 snapshots. Invalid UTF-8 and carriage-return-containing data stay in base64.
 Key/field identity and database selection stay fixed until the editor closes.
 
-Save opens the existing exact native review. It uses a single HSET inside a
+For an existing-value update, Save opens the exact native review using one HSET inside a
 managed WATCH/MULTI/EXEC operation, carrying the loaded profile revision and
 complete original field bytes. The server checks the existing hash and field
 immediately before execution; deletion, type changes, original-value changes,
@@ -52,9 +53,37 @@ Cluster requires one hash slot. No permission or reusable-policy expansion occur
 
 Field expectations reject fields with their own expiry, including agent requests.
 They do not make an arbitrary batch atomic on failure: Redis still cannot roll
-back successful commands after execution-time errors. GUI field insertion,
-deletion, renaming, multi-field drafts and other collection editors remain
-separate unfinished work; this increment updates existing fields only.
+back successful commands after execution-time errors. Field renaming, multi-field
+drafts and other collection editors remain separate unfinished work.
+
+## Creating and deleting fields
+
+Enter the exact key and field, then choose **Prepare new hash field**. A bounded
+TYPE/HEXISTS pipeline checks that the hash exists and the field is absent. This
+creates a memory-only draft; it does not write anything. Empty field names and
+empty values are supported. Save reviews one HSET with `watch[].expected: null`,
+so a competing insertion or removed/retyped hash fails without replacement.
+The initial read is not a frozen snapshot; the server rechecks on Save.
+
+For an existing loaded field, **Mark hash field for deletion** toggles a local
+deletion draft. It locks/dims the value but does not execute HDEL. Revert restores
+the loaded value, or discards a new-field draft completely. Save opens destructive
+review with the exact field/original bytes and warns that deleting the last field
+removes the hash key and its TTL. Only Apply submits the guarded HDEL. See the
+[Redis HDEL contract](https://redis.io/docs/latest/commands/hdel/).
+
+The editor requires a receipt of exactly one created/deleted field (zero newly
+created fields for an update). Unexpected counts and lost responses block Save
+and Revert until explicit reload/reconciliation; cancellation is not rollback.
+After successful creation the draft becomes an existing-field editor. After
+successful deletion it clears the snapshot and unlocks key/field selection.
+Deletion never automatically recreates a hash. Reopen the editor to select
+another field while a loaded snapshot locks the current identity.
+
+All operations retain the same 8 KiB limits, 256 KiB browser reservation,
+read-only-profile checks, review ownership and target revisions. Expiring fields
+remain rejected even for deletion; this iteration does not change field-expiry
+policy or add new MCP tools. Guarded saves require Redis 7.4+ and HPTTL permission.
 
 ## Validation
 
@@ -108,14 +137,67 @@ display for valid UTF-8 bytes. It now explicitly selects the encoding; the faile
 attempt remains in `browser-native-test-encoding-assumption.log`. No application
 behavior was changed to satisfy that test assumption.
 
-The running application's MCP tools were not exposed in this coding session,
+At that checkpoint, the running application's MCP tools were not exposed in the coding session,
 so focused filesystem reads were used. No artificial MCP/search-efficiency claim
 is made. Existing application processes were not restarted or replaced. Docker
 checks confirmed all owned fixtures were removed, the existing Redis image was
 reused, and the user's three running database containers remained unchanged.
 
 The preceding editor/UI changes were pushed as `2c98f0b` before this increment.
-This hash-editor implementation remains a new local change. No live user database
-was modified, and no deployment or additional commit/push occurred. Unsupported
+The existing-field implementation was subsequently committed/pushed as `ff42e5e`
+and deployed on request. No live user database was modified. Unsupported
 older Redis field-expiry APIs, cloud variants, broader editors, native
 administration and remaining platform/performance gates are not claimed complete.
+
+## Field lifecycle follow-up — 2026-09-20
+
+The explicit new-field and staged-deletion implementation is a separate
+increment after `ff42e5e`. The requested restart deployed that committed version
+on MCP 3000/UI 8137, with desktop approval, admin/DBA enabled, hybrid storage and
+the existing 1536 MiB graph/cache allowance. Both pages and MCP initialization
+returned HTTP 200; startup reported actions enabled and zero onboarded projects.
+Subsequent implementation/testing uses a separate source snapshot, not the live
+runtime. No user database/profile was changed by this work.
+
+Validation:
+
+- Focused native ownership, transaction, foundation, memory and MCP schema tests
+  passed. The first run caught a real review-path issue: it discarded the
+  classifier's last-field-deletion warning. Review now uses that exact reason;
+  the original failed run is retained as evidence.
+- Redis 7.4.1 standalone, three-primary Cluster and ACL Sentinel each passed all
+  four transaction tests with no failures, errors or skips. Added assertions
+  exercise the actual TYPE/HEXISTS preview, empty-value insertion, insertion
+  races, exact-value deletion conflicts, WATCH races, cancellation before EXEC,
+  preservation of other fields/key TTL, duplicate submission rejection and
+  last-field deletion. Removed hashes cannot be recreated by the guarded insert.
+- The full 35-module package reactor passed: 890 tests, 830 passed, 60 explicit
+  optional/environment skips, zero failures/errors. Separate live gates overlap
+  those test classes; skips are not represented as passes.
+- Native browser tests passed the shared workspace/editor/review flow with
+  controlled replies: create/update/delete, empty/absent distinction, destructive
+  review cancellation, Revert, read-only guards, keyboard staging, unmount
+  retention, bad receipts and uncertain outcomes. The narrow screenshot was
+  inspected. This is not a claim of browser-to-live-Redis integration.
+- All 19 complete browser suites passed, including graph/DBA layout, editable
+  grids/exports, Table/View/query-builder workflows, project contexts, standalone
+  catalogs, editor pairing, normal/YOLO approvals and approval-only review.
+- JavaScript syntax, maintained skill validation and 12 skill/bootstrap installer
+  tests passed. Skill-creator guidance kept the new reference focused on exact
+  absence/value expectations, last-field deletion and no unguarded retry; it did
+  not widen the optional skill's authority or overwrite installed custom skills.
+
+Evidence:
+`target/mcp-efficiency-coverage/redis-hash-lifecycle-581b9bf6ea0944249e13faf5330f9351/`
+contains `focused.log` (initial failure), `focused-final.log`, `redis-standalone.log`,
+`redis-cluster.log`, `redis-sentinel.log`, `live-reports/`, `full-reactor.log`,
+`browser-native.log`, `browser-all.log`, `skill-install.log`, and
+`skill-validation.log`. Implementation/test hashes match this isolated build.
+
+Docker harnesses removed their owned containers/volumes and reused the existing
+Redis image. The user's three database containers remain running. No broad
+pruning was used. At this validation checkpoint, the lifecycle follow-up had not
+replaced the running `ff42e5e` feature build. MCP was healthy but its tools were not
+exposed to this agent, so focused local reads were used; no search-efficiency
+claim is made. Remaining collection editors, native administration, older/cloud
+vendor certification and platform/performance gates remain unfinished.

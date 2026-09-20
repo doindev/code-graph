@@ -16,7 +16,7 @@ final class NativeRedisTransactions {
         fields(command,Set.of("transaction","watch"));
         JsonNode commands=command.path("transaction");
         if(!commands.isArray()||commands.isEmpty()||commands.size()>MAX_COMMANDS)throw new IllegalArgumentException("Redis transaction requires 1..32 supported mutation argument arrays");
-        boolean destructive=false;
+        boolean destructive=false,hashDeletion=false;
         List<byte[]> keys=new ArrayList<>();
         for(JsonNode entry:commands){
             if(!entry.isArray())throw new IllegalArgumentException("Nested transactions and non-array commands are not supported");
@@ -26,6 +26,7 @@ final class NativeRedisTransactions {
             var classification=NativeCommand.classify(target,entry);
             if(classification.effect()==NativeCommand.Effect.DESTRUCTIVE)destructive=true;
             String name=NativeRedisArguments.text(entry,0).toUpperCase(Locale.ROOT);
+            if(name.equals("HDEL"))hashDeletion=true;
             int end=Set.of("DEL","UNLINK").contains(name)?entry.size():Set.of("RENAME","RENAMENX").contains(name)?3:2;
             for(int i=1;i<end;i++)keys.add(NativeRedisArguments.bytes(entry,i));
             if(keys.size()>MAX_KEYS)throw new IllegalArgumentException("Redis transaction exceeds the 100-key reference allowance");
@@ -49,7 +50,8 @@ final class NativeRedisTransactions {
             int slot=SlotHash.getSlot(keys.getFirst());
             for(byte[] key:keys)if(SlotHash.getSlot(key)!=slot)throw new IllegalArgumentException("Redis Cluster transactions require every command and watched key in one hash slot; use a shared hash tag");
         }
-        return new NativeCommand.Classification("redis.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,NOTICE);
+        return new NativeCommand.Classification("redis.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,
+                NOTICE+(hashDeletion?" HDEL permanently deletes the selected fields; deleting the last field also removes the hash key and its TTL.":""));
     }
 
     static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job,Runnable beforeWrite){

@@ -46,8 +46,9 @@ are shared with the existing editor.
 Redis workspaces include a [bounded string value editor](redis-string-editor.md):
 text/base64 drafts, exact-byte optimistic checks, reviewed TTL-preserving Save,
 and conflict/uncertain-outcome recovery. The [hash-field editor](redis-hash-editor.md)
-supports existing fields with the same bounded text/base64 drafts, exact review
-and revision checks. Expiring fields are rejected; Redis 7.4+ is required for
+supports existing fields, explicit absent-field creation and staged deletion,
+with bounded text/base64 drafts, exact review and revision checks. Deleting the
+last field removes its hash key. Expiring fields are rejected; Redis 7.4+ is required for
 guarded field saves. Broader collection editors remain unfinished.
 
 Open **Native workspace** from the connection menu or create a new document while

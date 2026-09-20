@@ -73,7 +73,7 @@ final class NativeOperations implements AutoCloseable {
         if(resolved.binding.has("id"))review.put("bindingRevision",ProjectContexts.profileRevision(resolved.binding));
         review.set("after",Profiles.JSON.createObjectNode().set("nativeCommand",command.deepCopy()));
         review.put("commandHash",CatalogScanner.hash(command.toString()));
-        if(classification.category().equals("redis.transaction"))review.put("transactionNotice",NativeRedisTransactions.NOTICE);
+        if(classification.category().equals("redis.transaction"))review.put("transactionNotice",classification.reason());
         if(classification.category().equals("redis.pipeline"))review.put("transactionNotice",NativeRedisPipelines.NOTICE);
         if(classification.category().startsWith("redis.value."))review.put("transactionNotice",NativeRedisValues.NOTICE);
         if(classification.category().equals("mongo.transaction"))review.put("transactionNotice",NativeMongoTransactions.NOTICE);

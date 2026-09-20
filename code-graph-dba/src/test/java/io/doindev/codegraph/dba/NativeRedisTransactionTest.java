@@ -70,6 +70,12 @@ class NativeRedisTransactionTest {
             assertThrows(SecurityException.class,()->ops.applyBrowser("other",review.path("id").asText()));
             input.set("command",transaction("a","changed"));assertThrows(IllegalArgumentException.class,()->ops.validate(review,input));
             ops.discardBrowser("owner",review.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
+            var deletion=Profiles.JSON.createObjectNode();deletion.putArray("transaction").addArray().add("HDEL").add("hash").add("field");
+            deletion.putArray("watch").addObject().put("key","hash").put("field","field").put("expected","original");
+            input.set("command",deletion);var deletionReview=ops.prepareBrowser("owner",input);
+            assertTrue(deletionReview.path("destructive").asBoolean());assertTrue(deletionReview.path("transactionNotice").asText().contains("last field"));
+            assertEquals(deletion,deletionReview.path("after").path("nativeCommand"));
+            ops.discardBrowser("owner",deletionReview.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
             var limited=jobs.new Job("agent:fixture",profile.path("id").asText());limited.rowLimit=1;
             var batch=transaction("a","b");batch.withArray("transaction").addArray().add("SET").add("a").add("c");
             assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(null,target("standalone"),batch,limited,()->fail("No authority callback before admission")));
@@ -158,6 +164,39 @@ class NativeRedisTransactionTest {
                 redis.del(binaryKey);hashWatch.putNull("expected");
                 assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
                 assertEquals(0L,redis.exists(binaryKey));
+                // UI insertion/deletion uses exactly one field, never a whole-hash replacement.
+                redis.hset(binaryKey,bytes("keep"),bytes("untouched"));redis.pexpire(binaryKey,60000);
+                hset.set(3,Profiles.JSON.createObjectNode().put("base64","")); // Empty values are not absence.
+                ttlBefore=redis.pttl(binaryKey);
+                var absence=Profiles.JSON.createObjectNode();absence.putArray("pipeline").addArray().add("TYPE").add(encodedKey);
+                absence.withArray("pipeline").addArray().add("HEXISTS").add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","AP8="));
+                var absent=NativeRedisPipelines.execute(lease,target,absence,jobs.new Job("human",target.connectionId()),()->{});
+                assertEquals("hash",absent.path("entries").get(0).path("value").asText());assertTrue(absent.path("entries").get(1).path("value").isBoolean());assertFalse(absent.path("entries").get(1).path("value").asBoolean());
+                saved=NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{});
+                assertEquals(1,saved.path("entries").get(0).path("value").asInt(-1));assertArrayEquals(new byte[0],redis.hget(binaryKey,hashField));
+                assertTrue(redis.pttl(binaryKey)>0&&redis.pttl(binaryKey)<=ttlBefore);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}),"Insert must not overwrite an existing empty field");
+                var hashDelete=hashEdit.deepCopy();hashDelete.putArray("transaction").addArray().add("HDEL").add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","AP8="));
+                hashDelete.withArray("watch").get(0).withObject("").put("expected","");
+                assertEquals(NativeCommand.Effect.DESTRUCTIVE,NativeCommand.classify(target,hashDelete).effect());
+                redis.hset(binaryKey,hashField,bytes("concurrent"));
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashDelete,jobs.new Job("human",target.connectionId()),()->{}));
+                assertArrayEquals(bytes("concurrent"),redis.hget(binaryKey,hashField));redis.hset(binaryKey,hashField,new byte[0]);
+                checks.set(0);var deleteRace=jobs.new Job("human",target.connectionId());
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashDelete,deleteRace,()->{if(checks.incrementAndGet()==2)redis.hset(binaryKey,bytes("keep"),bytes("race"));}));
+                assertEquals("watched_key_changed",deleteRace.result.path("reason").asText());assertTrue(redis.hexists(binaryKey,hashField));
+                checks.set(0);var deleteCancel=jobs.new Job("human",target.connectionId());
+                assertThrows(java.util.concurrent.CancellationException.class,()->NativeMutations.execute(lease,target,hashDelete,deleteCancel,()->{if(checks.incrementAndGet()==2)deleteCancel.cancelled=true;}));assertTrue(redis.hexists(binaryKey,hashField));
+                saved=NativeMutations.execute(lease,target,hashDelete,jobs.new Job("human",target.connectionId()),()->{});
+                assertEquals(1,saved.path("entries").get(0).path("value").asInt(-1));assertFalse(redis.hexists(binaryKey,hashField));assertArrayEquals(bytes("race"),redis.hget(binaryKey,bytes("keep")));assertTrue(redis.pttl(binaryKey)>0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashDelete,jobs.new Job("human",target.connectionId()),()->{}),"Deletion must not replay after success");
+                checks.set(0);var insertRace=jobs.new Job("human",target.connectionId());
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,insertRace,()->{if(checks.incrementAndGet()==2)redis.hset(binaryKey,hashField,bytes("inserted elsewhere"));}));
+                assertEquals("watched_key_changed",insertRace.result.path("reason").asText());assertArrayEquals(bytes("inserted elsewhere"),redis.hget(binaryKey,hashField));
+                hashDelete.withArray("watch").get(0).withObject("").put("expected","inserted elsewhere");redis.hdel(binaryKey,bytes("keep"));
+                assertEquals(1,NativeMutations.execute(lease,target,hashDelete,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asInt(-1));
+                assertEquals(0L,redis.exists(binaryKey),"Deleting the last field removes the hash key");
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}),"Insert must not recreate a removed hash");
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());
         }
