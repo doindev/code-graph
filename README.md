@@ -43,6 +43,17 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Redis Sentinel supports separate password-only or ACL discovery credentials,
   stored write-only in the OS vault; data-node credentials remain independent.
   See [Sentinel authentication and validation](docs/redis-sentinel-auth.md).
+  [Bounded Redis transactions](docs/redis-transactions.md) add reviewed batches and
+  optimistic WATCH expectations, including single-slot Cluster execution; Redis
+  execution errors do not roll back successful commands.
+  [Bounded Redis streams](docs/redis-streams.md) provide finite consumer-group
+  reads, pending inspection, reviewed claims/ACKs and group lifecycle commands.
+  Message delivery is a write; no automatic acknowledgement or subscription.
+  [Bounded MongoDB transactions](docs/mongodb-transactions.md) provide reviewed
+  atomic CRUD on one existing ordinary collection in replica-set/sharded mode,
+  with exact match checks, cancellation and explicit uncertain-commit outcomes.
+  [MongoDB change-stream batches](docs/mongodb-change-streams.md) add finite,
+  resumable exact-collection reads with explicit history gaps and a next-batch UI.
   MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)
   without replacing destinations or silently retargeting open workspaces.
   [Reviewed collection settings](docs/mongodb-collection-settings.md) support existing TTL

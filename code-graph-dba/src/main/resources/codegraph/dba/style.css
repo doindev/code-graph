@@ -214,9 +214,11 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .native-workspace-header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .native-workspace-header label{display:flex;align-items:center;gap:6px}
 .native-workspace-header input{width:180px;min-width:80px}
-.native-workspace-actions{display:flex;gap:8px;align-items:center}
+.native-workspace-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.native-workspace-actions select{max-width:100%}
+.native-status{min-width:0;overflow-wrap:anywhere}
 .native-workspace-actions button{width:30px;height:30px;display:grid;place-items:center;padding:5px}
-.native-workspace-actions svg{width:16px;height:16px}
+.native-workspace-actions svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .native-command{flex:0 0 30%;min-height:100px;resize:vertical;white-space:pre;overflow:auto}
 .native-result{flex:1;min-height:0;overflow:auto;white-space:pre;margin:0;border:1px solid #334155;border-radius:6px;padding:12px;background:#101720;font:13px/1.5 monospace}
 .native-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

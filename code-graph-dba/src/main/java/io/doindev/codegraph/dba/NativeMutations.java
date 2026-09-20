@@ -2,9 +2,7 @@ package io.doindev.codegraph.dba;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.lettuce.core.codec.ByteArrayCodec;
 import org.bson.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Reviewed, single-target CRUD. No scripts, server administration, implicit retries or w:0. */
@@ -12,6 +10,7 @@ final class NativeMutations {
     static void validate(NativeTarget target,JsonNode command){
         NativeCommand.classify(target,command);
         if(target.transport()==DatabaseTransport.MONGODB){
+            if(command.has("transaction"))return; // Managed CRUD batch already structurally validated.
             String name=command.fieldNames().next();
             switch(name){
                 case "insert" -> {
@@ -60,6 +59,8 @@ final class NativeMutations {
             }
             if(command.has("ordered")&&!command.path("ordered").isBoolean())throw new IllegalArgumentException("ordered must be boolean");
         }else{
+            if(command.isObject())return; // Managed transactions were fully validated by classification above.
+            if(NativeRedisStreams.handles(command))return; // Reviewed separately on a pinned operation connection.
             String name=command.get(0).asText().toUpperCase(Locale.ROOT);int size=command.size();
             switch(name){
                 case "SET" -> {arity(size,3,6);setOptions(command);}
@@ -79,6 +80,7 @@ final class NativeMutations {
         try{
             if(job.cancelled)throw new java.util.concurrent.CancellationException();
             if(target.transport()==DatabaseTransport.MONGODB){
+                if(command.has("transaction"))return NativeMongoTransactions.execute(lease,target,command,job,beforeWrite);
                 boolean rename=command.has("renameCollection");
                 if(rename)MongoCollectionRename.checkSource(lease,target,job);
                 if(MongoCollectionSettings.handles(command))MongoCollectionSettings.checkSource(lease,target,command,job);
@@ -95,6 +97,8 @@ final class NativeMutations {
                 if(rename)result.putObject("renamed").put("database",target.database()).put("from",target.collection()).put("to",MongoCollectionRename.validate(target,command));
                 job.outcome="acknowledged";return result;
             }
+            if(command.isObject())return NativeRedisTransactions.execute(lease,target,command,job,beforeWrite);
+            if(NativeRedisStreams.handles(command))return NativeRedisStreams.execute(lease,target,command,job,beforeWrite);
             try(var connection=NativeRedisSession.open(lease,target,job.remainingSeconds())){
                 var redis=connection.sync();if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 String name=command.get(0).asText().toUpperCase(Locale.ROOT);byte[] key=bytes(command,1);Object value;
@@ -103,29 +107,43 @@ final class NativeMutations {
                 }
                 beforeWrite.run();if(job.cancelled)throw new java.util.concurrent.CancellationException();
                 job.outcome="partial_or_unknown";
-                switch(name){
-                    case "SET" -> value=redis.set(key,bytes(command,2),setOptions(command));
-                    case "DEL" -> value=redis.del(tail(command,1));
-                    case "UNLINK" -> value=redis.unlink(tail(command,1));
-                    case "RENAME" -> value=redis.rename(key,bytes(command,2));
-                    case "RENAMENX" -> value=redis.renamenx(key,bytes(command,2));
-                    case "EXPIRE" -> value=redis.expire(key,integer(command.get(2).asText()));
-                    case "PEXPIRE" -> value=redis.pexpire(key,integer(command.get(2).asText()));
-                    case "PERSIST" -> value=redis.persist(key);
-                    case "HSET" -> {Map<byte[],byte[]> fields=new LinkedHashMap<>();for(int i=2;i<command.size();i+=2)fields.put(bytes(command,i),bytes(command,i+1));value=redis.hset(key,fields);}
-                    case "HDEL" -> value=redis.hdel(key,tail(command,2));
-                    case "LPUSH" -> value=redis.lpush(key,tail(command,2));
-                    case "RPUSH" -> value=redis.rpush(key,tail(command,2));
-                    case "SADD" -> value=redis.sadd(key,tail(command,2));
-                    case "SREM" -> value=redis.srem(key,tail(command,2));
-                    case "ZREM" -> value=redis.zrem(key,tail(command,2));
-                    case "ZADD" -> {List<io.lettuce.core.ScoredValue<byte[]>> members=new ArrayList<>();for(int i=2;i<command.size();i+=2)members.add(io.lettuce.core.ScoredValue.just(Double.parseDouble(command.get(i).asText()),bytes(command,i+1)));value=redis.zadd(key,members.toArray(io.lettuce.core.ScoredValue[]::new));}
-                    default -> throw new IllegalArgumentException("Unsupported native mutation");
-                }
+                value=redisMutation(redis,command);
                 job.outcome="acknowledged";ObjectNode result=Profiles.JSON.createObjectNode().put("kind","mutation").put("outcome",job.outcome);
                 result.set("value",Profiles.JSON.valueToTree(value));if(name.equals("SET"))result.put("applied",value!=null);return result;
             }
         }finally{ /* Any transport loss/cancellation after submission remains partial_or_unknown. */ }
+    }
+
+    /** The same validated scalar-reply adapters serve individual writes and queued transactions. */
+    static Object redisMutation(io.lettuce.core.cluster.api.sync.RedisClusterCommands<byte[],byte[]> redis,JsonNode command){
+        String name=command.get(0).asText().toUpperCase(Locale.ROOT);byte[] key=bytes(command,1);
+        return switch(name){
+            case "SET" -> redis.set(key,bytes(command,2),setOptions(command));
+            case "DEL" -> redis.del(tail(command,1));
+            case "UNLINK" -> redis.unlink(tail(command,1));
+            case "RENAME" -> redis.rename(key,bytes(command,2));
+            case "RENAMENX" -> redis.renamenx(key,bytes(command,2));
+            case "EXPIRE" -> redis.expire(key,integer(command.get(2).asText()));
+            case "PEXPIRE" -> redis.pexpire(key,integer(command.get(2).asText()));
+            case "PERSIST" -> redis.persist(key);
+            case "HSET" -> {
+                Map<byte[],byte[]> fields=new LinkedHashMap<>();
+                for(int i=2;i<command.size();i+=2)fields.put(bytes(command,i),bytes(command,i+1));
+                yield redis.hset(key,fields);
+            }
+            case "HDEL" -> redis.hdel(key,tail(command,2));
+            case "LPUSH" -> redis.lpush(key,tail(command,2));
+            case "RPUSH" -> redis.rpush(key,tail(command,2));
+            case "SADD" -> redis.sadd(key,tail(command,2));
+            case "SREM" -> redis.srem(key,tail(command,2));
+            case "ZREM" -> redis.zrem(key,tail(command,2));
+            case "ZADD" -> {
+                List<io.lettuce.core.ScoredValue<byte[]>> members=new ArrayList<>();
+                for(int i=2;i<command.size();i+=2)members.add(io.lettuce.core.ScoredValue.just(Double.parseDouble(command.get(i).asText()),bytes(command,i+1)));
+                yield redis.zadd(key,members.toArray(io.lettuce.core.ScoredValue[]::new));
+            }
+            default -> throw new IllegalArgumentException("Unsupported native mutation");
+        };
     }
     private static void fields(JsonNode value,Set<String> allowed){if(!value.isObject())throw new IllegalArgumentException("Native operation entry must be an object");value.fieldNames().forEachRemaining(key->{if(!allowed.contains(key))throw new IllegalArgumentException("Unsupported native operation field: "+key);});}
     private static void view(NativeTarget target,JsonNode command){

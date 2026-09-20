@@ -45,7 +45,9 @@ do not send SQL, JavaScript shell snippets, or redis-cli command strings to nati
 connections. Native clients are bundled and require no JDBC driver installation.
 
 When advertised, `dba_request_native_command` accepts an Extended JSON command
-object for MongoDB or a string-argument array for Redis. Supply the exact binding
+object for MongoDB or an argument array for Redis (text and supported base64
+key/value fields). Discover managed transaction support from the actual schema.
+Supply the exact binding
 or standalone UUID/name/database; add `collection` matching Mongo collection
 commands. Native bindings have no SQL schema. A database or collection discovered
 in metadata does not grant permission to use it.
@@ -64,7 +66,13 @@ requires refinement rather than guessing a cursor.
 
 Conditional Redis SET reports `applied: false` when its condition did not match.
 That is not a transport failure and should not trigger an unconditional retry.
-Native writes are not an atomic script. On partial/unknown outcomes, reconcile
+Individual native writes are not an atomic script. When advertised, Redis managed
+transactions accept a bounded batch plus optional exact string/absent WATCH
+expectations. Cluster requires all command/watch keys in one hash slot. Redis
+does not roll back execution-time errors: inspect per-command results, not just
+the job's final state. A WATCH conflict executes no batch commands; reread and
+review a new request rather than retrying or removing expectations automatically.
+On partial/unknown outcomes, reconcile
 with authorized reads before requesting another mutation. Native schema capture and cached catalogs, when advertised, contain bounded
 definitions/observations, never a complete document/key inventory. Sampling is
 opt-in; field types observed in documents are not declared validator requirements.
@@ -73,8 +81,36 @@ Do not infer removed objects from missing samples or compare volatile TTL
 milliseconds as schema changes. Reusable policies, transactions and infrastructure
 capabilities must not be assumed merely because a native profile connects.
 
+When advertised, MongoDB managed transactions use a `transaction` array of CRUD
+objects, unlike Redis argument arrays. They require an explicit replica-set or
+sharded profile and one existing ordinary collection. Every update/delete entry
+must match one document; put expected original values in its filter when optimistic
+concurrency matters. Inspect the final outcome: `rollback_acknowledged` differs
+from `rollback_unconfirmed`, and `commit_unknown` must never trigger automatic
+resubmission. Transactions do not grant permission or enable cross-collection,
+DDL, view, capped/time-series or change-stream workflows.
+
+When bounded MongoDB `watch` is advertised, it starts at now, not with a collection
+snapshot. Use the returned opaque `nextCursor` as `command.cursor` for the next
+authorized batch on the same exact target. Each batch still needs its normal
+approval; the cursor grants no access. Release completed jobs and request another
+batch only when the task needs it, rather than creating a polling keepalive.
+Expiry, collection invalidation and history loss are gaps: never remove the cursor
+and silently restart. Oversized events may block continuation; do not claim that
+later events were consumed or that an empty batch means complete history.
+
 For Sentinel/Cluster, preserve opaque SCAN cursors exactly. They are tied to the
 profile/database and observed primary/topology and can expire; restart from 0
 after a stale-cursor error rather than substituting a raw cursor. Cluster targets
 require logical database 0. Reads remain live and can repeat keys; changing
 topology does not authorize configuration or failover commands.
+
+When Redis streams are advertised, use finite single-stream requests, with an
+explicit bounded COUNT where required. XREAD/XPENDING are reads; XREADGROUP,
+claims and ACKs change delivery state and require write approval. Returned
+`deliveredIds` can include messages whose payload previews were truncated or
+omitted: never interpret those as fully processed or automatically ACK them.
+XACK is a separate exact-ID operation. A missing body may represent a deleted
+entry; XAUTOCLAIM reports removed pending IDs separately. Cancellation or lost
+replies cannot undo delivery changes. Reconcile pending state before proposing
+another mutation; do not turn finite batches into an unrequested subscription.

@@ -10,6 +10,7 @@ final class NativeOperations implements AutoCloseable {
     private final Profiles profiles;
     private final NativeConnections connections;
     private final QueryJobs jobs;
+    private final NativeMongoStreams streams=new NativeMongoStreams();
     private final ProjectContexts contexts;
     private record Resolved(ObjectNode profile,NativeTarget target,ObjectNode binding){}
     private record Review(String owner,ObjectNode input,ObjectNode value,long expires,Runnable release){}
@@ -70,6 +71,10 @@ final class NativeOperations implements AutoCloseable {
         if(resolved.binding.has("id"))review.put("bindingRevision",ProjectContexts.profileRevision(resolved.binding));
         review.set("after",Profiles.JSON.createObjectNode().set("nativeCommand",command.deepCopy()));
         review.put("commandHash",CatalogScanner.hash(command.toString()));
+        if(classification.category().equals("redis.transaction"))review.put("transactionNotice",NativeRedisTransactions.NOTICE);
+        if(classification.category().equals("mongo.transaction"))review.put("transactionNotice",NativeMongoTransactions.NOTICE);
+        if(classification.category().equals("mongo.watch"))review.put("transactionNotice",NativeMongoStreams.NOTICE);
+        if(classification.category().startsWith("redis.stream.")){review.put("transactionNotice",NativeRedisStreams.NOTICE);review.set("streamScope",NativeRedisStreams.scope(command));}
         if(target.transport()==DatabaseTransport.MONGODB&&command.has("renameCollection"))MongoCollectionRename.describe(review,command);
         if(target.transport()==DatabaseTransport.MONGODB&&MongoCollectionSettings.handles(command))MongoCollectionSettings.describe(review,target,command);
         return review;
@@ -111,6 +116,8 @@ final class NativeOperations implements AutoCloseable {
             authorityCheck.run();validate(review,input);
             if(!lease.revision.equals(review.path("targetRevision").asText()))throw new IllegalArgumentException("Native client revision changed; review again");
             job.progress="Executing bounded native read";
+            if(target.transport()==DatabaseTransport.REDIS&&NativeRedisStreams.handles(input.path("command")))return NativeRedisStreams.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
+            if(review.path("classification").path("category").asText().equals("mongo.watch"))return streams.execute(lease,target,input.path("command"),job,review,()->{authorityCheck.run();validate(review,input);});
             if(review.path("mutation").asBoolean()){
                 job.progress="Executing reviewed native mutation";
                 return NativeMutations.execute(lease,target,input.path("command"),job,()->{authorityCheck.run();validate(review,input);});
@@ -181,6 +188,6 @@ final class NativeOperations implements AutoCloseable {
     void remove(String id) { connections.remove(id); }
     void invalidate(String id){connections.invalidate(id);}
     synchronized void reap() {long now=System.currentTimeMillis();var entries=reviews.values().iterator();while(entries.hasNext()){Review review=entries.next();if(now>=review.expires){entries.remove();review.release.run();}}connections.reap(); }
-    synchronized ObjectNode telemetry() { return connections.telemetry().put("retainedReviews",reviews.size()).put("reviewReservationBytes",reviews.size()*(2L<<20)); }
-    public synchronized void close() {reviews.values().forEach(review->review.release.run());reviews.clear();connections.close(); }
+    synchronized ObjectNode telemetry() { return connections.telemetry().put("retainedReviews",reviews.size()).put("reviewReservationBytes",reviews.size()*(2L<<20)).put("activeChangeStreamCursors",streams.activeCursors()).put("retainedChangeSubscriptions",0); }
+    public synchronized void close() {reviews.values().forEach(review->review.release.run());reviews.clear();streams.close();connections.close(); }
 }

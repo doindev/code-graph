@@ -29,7 +29,16 @@ class DbaToolSchemaTest {
         String pattern=create.path("properties").path("url").path("pattern").asText();
         for(String url:List.of("mongodb://localhost:27017","mongodb+srv://example.org","redis://localhost:6379","rediss://localhost:6379","jdbc:h2:mem:test"))assertTrue(java.util.regex.Pattern.compile(pattern).matcher(url).find(),url);
         var command=mapper.readTree(tools.stream().filter(t->t.spec().name().equals("dba_request_native_command")).findFirst().orElseThrow().spec().inputSchemaJson());
-        assertEquals(2,command.path("properties").path("command").path("oneOf").size());
+        assertEquals(5,command.path("properties").path("command").path("oneOf").size());
+        var stream=command.path("properties").path("command").path("oneOf").get(4);
+        assertFalse(stream.path("additionalProperties").asBoolean(true));assertEquals(100,stream.path("properties").path("limit").path("maximum").asInt());assertEquals(6144,stream.path("properties").path("cursor").path("maxLength").asInt());
+        var mongoBatch=command.path("properties").path("command").path("oneOf").get(3);
+        assertFalse(mongoBatch.path("additionalProperties").asBoolean(true));
+        assertEquals(3,mongoBatch.path("properties").path("transaction").path("items").path("oneOf").size());
+        var transaction=command.path("properties").path("command").path("oneOf").get(2);
+        assertFalse(transaction.path("additionalProperties").asBoolean(true));
+        assertEquals(32,transaction.path("properties").path("transaction").path("maxItems").asInt());
+        assertEquals(16,transaction.path("properties").path("watch").path("maxItems").asInt());
         assertTrue(command.path("properties").path("command").path("description").asText().contains("renameCollection"));
         assertTrue(command.path("properties").path("command").path("description").asText().contains("dropTarget must be false or omitted"));
         assertTrue(command.path("properties").path("command").path("description").asText().contains("retention/capped changes may permanently delete data"));

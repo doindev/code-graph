@@ -12,6 +12,10 @@ import {ConnectionTree} from './connection-tree.js';
 import {MetadataTreeView} from './metadata-tree.js';
 import {TreeActions} from './tree-actions.js';
 const $=id=>document.getElementById(id);
+// Restoring the authenticated workspace must precede any user action. Inert
+// blocks pointer/focus activation without changing per-control disabled state.
+const startupRegions=[$('layout'),$('workspace-toolbar-actions'),$('workspace-settings')];
+for(const region of startupRegions){region.inert=true;region.setAttribute('aria-busy','true');}
 let csrf='',profiles=[],tabs=[],active=null,lastSelected=null,toastTimer,workspaceTimer=0,workspaceReady=false,workspaceSaving=false,workspaceQueued=false,lastWorkspaceJson='',workspaceRevision=0,editorEvents=null;
 // Four MiB of the existing 32 MiB result allowance is reserved for shared row drafts.
 const MAX_TABS=12,MAX_BROWSER_BYTES=28*1024*1024;
@@ -198,7 +202,7 @@ function showAuthorizationMode(session){
   $('yolo-settings-warning').textContent=session.yolo?session.warning:'';
   const approvals=$('agent-approvals');if(approvals)approvals.hidden=!!session.yolo;
 }
-async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await refresh();await restoreWorkspace();connectEditorEvents();}
+async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await refresh();await restoreWorkspace();connectEditorEvents();for(const region of startupRegions){region.inert=false;region.removeAttribute('aria-busy');}}
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(b.dataset.close==='agents-dialog'){$('agent-token').value='';$('agent-token-label').hidden=true;}$(b.dataset.close).close();});
 const editor=connectionEditor({api,toast,saved:refresh,csrf:()=>csrf});
 const treeActions=new TreeActions({api,wait:waitJob,notice:toast});
@@ -445,7 +449,7 @@ async function saveScript(asNew){saveEditor();const tab=tabs.find(t=>t.id===acti
     else{const requested=asNew?prompt('Save SQL file as',tab.title):tab.title;if(!requested)return;const filename=requested.replace(/[\\/:*?"<>|]/g,'_');const blob=new Blob([contents],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=/\.(sql|txt)$/i.test(filename)?filename:filename+'.sql';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);tab.title=link.download;toast('Downloaded '+tab.title+'. This browser cannot overwrite the original file; choose its destination in Downloads.');}
     tab.savedText=contents;tab.dirty=tab.sql!==contents;renderTabs();if(active===tab.id)renderDocument();
   }catch(e){if(e.name!=='AbortError')throw e;}}
-document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||!(e.ctrlKey||e.metaKey))return;const key=e.key.toLowerCase();if(key==='s'){e.preventDefault();const tab=tabs.find(t=>t.id===active);safe(()=>tab?.builder?(isView(tab)&&!e.shiftKey?objectDesigner(tab).save():tab.builder.saveFile(e.shiftKey)):saveScript(e.shiftKey))();}else if(key==='o'){e.preventDefault();safe(openScript)();}else if(key==='n'&&e.altKey){e.preventDefault();safe(()=>openTab(lastSelected))();}else if(e.key==='Enter'){e.preventDefault();const tab=tabs.find(t=>t.id===active);if(tab?.builder)void tab.builder.run('data');else $('run').click();}});
+document.addEventListener('keydown',e=>{if(!workspaceReady||document.querySelector('dialog[open]')||!(e.ctrlKey||e.metaKey))return;const key=e.key.toLowerCase();if(key==='s'){e.preventDefault();const tab=tabs.find(t=>t.id===active);safe(()=>tab?.builder?(isView(tab)&&!e.shiftKey?objectDesigner(tab).save():tab.builder.saveFile(e.shiftKey)):saveScript(e.shiftKey))();}else if(key==='o'){e.preventDefault();safe(openScript)();}else if(key==='n'&&e.altKey){e.preventDefault();safe(()=>openTab(lastSelected))();}else if(e.key==='Enter'){e.preventDefault();const tab=tabs.find(t=>t.id===active);if(tab?.builder)void tab.builder.run('data');else $('run').click();}});
 setInterval(()=>queueWorkspaceSave(0),5000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushWorkspace();});
 window.addEventListener('pagehide',()=>{if(!workspaceReady||!csrf)return;const state=workspaceState(),json=JSON.stringify(state);if(json===lastWorkspaceJson)return;const body=JSON.stringify({...state,expectedWorkspaceRevision:workspaceRevision}),bytes=new TextEncoder().encode(body);if(bytes.length<=60*1024)fetch('/api/dba/workspace',{method:'PUT',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json','X-Dba-CSRF':csrf},body}).catch(()=>{});});

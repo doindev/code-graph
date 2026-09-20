@@ -2,6 +2,8 @@ import {lucide} from './tree-icons.js';
 import {DataGridView} from './data-grid.js';
 
 const terminal=new Set(['complete','failed','cancelled']);
+// Enough for the bounded stream delivery/tombstone ID receipt even when payload display is full.
+const RECEIPT_RESERVE=512*1024;
 const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text)node.textContent=text;if(cls)node.className=cls;return node;};
 
 /** Only a bounded display projection; Extended JSON stays authoritative and is never edited here. */
@@ -20,21 +22,32 @@ export function nativeGridModel(entries){
 /** Native document lifetime is independent of mounting. Never evaluates JavaScript or shell text. */
 export class NativeWorkspace {
   constructor({api,profile,state,changed,account}) {
-    Object.assign(this,{api,profile,state,changed,account});this.disposed=false;this.operation=null;
+    Object.assign(this,{api,profile,state,changed,account});this.disposed=false;this.operation=null;this.displayBytes=0;
     this.root=el('section',null,'native-workspace');
     const header=el('div',null,'native-workspace-header');
-    header.append(el('strong',profile.transport==='mongodb'?'MongoDB · Extended JSON':'Redis · argument vector'));
-    header.append(el('span','Exact target · bounded results · writes require review · no automatic retries','muted'));
+    header.append(el('strong',profile.transport==='mongodb'?'MongoDB · Extended JSON':'Redis · commands & transactions'));
+    header.append(el('span','Exact target · bounded results · writes require review · no automatic write retries','muted'));
     this.database=this.field(header,'Database',state.database??profile.nativeOptions?.database??(profile.transport==='redis'?'0':''));
     if(profile.transport==='mongodb')this.collection=this.field(header,'Collection',state.collection??'');
     this.root.append(header);
     const toolbar=el('div',null,'native-workspace-actions');
     this.runButton=this.button(toolbar,'Run native command','play',()=>this.run());
     this.cancelButton=this.button(toolbar,'Cancel current operation','square',()=>this.cancel());this.cancelButton.disabled=true;
+    if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;}
+    if(profile.transport==='redis'){
+      this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis stream command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads require write review.';
+      const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
+      for(const [index,[label]] of examples.entries()){const option=el('option',label);option.value=String(index);this.streamExamples.append(option);}
+      this.streamExamples.onchange=()=>{const command=examples[Number(this.streamExamples.value)]?.[1];this.streamExamples.value='0';if(!command||this.operation||this.disposed||this.unavailable)return;if(this.editor.value.trim()&&!window.confirm('Replace this command draft with a stream example? Nothing will execute.'))return;this.editor.value=JSON.stringify(command,null,2);this.sync();this.editor.focus();};
+      toolbar.append(this.streamExamples);
+    }
     this.status=el('span','Ready · no query has run','native-status');this.status.setAttribute('role','status');toolbar.append(this.status);
     this.root.append(toolbar);
     this.editor=el('textarea',null,'native-command');this.editor.setAttribute('aria-label','Native command JSON');this.editor.spellcheck=false;this.editor.wrap='off';
-    if(profile.transport==='redis')this.editor.title='Redis argument array. Keys and values may use {"base64":"AP8="}; commands, flags, numeric controls and patterns stay text. Binary values: 64 KiB maximum; keys/fields: 8 KiB.';
+    if(profile.transport==='redis')this.editor.title='Redis argument array, or {"transaction":[["SET","key","value"]],"watch":[{"key":"key","expected":null}]}. At most 32 mutations, 16 expected string/absent keys; Cluster requires one hash slot. No rollback or retries. Keys and values may use {"base64":"AP8="}; controls stay text. Binary values: 64 KiB; keys/fields: 8 KiB.';
+    if(profile.transport==='mongodb')this.editor.title='MongoDB Extended JSON command, or {"transaction":[{"insert":"items","documents":[{"_id":"example"}]}]}. Transactions require an explicit replica-set/sharded profile and one existing ordinary collection; at most 32 CRUD commands and 100 write entries. Updates/deletes must each match one document. No automatic retries.';
+    if(profile.transport==='mongodb')this.editor.title+=' Change streams: {"watch":"items","waitMillis":1000,"limit":100}. Finite batches, no initial snapshot. Read next change batch resumes explicitly; Run without a cursor starts at now and may miss intervening history.';
+    if(profile.transport==='redis')this.editor.title+=' Stream examples are finite, single-key commands with COUNT at most 100. No BLOCK/NOACK or automatic acknowledgement. Consumer-group reads/claims change pending delivery state; inspect all delivered IDs and complete payloads before explicitly acknowledging them. No subscriptions retained.';
     this.editor.value=state.commandText??(profile.transport==='mongodb'?'{\n  "find": "collection",\n  "filter": {},\n  "limit": 100\n}':'["SCAN", "0", "MATCH", "*"]');
     this.editor.addEventListener('input',()=>this.sync());
     this.editor.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();this.run();}});
@@ -56,7 +69,8 @@ export class NativeWorkspace {
   }
   field(parent,label,value){const wrapper=el('label',label),input=el('input');input.value=value;input.setAttribute('aria-label',label);input.autocomplete='off';input.addEventListener('input',()=>this.sync());wrapper.append(input);parent.append(wrapper);return input;}
   button(parent,label,icon,action){const button=el('button');button.type='button';button.title=label;button.setAttribute('aria-label',label);button.append(lucide(icon));button.onclick=action;parent.append(button);return button;}
-  sync(){if(!this.editor)return;this.state.database=this.database.value;this.state.collection=this.collection?.value??'';this.state.commandText=this.editor.value;this.changed();}
+  sync(){if(!this.editor)return;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;this.state.database=this.database.value;this.state.collection=this.collection?.value??'';this.state.commandText=this.editor.value;this.changed();}
+  signature(){return JSON.stringify([this.profile.id,this.profile.name,this.database.value,this.collection?.value??'',this.editor.value]);}
   mount(host){host.replaceChildren(this.root);}
   unmount(){this.root.remove();}
   selectView(name){
@@ -66,9 +80,19 @@ export class NativeWorkspace {
     if(name==='grid'&&!this.grid)this.grid=new DataGridView(this.gridHost,this.gridModel,{displayOnly:true,rowActions:false});
   }
   showResult(result){
-    const text=JSON.stringify(result,null,2),bytes=new TextEncoder().encode(text).length;
-    this.account(bytes*6+(Array.isArray(result.entries)?result.entries.length*256*16:0)); // Include worst-case sparse grid cell references.
-    const model=Array.isArray(result.entries)?nativeGridModel(result.entries):null;
+    let receiptOnly=false,text=JSON.stringify(result,null,2),cost=new TextEncoder().encode(text).length*6+(Array.isArray(result.entries)?result.entries.length*256*16:0);
+    try{this.account(cost);}catch(error){
+      if(result.kind!=='stream')throw error;
+      // Reserve was admitted before dispatch. Never lose delivered IDs merely because the UI cannot retain payloads.
+      const receipt={kind:'stream',truncated:true,truncationReason:'browser_memory_limit',entries:[],automaticAcknowledgement:false,
+        notice:'Payloads omitted because the browser result allowance is full. Delivery IDs/outcome are retained. These messages are not fully processed; inspect pending state and complete values before any explicit ACK. Do not blindly rerun.'};
+      for(const key of ['operation','outcome','target','deliveredIds','deletedPendingIds','deletedPendingIdsReported','nextCursor','scanComplete','acknowledgementRequired','pendingDeliveryStateChanged','value'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+      receiptOnly=true;result=receipt;text=JSON.stringify(result,null,2);cost=new TextEncoder().encode(text).length*6;
+      if(cost>RECEIPT_RESERVE)throw new Error('Stream receipt exceeds its reserved UI allowance; reconcile pending entries before retrying.');
+      this.account(cost);
+    }
+    this.displayBytes=cost;this.displayTruncated=!!result.truncated;
+    const model=!receiptOnly&&Array.isArray(result.entries)?nativeGridModel(result.entries):null;
     this.result.textContent=text;this.viewButtons.grid.disabled=!model;
     if(model){
       if(this.gridModel){Object.assign(this.gridModel,model);this.grid?.updateData(null);}
@@ -77,15 +101,19 @@ export class NativeWorkspace {
     }else{this.grid?.destroy();this.grid=null;this.gridModel=null;}
     this.selectView(model?this.viewName:'json');
   }
-  async run(){
+  async run(next=false){
     if(this.operation||this.disposed||this.unavailable)return;
+    const continuation=next?this.nextBatch:null;if(next&&(!continuation||continuation.signature!==this.signature()))return;
+    try{this.account(this.displayBytes+RECEIPT_RESERVE);}catch(error){this.status.textContent='Not started · '+error.message;return;}
     const operation={cancelled:false,id:null};this.operation=operation;const started=performance.now();
     this.runButton.disabled=true;this.cancelButton.disabled=false;this.root.setAttribute('aria-busy','true');
+    if(this.streamExamples)this.streamExamples.disabled=true;
     const update=()=>this.status.textContent=(operation.cancelled?'Cancelling… ':'Running · ')+Math.floor((performance.now()-started)/1000)+'s';
     update();const timer=setInterval(update,1000);
     try{
       this.sync();if(new TextEncoder().encode(this.editor.value).length>131072)throw new Error('Command exceeds 128 KiB.');
       const command=JSON.parse(this.editor.value);
+      operation.signature=this.signature();if(continuation)command.cursor=continuation.cursor;
       const input={connectionId:this.profile.id,connectionName:this.profile.name,database:this.database.value,command};
       if(this.collection?.value)input.collection=this.collection.value;
       const review=await this.api('/native/prepare','POST',input);operation.reviewId=review.id;
@@ -98,21 +126,31 @@ export class NativeWorkspace {
       for(;;){
         const current=await this.api('/jobs/'+job.id);
         if(terminal.has(current.state)&&current.finished){
-          if(current.state!=='complete')throw new Error(current.error||current.state);
+          operation.settled=true;
+          if(current.state!=='complete'){
+            if(current.result&&!this.disposed){this.showResult(current.result);this.selectView('json');}
+            throw new Error(current.error||current.state);
+          }
           if(!operation.cancelled&&!this.disposed){
-            this.showResult(current.result);this.status.textContent='Complete'+(current.result.truncated?' · truncated':'')+' · '+Math.floor((performance.now()-started)/1000)+'s';
+            this.showResult(current.result);this.status.textContent='Complete'+(this.displayTruncated?' · truncated':'')+' · '+Math.floor((performance.now()-started)/1000)+'s';
+            if(current.result.kind==='change_stream'&&current.result.nextCursor&&!current.result.requiresRestart&&operation.signature===this.signature())this.nextBatch={cursor:current.result.nextCursor,signature:operation.signature};
+            if(current.result.kind==='change_stream')this.status.textContent+=' · '+current.result.stopReason+' · '+(current.result.requiresRestart?'History gap: review before starting again':'Read next batch explicitly; no subscription retained');
+            if(current.result.kind==='stream'&&current.result.acknowledgementRequired)this.status.textContent+=' · '+current.result.deliveredIds.length+' delivered IDs · acknowledgement is a separate reviewed command; inspect complete payloads first';
           }else this.status.textContent='Cancelled · previous results retained';
           break;
         }
         await new Promise(resolve=>setTimeout(resolve,250));
       }
-    }catch(error){if(operation.id&&!operation.cancelled)await this.cancel();if(!this.disposed)this.status.textContent=error.message;}
+    }catch(error){if(operation.id&&!operation.cancelled&&!operation.settled)await this.cancel();if(!this.disposed)this.status.textContent=error.message;}
     finally{
       clearInterval(timer);
       if(operation.id)await this.api('/jobs/'+operation.id,'DELETE').catch(()=>{});
       if(operation.reviewId)await this.api('/native/reviews/'+operation.reviewId,'DELETE').catch(()=>{});
       this.operation=null;this.runButton.disabled=this.disposed||!!this.unavailable;this.cancelButton.disabled=true;this.root.removeAttribute('aria-busy');
+      if(this.streamExamples)this.streamExamples.disabled=this.disposed||!!this.unavailable;
+      if(this.nextButton)this.nextButton.disabled=this.disposed||!!this.unavailable||!this.nextBatch||this.nextBatch.signature!==this.signature();
       if(this.unavailable)this.status.textContent=this.unavailable;
+      this.account(this.disposed?0:this.displayBytes);
     }
   }
   confirmMutation(review,operation){
@@ -131,6 +169,6 @@ export class NativeWorkspace {
     });
   }
   async cancel(){const operation=this.operation;if(!operation||operation.cancelled)return;operation.cancelled=true;operation.dismiss?.();this.cancelButton.disabled=true;if(operation.id)try{await this.api('/jobs/'+operation.id+'/cancel','POST',{});}catch(error){this.status.textContent='Cancellation not confirmed: '+error.message;}}
-  invalidate(message){this.unavailable=message;this.runButton.disabled=true;this.cancel();this.status.textContent=message;}
-  dispose(){this.disposed=true;this.cancel();this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
+  invalidate(message){this.unavailable=message;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;if(this.streamExamples)this.streamExamples.disabled=true;this.runButton.disabled=true;this.cancel();this.status.textContent=message;}
+  dispose(){this.disposed=true;this.nextBatch=null;this.cancel();this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
 }

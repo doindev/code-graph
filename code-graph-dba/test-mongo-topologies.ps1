@@ -23,8 +23,10 @@ try{
         docker exec -d $container mongod --port $port --bind_ip_all --replSet cgraph --dbpath /tmp/replica --wiredTigerCacheSizeGB 0.25
         $initialPort=$port
     }else{
-        docker exec -d $container mongod --port 27019 --bind_ip_all --configsvr --replSet config --dbpath /tmp/config --wiredTigerCacheSizeGB 0.25
-        docker exec -d $container mongod --port 27018 --bind_ip_all --shardsvr --replSet shard --dbpath /tmp/shard --wiredTigerCacheSizeGB 0.25
+        # Bound cold-member change-stream ordering latency in this disposable fixture.
+        # Never apply this server tuning to saved/user connections.
+        docker exec -d $container mongod --port 27019 --bind_ip_all --configsvr --replSet config --dbpath /tmp/config --wiredTigerCacheSizeGB 0.25 --setParameter periodicNoopIntervalSecs=1
+        docker exec -d $container mongod --port 27018 --bind_ip_all --shardsvr --replSet shard --dbpath /tmp/shard --wiredTigerCacheSizeGB 0.25 --setParameter periodicNoopIntervalSecs=1
         $initialPort=27019
     }
     $deadline=[DateTime]::UtcNow.AddSeconds(90)
@@ -43,7 +45,7 @@ try{
     }
     $env:MONGO_TOPOLOGY_PORT=[string]$port;$env:MONGO_TOPOLOGY_KIND=$Topology;$env:MONGO_TOPOLOGY_OWNER=$owner
     Write-Output "Owned $Topology fixture $owner; pinned image $image; loopback port $port"
-    mvn -q -pl code-graph-dba -am test '-Dtest=MongoTopologyTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
+    mvn -q -pl code-graph-dba -am test '-Dtest=MongoTopologyTest,NativeMongoTransactionTest,NativeMongoStreamTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
     if($LASTEXITCODE -ne 0){throw 'MongoDB topology gate failed'}
 }finally{
     if($container){$label=docker inspect $container --format '{{index .Config.Labels "io.doindev.codegraph.test"}}';if($label -eq $owner){docker rm --force --volumes $container}else{Write-Warning 'Ownership mismatch; container preserved'}}

@@ -47,6 +47,13 @@ final class NativeRedisSession implements AutoCloseable {
         }catch(RuntimeException failure){connection.close();throw failure;}
     }
     RedisClusterCommands<byte[],byte[]> sync(){return cluster==null?single.sync():cluster.sync();}
+    /** Pin MULTI/EXEC to one primary socket. Never use the cluster routing facade for a transaction. */
+    StatefulRedisConnection<byte[],byte[]> transactionConnection(byte[] key){
+        if(cluster==null)return single;
+        var primary=cluster.getPartitions().getPartitionBySlot(io.lettuce.core.cluster.SlotHash.getSlot(key));
+        if(primary==null||!primary.is(RedisClusterNode.NodeFlag.UPSTREAM))throw new IllegalArgumentException("Redis transaction primary is unavailable; refresh topology and review again");
+        return cluster.getConnection(primary.getUri().getHost(),primary.getUri().getPort(),io.lettuce.core.protocol.ConnectionIntent.WRITE);
+    }
     String serverInfo(){return cluster==null?single.sync().info("server"):cluster.sync().getConnection(nodes.getFirst()).info("server");}
     record Page(List<byte[]> keys,String cursor,boolean complete){}
     Page scan(String cursor,ScanArgs args){

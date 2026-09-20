@@ -25,6 +25,47 @@ final class DbaInputSchemas {
             var binary=redisArguments.addObject().put("type","object").put("additionalProperties",false);
             binary.putArray("required").add("base64");
             binary.putObject("properties").putObject("base64").put("type","string").put("contentEncoding","base64").put("maxLength",87384);
+            command.put("description",command.path("description").asText()+" Redis also accepts {transaction: [argument arrays], watch: [{key, expected}]}: 1..32 supported mutations, at most 16 string/absent expectations and 100 total key references. expected is text/base64 or null for absence. One Cluster hash slot; exact review, no rollback or automatic retries.");
+            var ordinaryExcluded=((ObjectNode)alternatives.get(0)).putObject("not").putArray("anyOf");
+            ordinaryExcluded.addObject().putArray("required").add("transaction");ordinaryExcluded.addObject().putArray("required").add("watch");
+            var transaction=alternatives.addObject().put("type","object").put("additionalProperties",false);
+            transaction.putArray("required").add("transaction");
+            var transactionFields=transaction.putObject("properties");
+            transactionFields.putObject("transaction").put("type","array").put("minItems",1).put("maxItems",32).set("items",alternatives.get(1).deepCopy());
+            var watch=transactionFields.putObject("watch").put("type","array").put("maxItems",16).putObject("items").put("type","object").put("additionalProperties",false);
+            watch.putArray("required").add("key").add("expected");var watchFields=watch.putObject("properties");
+            var keyOptions=watchFields.putObject("key").putArray("oneOf");keyOptions.addObject().put("type","string").put("maxLength",8192);keyOptions.add(binary.deepCopy());
+            var valueOptions=watchFields.putObject("expected").putArray("oneOf");valueOptions.addObject().put("type","string").put("maxLength",65536);valueOptions.add(binary.deepCopy());valueOptions.addObject().put("type","null");
+            command.put("description",command.path("description").asText()+" MongoDB accepts {transaction: [CRUD command objects]} on explicit replica_set/sharded profiles: one exact existing ordinary collection, at most 32 commands and 100 total write entries. Atomic insert/update/delete; each update/delete entry must match one document. No DDL, views, capped/time-series collections, cross-collection commands or automatic commit retry.");
+            var mongoBatch=alternatives.addObject().put("type","object").put("additionalProperties",false);
+            mongoBatch.putArray("required").add("transaction");
+            var mongoChoices=mongoBatch.putObject("properties").putObject("transaction").put("type","array").put("minItems",1).put("maxItems",32).putObject("items").putArray("oneOf");
+            for(String name:List.of("insert","update","delete")){
+                var entry=mongoChoices.addObject().put("type","object").put("additionalProperties",false);
+                String items=name.equals("insert")?"documents":name.equals("update")?"updates":"deletes";
+                entry.putArray("required").add(name).add(items);var fields=entry.putObject("properties");
+                fields.putObject(name).put("type","string").put("minLength",1).put("maxLength",255).put("description","Must exactly match the selected collection.");
+                fields.putObject("ordered").put("type","boolean").put("const",true);
+                var item=fields.putObject(items).put("type","array").put("minItems",1).put("maxItems",100).putObject("items").put("type","object");
+                if(name.equals("insert")){item.put("minProperties",1);continue;}
+                item.put("additionalProperties",false);item.putArray("required").add("q").add(name.equals("update")?"u":"limit");var itemFields=item.putObject("properties");
+                itemFields.putObject("q").put("type","object").put("minProperties",1).put("description","Exact one-document filter; include expected original values for optimistic concurrency.");
+                itemFields.putObject("collation").put("type","object");
+                if(name.equals("delete"))itemFields.putObject("limit").put("type","integer").put("const",1);
+                else{
+                    itemFields.putObject("u").putArray("type").add("object").add("array");
+                    itemFields.putObject("multi").put("type","boolean").put("const",false);
+                    itemFields.putObject("upsert").put("type","boolean");
+                    itemFields.putObject("arrayFilters").put("type","array").put("maxItems",100).putObject("items").put("type","object");
+                }
+            }
+            var stream=alternatives.addObject().put("type","object").put("additionalProperties",false);stream.putArray("required").add("watch");var streamFields=stream.putObject("properties");
+            streamFields.putObject("watch").put("type","string").put("minLength",1).put("maxLength",255).put("description","Exact selected collection on replica_set/sharded MongoDB; finite change batch, no initial snapshot or automatic subscription.");
+            streamFields.putObject("cursor").put("type","string").put("pattern","^mcs1\\.").put("maxLength",6144).put("description","Opaque nextCursor returned to this owner/target by a previous batch; five-minute expiry, invalid after restart or target revision changes. Never grants access.");
+            streamFields.putObject("waitMillis").put("type","integer").put("minimum",0).put("maximum",10000).put("default",1000);
+            streamFields.putObject("limit").put("type","integer").put("minimum",1).put("maximum",100).put("default",100);
+            command.put("description",command.path("description").asText()+" MongoDB watch returns bounded resumable event batches. Supply its opaque nextCursor for the next explicit request; missing cursor starts at now. No pipelines, raw resume tokens, update lookup or preimages. Gaps and oversized events are explicit; no silent history skipping.");
+            command.put("description",command.path("description").asText()+" Redis streams: XREAD COUNT n STREAMS key id; XREADGROUP GROUP group consumer COUNT n STREAMS key id; XPENDING key group start end count [consumer]; XADD key id field value [...]; XACK/XDEL explicit IDs; XCLAIM key group consumer idle-ms id [...]; XAUTOCLAIM key group consumer idle-ms start COUNT n; XGROUP CREATE [MKSTREAM], CREATECONSUMER, SETID, DELCONSUMER, DESTROY; exact XTRIM MAXLEN/MINID. Counts/IDs at most 100, one stream, complete milliseconds-sequence IDs. No BLOCK, NOACK, scripts, implicit acknowledgement, replay or transaction nesting. Group reads/claims change pending delivery state and require exact write approval. Preserve deliveredIds even when payloads are truncated; do not acknowledge incomplete values as processed.");
             var targets=schema.putArray("oneOf");var bound=targets.addObject();bound.putArray("required").add("bindingId");
             var excluded=bound.putObject("not").putArray("anyOf");
             for(String key:List.of("connectionId","connectionName","database","schema"))excluded.addObject().putArray("required").add(key);

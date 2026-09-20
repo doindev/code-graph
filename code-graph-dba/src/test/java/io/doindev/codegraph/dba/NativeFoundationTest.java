@@ -84,8 +84,10 @@ class NativeFoundationTest {
     @Test void redisScriptsModulesAndConsumingCommandsCannotGainReadApproval() {
         assertTrue(redis("GET", "hello").reusableRead());
         assertTrue(redis("SCAN", "0", "COUNT", "10").reusableRead());
-        for (String command : new String[]{"EVAL", "EVAL_RO", "FCALL", "FCALL_RO", "MONITOR", "CONFIG", "MODULE", "DEBUG", "JSON.GET", "SORT", "XREADGROUP", "PFCOUNT"})
+        for (String command : new String[]{"EVAL", "EVAL_RO", "FCALL", "FCALL_RO", "MONITOR", "CONFIG", "MODULE", "DEBUG", "JSON.GET", "SORT", "PFCOUNT"})
             assertFalse(redis(command, "key").reusableRead(), command);
+        assertThrows(IllegalArgumentException.class, () -> redis("XREADGROUP", "key"));
+        assertFalse(redis("XREADGROUP", "GROUP", "g", "consumer", "COUNT", "1", "STREAMS", "key", ">").reusableRead());
         for (String command : new String[]{"DEL", "GETDEL", "SPOP", "FLUSHALL", "BLPOP"}) assertEquals(NativeCommand.Effect.DESTRUCTIVE, redis(command, "key").effect());
         assertEquals(NativeCommand.Effect.WRITE, redis("SET", "key", "value").effect());
         for (String command : new String[]{"AUTH", "SELECT", "HELLO", "MULTI", "EXEC", "WATCH"}) assertThrows(IllegalArgumentException.class, () -> redis(command, "key"));

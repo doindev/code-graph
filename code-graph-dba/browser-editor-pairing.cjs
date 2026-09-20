@@ -17,7 +17,8 @@ module.exports=async(browser,base)=>{
     };
 
     await page.locator('#workspace-settings').click();await page.locator('#editor-pairing').click();
-    const dialog=page.locator('#editor-pairing-dialog');await dialog.waitFor();const code=await page.locator('#editor-pairing-code').inputValue();assert.match(code,/^[A-Z0-9-]{8,}$/);
+    // Six random bytes become eight uppercase base64url characters, including '_' and '-'.
+    const dialog=page.locator('#editor-pairing-dialog');await dialog.waitFor();const code=await page.locator('#editor-pairing-code').inputValue();assert.match(code,/^[A-Z0-9_-]{8}$/);
     const paired=await agentCall('dba_pair_editor',{pairingCode:code});assert.equal(paired.state,'paired');
     await page.waitForFunction(()=>document.querySelector('#editor-pairing-status').textContent.includes('Paired with'));
 

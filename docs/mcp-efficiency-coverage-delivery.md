@@ -132,6 +132,20 @@ The frozen source ZIP SHA-256 is
   The [collection-settings follow-up](mongodb-collection-settings.md) adds reviewed
   retention/capped settings with bounded preflight; it does not close the broader
   native administration, transaction or graphical-editor backlog.
+  The [Redis transaction follow-up](redis-transactions.md) adds bounded reviewed
+  WATCH/MULTI/EXEC on standalone, Sentinel and single-slot Cluster targets;
+  generic pipelines and broader native administration remain incomplete.
+  The subsequent [MongoDB transaction increment](mongodb-transactions.md) adds
+  bounded exact-collection atomic CRUD; its live and reactor gates pass, with
+  browser acceptance recorded in its separate report. This is not the entire
+  native roadmap.
+  [Bounded MongoDB change-stream batches](mongodb-change-streams.md) are now a
+  separately verified increment, including UI continuation and bounded cursor
+  lifecycle. General sessions, persistent subscriptions and broader native
+  administration remain incomplete.
+  The [Redis stream increment](redis-streams.md) adds finite, reviewed consumer
+  delivery/claims/ACKs and group lifecycle, with capped payloads and complete
+  delivery-ID receipts. This does not enable permanent consumers or Pub/Sub.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

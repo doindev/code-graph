@@ -89,7 +89,13 @@ class NativeVendorTest {
                     "[\"HSET\",\"cg-hash\",\"one\",\"value\"]","[\"HDEL\",\"cg-hash\",\"one\"]",
                     "[\"LPUSH\",\"cg-list\",\"value\"]","[\"DEL\",\"cg-list\"]",
                     "[\"ZADD\",\"cg-zset\",\"1.5\",\"member\"]","[\"ZREM\",\"cg-zset\",\"member\"]",
-                    "[\"SADD\",\"cg-set\",\"member\"]","[\"SREM\",\"cg-set\",\"member\"]"};
+                    "[\"SADD\",\"cg-set\",\"member\"]","[\"SREM\",\"cg-set\",\"member\"]",
+                    "{\"transaction\":[[\"SET\",\"{cg-txn}:one\",\"value\"],[\"DEL\",\"{cg-txn}:one\"]],\"watch\":[{\"key\":\"{cg-txn}:one\",\"expected\":null}]}",
+                    "[\"XGROUP\",\"CREATE\",\"cg-stream\",\"workers\",\"0-0\",\"MKSTREAM\"]",
+                    "[\"XADD\",\"cg-stream\",\"1-0\",\"field\",\"value\"]",
+                    "[\"XREADGROUP\",\"GROUP\",\"workers\",\"one\",\"COUNT\",\"1\",\"STREAMS\",\"cg-stream\",\">\"]",
+                    "[\"XPENDING\",\"cg-stream\",\"workers\",\"-\",\"+\",\"10\"]",
+                    "[\"XACK\",\"cg-stream\",\"workers\",\"1-0\"]","[\"DEL\",\"cg-stream\"]"};
             for(String command:commands){
                 var input=target.deepCopy().put("requestId",UUID.randomUUID().toString()).put("purpose","Owned native command verification");
                 input.set("command",Profiles.JSON.readTree(command));
@@ -100,7 +106,7 @@ class NativeVendorTest {
                     assertTrue(done.toString().contains("updated"),done.toPrettyString());
                     verifyCatalogWorkflow(runtime,principal,session,target);
                 }
-                else assertEquals("acknowledged",done.path("job").path("result").path("outcome").asText(),done.toPrettyString());
+                else assertEquals(command.contains("\"XPENDING\"")?"read":"acknowledged",done.path("job").path("result").path("outcome").asText(),done.toPrettyString());
             }
         }
     }
@@ -181,7 +187,13 @@ class NativeVendorTest {
                 "[\"GET\",{\"base64\":\""+binaryKey+"\"}]",
                 "[\"HSET\",{\"base64\":\""+binaryHash+"\"},{\"base64\":\"/wA=\"},{\"base64\":\"AP8B\"}]",
                 "[\"HGET\",{\"base64\":\""+binaryHash+"\"},{\"base64\":\"/wA=\"}]",
-                "[\"DEL\",{\"base64\":\""+binaryKey+"\"},{\"base64\":\""+binaryHash+"\"}]"
+                "[\"DEL\",{\"base64\":\""+binaryKey+"\"},{\"base64\":\""+binaryHash+"\"}]",
+                "{\"transaction\":[[\"SET\",\""+key+"\",\"reviewed-transaction\"],[\"DEL\",\""+key+"\"]],\"watch\":[{\"key\":\""+key+"\",\"expected\":null}]}",
+                "[\"XGROUP\",\"CREATE\",\""+key+"\",\"workers\",\"0-0\",\"MKSTREAM\"]",
+                "[\"XADD\",\""+key+"\",\"1-0\",\"field\",\"value\"]",
+                "[\"XREADGROUP\",\"GROUP\",\"workers\",\"one\",\"COUNT\",\"1\",\"STREAMS\",\""+key+"\",\">\"]",
+                "[\"XPENDING\",\""+key+"\",\"workers\",\"-\",\"+\",\"10\"]",
+                "[\"XACK\",\""+key+"\",\"workers\",\"1-0\"]","[\"DEL\",\""+key+"\"]"
             };
             int index=0;
             for(String text:commands){

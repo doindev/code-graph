@@ -75,7 +75,9 @@ Reads execute as bounded jobs. Mutations require **Review → Apply once** in th
 browser. Cancel/dismiss never applies the review. Plans expire after five minutes,
 belong to one browser session, and cannot be changed after review. An error keeps
 previous successful results. Cancellation is best-effort; successful native writes
-are not rolled back as an atomic script and uncertain writes are never replayed.
+are not rolled back as an atomic script unless the explicit MongoDB transaction
+workflow is used. Uncertain writes are never replayed. A failed transaction can
+display its retained rollback/commit outcome alongside the unchanged draft.
 
 ## Current command coverage
 
@@ -85,9 +87,13 @@ are not rolled back as an atomic script and uncertain writes are never replayed.
 | MongoDB | insert, single-document update/delete entries, create/drop collection or verified view, collMod validators/view definitions, create/drop index | At most 100 write entries; update/delete require nonempty selectors; delete limit is 1 per entry; views use validated same-database read pipelines; no w:0 override |
 | MongoDB | renameCollection | Exact same-database ordinary/capped collection rename; destination replacement, system namespaces, views and time-series collections are rejected; see [rename workflow](mongodb-collection-rename.md) |
 | MongoDB | collMod collection settings | Reviewed existing TTL index changes, time-series retention/granularity and capped limits; bounded metadata preflight and data-loss warnings; see [settings workflow](mongodb-collection-settings.md) |
+| MongoDB | Managed atomic CRUD transaction | 1–32 commands/100 write entries on one existing ordinary collection; explicit replica-set/sharded profile, exact match counts, no automatic retry. See [transaction API and recovery](mongodb-transactions.md) |
+| MongoDB | Bounded change-stream batches | Exact ordinary collection on replica-set/sharded profiles; up to 100 events, opaque five-minute continuation, explicit gaps/backpressure, no initial snapshot or retained subscription. See [change-stream API and recovery](mongodb-change-streams.md) |
 | Redis | GET preview, GETRANGE, TYPE, TTL/PTTL, cardinality/existence/score reads, HGET, LINDEX | Large values are previews, not complete editable payloads |
 | Redis | SCAN/HSCAN/SSCAN/ZSCAN, bounded LRANGE/ZRANGE/ZREVRANGE and XRANGE/XREVRANGE | No automatic KEYS, HGETALL or whole-container materialization; COUNT is managed by the application |
-| Redis | SET, DEL/UNLINK, RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH, SADD/SREM, ZADD/ZREM | SET supports NX/XX with EX/PX or KEEPTTL and reports applied=false on an unmet condition; text/base64 keys and values; graphical value editing and transactions remain incomplete |
+| Redis | SET, DEL/UNLINK, RENAME/RENAMENX, EXPIRE/PEXPIRE/PERSIST, HSET/HDEL, LPUSH/RPUSH, SADD/SREM, ZADD/ZREM | SET supports NX/XX with EX/PX or KEEPTTL and reports applied=false on an unmet condition; text/base64 keys and values; graphical value editing remains incomplete |
+| Redis | Managed transaction object with optional WATCH expectations | 1–32 reviewed mutations, 16 string/absent expectations, 100 key references; Cluster requires one slot; partial errors never imply rollback. See [transaction API and recovery](redis-transactions.md) |
+| Redis | XREAD, extended XPENDING, XADD/XDEL/XTRIM, XREADGROUP, XACK/XCLAIM/XAUTOCLAIM, supported XGROUP actions | Single-key finite requests; up to 100 messages/IDs; group reads mutate delivery state; no BLOCK, NOACK, automatic ACK or replay. See [stream grammar and recovery](redis-streams.md) |
 
 Unknown or unsupported commands fail explicitly. Classification does not grant
 execution rights. This is not a claim of support for every command in these families.

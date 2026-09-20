@@ -52,8 +52,8 @@ final class NativeCommand {
     static Classification classify(NativeTarget target, JsonNode command) {
         bound(command);
         return switch (target.transport()) {
-            case MONGODB -> mongo(target, command);
-            case REDIS -> redis(command);
+            case MONGODB -> command.has("transaction") ? NativeMongoTransactions.classify(target,command) : mongo(target, command);
+            case REDIS -> command.isObject() ? NativeRedisTransactions.classify(target,command) : redis(command);
             default -> throw new IllegalArgumentException("Use SQL tools for JDBC connections");
         };
     }
@@ -61,6 +61,7 @@ final class NativeCommand {
     private static Classification mongo(NativeTarget target, JsonNode command) {
         if (!command.isObject() || command.isEmpty()) throw new IllegalArgumentException("MongoDB command must be a nonempty Extended JSON object");
         String name = command.fieldNames().next();
+        if(name.equals("watch"))return NativeMongoStreams.classify(target,command);
         if (command.has("$db") || command.has("lsid") || command.has("txnNumber") || command.has("autocommit")
                 || command.has("startTransaction") || command.has("$clusterTime") || command.has("apiStrict")) {
             throw new IllegalArgumentException("Database and session context are managed by the application");
@@ -125,6 +126,7 @@ final class NativeCommand {
 
     private static Classification redis(JsonNode command) {
         if (!command.isArray() || command.isEmpty() || command.size() > 1024) throw new IllegalArgumentException("Redis command must be an array of 1..1024 arguments");
+        if(NativeRedisStreams.handles(command))return NativeRedisStreams.classify(command);
         NativeRedisArguments.validate(command);
         String name = NativeRedisArguments.text(command,0).toUpperCase(Locale.ROOT);
         if (!name.matches("[A-Z][A-Z0-9_.]{0,63}")) throw new IllegalArgumentException("Invalid Redis command name");

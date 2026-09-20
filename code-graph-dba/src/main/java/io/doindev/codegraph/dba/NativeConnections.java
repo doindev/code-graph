@@ -75,7 +75,8 @@ final class NativeConnections implements AutoCloseable {
         }
         RedisURI uri=redisUri(profile,credentials);
         RedisClient client=RedisClient.create(redisResources,uri);
-        client.setOptions(ClientOptions.builder().autoReconnect(false).requestQueueSize(32)
+        // Bounded transaction commands plus protocol headroom for MULTI/EXEC.
+        client.setOptions(ClientOptions.builder().autoReconnect(false).requestQueueSize(NativeRedisTransactions.MAX_COMMANDS+2)
                 .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS).build());
         return new Entry(revision,null,client,idle);
     }
@@ -159,7 +160,7 @@ final class NativeConnections implements AutoCloseable {
         for(JsonNode seed:profile.path("nativeOptions").path("seeds")){ObjectNode copy=profile.deepCopy();copy.put("url",seed.asText());seeds.add(redisUri(copy,credentials));}
         if(seeds.size()>16)throw new IllegalArgumentException("Redis Cluster endpoint allowance is 16");
         var client=RedisClusterClient.create(resources,seeds);
-        client.setOptions(ClusterClientOptions.builder().autoReconnect(false).requestQueueSize(32).maxRedirects(3)
+        client.setOptions(ClusterClientOptions.builder().autoReconnect(false).requestQueueSize(NativeRedisTransactions.MAX_COMMANDS+2).maxRedirects(3)
             .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS).validateClusterNodeMembership(true)
             .topologyRefreshOptions(ClusterTopologyRefreshOptions.builder().dynamicRefreshSources(false).build()).build());return client;
     }

@@ -19,7 +19,7 @@ final class NativeCatalog {
         ObjectNode result=Profiles.JSON.createObjectNode().put("id",id).put("name",name).put("transport",transport)
                 .put("url",endpoint).put("icon","/dba/database.svg#"+transport).put("advancedMcp",false)
                 .put("driverSource","bundled_native").put("clientVersion",version)
-                .put("notes","Native protocol, not JDBC. Bounded reads and reviewed single-target CRUD are available. Bounded native catalogs/observations and explicit Mongo replica/sharded and Redis Sentinel/Cluster topologies are supported; infrastructure administration and transactions remain unavailable.");
+                .put("notes","Native protocol, not JDBC. Bounded reads and reviewed single-target CRUD are available. Mongo replica/sharded profiles support bounded atomic CRUD transactions on one existing ordinary collection; Redis supports bounded transactions without rollback. Infrastructure administration remains unavailable.");
         result.putArray("properties");
         result.putObject("capabilities").put("draftTest",true).put("boundedReads",true)
                 .put("sql",false).put("writes",true).put("administration",false)
@@ -37,13 +37,32 @@ final class NativeCatalog {
                 .put("restriction","Exact one-time approval or startup YOLO; no reusable native write policies; no automatic retry");
         for(String name:List.of("sql","migrationApplication","transactions","changeStreams","pubSub","administration"))
             operations.putObject(name).put("available",false).put("reason","No verified native workflow is enabled for this feature yet");
+        if(target.transport()==DatabaseTransport.REDIS)operations.putObject("transactions")
+                .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
+                .put("maximumCommands",32).put("maximumWatchedKeys",16).put("maximumKeyReferences",100).put("rollbackSupported",false)
+                .put("restriction","Reviewed transaction object containing supported scalar-reply mutations and optional string/absent WATCH expectations. Cluster requires one hash slot; no scripts, read arrays, cross-slot routing, rollback or retries.");
+        if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("transactions")
+                .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)&&Set.of("replica_set","sharded").contains(target.topology()))
+                .put("requiresPermission",true).put("maximumCommands",32).put("maximumWriteEntries",100).put("atomic",true)
+                .put("restriction",NativeMongoTransactions.NOTICE).put("verification","MongoDB 8.0 topology fixtures; live topology and collection checks precede execution");
+        if(target.transport()==DatabaseTransport.REDIS)operations.putObject("streamConsumerGroups")
+                .put("boundedReads",true).put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
+                .put("maximumMessages",100).put("continuousSubscription",false).put("automaticAcknowledgement",false)
+                .put("restriction",NativeRedisStreams.NOTICE).put("verification","Redis 7.4.1 fixture target; server version and ACL remain authoritative");
         for(String name:List.of("cachedCatalog","schemaCapture","schemaComparison","contractValidation"))operations.putObject(name).put("available",true).put("requiresPermission",true).put("restriction","Bounded native observations; samples are optional type-only evidence, never a complete schema");
+        if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("changeStreams")
+                .put("available",Set.of("replica_set","sharded").contains(target.topology())).put("requiresPermission",true)
+                .put("maximumEvents",100).put("maximumWaitMillis",10000).put("cursorLifetimeSeconds",300)
+                .put("continuousSubscription",false).put("restriction",NativeMongoStreams.NOTICE);
         var commands=result.putArray("readCommands");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("find","aggregate (verified read stages)","explain (queryPlanner)","listCollections","listIndexes"))commands.add(name);
         else for(String name:List.of("GET (preview)","GETRANGE","TYPE","TTL","PTTL","STRLEN","EXISTS","EXPIRETIME","PEXPIRETIME","HLEN","LLEN","SCARD","ZCARD","XLEN","HEXISTS","SISMEMBER","ZSCORE","GETBIT","HGET","LINDEX","LRANGE","ZRANGE","ZREVRANGE","HSCAN","SSCAN","ZSCAN","XRANGE","XREVRANGE","SCAN","DBSIZE","PING"))commands.add(name);
         var writes=result.putArray("mutationCommands");
+        if(target.transport()==DatabaseTransport.REDIS){commands.add("XREAD (single stream, required COUNT, no BLOCK)");commands.add("XPENDING (bounded extended form)");}
+        if(target.transport()==DatabaseTransport.MONGODB&&Set.of("replica_set","sharded").contains(target.topology()))commands.add("watch (bounded exact-collection change batches)");
         if(target.transport()==DatabaseTransport.MONGODB)for(String name:List.of("insert","update (single-document entries)","delete (limit 1 entries)","create (collection or verified view)","collMod (validator/view, existing TTL index, time-series retention/granularity, capped limits)","createIndexes","renameCollection (same database, no replacement, ordinary/capped collections only)","drop","dropIndexes"))writes.add(name);
         else for(String name:List.of("SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL","LPUSH","RPUSH","SADD","SREM","ZADD","ZREM"))writes.add(name);
+        if(target.transport()==DatabaseTransport.REDIS)for(String name:List.of("XADD","XDEL","XTRIM (exact MAXLEN/MINID)","XREADGROUP (delivery mutation, no BLOCK/NOACK)","XACK","XCLAIM (explicit IDs)","XAUTOCLAIM (bounded COUNT)","XGROUP CREATE/CREATECONSUMER/SETID/DELCONSUMER/DESTROY"))writes.add(name);
         if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("collectionSettings")
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
                 .put("verification","MongoDB 8.0 disposable fixtures; server privileges/version remain authoritative")

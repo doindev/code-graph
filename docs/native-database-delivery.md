@@ -79,6 +79,19 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Bounded exact-collection change-stream pull batches with opaque resumable
+  positions, explicit gaps/backpressure, UI continuation and cursor cleanup.
+  Replica-set/router, reactor and all 19 browser gates pass; see
+  [change-stream evidence and remaining limits](mongodb-change-streams.md).
+  Persistent subscriptions, arbitrary pipelines and general session management
+  remain separate unfinished work.
+
+- [x] Bounded exact-collection CRUD transactions on explicit replica-set/sharded
+  profiles, with rollback, one-attempt commit, ownership and resource tests.
+  Live replica-set/sharded-router, full reactor and all 19 browser gates pass.
+  See [transaction evidence](mongodb-transactions.md).
+  This does not complete change streams or general session management below.
+
 - [x] Reviewed TTL-index, time-series retention/granularity and capped-limit
   changes with bounded collection/index preflight, strict option families and
   destructive warnings. See [collection settings](mongodb-collection-settings.md).
@@ -97,7 +110,7 @@ authentication and operation coverage remains tracked in later phases.
 - [ ] Insert/update/replace/delete/bulk, optimistic conflicts and exact review.
 - [ ] Collection create/rename/drop, validators, indexes/TTL indexes, view
   definitions, supported time-series/capped settings with restrictions visible.
-- [ ] Sessions and transactions on verified topologies; bounded change streams
+- [ ] General session workflows and bounded change streams
   with resume tokens, backpressure, gaps and cleanup. No implied stream snapshot.
 - [ ] GridFS bounded upload/download and metadata workflows with file authority
   explicit; do not turn a database tool into unrestricted filesystem access.
@@ -109,6 +122,16 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Finite single-stream consumer-group commands: bounded reads/pending
+  inspection, reviewed delivery/claim/ACK and group lifecycle, independent
+  delivery receipts, cancellation outcomes and primary-socket pinning.
+  Redis 7.4.1 standalone/Cluster/ACL-Sentinel gates pass; see
+  [stream grammar, recovery and acceptance](redis-streams.md).
+  Persistent Pub/Sub and broader stream administration remain unfinished.
+- [x] Managed bounded transaction adapter with optional exact string/absent WATCH
+  expectations, primary-socket pinning and Cluster single-slot validation. This
+  does not complete the compound pipelines/scripts item below. See
+  [the transaction boundaries and validation commands](redis-transactions.md).
 - [x] Separate Sentinel password-only/ACL discovery credentials, with vault-backed
   keep/replace/remove, browser/MCP proposals, data-node isolation and authenticated
   failover coverage. See [the follow-up](redis-sentinel-auth.md).
