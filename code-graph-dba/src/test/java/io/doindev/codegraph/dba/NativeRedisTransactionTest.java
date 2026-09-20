@@ -50,6 +50,12 @@ class NativeRedisTransactionTest {
         }
         var huge=transaction("a","b");huge.putArray("watch").addObject().put("key","a").put("expected","x".repeat(65537));
         assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target("standalone"),huge));
+        var field=transaction("a","b");field.putArray("watch").addObject().put("key","a").put("field","").putNull("expected");
+        NativeMutations.validate(target("standalone"),field);
+        for(JsonNode invalid:List.of(json("null"),json("42"),json("{\"base64\":\"!\"}"),Profiles.JSON.getNodeFactory().textNode("x".repeat(8193)))){
+            field.withArray("watch").get(0).withObject("").set("field",invalid);
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target("standalone"),field));
+        }
     }
     @Test void reviewIsExactOwnedReadOnlyAndNonReusable()throws Exception{
         try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var jdbc=new Connections(profiles);
@@ -124,6 +130,34 @@ class NativeRedisTransactionTest {
                 redis.del(binaryKey);
                 assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
                 assertEquals(0L,redis.exists(binaryKey),"Expired/deleted keys must not be recreated by the editor");
+                // Hash edits use one exact binary field expectation; HSET preserves key TTL, not field TTL.
+                byte[] hashField={0,(byte)255};redis.hset(binaryKey,hashField,new byte[]{0,(byte)255});redis.pexpire(binaryKey,60000);
+                var hashEdit=Profiles.JSON.createObjectNode();var hset=hashEdit.putArray("transaction").addArray().add("HSET").add(encodedKey);
+                hset.add(Profiles.JSON.createObjectNode().put("base64","AP8=")).add(Profiles.JSON.createObjectNode().put("base64","AQI="));
+                var hashWatch=hashEdit.putArray("watch").addObject();hashWatch.set("key",encodedKey);hashWatch.set("field",Profiles.JSON.createObjectNode().put("base64","AP8="));
+                hashWatch.set("expected",Profiles.JSON.createObjectNode().put("base64","AP8="));
+                ttlBefore=redis.pttl(binaryKey);
+                saved=NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{});
+                assertEquals(0,saved.path("entries").get(0).path("value").asInt(-1));assertArrayEquals(new byte[]{1,2},redis.hget(binaryKey,hashField));
+                assertTrue(redis.pttl(binaryKey)>0&&redis.pttl(binaryKey)<=ttlBefore);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
+                hashWatch.set("expected",Profiles.JSON.createObjectNode().put("base64","AQI="));
+                redis.hpexpire(binaryKey,60000,hashField);
+                var expiryFailure=assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
+                assertTrue(expiryFailure.getMessage().contains("Expiring hash fields"));assertTrue(redis.hpttl(binaryKey,hashField).getFirst()>0);
+                redis.hset(binaryKey,hashField,new byte[]{1,2});checks.set(0);
+                var hashRace=jobs.new Job("human",target.connectionId());
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,hashRace,()->{if(checks.incrementAndGet()==2)redis.hset(binaryKey,bytes("other"),bytes("changed"));}));
+                assertEquals("watched_key_changed",hashRace.result.path("reason").asText());
+                redis.hdel(binaryKey,hashField);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
+                hashWatch.putNull("expected");
+                assertEquals(1,NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asInt(-1));
+                redis.hset(binaryKey,hashField,new byte[65537]);hashWatch.put("expected","");
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
+                redis.del(binaryKey);hashWatch.putNull("expected");
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,hashEdit,jobs.new Job("human",target.connectionId()),()->{}));
+                assertEquals(0L,redis.exists(binaryKey));
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());
         }

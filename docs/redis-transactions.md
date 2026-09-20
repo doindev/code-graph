@@ -18,7 +18,10 @@ transaction object as well as the existing single-command argument array:
 Select the exact connection and logical database as usual. `watch` is optional.
 Each expectation is a complete string value (text or canonical `{ "base64": "…" }`)
 or `null`, which means the key must not exist. Empty text means an existing empty
-string, not absence. Other key types cannot be used as value expectations yet.
+string, not absence. Optional `field` selects an exact hash-field expectation
+instead: the hash must exist, and null then means only that field must be absent.
+Field expectations require Redis 7.4+ and HPTTL permission; expiring fields are
+rejected to avoid silently clearing their expiry. See the [hash editor](redis-hash-editor.md).
 Watching starts during execution, **not while the approval is open**. The server
 checks the supplied expectations after WATCH and Redis detects subsequent changes
 before EXEC. Expiration/eviction can also cause conflicts.

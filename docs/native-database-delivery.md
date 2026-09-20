@@ -122,6 +122,11 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Existing-hash-field graphical editor: binary-safe bounded drafts, optional
+  exact field WATCH expectations, expiry-loss rejection, review/reconciliation.
+  Standalone/Cluster/ACL-Sentinel, reactor and browser gates pass for Redis 7.4.1;
+  broader collection editing remains incomplete. See [scope and acceptance](redis-hash-editor.md).
+
 - [x] Existing-string graphical editor (up to 8 KiB), text/base64 modes,
   reviewed exact WATCH expectations, TTL preservation, bounded memory-only
   drafts and native-tab cleanup. Remaining collection editors are still listed

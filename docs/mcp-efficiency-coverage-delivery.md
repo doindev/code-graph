@@ -158,6 +158,9 @@ The frozen source ZIP SHA-256 is
   text/base64 drafts, revision-bound exact-value saves and TTL preservation.
   Collection editors and native administration remain unfinished; this increment
   does not claim the whole roadmap is complete.
+  The [hash-field editor follow-up](redis-hash-editor.md) extends that shared
+  bounded draft/review flow to existing hash fields; wider collection editors and
+  infrastructure administration remain separate unfinished work.
 - SQL Server support is ordinary disk tables on the pinned 2022 fixture, not all
   versions, editions or special-table operations. Reviewed SQL can still lock or
   fail; uncertain outcomes require reconciliation, never automatic retry.

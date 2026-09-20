@@ -48,6 +48,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   execution errors do not roll back successful commands.
   A [bounded Redis string editor](docs/redis-string-editor.md) adds binary-safe
   drafts, conflict checks and reviewed TTL-preserving saves for existing small values.
+  The [hash-field editor](docs/redis-hash-editor.md) adds the same bounded workflow
+  for existing fields, rejecting field-expiry loss and concurrent changes.
   [Bounded Redis pipelines](docs/redis-pipelines.md) combine up to 32 supported
   scalar/range commands into one dispatch with per-command receipts. Pipelines
   are not atomic; partial failures and cancellation never imply rollback.

@@ -106,4 +106,5 @@ Owned test containers were removed; the existing Redis image and all pre-existin
 MySQL/PostgreSQL/other user containers were preserved. No broad Docker prune,
 production data mutation or application restart is part of this increment.
 The preceding pipeline/value changes were committed and pushed as `a6d3b3b`
-before editor implementation; the editor increment remains a separate local change.
+before editor implementation. The string editor and subsequent toolbar/grid
+polish were then committed and pushed as `2c98f0b` on 2026-09-20.

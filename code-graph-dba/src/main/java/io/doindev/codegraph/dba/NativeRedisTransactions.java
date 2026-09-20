@@ -35,9 +35,10 @@ final class NativeRedisTransactions {
             if(!watch.isArray()||watch.size()>MAX_WATCH)throw new IllegalArgumentException("Redis watch must be an array of at most 16 key/expected pairs");
             Set<String> distinct=new HashSet<>();
             for(JsonNode item:watch){
-                fields(item,Set.of("key","expected"));
+                fields(item,Set.of("key","field","expected"));
                 if(!item.has("key")||!item.has("expected"))throw new IllegalArgumentException("Each watched key requires an explicit expected string/base64 value or null for an absent key");
                 byte[] key=argument(item.path("key"),8192);
+                if(item.has("field"))argument(item.path("field"),8192);
                 if(!item.path("expected").isNull())argument(item.path("expected"),65536);
                 if(!distinct.add(Base64.getEncoder().encodeToString(key)))throw new IllegalArgumentException("Duplicate watched key");
                 keys.add(key);
@@ -65,7 +66,7 @@ final class NativeRedisTransactions {
                 redis.watch(watched);
                 for(int i=0;i<watch.size();i++){
                     check.run();JsonNode expected=watch.get(i).path("expected");String type=redis.type(watched[i]);
-                    boolean matches=expected.isNull()?type.equals("none"):type.equals("string")
+                    boolean matches=watch.get(i).has("field")?hashMatches(redis,watched[i],watch.get(i),type):expected.isNull()?type.equals("none"):type.equals("string")
                             &&redis.strlen(watched[i])<=65536
                             &&Arrays.equals(argument(expected,65536),redis.getrange(watched[i],0,65536));
                     if(!matches)return conflict(job,"expected_value_changed",i);
@@ -92,6 +93,23 @@ final class NativeRedisTransactions {
             if(errors)throw new IllegalArgumentException("Redis transaction partially failed; inspect per-command results and reconcile before retry");
             return result;
         } // Closing the operation-owned socket abandons queued work/WATCH without returning it to another caller.
+    }
+
+    private static boolean hashMatches(io.lettuce.core.cluster.api.sync.RedisClusterCommands<byte[],byte[]> redis,
+            byte[] key,JsonNode expectation,String type){
+        if(!type.equals("hash"))return false; // An absent hash must never be recreated by an optimistic field edit.
+        byte[] field=argument(expectation.path("field"),8192);
+        List<Long> ttl;
+        try{ttl=redis.hpttl(key,field);}
+        catch(io.lettuce.core.RedisCommandExecutionException unavailable){
+            throw new IllegalArgumentException("Hash field expectations require Redis 7.4+ and permission to inspect field TTLs; no transaction commands executed");
+        }
+        if(ttl.size()!=1||ttl.getFirst()==null)throw new IllegalArgumentException("Hash field TTL could not be verified; no transaction commands executed");
+        if(ttl.getFirst()>=0)throw new IllegalArgumentException("Expiring hash fields cannot use this editor: HSET would remove field expiry. No transaction commands executed");
+        JsonNode expected=expectation.path("expected");
+        if(expected.isNull())return ttl.getFirst()==-2;
+        return ttl.getFirst()==-1&&redis.hstrlen(key,field)<=65536
+                &&Arrays.equals(argument(expected,65536),redis.hget(key,field));
     }
 
     private static ObjectNode conflict(QueryJobs.Job job,String reason,int index){

@@ -36,6 +36,8 @@ final class DbaInputSchemas {
             var watch=transactionFields.putObject("watch").put("type","array").put("maxItems",16).putObject("items").put("type","object").put("additionalProperties",false);
             watch.putArray("required").add("key").add("expected");var watchFields=watch.putObject("properties");
             var keyOptions=watchFields.putObject("key").putArray("oneOf");keyOptions.addObject().put("type","string").put("maxLength",8192);keyOptions.add(binary.deepCopy());
+            var field=watchFields.putObject("field").put("description","Optional exact hash field (8 KiB UTF-8/decoded maximum). Hash must exist; expected null means field absent, not key absent. Redis 7.4+ and HPTTL permission required; expiring fields rejected. One watch entry per key.");
+            field.set("oneOf",keyOptions.deepCopy());((ObjectNode)field.path("oneOf").get(1).path("properties").path("base64")).put("maxLength",10924);
             var valueOptions=watchFields.putObject("expected").putArray("oneOf");valueOptions.addObject().put("type","string").put("maxLength",65536);valueOptions.add(binary.deepCopy());valueOptions.addObject().put("type","null");
             command.put("description",command.path("description").asText()+" MongoDB accepts {transaction: [CRUD command objects]} on explicit replica_set/sharded profiles: one exact existing ordinary collection, at most 32 commands and 100 total write entries. Atomic insert/update/delete; each update/delete entry must match one document. No DDL, views, capped/time-series collections, cross-collection commands or automatic commit retry.");
             var mongoBatch=alternatives.addObject().put("type","object").put("additionalProperties",false);

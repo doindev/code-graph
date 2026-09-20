@@ -37,6 +37,7 @@ export class NativeWorkspace {
     if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;}
     if(profile.transport==='redis'){
       this.stringButton=this.button(toolbar,'Edit Redis string value','square-pen',()=>this.openStringEditor());
+      this.hashButton=this.button(toolbar,'Edit Redis hash field','square-pen',()=>this.openStringEditor(true));
       this.streamExamples=el('select');this.streamExamples.setAttribute('aria-label','Redis command example');this.streamExamples.title='Insert an example for editing; never executes it. Consumer-group reads and PFCOUNT require write review.';
       const examples=[['Stream examples…',null],['Read stream',['XREAD','COUNT','100','STREAMS','stream','0-0']],['Read consumer group',['XREADGROUP','GROUP','group','consumer','COUNT','100','STREAMS','stream','>']],['Pending messages',['XPENDING','stream','group','-','+','100']],['Acknowledge exact IDs',['XACK','stream','group','1-0']],['Claim pending messages',['XAUTOCLAIM','stream','group','consumer','60000','0-0','COUNT','100']],['Create consumer group',['XGROUP','CREATE','stream','group','0-0']],['Add stream entry',['XADD','stream','*','field','value']]];
       examples.push(['Pipeline: write and inspect',{pipeline:[['SET','{example}:key','value'],['GETRANGE','{example}:key','0','8191'],['TTL','{example}:key']]}],['Pipeline: read key metadata',{pipeline:[['TYPE','{example}:key'],['TTL','{example}:key'],['EXISTS','{example}:key']]}]);
@@ -82,12 +83,12 @@ export class NativeWorkspace {
   get dirty(){return !!(this.stringEditor?.dirty||this.stringEditor?.uncertain);}
   canClose(){return this.stringEditor?.canClose()??true;}
   updateProfile(profile){if(this.stringEditor&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
-  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(this.stringButton)this.stringButton.disabled=locked;}
-  openStringEditor(){
+  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(this.stringButton)this.stringButton.disabled=locked;if(this.hashButton)this.hashButton.disabled=locked;}
+  openStringEditor(hash=false){
     if(this.stringEditor||this.operation||this.disposed||this.unavailable)return;
     try{this.account(this.displayBytes+256*1024);}catch(e){this.status.textContent=e.message;return;}
-    let key='';try{const command=JSON.parse(this.editor.value);if(Array.isArray(command)&&['GET','GETRANGE','TYPE','STRLEN'].includes(command[0]?.toUpperCase()))key=command[1]??'';}catch{}
-    this.stringEditor=new RedisStringEditor({key,run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
+    let key='',field='';try{const command=JSON.parse(this.editor.value);if(Array.isArray(command)&&(hash?['HGET','HSET','HDEL','HEXISTS','HSCAN','HLEN']:['GET','GETRANGE','TYPE','STRLEN']).includes(command[0]?.toUpperCase())){key=command[1]??'';if(['HGET','HSET','HDEL','HEXISTS'].includes(command[0]?.toUpperCase()))field=command[2]??'';}}catch{}
+    this.stringEditor=new RedisStringEditor({key,...(hash?{field}:{}),run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
     this.editor.after(this.stringEditor.root);this.lockStringTarget();this.stringEditor.key.focus();
   }
   mount(host){host.replaceChildren(this.root);}

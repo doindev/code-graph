@@ -43,6 +43,9 @@ class DbaToolSchemaTest {
         assertFalse(transaction.path("additionalProperties").asBoolean(true));
         assertEquals(32,transaction.path("properties").path("transaction").path("maxItems").asInt());
         assertEquals(16,transaction.path("properties").path("watch").path("maxItems").asInt());
+        var watchFields=transaction.path("properties").path("watch").path("items").path("properties");
+        assertEquals(8192,watchFields.path("field").path("oneOf").get(0).path("maxLength").asInt());
+        assertEquals(10924,watchFields.path("field").path("oneOf").get(1).path("properties").path("base64").path("maxLength").asInt());
         assertTrue(command.path("properties").path("command").path("description").asText().contains("renameCollection"));
         assertTrue(command.path("properties").path("command").path("description").asText().contains("dropTarget must be false or omitted"));
         assertTrue(command.path("properties").path("command").path("description").asText().contains("retention/capped changes may permanently delete data"));

@@ -107,7 +107,11 @@ an unbounded command safe. Cluster pipelines require one shared hash slot.
 
 Individual native writes are not an atomic script. When advertised, Redis managed
 transactions accept a bounded batch plus optional exact string/absent WATCH
-expectations. Cluster requires all command/watch keys in one hash slot. Redis
+expectations. When advertised, `watch[].field` selects an exact hash field instead;
+the hash must exist and null means field absence, not key absence. Field checks
+require Redis 7.4+ and HPTTL permission and reject field expiry. Do not remove a
+rejected expectation or switch to an unguarded HSET to force an edit through.
+Cluster requires all command/watch keys in one hash slot. Redis
 does not roll back execution-time errors: inspect per-command results, not just
 the job's final state. A WATCH conflict executes no batch commands; reread and
 review a new request rather than retrying or removing expectations automatically.
