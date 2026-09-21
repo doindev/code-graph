@@ -136,15 +136,37 @@ tie-breakers where safe. The executed ordered SQL is shown in the preview, witho
 changing Script text. Limited queries must already define unique ordering.
 Ambiguous ordering or unsupported query shapes retain loaded-row navigation.
 
-Count and page reads share a short serializable transaction; no connection or
-open JDBC cursor is retained while browsing. Requests observe current data, not
-a frozen result across idle interactions. Concurrent database changes can move
-rows between pages. Counts and large offsets can be expensive and remain subject
-to cancellation/deadlines.
+Scrolling near either edge automatically requests an overlapping window in that
+direction for verified pageable queries. The browser retains only the current
+window, no larger than the requested page size, and renders visible rows with
+three-row overscan. Overlap preserves the visible row/pixel and horizontal scroll
+position; column layout stays intact. Selection follows verified row keys while
+those rows remain loaded. Tiny pages without a scrollbar can advance by vertical
+wheel or arrow/Page keys on the grid. Opening a grid never drains the query.
+
+Adjacent-window loading keeps old rows scrollable, with a compact progress and
+Cancel indicator. It pauses while cell edits, unsaved drafts, Find/Replace, or a
+modal are open. Switching tabs does not dispose the context; closing it does.
+First/Previous/Next/Last controls retain their explicit navigation behavior.
+
+Adjacent reads do not count the full query. Explicit navigation count/page reads
+share a short serializable transaction; no connection or open JDBC cursor is
+retained while browsing. A backend LRU cache holds at most three recently visited
+windows per context for 60 seconds, with a shared ceiling of the smaller of
+16 MiB or one eighth of the DBA allowance. Cached windows are accounted within
+that allowance, can be evicted under pressure, and never contain pending edits.
+The response reports the capture time and whether the window was cached.
+
+Refresh, first-page reload, page-size/query changes, save preparation, context
+disposal, session expiry and shutdown discard affected cached windows. Row saves
+also clear shared cached windows. Refresh forces a database read; cached browsing
+can otherwise show values up to 60 seconds old. This is not a frozen query
+snapshot: concurrent database changes can move rows between requests. Large
+offsets can still be expensive and remain cancellable and deadline-bound.
 
 At most 128 grid contexts are retained across sessions, accounted against the DBA
-allowance. Only one page per context is retained, along with bounded prepared
-changes. Browser results reserve 28 MiB of the existing 32 MiB allowance, leaving
+allowance. One current page per context plus the optional bounded window cache
+and prepared changes are retained. Browser results reserve 28 MiB of the existing 32 MiB allowance, leaving
 4 MiB for aggregate drafts. Admission fails rather than evicting dirty drafts.
 The memory allowance is not a hard process-RAM cap.
 
@@ -194,7 +216,7 @@ page metadata and restrictions. There is no client-supplied editable table name.
 | GET /grids/{id} | Owned descriptor/status, including busy/uncertain state |
 | POST /grids/{id}/prepare | Validate revision plus structured row/column changes; return a bounded retained plan |
 | POST /grids/{id}/apply | Execute retained planId; confirmed is required for deletions |
-| POST /grids/{id}/page | First/previous/next/last/refresh with revision and limit |
+| POST /grids/{id}/page | First/previous/next/last/refresh with revision and limit; internal window direction additionally accepts a bounded adjacent offset at the unchanged page size |
 | POST /grids/{id}/reload | Reread one supported SELECT without server pagination; accepts revision, first/refresh direction and optional integer limit |
 | POST /grids/{id}/reconcile | Explicitly observe actual data after uncertain outcome; never replay writes |
 | POST /grids/{id}/export | Format, scope, column IDs and optional selected row handles |
@@ -208,7 +230,8 @@ cancellation and release endpoints. Prepare accepts changes with operation
 insert/update/delete, opaque rowId, and values keyed by column ID. Each value
 has kind value/null/default; only value carries text. Revisions, original values,
 schema fingerprints, identifiers and prepared SQL are server-owned.
-Settings telemetry includes grid context count and reserved export disk bytes.
+Settings telemetry includes grid context count, reserved export disk bytes, and
+page-cache windows, accounted bytes, ceiling, hit/miss counts, and expiry.
 
 ## Recovery
 
@@ -224,3 +247,20 @@ Settings telemetry includes grid context count and reserved export disk bytes.
 
 Validation commands, live versions, and remaining limitations are recorded in
 [the delivery checklist](editable-grids-delivery.md).
+
+### Bidirectional scroll regression checks
+
+Focused backend and browser checks (PowerShell):
+
+    mvn -pl code-graph-dba -am "-Dtest=GridWindowTest,GridResultsTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    $env:DBA_BROWSER_SUITE = 'grid-scroll'
+    .\code-graph-dba\test-browser.ps1 -NodeModules '<directory containing playwright>'
+    Remove-Item Env:DBA_BROWSER_SUITE
+
+These use disposable H2 data and an isolated browser fixture, not user databases.
+They cover bounded overlapping windows, cached backward reads, cache expiry/LRU
+and budget reduction, refresh invalidation, session/disposal cleanup, cancelled
+queued work, stable viewport positioning, virtualized DOM size, one-row pages,
+and pauses for drafts and Find/Replace. Other vendors retain the verified paging
+adapter boundaries above; this scroll-specific test does not claim a new live
+validation run for every vendor.

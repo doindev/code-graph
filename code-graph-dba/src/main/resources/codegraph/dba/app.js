@@ -316,11 +316,11 @@ async function transformGrid(tab,result,change,execution){
   const connection=profiles.find(p=>p.id===context.connectionId);if(!connection)throw new Error('The original result connection is no longer available. Run the SELECT again.');
   const retained=()=>!tab.closing&&tabs.includes(tab)&&tab.result===container&&(container===result||container.results?.includes(result));
   const updateView=()=>{if(activeGrid?.result===result){const current=gridContexts.get(result);activeGrid.updateData(current?.previewSql??current?.displaySql??result.sourceSql??current?.sql);}};
-  const replace=async next=>{
+  const replace=async(next,options={})=>{
     const replacement={...next,statementIndex:result.statementIndex},projected=container===result?replacement:{...container,results:container.results.map(item=>item===result?replacement:item)};if(projected.results){const first=projected.results.find(item=>item.kind==='rows');projected.rows=first?.rows??[];projected.columns=first?.columns??[];}const bytes=new TextEncoder().encode(JSON.stringify(projected)).length*3;
     if(tabs.reduce((n,t)=>n+(t===tab?0:(t.bytes??0)+(t.table?t.builderBytes??0:0)),0)+bytes+(tab.table?tab.builderBytes??0:0)>MAX_BROWSER_BYTES)throw Error('Browser result allowance full; close another result.');
     if(!retained())return;
-    Object.assign(result,replacement);if(next!==result)DataGridView.clearSelection(result);
+    if(next!==result)DataGridView.replacePage(result,replacement,options.window);else Object.assign(result,replacement);
     if(next.sourceSql)gridContexts.set(result,{...gridContexts.get(result),displaySql:next.sourceSql});
     if(container.results){const first=container.results.find(r=>r.kind==='rows');container.rows=first?.rows??[];container.columns=first?.columns??[];}
     tab.bytes=new TextEncoder().encode(JSON.stringify(container)).length*3;updateView();

@@ -1,4 +1,10 @@
 .grid-row-navigation{display:flex;gap:3px;margin-left:3px}.grid-page-size{width:8ch;min-width:8ch;height:29px;padding:3px 5px;font:inherit}.grid-row-status{font-size:11px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+/* Adjacent-page loading keeps the old viewport scrollable and never steals focus. */
+.grid-query-overlay.grid-scroll-progress{inset:auto 12px 44px auto;background:transparent;pointer-events:none;align-items:flex-end;max-width:calc(100% - 24px)}
+.grid-scroll-progress .grid-query-progress{flex-direction:row;gap:8px;padding:6px 10px;max-width:100%;border:1px solid #456178;box-shadow:0 3px 10px #0005}
+.grid-scroll-progress .grid-query-elapsed::before{content:"Loading rows · "}
+.grid-scroll-progress .grid-query-bar{width:60px;height:6px}
+.grid-scroll-progress button{pointer-events:auto}
 .grid-row-deleted [role=gridcell]{text-decoration:line-through;color:#f39696;background:#391f2a}.grid-row-added [role=gridcell]{background:#19352b}.grid-cell-changed{box-shadow:inset 0 -2px #eac56b;background:#383223}
 .grid-row [role=gridcell].grid-cell-editor{display:flex;padding:0;overflow:visible;position:relative;z-index:7;background:var(--bg)}.grid-cell-editor textarea{resize:none;min-width:0;width:100%;height:28px;min-height:28px;padding:3px;line-height:20px;white-space:pre}.grid-cell-editor select{width:62px;min-width:62px;padding:1px;font-size:10px}
 .grid-data-dialog{width:min(640px,94vw);max-height:86vh;overflow:auto}.grid-data-dialog label{display:flex;align-items:center;gap:10px;margin:10px 0;justify-content:space-between}.grid-data-dialog label input,.grid-data-dialog label select{max-width:65%}.grid-settings-columns{max-height:40vh;overflow:auto}.grid-settings-column{display:flex;align-items:center;gap:4px}.grid-settings-column label{flex:1;justify-content:flex-start;min-width:0;overflow:hidden}.grid-settings-column button{min-width:28px}.grid-data-dialog [role=alert]{color:#ffb3a9}

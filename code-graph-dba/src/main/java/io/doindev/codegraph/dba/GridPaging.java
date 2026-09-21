@@ -10,6 +10,32 @@ import java.util.*;
 
 /** Bounded page queries; never retains an open cursor between browser actions. */
 final class GridPaging {
+    static long windowOffset(GridResults service,GridResults.Context context,JsonNode request){
+        if(context.orderedSql==null)throw new IllegalArgumentException("Automatic scrolling requires verified server paging.");
+        int limit=requestedLimit(service,context,request);JsonNode offset=request.path("offset");
+        if(limit!=context.limit||!offset.isIntegralNumber()||!offset.canConvertToLong())throw new IllegalArgumentException("Scroll window must use the current page size and an integer offset.");
+        long value=offset.longValue(),end=context.offset+context.result.path("rows").size();
+        if(value<Math.max(0,context.offset-limit)||value>end||value<0||value>9_007_199_254_740_991L)
+            throw new IllegalArgumentException("Scroll window must be adjacent to the current page.");
+        return value;
+    }
+    static ObjectNode window(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c,JsonNode request)throws Exception{
+        long offset=windowOffset(service,context,request);ObjectNode metadata=Profiles.JSON.createObjectNode();metadata.set("columns",context.result.path("columns"));
+        if(!GridRelation.inspect(c,context.sql,metadata).fingerprint.equals(context.relation.fingerprint)){service.pages.removeContext(context.id);throw new IllegalArgumentException("Table definition changed. Rerun the query.");}
+        ObjectNode result=read(context,job,c,offset,context.limit);result.set("columns",context.result.path("columns").deepCopy());service.check(context,job);c.rollback();
+        return publishWindow(service,context,job,new GridPageCache.Page(result,offset,context.limit,result.path("truncated").asBoolean(),System.currentTimeMillis()),false);
+    }
+    static ObjectNode publishWindow(GridResults service,GridResults.Context context,QueryJobs.Job job,GridPageCache.Page page,boolean cached)throws Exception{
+        service.check(context,job);
+        long bytes=Math.max(4096,Profiles.JSON.writeValueAsBytes(page.result()).length*3L+context.baseBytes);
+        try{context.reservation.resize(bytes);}catch(IllegalArgumentException pressure){service.pages.close();context.reservation.resize(bytes);}
+        synchronized(service){
+            service.check(context,job);context.result=page.result();context.offset=page.offset();context.limit=page.limit();context.hasMore=page.more();context.capturedAt=page.capturedAt();context.cacheHit=cached;
+            context.rowIds=new ArrayList<>();for(JsonNode ignored:context.result.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.revision++;context.plan=null;
+            if(!cached)service.pages.put(context);
+            ObjectNode result=context.result.deepCopy();result.set("grid",service.descriptor(context));return result;
+        }
+    }
     static String ordered(GridRelation relation,DatabaseMetaData metadata)throws Exception {
         PlainSelect select=(PlainSelect)CCJSqlParserUtil.parse(relation.sql,p->p.withTimeOut(500));
         List<OrderByElement> order=select.getOrderByElements();var parts=new ArrayList<String>();var covered=new HashSet<String>();
@@ -52,7 +78,7 @@ final class GridPaging {
         String direction=request.path("direction").asText("refresh");if(!Set.of("first","refresh").contains(direction))throw new IllegalArgumentException("This query supports a bounded first-page reload, not server paging.");
         ObjectNode next=read(context,job,c,0,limit);next.set("columns",context.result.path("columns").deepCopy());service.check(context,job);c.rollback();
         context.reservation.resize(Math.max(4096,Profiles.JSON.writeValueAsBytes(next).length*3L+context.baseBytes));
-        synchronized(service){service.check(context,job);context.result=next;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.limit=limit;context.uncertain=false;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
+        synchronized(service){service.check(context,job);context.result=next;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.limit=limit;context.uncertain=false;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
             ObjectNode out=next.deepCopy();out.set("grid",service.descriptor(context));return out;}
     }
     static ObjectNode page(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c,JsonNode request,boolean reconcile)throws Exception{
@@ -74,7 +100,7 @@ final class GridPaging {
             offset=boundary-actual;result=read(context,job,c,offset,actual);result.set("columns",context.result.path("columns").deepCopy());
         }
         service.check(context,job);c.rollback();context.reservation.resize(Math.max(4096,Profiles.JSON.writeValueAsBytes(result).length*3L+context.baseBytes));
-        synchronized(service){service.check(context,job);context.result=result;context.rowIds=new ArrayList<>();for(JsonNode ignored:result.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=offset;context.limit=limit;context.hasMore=offset+result.path("rows").size()<total;context.revision++;context.plan=null;if(reconcile)context.uncertain=false;
+        synchronized(service){service.check(context,job);context.result=result;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:result.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=offset;context.limit=limit;context.hasMore=offset+result.path("rows").size()<total;context.revision++;context.plan=null;if(reconcile)context.uncertain=false;service.pages.put(context);
             ObjectNode descriptor=service.descriptor(context);((ObjectNode)descriptor.path("page")).put("total",total);result=result.deepCopy();result.set("grid",descriptor);result.put("sourceSql",context.orderedSql);return result;}
     }
 }

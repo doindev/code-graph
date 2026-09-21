@@ -17,6 +17,7 @@ final class GridResults implements AutoCloseable {
     final Supplier<DbaConfig> config;
     final Predicate<String> alive;
     final GridExports exports;
+    final GridPageCache pages;
     final Map<String,Context> contexts=new LinkedHashMap<>();
     private final Path audit;
     static final class Context {
@@ -27,7 +28,8 @@ final class GridResults implements AutoCloseable {
         GridRelation relation;
         String reason="",orderedSql;
         List<String> rowIds=new ArrayList<>();
-        long revision=1,offset;
+        long revision=1,offset,capturedAt=System.currentTimeMillis();
+        boolean cacheHit;
         int limit;
         boolean ready,busy,disposed,uncertain,hasMore,fullExport,canLimitRows;
         QueryJobs.Job activeJob;
@@ -44,8 +46,8 @@ final class GridResults implements AutoCloseable {
     private static String schema(Connection c){try{return Objects.toString(c.getSchema(),"");}catch(SQLException|UnsupportedOperationException|AbstractMethodError ignored){return "";}}
     static boolean sqlExport(Context c){return c.relation!=null&&!c.result.path("cellsTruncated").asBoolean()&&c.relation.columns.stream().noneMatch(GridRelation.Column::generated);}
     synchronized ObjectNode status(String owner,String id){return descriptor(require(owner,id));}
-    synchronized ObjectNode telemetry(){return Profiles.JSON.createObjectNode().put("contexts",contexts.size()).put("maximumContexts",MAX_CONTEXTS).set("exports",exports.telemetry());}
-    GridResults(QueryJobs jobs,Connections connections,Supplier<DbaConfig> config,Predicate<String> alive)throws java.io.IOException{this.jobs=jobs;this.connections=connections;this.config=config;this.alive=alive;this.audit=config.get().directory().resolve("browser-grid-audit.jsonl");this.exports=new GridExports(this);}
+    synchronized ObjectNode telemetry(){var out=Profiles.JSON.createObjectNode().put("contexts",contexts.size()).put("maximumContexts",MAX_CONTEXTS);out.set("exports",exports.telemetry());out.set("pageCache",pages.telemetry());return out;}
+    GridResults(QueryJobs jobs,Connections connections,Supplier<DbaConfig> config,Predicate<String> alive)throws java.io.IOException{this.jobs=jobs;this.connections=connections;this.config=config;this.alive=alive;this.audit=config.get().directory().resolve("browser-grid-audit.jsonl");this.exports=new GridExports(this);this.pages=new GridPageCache(jobs,()->config.get().memoryBytes());}
     void capture(QueryJobs.Job job,Connection c,ObjectNode output,JsonNode parameters)throws Exception {
         if(job.owner.startsWith("agent:"))return;
         for(JsonNode item:output.path("results")){
@@ -87,11 +89,11 @@ final class GridResults implements AutoCloseable {
             finally{if(reservation!=null)reservation.close();}
         }
     }
-    synchronized void finished(QueryJobs.Job job){for(Context c:new ArrayList<>(contexts.values()))if(c.originJob.equals(job.id)){if(job.state.equals("complete"))c.ready=true;else dispose(c);}}
+    synchronized void finished(QueryJobs.Job job){for(Context c:new ArrayList<>(contexts.values()))if(c.originJob.equals(job.id)){if(job.state.equals("complete")){c.ready=true;pages.put(c);}else dispose(c);}}
     synchronized ObjectNode descriptor(Context c){
         ObjectNode out=Profiles.JSON.createObjectNode().put("id",c.id).put("revision",c.revision).put("rowCeiling",config.get().uiRows()).put("connectionId",c.connection).put("connectionName",connections.profile(c.connection).path("name").asText()).put("database",c.database).put("schema",c.schema).put("uncertain",c.uncertain).put("busy",c.busy);
         out.putArray("rowIds").addAll(c.rowIds.stream().map(TextNode::valueOf).toList());
-        out.putObject("page").put("offset",c.offset).put("limit",c.limit).put("hasMore",c.hasMore);
+        out.putObject("page").put("offset",c.offset).put("limit",c.limit).put("hasMore",c.hasMore).put("capturedAt",c.capturedAt).put("cached",c.cacheHit);
         // A bounded replay of one SELECT does not require a unique key or verified paging.
         out.putObject("capabilities").put("edit",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("delete",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("insert",c.relation!=null&&c.relation.insert&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("page",c.orderedSql!=null).put("fullExport",c.fullExport).put("sqlExport",sqlExport(c)).put("reason",c.result.path("cellsTruncated").asBoolean()?"Truncated values make this page read-only.":c.reason).put("sqlExportReason",sqlExport(c)?"":"SQL export needs a verified target without generated/identity columns or truncated values.").put("pageReason",c.orderedSql==null?c.reason:"");
         ((ObjectNode)out.path("capabilities")).put("rowLimit",c.orderedSql!=null||c.canLimitRows).put("rowLimitReason",c.canLimitRows||c.orderedSql!=null?"":"This result cannot safely replay one SELECT; rerun it from the SQL editor.");
@@ -108,8 +110,17 @@ final class GridResults implements AutoCloseable {
         Context c=require(owner,id);if(c.busy)throw new IllegalArgumentException("This grid already has an active operation.");
         if(c.uncertain&&!action.equals("reconcile"))throw new IllegalArgumentException("Save outcome is unknown. Reconcile with the database before retrying.");
         if(input.path("revision").asLong(-1)!=c.revision)throw new IllegalArgumentException("Stale grid revision; refresh before retrying.");
+        pages.reap();
+        boolean window=action.equals("page")&&input.path("direction").asText().equals("window");
+        if(window)GridPaging.windowOffset(this,c,input);
+        if(action.equals("prepare")||action.equals("apply")||action.equals("reconcile")||action.equals("reload")
+                ||action.equals("page")&&(Set.of("first","refresh").contains(input.path("direction").asText("refresh"))||input.path("limit").asInt(c.limit)!=c.limit))pages.removeContext(c.id);
+        if(action.equals("apply"))pages.close(); // Writes can invalidate cached pages of other grids too.
         c.busy=true;JsonNode request=input.deepCopy();
-        return jobs.local(owner,c.connection,job->{try(var target=connections.target(c.connection,c.database)){
+        return jobs.local(owner,c.connection,job->{
+            c.activeJob=job;
+            if(window){var cached=pages.get(c.id,request.path("offset").asLong(),c.limit);if(cached!=null)return GridPaging.publishWindow(this,c,job,cached,true);}
+            try(var target=connections.target(c.connection,c.database)){
             c.activeJob=job;Connection connection=target.connection();
             // Target discovery can already have started a driver transaction. End that read
             // before choosing isolation; PostgreSQL rejects isolation changes mid-transaction.
@@ -117,9 +128,9 @@ final class GridResults implements AutoCloseable {
             connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);connection.setReadOnly(false);
             if(action.equals("page")||action.equals("reconcile"))connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             connection.setAutoCommit(false);
-            try{check(c,job);return switch(action){case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
+            try{check(c,job);return switch(action){case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->window?GridPaging.window(this,c,job,connection,request):action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
             catch(Exception error){if(!c.uncertain)try{connection.rollback();}catch(SQLException rollback){c.uncertain=true;}if(c.uncertain)job.outcome="unknown";else if(action.equals("apply"))job.outcome="rolled_back";if(error instanceof SQLException)throw new IllegalArgumentException(connections.humanError(c.connection,error),error);throw error;}
-            finally{job.statement=null;try{connection.rollback();}catch(SQLException ignored){}}
+            finally{if(action.equals("apply"))pages.close();job.statement=null;try{connection.rollback();}catch(SQLException ignored){}}
         }},()->{synchronized(this){if(c.activeJob!=null&&c.activeJob.cancelled)exports.cancelled(c.activeJob.id);c.activeJob=null;c.busy=false;if(c.disposed)c.reservation.close();}});
     }
     ObjectNode prepare(Context c,Connection connection,JsonNode input)throws Exception {
@@ -197,7 +208,7 @@ final class GridResults implements AutoCloseable {
     }
     private synchronized void audit(Context c,Plan plan)throws Exception {if(Files.exists(audit)&&Files.size(audit)>4L<<20)Files.move(audit,audit.resolveSibling("browser-grid-audit.previous.jsonl"),StandardCopyOption.REPLACE_EXISTING);if(!Files.exists(audit)){Files.createFile(audit);Profiles.protect(audit);}ObjectNode event=Profiles.JSON.createObjectNode().put("at",System.currentTimeMillis()).put("connectionId",c.connection).put("targetHash",CatalogScanner.hash(c.database+"|"+c.schema+"|"+c.relation.table)).put("planId",plan.id).put("changeCount",plan.commands.size()).put("action","browser_grid_save");Files.writeString(audit,event+"\n",StandardCharsets.UTF_8,StandardOpenOption.APPEND);}
     synchronized void release(String owner,String id){Context c=contexts.get(id);if(c==null)return;if(!c.owner.equals(owner))throw new SecurityException("Grid is not owned by this session.");dispose(c);}
-    private void dispose(Context c){c.disposed=true;contexts.remove(c.id);if(c.activeJob!=null)jobs.cancel(c.activeJob);if(!c.busy)c.reservation.close();}
-    synchronized void reap(){for(Context c:new ArrayList<>(contexts.values()))if(!alive.test(c.owner))dispose(c);exports.reap();}
-    public synchronized void close(){for(Context c:new ArrayList<>(contexts.values()))dispose(c);exports.close();}
+    private void dispose(Context c){c.disposed=true;pages.removeContext(c.id);contexts.remove(c.id);if(c.activeJob!=null)jobs.cancel(c.activeJob);if(!c.busy)c.reservation.close();}
+    synchronized void reap(){for(Context c:new ArrayList<>(contexts.values()))if(!alive.test(c.owner))dispose(c);pages.reap();exports.reap();}
+    public synchronized void close(){for(Context c:new ArrayList<>(contexts.values()))dispose(c);pages.close();exports.close();}
 }

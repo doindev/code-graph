@@ -15,7 +15,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Grid query editing and the expanded JDBC catalog](docs/dba-grid-and-drivers.md) covers
   alias-aware sorting/filtering, editable Boolean filters, driver recipes and validation limits.
   [Editable, pageable grids and exports](docs/dba-editable-grids.md) add staged
-  transactional row changes, 200-row server pages, selection/navigation, grid
+  transactional row changes, 200-row server windows with bidirectional near-edge
+  loading, virtualized rows and bounded backend caching, selection/navigation, grid
   settings, loaded-page Find/Replace with staged edits and ten-entry histories,
   and bounded CSV/XLSX/TXT/SQL downloads with explicit capability gates.
   Double-click a table in the database tree to open a fixed-connection **Table** tab with a reusable

@@ -37,7 +37,7 @@ export async function runOwnedGrid(result,change,execution,{api,replace,download
   if(change.action==='page'){
     const kind=context.capabilities.page?'page':'reload';
     if(kind==='reload'&&(!context.capabilities.rowLimit||!['first','refresh'].includes(change.direction)))throw Error(context.capabilities.rowLimitReason||'Server paging is unavailable for this query.');
-    await replace(await submit(kind,{direction:change.direction,limit:change.limit}));
+    await replace(await submit(kind,{direction:change.direction,limit:change.limit,...(change.direction==='window'?{offset:change.offset}:{})}),{window:change.direction==='window'});
     return true;
   }
   if(change.action==='export'){
