@@ -37,9 +37,16 @@ final class EditorPairings implements AutoCloseable {
     synchronized ObjectNode pair(String principal,String mcpSession,String code){
         reap();if(mcpSession==null||!sessionAlive.test(mcpSession,principal))throw new SecurityException("A live logical MCP session is required");
         Pending request=pending.remove(code.toUpperCase(java.util.Locale.ROOT));if(request==null||request.expires<System.currentTimeMillis())throw new IllegalArgumentException("Pairing code is invalid or expired");
-        pairs.values().removeIf(pair->pair.mcpSession.equals(mcpSession)||pair.browser.equals(request.browser));
-        Pair pair=new Pair(UUID.randomUUID().toString(),principal,mcpSession,request.browser,System.currentTimeMillis());pairs.put(mcpSession,pair);
-        emit(request.browser,"paired",Profiles.JSON.createObjectNode().put("pairId",pair.id).put("agent",principal));
+        return connect(principal,mcpSession,request.browser);
+    }
+    synchronized boolean occupied(String browser){reap();return pairs.values().stream().anyMatch(p->p.browser.equals(browser));}
+    synchronized boolean sessionPaired(String session){reap();return pairs.containsKey(session);}
+    synchronized ObjectNode connect(String principal,String mcpSession,String browser){
+        reap();requireBrowser(browser);
+        if(mcpSession==null||!sessionAlive.test(mcpSession,principal))throw new SecurityException("A live logical MCP session is required");
+        if(occupied(browser)||pairs.containsKey(mcpSession))throw new IllegalArgumentException("A workspace or MCP session is already paired; disconnect it before pairing again");
+        Pair pair=new Pair(UUID.randomUUID().toString(),principal,mcpSession,browser,System.currentTimeMillis());pairs.put(mcpSession,pair);
+        emit(browser,"paired",Profiles.JSON.createObjectNode().put("pairId",pair.id).put("agent",principal));
         return Profiles.JSON.createObjectNode().put("state","paired").put("pairId",pair.id).put("scope","one browser workspace").put("databasePermissionsGranted",false);
     }
     synchronized ObjectNode revokeBrowser(String browser){requireBrowser(browser);pending.values().removeIf(value->value.browser.equals(browser));pairs.values().removeIf(pair->pair.browser.equals(browser));emit(browser,"revoked",Profiles.JSON.createObjectNode());return Profiles.JSON.createObjectNode().put("revoked",true);}
@@ -78,10 +85,10 @@ final class EditorPairings implements AutoCloseable {
     synchronized ArrayNode events(String browser,long after){requireBrowser(browser);reap();ArrayNode out=Profiles.JSON.createArrayNode();for(Event event:events.getOrDefault(browser,new ArrayDeque<>()))if(event.id>after)out.add(event.value.deepCopy().put("eventId",event.id).put("type",event.type));return out;}
     synchronized ObjectNode acknowledge(String browser,long id){requireBrowser(browser);ArrayDeque<Event> queue=events.get(browser);if(queue!=null)while(!queue.isEmpty()&&queue.peekFirst().id<=id)queue.removeFirst();return Profiles.JSON.createObjectNode().put("acknowledged",id);}
 
-    private Pair requirePair(String principal,String session){reap();Pair pair=pairs.get(session);if(pair==null||!pair.principal.equals(principal)||!sessionAlive.test(session,principal))throw new SecurityException("Pair this MCP session with an active DBA workspace first");requireBrowser(pair.browser);return pair;}
+    private Pair requirePair(String principal,String session){reap();Pair pair=pairs.get(session);if(pair==null||!pair.principal.equals(principal)||!sessionAlive.test(session,principal))throw new SecurityException("Pair this MCP session with an active DBA workspace first");requireBrowser(pair.browser);if(!auth.tabResponsive(pair.browser))throw new SecurityException("Paired DBA tab is disconnected; return to that tab before editing");return pair;}
     private void requireBrowser(String browser){if(auth==null||!auth.alive(browser))throw new SecurityException("DBA browser session is unavailable");}
     private void emit(String browser,String type,ObjectNode value){ArrayDeque<Event> queue=events.computeIfAbsent(browser,_ ->new ArrayDeque<>());if(queue.size()>=64)queue.removeFirst();queue.addLast(new Event(++sequence,type,value));}
-    private void reap(){long now=System.currentTimeMillis();pending.values().removeIf(value->value.expires<now||!auth.alive(value.browser));pairs.values().removeIf(pair->!auth.alive(pair.browser)||!sessionAlive.test(pair.mcpSession,pair.principal));}
+    synchronized void reap(){long now=System.currentTimeMillis();pending.values().removeIf(value->value.expires<now||!auth.alive(value.browser));pairs.values().removeIf(pair->!auth.collaborationAlive(pair.browser)||!sessionAlive.test(pair.mcpSession,pair.principal));events.keySet().removeIf(key->!auth.alive(key));}
     private static JsonNode parse(byte[] bytes){try{return Profiles.JSON.readTree(bytes);}catch(Exception e){throw new IllegalStateException("Stored workspace is invalid");}}
     private static JsonNode find(JsonNode root,String id){for(JsonNode tab:root.path("tabs"))if(tab.path("id").asText().equals(id))return tab;throw new IllegalArgumentException("Unknown Script document");}
     private static ObjectNode metadata(JsonNode tab){return Profiles.JSON.createObjectNode().put("id",tab.path("id").asText()).put("title",tab.path("title").asText()).put("connectionId",tab.path("connection").asText()).put("dirty",tab.path("dirty").asBoolean()).put("sqlBytes",tab.path("sql").asText().getBytes(StandardCharsets.UTF_8).length).put("revision",documentRevision(tab));}

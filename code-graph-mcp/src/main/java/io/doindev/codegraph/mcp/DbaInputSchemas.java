@@ -137,6 +137,7 @@ final class DbaInputSchemas {
         if (props.has("requestId")) props.withObject("requestId").put("minLength", 1).put("maxLength",
                 Set.of("dba_request_status", "dba_cancel_request").contains(operation) ? 36 : 100);
         if (props.has("purpose")) props.withObject("purpose").put("minLength", 1).put("maxLength", 2000);
+        if(operation.equals("dba_request_editor_access")){props.withObject("purpose").put("maxLength",500);props.withObject("requestId").put("maxLength",100);}
         if(props.has("pairingCode"))props.withObject("pairingCode").put("minLength",8).put("maxLength",32);
         if(props.has("documentId"))props.withObject("documentId").put("format","uuid").put("maxLength",36);
         if(props.has("expectedRevision"))props.withObject("expectedRevision").put("minLength",16).put("maxLength",128);

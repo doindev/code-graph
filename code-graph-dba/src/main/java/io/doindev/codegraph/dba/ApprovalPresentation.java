@@ -10,7 +10,7 @@ final class ApprovalPresentation {
     static boolean complex(JsonNode r){return Set.of("connection_create","connection_update").contains(r.path("type").asText())||r.path("requiresDriverInstall").asBoolean();}
     static ObjectNode safe(JsonNode source){
         ObjectNode out=Profiles.JSON.createObjectNode();
-        for(String key:List.of("id","type","agentId","agentName","identityNotice","operation","permissionScope","approvalChoices","purpose","project","projectId","environment","role","connectionName","database","schema","before","after","target","sql","parameters","classification","mutation","destructive","eligiblePersistentRead","scopeNotice","transactionNotice","expiresAt","requiresDriverInstall"))
+        for(String key:List.of("id","type","agentId","agentName","identityNotice","operation","permissionScope","approvalChoices","purpose","detail","project","projectId","environment","role","connectionName","database","schema","before","after","target","sql","parameters","classification","mutation","destructive","eligiblePersistentRead","scopeNotice","transactionNotice","expiresAt","requiresDriverInstall"))
             if(source.has(key))out.set(key,source.path(key).deepCopy());
         scrub(out);return out;
     }
@@ -30,6 +30,7 @@ final class ApprovalPresentation {
         if(r.has("permissionScope"))field(s,"Exact reusable scope",r.path("permissionScope").toPrettyString());
         if(r.has("approvalChoices"))field(s,"Permission lifetime","Allow once: this request only. Always allow: exact SQL, parameter values and options until revoked. Session similar: this category until the requesting MCP session ends. Always similar: this category until revoked. No other database, schema, binding or role is included.");
         field(s,"Purpose",r.path("purpose").asText());
+        field(s,"Browser workspace",r.path("detail").asText());
         if(r.has("environment"))s.append("<p style='color:#ffb768;font-size:18pt'><b>Environment: ").append(escape(r.path("environment").asText().toUpperCase(Locale.ROOT))).append("</b></p>");
         for(String key:List.of("project","environment","role","connectionName","database","schema"))field(s,key,r.path(key).asText());
         for(String key:List.of("target","before","after","parameters","classification"))if(r.has(key))field(s,key,r.path(key).toPrettyString());

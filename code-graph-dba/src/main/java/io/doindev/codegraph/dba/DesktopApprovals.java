@@ -83,14 +83,18 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
                 body.add(details,BorderLayout.CENTER);
                 JPanel footer=new JPanel();footer.setOpaque(false);footer.setLayout(new BoxLayout(footer,BoxLayout.Y_AXIS));
                 boolean mutation=r.path("mutation").asBoolean(!r.path("eligiblePersistentRead").asBoolean());
-                JLabel risk=new JLabel(mutation?"This action can change database or application configuration.":"Read-only access requested.");
+                boolean editor=r.path("type").asText().equals("editor_pairing");
+                JLabel risk=new JLabel(editor?"Script collaboration only · No SQL execution or file saving":mutation?"This action can change database or application configuration.":"Read-only access requested.");
                 risk.setForeground(mutation?new Color(255,183,104):new Color(154,213,187));footer.add(risk);
-                JLabel confirmation=new JLabel("Choosing Allow confirms the exact request, target, and displayed risks.");confirmation.setForeground(Color.WHITE);footer.add(confirmation);
+                JLabel confirmation=new JLabel(editor?"Choose a browser workspace. Database permissions remain unchanged.":"Choosing Allow confirms the exact request, target, and displayed risks.");confirmation.setForeground(Color.WHITE);footer.add(confirmation);
                 JLabel countdown=new JLabel();countdown.setForeground(new Color(185,198,216));footer.add(countdown);
                 JLabel limitation=new JLabel("Application consent · No operating-system administrator privileges");limitation.setForeground(new Color(185,198,216));footer.add(limitation);
                 JPanel actions=new JPanel(new FlowLayout(FlowLayout.RIGHT));actions.setOpaque(false);
                 JButton deny=new JButton("Deny");deny.addActionListener(e->resolve("reject",false));actions.add(deny);
-                if(ApprovalPresentation.complex(r)){
+                if(editor){
+                    JButton existing=new JButton("Use existing DBA tab");existing.setToolTipText("Approve collaboration; choose a tab in the browser if several are open");existing.addActionListener(e->resolve("editor_existing",true));actions.add(existing);
+                    JButton fresh=new JButton("Open new DBA workspace");fresh.setToolTipText("Approve collaboration in a new workspace in your default browser");fresh.addActionListener(e->resolve("editor_new",true));actions.add(fresh);
+                }else if(ApprovalPresentation.complex(r)){
                     JButton review=new JButton("Open detailed review in browser");review.addActionListener(e->{review.setEnabled(false);detailed.run();});actions.add(review);
                 }else{
                     JButton once=new JButton("Allow once");once.addActionListener(e->resolve("approve_once",true));once.getAccessibleContext().setAccessibleDescription("Approve this exact request once without creating a permission");actions.add(once);

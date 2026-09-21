@@ -40,6 +40,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   pauses catalog scans when MCP activity stops, and provides human approval for live agent SQL across all connection templates.
   The [approval broker](docs/approval-broker.md) routes requests to an active DBA browser or a
   JDK-only desktop consent prompt, with a restricted temporary browser editor for complex reviews.
+  Agents can [request a DBA browser workspace](docs/editor-collaboration.md) directly:
+  choose an existing tab or open a new one in the Java prompt, without copying a pairing code.
+  Each browser tab has its own Script workspace; editor consent never grants SQL permissions.
   [Native MongoDB and Redis](docs/native-databases.md) add separate non-JDBC profiles,
   typed command workspaces, bounded reads, reviewed CRUD and native catalog observations/contracts.
   Mongo replica/sharded and Redis Sentinel/Cluster connections have disposable topology tests.

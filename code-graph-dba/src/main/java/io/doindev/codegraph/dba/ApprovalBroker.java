@@ -45,7 +45,7 @@ final class ApprovalBroker implements AutoCloseable {
     }
     private static final class Delivery {
         String channel="pending",state="pending",owner="",token="",revision="";
-        long leaseUntil,deliveredAt; boolean browserAttempted;
+        long leaseUntil,deliveredAt; boolean browserAttempted,editor;
     }
     private final String mode;
     private final boolean browserEnabled;
@@ -117,7 +117,7 @@ final class ApprovalBroker implements AutoCloseable {
     private ObjectNode notifications(Presence p){
         ObjectNode n=Profiles.JSON.createObjectNode().put("sequence",sequence);ArrayNode ids=n.putArray("requests");
         for(var entry:deliveries.entrySet()){if(restrictedSessions.containsKey(p.session)&&!restrictedSessions.get(p.session).equals(entry.getKey()))continue;Delivery d=entry.getValue();if(d.state.equals("offered")&&d.owner.equals(p.key()))ids.add(entry.getKey());}
-        n.put("pendingCount",restrictedSessions.containsKey(p.session)?(deliveries.containsKey(restrictedSessions.get(p.session))?1:0):deliveries.size());return n;
+        n.put("pendingCount",deliveries.entrySet().stream().filter(e->!e.getValue().editor&&(!restrictedSessions.containsKey(p.session)||restrictedSessions.get(p.session).equals(e.getKey()))).count());return n;
     }
     synchronized ObjectNode poll(String session,JsonNode input){ObjectNode result=presence(session,input);wake();return result;}
     void events(HttpExchange x,String session,String tab)throws IOException {
@@ -179,8 +179,8 @@ final class ApprovalBroker implements AutoCloseable {
     private void finish(String id){deliveries.remove(id);if(desktopId.equals(id)){desktopId="";desktop.dismiss();}signal();wake();}
     synchronized void forgetSession(String session){restrictedSessions.remove(session);tabs.values().removeIf(p->{if(!p.session.equals(session))return false;p.streams.forEach(q->offer(q,"closed"));return true;});prune();signal();}
     void tick(){
-        if(closed||mode.equals("none"))return;
-        List<JsonNode> pending=new ArrayList<>();for(JsonNode r:requests.list())if(r.path("state").asText().equals("awaiting_approval"))pending.add(r);
+        if(closed)return;
+        List<JsonNode> pending=new ArrayList<>();for(JsonNode r:requests.list())if(r.path("state").asText().equals("awaiting_approval")&&(!mode.equals("none")||r.path("type").asText().equals("editor_pairing")))pending.add(r);
         pending.sort(Comparator.comparingLong(r->r.path("createdAt").asLong()));
         synchronized(this){
             prune();Set<String> ids=new HashSet<>();pending.forEach(r->ids.add(r.path("id").asText()));deliveries.keySet().removeIf(id->!ids.contains(id));
@@ -190,20 +190,20 @@ final class ApprovalBroker implements AutoCloseable {
             if(!lastPending.equals(signature)){lastPending=signature;signal();}
 
             for(JsonNode r:pending){
-                String id=r.path("id").asText();Presence recipient=selected(id);Delivery d=deliveries.computeIfAbsent(id,k->new Delivery());
+                String id=r.path("id").asText();boolean editor=r.path("type").asText().equals("editor_pairing");Presence recipient=editor?null:selected(id);Delivery d=deliveries.computeIfAbsent(id,k->new Delivery());d.editor=editor;
                 if(d.state.equals("reviewing")&&d.leaseUntil>clock.getAsLong()){
                     if(d.owner.equals("desktop")){if(!desktop.available()){desktop.dismiss();desktopId="";d.owner="";d.token="";d.leaseUntil=0;d.state="approval_unavailable";continue;}d.leaseUntil=clock.getAsLong()+LEASE_MS;if(!d.revision.equals(revision(r))){desktop.dismiss();desktopId="";d.owner="";d.leaseUntil=0;d.state="pending";}else continue;}
                     else continue;
                 }
                 if(recipient!=null&&(browserEnabled||restrictedSessions.containsKey(recipient.session))){if(!d.owner.equals(recipient.key())||!d.state.equals("offered")){
                     d.owner=recipient.key();d.channel="browser";d.state="offered";d.leaseUntil=clock.getAsLong()+LEASE_MS;signal();}continue;}
-                if(browserEnabled&&!d.browserAttempted&&browserUri!=null&&clock.getAsLong()-lastLaunch>=10_000){
+                if(!editor&&browserEnabled&&!d.browserAttempted&&browserUri!=null&&clock.getAsLong()-lastLaunch>=10_000){
                     d.browserAttempted=true;d.channel="browser";d.state="launching";d.deliveredAt=clock.getAsLong();lastLaunch=d.deliveredAt;
                     URI uri=browserUri.resolve("/dba#approval="+id);
                     launchExecutor.execute(()->{boolean ok=desktop.browse(uri);synchronized(this){if(deliveries.get(id)==d&&d.state.equals("launching")){d.state=ok?"browser_opened":"browser_failed";signal();}}});continue;
                 }
                 if(Set.of("launching","browser_opened").contains(d.state))continue;
-                if(!mode.equals("browser")&&desktop.available()&&desktopId.isEmpty()&&r==pending.getFirst()){
+                if((editor||!mode.equals("browser"))&&desktop.available()&&desktopId.isEmpty()&&r==pending.getFirst()){
                     d.owner="";d.leaseUntil=0;ObjectNode lease=claimOwner("desktop",id);desktopId=id;String token=lease.path("lease").asText();
                     desktop.show(ApprovalPresentation.safe(r),pending.size(),decision->executor.execute(()->desktopDecision(id,token,decision)),()->executor.execute(()->openDetailed(id,token)));
                 }else if(!desktop.available()&&!browserEnabled){d.channel="none";d.state="approval_unavailable";}

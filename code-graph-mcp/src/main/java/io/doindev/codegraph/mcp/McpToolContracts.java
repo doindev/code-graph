@@ -28,7 +28,7 @@ final class McpToolContracts {
             "dba_validate_migration");
     private static final Set<String> NON_DESTRUCTIVE_WRITES = Set.of(
             "add_project", "reindex", "dba_refresh_catalog", "dba_request_connection_create",
-            "dba_request_binding_create", "dba_pair_editor", "dba_create_editor_draft", "dba_apply_editor_edit");
+            "dba_request_binding_create", "dba_request_editor_access", "dba_pair_editor", "dba_create_editor_draft", "dba_apply_editor_edit");
 
     static final String OUTPUT_SCHEMA = """
             {"type":"object","required":["data","meta"],"additionalProperties":false,

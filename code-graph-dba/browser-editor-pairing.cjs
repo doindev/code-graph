@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 
 module.exports=async(browser,base)=>{
-  const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[];
+  const context=await browser.newContext({viewport:{width:1280,height:900}}),page=await context.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   const browserApi=async(path,method='GET',body)=>page.evaluate(async({path,method,body})=>{
     const session=await fetch('/api/dba/session').then(response=>response.json());
@@ -36,6 +36,37 @@ module.exports=async(browser,base)=>{
 
     await page.locator('#editor-pairing-revoke').click();await page.waitForFunction(()=>document.querySelector('#editor-pairing-status').textContent==='Not paired');
     assert.equal((await agentCall('dba_list_editor_documents',{},400)).error,'SecurityException');
-    assert.deepEqual(errors,[]);console.log('Editor pairing browser checks passed: explicit pairing, revision-checked draft/edit, SSE resynchronization, no execution, stale conflict and revocation.');
-  }finally{await page.close();}
+    await dialog.getByRole('button',{name:'Close',exact:true}).click();
+    const second=await page.context().newPage();second.on('pageerror',error=>errors.push(error.message));await second.goto(base+'/dba');
+    await second.locator('#new-tab').waitFor();await second.waitForFunction(()=>!document.querySelector('#workspace-toolbar-actions').inert);
+    assert.equal(await second.locator('#tabs .tab').count(),0,'Tabs sharing cookies do not share the Script workspace');
+    const request=await agentCall('dba_request_editor_access',{requestId:'browser-pair-one',purpose:'Review an unsaved Script in the chosen tab'});
+    assert.equal(request.state,'awaiting_approval');
+    await page.locator('.editor-access-dialog').waitFor();await second.locator('.editor-access-dialog').waitFor();
+    assert.equal(await page.locator('.editor-access-dialog').getByRole('heading').innerText(),'Use this /dba instance?');
+    await second.getByRole('button',{name:'Use this /dba instance',exact:true}).click();
+    await second.locator('#editor-connected').waitFor();
+    await page.waitForFunction(()=>!document.querySelector('.editor-access-dialog'));
+    assert.equal((await agentCall('dba_request_status',{approvalId:request.approvalId})).state,'paired');
+    const fresh=await agentCall('dba_list_editor_documents');assert.equal(fresh.documents.length,0);
+    const secondDraft=await agentCall('dba_create_editor_draft',{title:'Only in chosen tab.sql',sql:'SELECT 77',expectedWorkspaceRevision:fresh.workspaceRevision});
+    await second.waitForFunction(()=>document.querySelector('#sql').value==='SELECT 77');
+    assert.equal(await page.locator('#sql').inputValue(),'SELECT 42','Other tab keeps its existing unsaved text');
+    const workspaceId=await second.evaluate(()=>sessionStorage.getItem('dba-editor-workspace'));
+    await second.reload();await second.waitForFunction(()=>document.querySelector('#sql').value==='SELECT 77');
+    assert.equal(await second.evaluate(()=>sessionStorage.getItem('dba-editor-workspace')),workspaceId,'Refresh restores the same selected workspace');
+    await second.locator('#editor-connected').waitFor();
+    assert.equal((await agentCall('dba_get_editor_document',{documentId:secondDraft.id})).sql,'SELECT 77');
+    const duplicate=await page.context().newPage();await duplicate.addInitScript(id=>sessionStorage.setItem('dba-editor-workspace',id),workspaceId);await duplicate.goto(base+'/dba');
+    await duplicate.waitForFunction(()=>!document.querySelector('#workspace-toolbar-actions').inert);
+    assert.notEqual(await duplicate.evaluate(()=>sessionStorage.getItem('dba-editor-workspace')),workspaceId,'Duplicated storage cannot take over a paired live tab');
+    assert.equal(await duplicate.locator('#tabs .tab').count(),0);
+    await second.locator('#editor-connected').click();await second.waitForFunction(()=>document.querySelector('#editor-connected').hidden);
+    assert.equal((await agentCall('dba_list_editor_documents',{},400)).error,'SecurityException');
+    const denied=await agentCall('dba_request_editor_access',{requestId:'browser-pair-deny',purpose:'Verify rejection'});
+    await page.locator('.editor-access-dialog').waitFor();await page.locator('.editor-access-dialog').getByRole('button',{name:'Deny',exact:true}).click();
+    assert.equal((await agentCall('dba_request_status',{approvalId:denied.approvalId})).state,'denied');
+    await duplicate.close();await second.close();
+    assert.deepEqual(errors,[]);console.log('Editor pairing browser checks passed: native-request browser fallback, multiple tabs, first acceptance, isolated workspaces, reload, duplicate protection, denial, revision checks, legacy code, SSE, no execution and revocation.');
+  }finally{await context.close();}
 };

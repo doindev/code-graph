@@ -114,9 +114,11 @@ Read only the relevant supporting reference:
 - [Schema comparison and migrations](references/migrations.md): authorized
   snapshots, artifacts, rehearsals and reviewed changes.
 - [Editor handoff and verification](references/editor-and-verification.md):
-  paired browser drafts and post-change checks.
+  user-approved browser tab selection, paired Script drafts and post-change checks.
+  Prefer `dba_request_editor_access` when advertised; wait for `paired` before edits.
 
-If `yolo: true` is reported, approvals are automatic for that run; this never
+If `yolo: true` is reported, database approvals are automatic for that run;
+editor collaboration still requires user consent and an explicitly selected tab. This never
 expands the user's task scope. Tool annotations and this skill grant no authority.
 Cloud-hosted agents cannot reach a developer's loopback server merely by installing
 the skill. Do not broaden network exposure to work around that boundary.

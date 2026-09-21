@@ -40,6 +40,15 @@ class ApprovalBrokerTest {
         assertEquals(0,poll("one",t1).path("requests").size());assertEquals(r.path("id"),poll("two",t2).path("requests").get(0));
         assertEquals(1,poll("one",t1).path("pendingCount").asInt());assertEquals(0,desktop.shown);
     }
+    @Test void editorConsentUsesDesktopEvenWithActiveBrowserOrSqlApprovalsDisabled()throws Exception{
+        for(String mode:List.of("auto","browser","none")){
+            records.clear();create(mode,true);presence("one",true,true);ObjectNode r=request("editor_pairing");broker.tick();
+            assertEquals(r.path("id"),desktop.displayed.path("id"));
+            desktop.callback.accept(new ApprovalBroker.Decision("editor_existing",true));
+            for(int i=0;i<100&&!r.path("state").asText().equals("complete");i++)Thread.sleep(10);
+            assertEquals("complete",r.path("state").asText());broker.close();
+        }
+    }
     @Test void leaseRejectsOtherWindowsReplayAndChanges(){
         create("browser",true);ObjectNode r=request("live_sql");String id=r.path("id").asText(),t1=presence("one",true,true),t2=presence("two",true,true);
         final String token=broker.claim("one",t1,id).path("lease").asText();

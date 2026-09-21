@@ -4,6 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DbaToolSchemaTest {
+    @Test void editorAccessUsesBoundedConsentRatherThanSqlApproval()throws Exception{
+        var tool=DbaMcpTools.definitions().stream().filter(t->t.spec().name().equals("dba_request_editor_access")).findFirst().orElseThrow();
+        var schema=new ObjectMapper().readTree(tool.spec().inputSchemaJson());
+        assertEquals(100,schema.path("properties").path("requestId").path("maxLength").asInt());
+        assertEquals(500,schema.path("properties").path("purpose").path("maxLength").asInt());
+        assertFalse(schema.path("additionalProperties").asBoolean(true));
+        assertTrue(schema.path("required").toString().contains("purpose"));
+        assertTrue(tool.spec().description().contains("YOLO"));
+        assertTrue(DbaMcpTools.tools(null,()->null).stream().noneMatch(t->t.spec().name().equals("dba_request_editor_access")),"No editor tools without a UI workspace service");
+    }
     @Test void listExpectationsExposeTypedBoundsWithoutGrantingAuthority()throws Exception{
         var tool=DbaMcpTools.tools(null,()->null).stream().filter(t->t.spec().name().equals("dba_request_native_command")).findFirst().orElseThrow();
         var schema=new ObjectMapper().readTree(tool.spec().inputSchemaJson());

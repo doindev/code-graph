@@ -51,6 +51,7 @@ public final class DbaMcpTools {
         tools.add(tool(runtime,stdioPrincipal,"dba_cancel_job","Request cancellation of this agent's job.",List.of("jobId"),Map.of()));
         tools.add(tool(runtime,stdioPrincipal,"dba_release_job","Release this agent's completed result.",List.of("jobId"),Map.of()));
         if(editor){
+            tools.add(tool(runtime,stdioPrincipal,"dba_request_editor_access","Request user-approved collaboration with one DBA browser tab. A native prompt offers an existing tab or a new workspace; a browser prompt is used without a desktop. Poll dba_request_status with the returned approvalId until paired. Requires a live logical MCP session. Never grants SQL execution, file saving or database permissions; even YOLO requires workspace consent/selection.",List.of("requestId","purpose"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_pair_editor","Pair this logical MCP session with a user-selected DBA browser workspace using its short-lived code. Pairing grants revision-checked Script collaboration only and no database permissions.",List.of("pairingCode"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_list_editor_documents","List bounded Script document metadata and revisions in the explicitly paired browser workspace. Does not expose Table tabs or execute SQL.",List.of(),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_get_editor_document","Read one paired Script document with its exact revision for conflict-safe edits. Does not execute SQL or save a file.",List.of("documentId"),Map.of()));
@@ -75,6 +76,10 @@ public final class DbaMcpTools {
             tools.add(tool(runtime,stdioPrincipal,"dba_cancel_request","Cancel this agent's pending approvalId or request cancellation of its job; the old requestId polling field remains a deprecated alias.",List.of("requestId"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_cancel_live_request","Compatibility alias for dba_cancel_request; use the canonical tool with approvalId.",List.of("approvalId"),Map.of()));
             tools.add(tool(runtime,stdioPrincipal,"dba_live_request_status","Compatibility alias for dba_request_status; use the canonical tool with approvalId.",List.of("approvalId"),Map.of()));
+        }
+        if(editor&&!approvals){
+            tools.add(tool(runtime,stdioPrincipal,"dba_request_status","Poll an editor collaboration request by server-returned approvalId in the requesting MCP session.",List.of("approvalId"),Map.of()));
+            tools.add(tool(runtime,stdioPrincipal,"dba_cancel_request","Cancel this MCP session's pending editor collaboration request.",List.of("approvalId"),Map.of()));
         }
         if(runtime!=null&&stdioPrincipal!=null){
             String principal=stdioPrincipal.get(),session="stdio:"+UUID.randomUUID();
@@ -103,7 +108,7 @@ public final class DbaMcpTools {
             var standalone=choices.addObject();standalone.putArray("required").add("connectionId").add("connectionName");standalone.putObject("not").putArray("required").add("bindingId");
         }
         DbaInputSchemas.enrich(name,schema);
-        if (name.startsWith("dba_request_") && !name.equals("dba_request_status") || Set.of("dba_get_metadata","dba_get_object_ddl","dba_explain_query","dba_analyze_query_plan","dba_execute_read_query","dba_get_connection_details").contains(name))
+        if (name.startsWith("dba_request_") && !Set.of("dba_request_status","dba_request_editor_access").contains(name) || Set.of("dba_get_metadata","dba_get_object_ddl","dba_explain_query","dba_analyze_query_plan","dba_execute_read_query","dba_get_connection_details").contains(name))
             description+=" Authorization is required; startup --yolo supplies automatic consent without bypassing validation or changing read-only semantics.";
         return new AgentTool(runtime,stdio,new ToolSpec(name,description,schema.toString()));
     }

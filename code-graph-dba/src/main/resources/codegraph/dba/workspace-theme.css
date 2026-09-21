@@ -89,6 +89,10 @@ a:focus-visible, [tabindex]:focus-visible {
   background: var(--surface-hover); border-color: var(--accent);
 }
 #welcome { overflow: auto; max-height: 100%; }
+#editor-connected { height: 28px; flex-shrink: 0; color: var(--accent); border-color: var(--accent); font-size: 12px; }
+.editor-access-dialog { max-width: min(600px, calc(100vw - 40px)); }
+.editor-access-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.editor-access-dialog .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 750px) {
   #workspace-toolbar, #topbar, #toolbar-actions, #workspace-toolbar-actions { gap: 4px; }
   #toolbar-brand { padding: 3px 8px; gap: 4px; }

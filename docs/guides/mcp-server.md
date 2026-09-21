@@ -196,7 +196,8 @@ With DBA enabled:
 | `dba_request_apply_migration` | Exact one-time human review and asynchronous execution of a retained migration or rehearsal; reusable SQL grants never authorize the plan |
 | `validate_database_contracts` | Compare bounded static SQL/JPA/MyBatis/Prisma/TypeORM evidence with one authorized retained schema snapshot |
 | `compare_query_plans` | Compare structural evidence from two retained estimated-plan jobs; preserves raw plans and never compares cross-vendor cost units |
-| `dba_pair_editor` and editor document tools | User-code pairing, revision-checked Script drafts/edits, bounded events, and explicit revocation; never executes SQL, saves files, or grants database permission |
+| `dba_request_editor_access` | Ask the user to select an existing DBA tab or open a new workspace through native consent; poll `dba_request_status` with `approvalId` in the same MCP session until `paired` |
+| `dba_pair_editor` and editor document tools | Legacy user-code pairing, revision-checked Script drafts/edits, bounded events, and explicit revocation; never executes SQL, saves files, or grants database permission. See [editor collaboration](../editor-collaboration.md) |
 
 Capability discovery does not pretend a template proves the actual vendor or
 server version. An unobserved standalone target reports `not_observed` until

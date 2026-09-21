@@ -63,6 +63,18 @@ class DesktopApprovalsTest {
             assertTrue(decision.get().acknowledged());assertNull(onEdt(DesktopApprovalsTest::visible));
         }
     }
+    @Test void editorConsentHasExplicitWorkspaceChoicesAndNoSqlPermissionMenu()throws Exception{
+        for(String label:List.of("Use existing DBA tab","Open new DBA workspace")){
+            var decision=new AtomicReference<ApprovalBroker.Decision>();JDialog card=show("editor_pairing",false,decision);
+            onEdt(()->{var nodes=components(card);
+                assertTrue(nodes.stream().noneMatch(c->c instanceof JButton b&&"Allow once".equals(b.getText())));
+                assertTrue(nodes.stream().noneMatch(JCheckBox.class::isInstance));
+                ((JButton)nodes.stream().filter(c->c instanceof JButton b&&label.equals(b.getText())).findFirst().orElseThrow()).doClick();return null;
+            });
+            assertEquals(label.startsWith("Use")?"editor_existing":"editor_new",decision.get().action());
+            assertNull(onEdt(DesktopApprovalsTest::visible));
+        }
+    }
     @Test void splitMenuDoesNotApproveOnOpenAndResetsForEveryRequest()throws Exception{
         for(boolean eligible:new boolean[]{true,false}){
             var decision=new AtomicReference<ApprovalBroker.Decision>();

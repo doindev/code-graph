@@ -1,4 +1,5 @@
 import {approvalHeaders} from './approval-client.js';
+import {EditorClient} from './editor-client.js';
 import {NativeWorkspace} from './native-workspace.js';
 import {installProjectContext} from './project-context.js';
 import {connectionEditor} from './connection-editor.js';
@@ -21,6 +22,11 @@ let csrf='',profiles=[],tabs=[],active=null,lastSelected=null,toastTimer,workspa
 // Four MiB of the existing 32 MiB result allowance is reserved for shared row drafts.
 const MAX_TABS=12,MAX_BROWSER_BYTES=28*1024*1024;
 const MAX_WORKSPACE_BYTES=16*1024*1024;
+const collaboration=new EditorClient({api,notify:message=>toast(message),flush:async()=>{
+  const deadline=performance.now()+10000;
+  do{await flushWorkspace();if(!workspaceSaving&&JSON.stringify(workspaceState())===lastWorkspaceJson)return;await new Promise(resolve=>setTimeout(resolve,100));}while(performance.now()<deadline);
+  throw new Error('Local workspace changes have not finished saving to this session. Retry pairing after synchronization.');
+}});
 let gutterText=null,gutterLines=1,gutterFrame=0,activeGrid=null;
 const gridContexts=new WeakMap();
 const gridRefreshers=new Map();
@@ -189,7 +195,7 @@ function updateLineNumbers(){
 }
 $('sql').addEventListener('scroll',updateLineNumbers,{passive:true});
 new ResizeObserver(updateLineNumbers).observe($('sql'));
-async function api(path,method='GET',body){const response=await fetch('/api/dba'+path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-Dba-CSRF':csrf,...approvalHeaders(path)},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok){if(response.status===403&&data.error==='DBA session expired'){const session=await api('/bootstrap','POST',{});csrf=session.csrf;throw new Error('Session renewed. Please retry your action; active tests must be repeated.');}const failure=new Error(data.error||'Request failed');failure.status=response.status;throw failure;}return data;}
+async function api(path,method='GET',body){const response=await fetch('/api/dba'+path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-Dba-CSRF':csrf,...approvalHeaders(path),...collaboration.headers()},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok){if(response.status===403&&data.error==='DBA session expired'){const session=await api('/bootstrap','POST',{});csrf=session.csrf;throw new Error('Session renewed. Reload this page to restore tab ownership; active tests must be repeated.');}const failure=new Error(data.error||'Request failed');failure.status=response.status;throw failure;}return data;}
 function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,6000);}
 function safe(action){return (...args)=>{if(args[0]?.type==='submit')args[0].preventDefault();return Promise.resolve().then(()=>action(...args)).catch(e=>toast(e.message));};}
 function button(text,title,action){const b=document.createElement('button');b.textContent=text;b.title=title;b.addEventListener('click',safe(action));return b;}
@@ -203,7 +209,7 @@ function showAuthorizationMode(session){
   $('yolo-settings-warning').textContent=session.yolo?session.warning:'';
   const approvals=$('agent-approvals');if(approvals)approvals.hidden=!!session.yolo;
 }
-async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await refresh();await restoreWorkspace();connectEditorEvents();for(const region of startupRegions){region.inert=false;region.removeAttribute('aria-busy');}}
+async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await collaboration.register();await refresh();await restoreWorkspace();connectEditorEvents();await collaboration.start();for(const region of startupRegions){region.inert=false;region.removeAttribute('aria-busy');}}
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(b.dataset.close==='agents-dialog'){$('agent-token').value='';$('agent-token-label').hidden=true;}$(b.dataset.close).close();});
 const editor=connectionEditor({api,toast,saved:refresh,csrf:()=>csrf});
 const treeActions=new TreeActions({api,wait:waitJob,notice:toast});
@@ -393,7 +399,7 @@ $('agent-form').addEventListener('submit',safe(async e=>{const f=e.target.elemen
 async function refreshEditorPairing(){const state=await api('/editor/pair');$('editor-pairing-status').textContent=state.paired?'Paired with '+state.agent+'. Agent changes are revision checked and shown in this workspace.':'Not paired';$('editor-pairing-revoke').disabled=!state.paired;}
 $('editor-pairing').onclick=safe(async()=>{await flushWorkspace();const created=await api('/editor/pair','POST',{});$('editor-pairing-code').value=created.code;$('editor-pairing-status').textContent='Code expires at '+new Date(created.expiresAt).toLocaleTimeString()+'. Give it only to the MCP session you want to pair.';$('editor-pairing-revoke').disabled=!created.paired;$('editor-pairing-dialog').showModal();});
 $('editor-pairing-revoke').onclick=safe(async()=>{await api('/editor/pair','DELETE',{});$('editor-pairing-code').value='';await refreshEditorPairing();toast('Editor pairing revoked.');});
-function connectEditorEvents(){editorEvents?.close();editorEvents=new EventSource('/api/dba/editor/events');editorEvents.addEventListener('editor',safe(async event=>{const change=JSON.parse(event.data);await api('/editor/ack','POST',{eventId:change.eventId});if(change.type==='paired'||change.type==='revoked'){await refreshEditorPairing().catch(()=>{});toast(change.type==='paired'?'MCP editor session paired.':'MCP editor pairing ended.');return;}const local=workspaceState(),baseline=JSON.parse(lastWorkspaceJson||'{"tabs":[]}'),remote=await api('/workspace'),serverState={...remote};delete serverState.workspaceRevision;const merge=mergeAgentWorkspace(remote,change,local,baseline);workspaceReady=false;await restoreWorkspace(remote,merge.merged?JSON.stringify(serverState):null);toast(merge.blocked?'Agent change is retained on the server, but a conflicting local edit could not be copied because the 12-tab limit is full. Copy it before refreshing.':merge.conflict?'Agent change applied. A concurrent local edit was preserved in a conflict Script tab.':'Agent Script change applied. SQL was not executed and no file was saved.');}));}
+function connectEditorEvents(){editorEvents?.close();editorEvents=new EventSource(collaboration.eventsUrl());editorEvents.addEventListener('editor',safe(async event=>{const change=JSON.parse(event.data);await api('/editor/ack','POST',{eventId:change.eventId});if(change.type==='paired'||change.type==='revoked'){await refreshEditorPairing().catch(()=>{});toast(change.type==='paired'?'MCP editor session paired.':'MCP editor pairing ended.');return;}const local=workspaceState(),baseline=JSON.parse(lastWorkspaceJson||'{"tabs":[]}'),remote=await api('/workspace'),serverState={...remote};delete serverState.workspaceRevision;const merge=mergeAgentWorkspace(remote,change,local,baseline);workspaceReady=false;await restoreWorkspace(remote,merge.merged?JSON.stringify(serverState):null);toast(merge.blocked?'Agent change is retained on the server, but a conflicting local edit could not be copied because the 12-tab limit is full. Copy it before refreshing.':merge.conflict?'Agent change applied. A concurrent local edit was preserved in a conflict Script tab.':'Agent Script change applied. SQL was not executed and no file was saved.');}));editorEvents.addEventListener('collaboration',event=>{try{collaboration.deliver(JSON.parse(event.data));}catch{}});}
 const agentRows=document.createElement('label');agentRows.textContent='Agent result row cap (hard maximum 100)';const agentRowsInput=document.createElement('input');agentRowsInput.name='agentRows';agentRowsInput.type='number';agentRowsInput.min='1';agentRowsInput.max='100';agentRowsInput.required=true;agentRows.append(agentRowsInput);$('settings-form').insertBefore(agentRows,$('telemetry'));
 initialize().then(()=>installProjectContext({api,profiles:()=>profiles,notify:toast,openConnection:()=>editor.open(),reviewConnection:(request,done)=>editor.openProposal(request,done)})).catch(e=>toast(e.message));
 
@@ -454,5 +460,5 @@ async function saveScript(asNew){saveEditor();const tab=tabs.find(t=>t.id===acti
 document.addEventListener('keydown',e=>{if(!workspaceReady||document.querySelector('dialog[open]')||!(e.ctrlKey||e.metaKey))return;const key=e.key.toLowerCase();if(key==='s'){e.preventDefault();const tab=tabs.find(t=>t.id===active);safe(()=>tab?.builder?(isView(tab)&&!e.shiftKey?objectDesigner(tab).save():tab.builder.saveFile(e.shiftKey)):saveScript(e.shiftKey))();}else if(key==='o'){e.preventDefault();safe(openScript)();}else if(key==='n'&&e.altKey){e.preventDefault();safe(()=>openTab(lastSelected))();}else if(e.key==='Enter'){e.preventDefault();const tab=tabs.find(t=>t.id===active);if(tab?.builder)void tab.builder.run('data');else $('run').click();}});
 setInterval(()=>queueWorkspaceSave(0),5000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushWorkspace();});
-window.addEventListener('pagehide',()=>{if(!workspaceReady||!csrf)return;const state=workspaceState(),json=JSON.stringify(state);if(json===lastWorkspaceJson)return;const body=JSON.stringify({...state,expectedWorkspaceRevision:workspaceRevision}),bytes=new TextEncoder().encode(body);if(bytes.length<=60*1024)fetch('/api/dba/workspace',{method:'PUT',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json','X-Dba-CSRF':csrf},body}).catch(()=>{});});
+window.addEventListener('pagehide',()=>{editorEvents?.close();let workspace;try{if(workspaceReady&&csrf){const state=workspaceState();if(JSON.stringify(state)!==lastWorkspaceJson)workspace={...state,expectedWorkspaceRevision:workspaceRevision};}}finally{void collaboration.leave(csrf,workspace);}});
 window.addEventListener('beforeunload',e=>{if(tabs.some(t=>t.dirty||t.native?.dirty||(t.result?.results??(t.result?[t.result]:[])).some(DataGridView.dirty)||t.builder?.rowsDirty)){e.preventDefault();e.returnValue='';}});
