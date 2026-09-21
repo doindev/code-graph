@@ -4,7 +4,7 @@
 
 `install.ps1` (Windows PowerShell 5.1+) and `install.sh` (macOS/Linux, Bash 3+) use a shared,
 dependency-free JDK 25 source launcher, `installer/CgraphInstaller.java`. They build the HTTP
-server and its Maven reactor dependencies, run their tests unless explicitly skipped, and use
+server and its Maven reactor dependencies, skip tests unless explicitly requested, and use
 `jpackage --type app-image` to produce a native executable plus a private Java runtime.
 
 The installation includes `code-graph-server.jar`, its runtime `lib` directory, and Java.
@@ -32,6 +32,14 @@ an unreviewed remote script into a shell. By default the script clones
 Use `-Repository`/`--repository` and `-Ref`/`--ref` for another trusted repository, branch or tag.
 Only run source you trust: Maven builds execute source-controlled plugins and tests.
 
+**Installation security warning:** unless you supply `-CertPem` / `--cert-pem`, Git cloning and
+Maven artifact downloads disable TLS certificate, hostname and certificate-date verification during
+installation. This default accommodates corporate self-signed certificates without requiring users
+to export/install certificate files. HTTPS is still used, but it cannot
+authenticate the download server; intercepted source/dependencies can execute code during the build.
+Use only a trusted network and source. This is not a global Git, Java truststore or Maven-settings
+change, and it does not disable verification for the installed application's connections/downloads.
+
 ```powershell
 # Windows: prerequisite check only (no install prompts or PATH changes)
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Check
@@ -41,6 +49,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
 # Or build this working copy, including unpublished changes, without modifying it
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceDir .
+
+# Opt in to Maven tests (the default installation build skips them)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceDir . -RunTests
 ```
 
 ```bash
@@ -49,9 +60,13 @@ bash ./install.sh --check
 bash ./install.sh
 # Or build this working copy, including unpublished changes
 bash ./install.sh --source-dir "$PWD"
+bash ./install.sh --source-dir "$PWD" --run-tests
 ```
 
 An older remote ref without `installer/CgraphInstaller.java` fails with an actionable message.
+`-RunTests` / `--run-tests` explicitly enables Maven tests; legacy `-SkipTests` / `--skip-tests`
+is still accepted but is now redundant. Supplying both choices is an error. Source-controlled
+build plugins still execute when tests are skipped. Installation is not a substitute for release testing.
 The installer uses a second isolated source snapshot, excluding generated `target` directories,
 Git internals and node_modules. It never stops an existing server, rebuilds its loaded JARs,
 or automatically onboards its source directory. Source symlinks are rejected rather than
@@ -123,7 +138,12 @@ For noninteractive use, inject `CGRAPH_PROXY_USER` and `CGRAPH_PROXY_PASSWORD` i
 environment through your secret manager. There is deliberately no password command-line argument.
 Do not put credentials in proxy/repository URLs or in shell history.
 
-Git receives transient process configuration, not a global Git config change. Temporary Maven
+Git receives transient process configuration, not a global Git config change. Installer clones use
+`-c http.sslVerify=false -c http.proxySSLVerify=false` by default, plus `-c credential.helper= -c core.askPass=`
+and `GIT_TERMINAL_PROMPT=0`, with askpass environment hooks cleared for the clone. There are no
+interactive Git credential prompts or credential-helper lookups. For private repositories, use
+`-SourceDir` / `--source-dir` with a separately authenticated checkout; do not embed tokens in URLs.
+Temporary Maven
 settings refer to `${env.CGRAPH_PROXY_USER}` and `${env.CGRAPH_PROXY_PASSWORD}` rather than
 embedding the values. The installed image, command shim, and install manifest contain none of
 these proxy settings. PowerShell restores modified process variables afterward; Bash runs as a
@@ -133,36 +153,73 @@ Git HTTP tracing when handling credentials. Third-party tools control their own 
 
 ### Existing Maven settings, mirrors and trust
 
-Pass an existing settings file when your organization supplies proxies, mirrors, server credentials,
-or repository policy:
+On Windows the installer automatically uses `%USERPROFILE%\.m2\settings.xml` **if it exists**.
+`-MavenSettings` overrides this location. A missing default file is not an error; an explicitly
+supplied missing/non-file path is rejected. The chosen file is never edited or replaced.
+Use an explicit file for organization-specific proxies, mirrors, credentials or repository policy:
 
 ```powershell
 .\install.ps1 -SourceDir . -Proxy 'http://proxy.example:8080' `
-  -MavenSettings "$HOME\.m2\settings.xml" -GitCaFile 'C:\Company\root-ca.pem'
+  -MavenSettings "$env:USERPROFILE\.m2\settings.xml"
 ```
 
 ```bash
 bash ./install.sh --source-dir "$PWD" --proxy http://proxy.example:8080 \
-  --maven-settings "$HOME/.m2/settings.xml" --git-ca-file /approved/company-ca.pem
+  --maven-settings "$HOME/.m2/settings.xml"
 ```
 
 The explicit settings file is used unchanged and takes precedence **for Maven**; configure its
-proxy too. `--proxy` still configures Git. If an automatic proxy was requested and a default
+proxy too. `--proxy` still configures Git. On macOS/Linux, if an automatic proxy was requested and a default
 `~/.m2/settings.xml` already exists, installation stops and asks you to pass/configure it explicitly
 instead of silently replacing its mirrors/credentials. Without a proxy or explicit settings,
 Maven's normal user/global settings remain in effect.
 See [Maven settings precedence](https://maven.apache.org/settings.html).
 
-`-GitCaFile` / `--git-ca-file` configures Git's PEM CA bundle; it does **not** configure Java's
-truststore. For TLS-intercepting proxies, use an organization-approved Java truststore and Maven's
-`MAVEN_OPTS` JVM options (`-Djavax.net.ssl.trustStore=...`), or your approved JDK trust configuration.
-Never disable TLS verification. Package managers and the initial download of this installer may
-require their own proxy/CA setup, particularly across `sudo`. The scripts do not promise to make
-winget/Homebrew/apt/dnf work through every enterprise authentication system.
+### Optional corporate PEM certificate
 
-Failure guidance distinguishes prerequisite failures from clone/build failures. Authentication
-failures, certificate/PKIX errors, unreachable hosts and wrong repository refs must be corrected
-before rerunning; the installer does not automatically retry with weakened TLS or different proxies.
+No certificate file is required for the default installation. If your IT team supplies one, use:
+
+```powershell
+.\install.ps1 -CertPem 'C:\Company\cert.pem'
+# Optional settings override and tests are independent:
+.\install.ps1 -SourceDir . -CertPem 'C:\Company\cert.pem' -MavenSettings 'C:\Company\settings.xml' -RunTests
+```
+
+```bash
+bash ./install.sh --cert-pem /path/to/cert.pem
+```
+
+The supplied public X.509 PEM bundle (maximum 1 MiB; one or more certificates) **enables** certificate,
+hostname and date verification for Git and Maven. Git uses it for server/proxy CA trust, including
+the Windows Schannel CA-file setting. Maven combines the PEM with its default JVM trust roots in
+a temporary PKCS#12 store under the owned build directory. That store is removed after Maven exits,
+including failures; it is not copied into the installed application. The PEM, JDK trust store and
+Maven settings remain unchanged. Missing, malformed, expired or private-key files fail rather than
+silently falling back to insecure downloads. Do not supply a private key.
+
+`-GitCaFile` / `--git-ca-file` is retained as an alias; it now configures **both** Git and Maven.
+Supply only one certificate option. This does not configure prerequisite managers or application TLS.
+
+Without a PEM, Maven uses command-scoped
+`-Dmaven.resolver.transport=wagon`, `-Dmaven.wagon.http.ssl.insecure=true`,
+`-Dmaven.wagon.http.ssl.allowall=true` and `-Dmaven.wagon.http.ssl.ignore.validity.dates=true`.
+Selecting Wagon avoids depending on the native Resolver insecure option that early Maven 3.9
+versions lack. These flags are **not** written into `MAVEN_OPTS`, global/user settings, installed
+launcher arguments or runtime configuration. Maven repository checksums and package signatures
+are not disabled, but checksums from the same intercepted server do not establish authenticity.
+See [Maven's transport options](https://maven.apache.org/wagon/wagon-providers/wagon-http/).
+
+**Boundary:** prerequisite managers (winget/Scoop/Homebrew/apt/dnf), the initial download of this
+installer, SSH host-key verification and third-party build plugins with their own network stacks
+retain their own security settings. There is no portable per-command bypass for all of them.
+The installer does not change OS security policy, trust stores or package-signature checks to bypass
+those protections. Such failures still need approved prerequisite/proxy setup; their errors remain visible.
+
+Failure guidance distinguishes prerequisite failures from clone/build failures. Git clone errors
+include the exit code and captured diagnostics, redacting known proxy passwords, URL userinfo and
+authorization headers. Maven stdout/stderr streams directly to the terminal, including build errors.
+Do not publish logs without checking for secrets emitted by third-party plugins. Authentication,
+unreachable-host and wrong-ref errors are not hidden or retried with different proxies.
 Failed work directories are retained with their exact paths for diagnosis. A failed build never
 switches the active `cgraph` launcher to the incomplete release.
 
@@ -500,6 +557,10 @@ java -cp target/installer-tests McpInstallerTest
 node --test skills/install-skill.test.mjs
 node --test installer/uninstall.test.mjs
 java -cp target/installer-tests ProxySmokeTest PATH-TO-GIT PATH-TO-MAVEN
+# Compile alongside the installer classes, then exercise loopback-only TLS fixtures:
+javac -cp target/installer-tests -d target/installer-tests installer/TlsSmokeTest.java
+java -cp target/installer-tests TlsSmokeTest PATH-TO-GIT PATH-TO-MAVEN
+node --test installer/download-bootstrap.test.mjs installer/skill-bootstrap.test.mjs
 ```
 
 ```powershell
@@ -508,7 +569,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/Test-Bootstrap.ps1
 # Optional forwarding tests (Node + JDK 25); only temporary fixtures are used
 $env:CGRAPH_JAVA_HOME = 'PATH-TO-JDK-25'
 node --test installer/skill-bootstrap.test.mjs
-.\install.ps1 -SourceDir . -InstallDir "$env:TEMP\cgraph-manual-test" -NoPath -NonInteractive
+.\install.ps1 -SourceDir . -InstallDir "$env:TEMP\cgraph-manual-test" -NoPath -NonInteractive -RunTests
 # Use the exact native EXE path printed by installation, not the .cmd wrapper:
 java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' desktop
 # Optional third argument verifies uninstall refuses this running native image:
@@ -519,7 +580,7 @@ java -cp target/installer-tests NativeSmokeTest 'PATH-TO-cgraph.exe' desktop
 bash -n install.sh
 bash installer/test-bootstrap.sh
 CGRAPH_JAVA_HOME=/path/to/jdk-25 node --test installer/skill-bootstrap.test.mjs
-bash ./install.sh --source-dir "$PWD" --install-dir /tmp/cgraph-manual-test --no-path --non-interactive
+bash ./install.sh --source-dir "$PWD" --install-dir /tmp/cgraph-manual-test --no-path --non-interactive --run-tests
 java -cp target/installer-tests NativeSmokeTest /path/to/native/cgraph none
 ```
 
@@ -529,6 +590,20 @@ It deliberately supplies an invalid system JAVA_HOME to verify the bundled runti
 `ProxySmokeTest` exercises real Git/Maven HTTPS requests through a local Basic-auth HTTP proxy,
 which always rejects authenticated requests and never forwards anything externally. It verifies
 authentication, environment-secret interpolation and failure behavior without pulling packages.
+
+`TlsSmokeTest` uses real Git/Maven clients against a loopback-only HTTPS endpoint. It verifies default
+certificate rejection, installer bypass of self-signed/expired/wrong-host certificates, and verified
+access with an explicitly supplied PEM. The endpoint returns an intentional HTTP error: no software
+is downloaded. Test certificates, repositories and temporary trust stores are owned fixtures and
+are removed afterward. This is not a live test of every enterprise proxy or native macOS/Linux.
+
+Corporate-network installer validation (2026-09-21): 52 installer, 80 skill and 150 MCP setup
+checks passed. The Node installer/skill/uninstall suite passed 22 tests; two opt-in actual-client
+checks were skipped. Final Windows and simulated Linux/macOS forwarding checks passed for
+default settings, explicit overrides, test opt-in, PEM paths with spaces, legacy certificate aliases,
+redacted errors and restored clone environment. Real Git/Maven TLS and authenticated HTTP-proxy
+fixtures passed on Windows with JDK 25/Maven 3.9.11. No native macOS/Linux packaging, actual
+corporate proxy, prerequisite-manager bypass or runtime TLS change is claimed by these tests.
 
 Overwrite-prompt validation (2026-09-21): 80 JDK skill checks, 39 application-installer
 checks and 150 MCP-setup checks passed, including approved backups, declined/default/EOF
@@ -547,7 +622,8 @@ checks cover paths with spaces, proxy validation/redaction, bypass mapping, sett
 safe replacement and cleanup. Bash syntax is checked on Git Bash; **native macOS/Linux builds,
 PATH registration, package-manager installs, enterprise proxy authentication/TLS and signing remain
 unverified** on actual environments. Conditional DBA integration/desktop tests are not made passed
-merely by a successful headless Maven build. `--skip-tests` is explicit and not the default.
+merely by a successful headless Maven build. Current installers skip tests by default; use
+`-RunTests` / `--run-tests` for the validation commands above.
 
 Optional-skill validation (2026-09-18): 34 installer and 50 JDK skill-copy/selection
 checks, nine Node skill tests, two end-to-end bootstrap forwarding tests, skill

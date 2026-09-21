@@ -26,7 +26,7 @@ public final class CgraphInstaller {
     public static void main(String[] args) {
         try { new CgraphInstaller(args).install(); }
         catch (OptionalSetupFailure e) { System.err.println(e.getMessage()); System.exit(2); }
-        catch (Exception e) { System.err.println("Installation failed: " + e.getMessage()); System.err.println("For network failures, check HTTPS_PROXY/HTTP_PROXY/NO_PROXY, --proxy, Git CA certificates, and --maven-settings. TLS verification is never disabled."); System.exit(1); }
+        catch (Exception e) { System.err.println("Installation failed: " + e.getMessage()); System.err.println("For network failures, inspect the Git/Maven diagnostics and check proxy authentication, repository access and --maven-settings. Installer TLS validation is disabled unless --cert-pem is supplied; runtime TLS is unchanged."); System.exit(1); }
     }
     static final class OptionalSetupFailure extends IOException {
         OptionalSetupFailure() { super("Application installed, but optional MCP/skill setup was incomplete. Inspect per-client results and any backup paths; resolve reported errors and rerun the helpers."); }
@@ -34,8 +34,8 @@ public final class CgraphInstaller {
 
     static Map<String,String> parse(String[] args) {
         Map<String,String> out = new LinkedHashMap<>();
-        Set<String> flags = Set.of("--skip-tests", "--no-path", "--non-interactive", "--keep-build", "--build-only");
-        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--proxy", "--no-proxy", "--skills", "--mcp-clients", "--mcp-url");
+        Set<String> flags = Set.of("--run-tests", "--skip-tests", "--no-path", "--non-interactive", "--keep-build", "--build-only");
+        Set<String> values = Set.of("--source", "--install-dir", "--maven", "--maven-settings", "--cert-pem", "--proxy", "--no-proxy", "--skills", "--mcp-clients", "--mcp-url");
         for (int i=0; i<args.length; i++) {
             String key = args[i];
             if (out.containsKey(key)) throw new IllegalArgumentException("Duplicate installer option: " + key);
@@ -43,6 +43,7 @@ public final class CgraphInstaller {
             else if (values.contains(key) && i+1<args.length && !args[i+1].isBlank() && !args[i+1].startsWith("--")) out.put(key, args[++i]);
             else throw new IllegalArgumentException("Unknown or incomplete installer option: " + key);
         }
+        if(out.containsKey("--run-tests")&&out.containsKey("--skip-tests"))throw new IllegalArgumentException("Choose --run-tests or --skip-tests, not both");
         return out;
     }
     String required(String key) { String value=options.get(key); if(value==null||value.isBlank())throw new IllegalArgumentException("Required: "+key); return value; }
@@ -85,11 +86,18 @@ public final class CgraphInstaller {
                 Files.writeString(settings,generatedSettings);
                 System.out.println("Using temporary Maven proxy settings (credentials, if supplied, remain in process environment variables).");
             } else if(settings!=null) System.out.println("Using the supplied Maven settings; its proxies and mirrors take precedence for Maven.");
-            List<String> build=new ArrayList<>(List.of(maven.toString(),"-B","-ntp","-Djava.awt.headless=true","-pl","code-graph-mcp-http","-am"));
-            if(settings!=null)build.addAll(List.of("--settings",settings.toString()));
-            if(options.containsKey("--skip-tests"))build.add("-DskipTests");
-            build.add("package");
-            run(build,snapshot);
+            Path certificatePem=options.containsKey("--cert-pem")?Path.of(options.get("--cert-pem")).toAbsolutePath():null;
+            List<String> tlsArguments;
+            if(certificatePem!=null){
+                tlsArguments=installationTrustArguments(work,certificatePem);
+                System.out.println("Maven certificate verification enabled using the supplied PEM plus default JVM trust roots; the temporary installer trust store is not installed.");
+            }else{
+                tlsArguments=installationTlsArguments();
+                System.err.println("WARNING — INSTALLATION ONLY: Maven TLS certificate/hostname/date verification is disabled. Downloads may be intercepted or tampered with. Runtime TLS and global configuration are unchanged.");
+            }
+            System.out.println(options.containsKey("--run-tests")?"Maven tests explicitly enabled.":"Maven tests skipped (use -RunTests / --run-tests to enable).");
+            try{run(mavenBuildCommand(maven,settings,options.containsKey("--run-tests"),tlsArguments),snapshot);}
+            finally{if(certificatePem!=null)Files.deleteIfExists(work.resolve("installer-trust.p12"));}
             Path target=snapshot.resolve("code-graph-mcp-http/target");
             Path jar=target.resolve("code-graph-server.jar");
             verifyRuntime(jar,target.resolve("lib"));
@@ -313,6 +321,54 @@ public final class CgraphInstaller {
         builder.directory(cwd.toFile());builder.inheritIO();
         Process child=builder.start();
         int result=child.waitFor();if(result!=0)throw new IOException(Path.of(command.getFirst()).getFileName()+" exited with code "+result+"; installation was not activated before a successful build");
+    }
+
+    // Command-scoped flags only: never put these in MAVEN_OPTS, settings.xml or the packaged JVM.
+    // Force Wagon because early supported Maven 3.9 releases lack Resolver's native insecure mode.
+    static List<String> installationTlsArguments() {
+        return List.of("-Dmaven.resolver.transport=wagon", "-Dmaven.wagon.http.ssl.insecure=true",
+                "-Dmaven.wagon.http.ssl.allowall=true", "-Dmaven.wagon.http.ssl.ignore.validity.dates=true");
+    }
+    static List<String> mavenBuildCommand(Path maven,Path settings,boolean runTests) {
+        return mavenBuildCommand(maven,settings,runTests,installationTlsArguments());
+    }
+    static List<String> mavenBuildCommand(Path maven,Path settings,boolean runTests,List<String> tlsArguments) {
+        List<String> command=new ArrayList<>(List.of(maven.toString(),"-B","-ntp","-Djava.awt.headless=true"));
+        command.addAll(tlsArguments);
+        command.addAll(List.of("-pl","code-graph-mcp-http","-am"));
+        if(settings!=null)command.addAll(List.of("--settings",settings.toString()));
+        command.add(runTests?"-DskipTests=false":"-DskipTests=true");
+        if(runTests)command.add("-Dmaven.test.skip=false");
+        command.add("package");
+        return command;
+    }
+
+    static List<String> installationTrustArguments(Path work,Path pem)throws Exception {
+        if(!Files.isRegularFile(pem)||Files.size(pem)>1024*1024)throw new IOException("--cert-pem must name an existing PEM certificate bundle of at most 1 MiB");
+        String content=Files.readString(pem,StandardCharsets.US_ASCII);
+        if(content.contains("PRIVATE KEY")||!content.contains("-----BEGIN CERTIFICATE-----"))throw new IOException("--cert-pem requires public X.509 PEM certificates, never private keys");
+        Collection<? extends java.security.cert.Certificate> certificates;
+        try(var input=new ByteArrayInputStream(content.getBytes(StandardCharsets.US_ASCII))){
+            certificates=java.security.cert.CertificateFactory.getInstance("X.509").generateCertificates(input);
+        }catch(java.security.cert.CertificateException e){throw new IOException("--cert-pem contains invalid X.509 certificates");}
+        if(certificates.isEmpty())throw new IOException("--cert-pem contains no certificates");
+        var store=java.security.KeyStore.getInstance("PKCS12");store.load(null,null);
+        var managers=javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+        managers.init((java.security.KeyStore)null);int index=0;
+        for(var manager:managers.getTrustManagers())if(manager instanceof javax.net.ssl.X509TrustManager trust)
+            for(var certificate:trust.getAcceptedIssuers())store.setCertificateEntry("default-"+(index++),certificate);
+        index=0;
+        for(var certificate:certificates){
+            try{((java.security.cert.X509Certificate)certificate).checkValidity();}
+            catch(java.security.cert.CertificateException e){throw new IOException("--cert-pem contains an expired or not-yet-valid certificate; obtain a current PEM bundle");}
+            store.setCertificateEntry("installer-"+(index++),certificate);
+        }
+        Path trust=work.resolve("installer-trust.p12");
+        // Public certificates only; the store password is an integrity check, not a credential.
+        try(var output=Files.newOutputStream(trust,StandardOpenOption.CREATE_NEW)){store.store(output,"installer-public-certs".toCharArray());}
+        return List.of("-Dmaven.resolver.transport=wagon","-Dmaven.wagon.http.ssl.insecure=false",
+                "-Dmaven.wagon.http.ssl.allowall=false","-Dmaven.wagon.http.ssl.ignore.validity.dates=false",
+                "-Djavax.net.ssl.trustStore="+trust,"-Djavax.net.ssl.trustStoreType=PKCS12","-Djavax.net.ssl.trustStorePassword=installer-public-certs");
     }
     static String json(String s){return "\""+s.replace("\\","\\\\").replace("\"","\\\"").replace("\n","\\n").replace("\r","\\r").replace("\t","\\t")+"\"";}
 

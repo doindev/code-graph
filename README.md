@@ -232,6 +232,17 @@ from this updated source/ref. An explicit argument still takes precedence, for e
 MiB/GiB values. `cgraph --print-config` shows the effective arguments without starting
 the server. Raw Java HTTP/stdio entry points retain their **1 GiB** default.
 
+Install builds **skip Maven tests by default**; add `-RunTests` (Windows) or `--run-tests`
+(macOS/Linux) to run them. Windows automatically uses `%USERPROFILE%\.m2\settings.xml`
+when present, unless `-MavenSettings` specifies another file; the file remains unchanged.
+By default, installer Git/Maven downloads disable TLS certificate verification **only during
+installation**, so corporate self-signed certificates do not require manual certificate setup.
+Use a trusted network: intercepted downloads can execute untrusted code. If you have a corporate
+PEM certificate bundle, add `-CertPem 'C:\Company\cert.pem'` (Windows) or
+`--cert-pem /path/to/cert.pem` (macOS/Linux) to enable verification for **both Git and Maven**.
+The PEM is not modified; Maven's temporary trust store is not installed. Runtime TLS, OS trust
+and prerequisite package-manager/signature checks remain unchanged.
+
 **Behind a proxy?** Use `-Proxy` / `--proxy`, standard proxy environment variables, and
 `-MavenSettings` / `--maven-settings` for corporate mirrors and authentication. See the
 [installation guide](docs/installation.md) for authenticated proxies, certificates,

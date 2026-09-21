@@ -9,8 +9,29 @@ public class CgraphInstallerTest {
     interface Checked{void run()throws Exception;}
     static void rejects(Checked operation)throws Exception{boolean rejected=false;try{operation.run();}catch(IllegalArgumentException|java.io.IOException expected){rejected=true;}check(rejected,"Unsafe input was accepted");}
     public static void main(String[] args)throws Exception{
+        if(args.length>0&&args[0].equals("native-failure")){
+            System.out.println("[ERROR] fixture Maven compilation failed");System.err.println("fixture stderr: invalid compiler option");System.exit(7);
+        }
+        if(args.length>0&&args[0].equals("native-run")){
+            var installer=new CgraphInstaller(new String[]{"--source",".","--install-dir","unused"});
+            installer.run(List.of(Path.of(System.getProperty("java.home"),"bin",CgraphInstaller.WINDOWS?"java.exe":"java").toString(),"-cp",System.getProperty("java.class.path"),"CgraphInstallerTest","native-failure"),Path.of("."));
+            return;
+        }
+        var diagnostics=new ProcessBuilder(Path.of(System.getProperty("java.home"),"bin",CgraphInstaller.WINDOWS?"java.exe":"java").toString(),"-cp",System.getProperty("java.class.path"),"CgraphInstallerTest","native-run").redirectErrorStream(true).start();
+        String output=new String(diagnostics.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+        check(diagnostics.waitFor()!=0&&output.contains("exited with code 7"),"Native process failure retains its exit status");
+        check(output.contains("[ERROR] fixture Maven compilation failed")&&output.contains("fixture stderr: invalid compiler option"),"Maven/native stdout and stderr are not suppressed");
         check(CgraphInstaller.parse(new String[]{"--source","a b","--install-dir","c d","--no-path"}).get("--source").equals("a b"),"Space-containing arguments");
         rejects(()->CgraphInstaller.parse(new String[]{"--unknown"}));rejects(()->CgraphInstaller.parse(new String[]{"--source"}));
+        rejects(()->CgraphInstaller.parse(new String[]{"--run-tests","--skip-tests"}));
+        check(CgraphInstaller.parse(new String[]{"--run-tests"}).containsKey("--run-tests"),"Test opt-in parsed");
+        var build=CgraphInstaller.mavenBuildCommand(Path.of("maven with spaces"),Path.of("settings with spaces.xml"),false);
+        check(build.contains("-DskipTests=true"),"Installation skips tests by default");
+        check(build.containsAll(CgraphInstaller.installationTlsArguments()),"Only build command receives TLS bypass");
+        check(build.get(build.indexOf("--settings")+1).equals("settings with spaces.xml"),"Settings argument preserved");
+        var testedBuild=CgraphInstaller.mavenBuildCommand(Path.of("mvn"),null,true);
+        check(testedBuild.contains("-DskipTests=false")&&testedBuild.contains("-Dmaven.test.skip=false")&&!testedBuild.contains("-DskipTests=true"),"Explicit test opt-in");
+        check(!testedBuild.contains("--settings"),"Absent settings do not replace normal Maven settings");
         check(CgraphInstaller.executableRelative(true,false).equals("cgraph.exe"),"Windows executable");
         check(CgraphInstaller.executableRelative(false,true).equals("Contents/MacOS/cgraph"),"macOS executable");
         check(CgraphInstaller.executableRelative(false,false).equals("bin/cgraph"),"Linux executable");
@@ -32,6 +53,13 @@ public class CgraphInstallerTest {
         Path temp=Files.createTempDirectory("cgraph-build-");String owner=UUID.randomUUID().toString();Files.writeString(temp.resolve(".cgraph-build-owner"),owner);
         try{
             Path source=temp.resolve("source");Files.createDirectories(source.resolve("target"));Files.createDirectories(source.resolve(".git"));
+            Path malformedPem=temp.resolve("invalid.pem");Files.writeString(malformedPem,"-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----");
+            rejects(()->CgraphInstaller.installationTrustArguments(temp,malformedPem));
+            Path privatePem=temp.resolve("private.pem");Files.writeString(privatePem,"-----BEGIN PRIVATE KEY-----\nprivate fixture\n-----END PRIVATE KEY-----");
+            rejects(()->CgraphInstaller.installationTrustArguments(temp,privatePem));
+            rejects(()->CgraphInstaller.installationTrustArguments(temp,temp.resolve("missing.pem")));
+            Path oversizedPem=temp.resolve("oversized.pem");Files.writeString(oversizedPem,"x".repeat(1024*1024+1));
+            rejects(()->CgraphInstaller.installationTrustArguments(temp,oversizedPem));
             Path existingSettings=temp.resolve("settings.xml");Files.writeString(existingSettings,"corporate settings");
             rejects(()->CgraphInstaller.requireExplicitExistingSettings(existingSettings));
             check(Files.readString(existingSettings).equals("corporate settings"),"Existing Maven settings never overwritten");

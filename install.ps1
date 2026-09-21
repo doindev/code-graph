@@ -8,7 +8,8 @@ param(
     [string]$Proxy,
     [string]$ProxyUser,
     [string]$NoProxy,
-    [string]$GitCaFile,
+    # Optional corporate CA bundle for Git AND Maven. Omit to bypass TLS validation during installation.
+    [Alias('GitCaFile')][string]$CertPem,
     [string]$MavenSettings,
     # Optional current-user skills: all, none, or comma-separated codex,copilot,claude,windsurf.
     # Differing copies prompt before replacement; No/non-interactive keeps them. Approved updates keep a backup.
@@ -18,6 +19,8 @@ param(
     [string]$McpUrl='http://localhost:3000/mcp',
     [switch]$Check,
     [switch]$NonInteractive,
+    # Tests are skipped by default; opt in explicitly for installation builds.
+    [switch]$RunTests,
     [switch]$SkipTests,
     [switch]$NoPath,
     [switch]$KeepBuild,
@@ -34,6 +37,47 @@ function Invoke-CgraphCapture([string]$Executable,[string[]]$Arguments) {
         $output=(& $Executable @Arguments 2>&1 | Out-String)
         [pscustomobject]@{Text=$output;Code=$LASTEXITCODE}
     } finally {$ErrorActionPreference=$previous}
+}
+
+function Resolve-CgraphMavenSettings([string]$Override,[string]$ProfileDirectory=$env:USERPROFILE) {
+    if($Override){
+        if(!(Test-Path -LiteralPath $Override -PathType Leaf)){throw 'The -MavenSettings file does not exist or is not a file.'}
+        return (Resolve-Path -LiteralPath $Override).Path
+    }
+    if($ProfileDirectory){
+        $candidate=Join-Path $ProfileDirectory '.m2/settings.xml'
+        if(Test-Path -LiteralPath $candidate -PathType Leaf){return (Resolve-Path -LiteralPath $candidate).Path}
+    }
+}
+function Protect-CgraphDiagnostic([string]$Text) {
+    foreach($secret in @($env:CGRAPH_PROXY_PASSWORD)){
+        if($secret){$Text=$Text.Replace($secret,'[REDACTED]').Replace([Uri]::EscapeDataString($secret),'[REDACTED]')}
+    }
+    $Text=[regex]::Replace($Text,'(?i)(https?://)[^/\s@]+@','$1[REDACTED]@')
+    return [regex]::Replace($Text,'(?im)((?:proxy-)?authorization:\s*)[^\r\n]+','$1[REDACTED]')
+}
+function Invoke-CgraphClone([string]$Executable,[string]$Revision,[string]$Url,[string]$Destination,[string]$CertificatePem) {
+    $prior=@{}
+    foreach($name in @('GIT_TERMINAL_PROMPT','GIT_ASKPASS','SSH_ASKPASS','GIT_SSL_NO_VERIFY','GIT_SSL_CAINFO')){$prior[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
+    try {
+        $env:GIT_TERMINAL_PROMPT='0';$env:GIT_ASKPASS=$null;$env:SSH_ASKPASS=$null
+        $env:GIT_SSL_NO_VERIFY=$null
+        $arguments=@('-c','credential.helper=','-c','core.askPass=')
+        if($CertificatePem){
+            $env:GIT_SSL_CAINFO=$CertificatePem
+            $arguments+=@('-c','http.sslVerify=true','-c','http.proxySSLVerify=true','-c',('http.sslCAInfo='+$CertificatePem),'-c',('http.proxySSLCAInfo='+$CertificatePem),'-c','http.schannelUseSSLCAInfo=true')
+            Write-Host 'Git certificate verification enabled using the supplied PEM bundle.'
+        } else {
+            $arguments+=@('-c','http.sslVerify=false','-c','http.proxySSLVerify=false')
+            Write-Warning 'INSTALLATION ONLY: Git TLS certificate verification is disabled. Intercepted downloads can contain untrusted code.'
+        }
+        $arguments+=@('clone','--no-hardlinks','--branch',$Revision,'--',$Url,$Destination)
+        $result=Invoke-CgraphCapture $Executable $arguments
+        if($result.Code -ne 0){
+            $diagnostic=Protect-CgraphDiagnostic $result.Text
+            throw "Git clone failed (exit $($result.Code)). Check the repository/ref, proxy and access permissions. Interactive authentication is disabled.`n$diagnostic"
+        }
+    } finally {foreach($name in $prior.Keys){[Environment]::SetEnvironmentVariable($name,$prior[$name],'Process')}}
 }
 
 function Find-CgraphJdk {
@@ -63,7 +107,11 @@ function Get-CgraphRequirements {
     $mavenOk=$false
     if($maven -and $jdk){
         $previous=$env:JAVA_HOME
-        try{$env:JAVA_HOME=$jdk;$result=Invoke-CgraphCapture $maven.Source @('--version');$mavenOk=$result.Code -eq 0 -and $result.Text -match 'Apache Maven 3\.(?:9|[1-9][0-9])\.'}finally{$env:JAVA_HOME=$previous}
+        try{
+            $env:JAVA_HOME=$jdk;$result=Invoke-CgraphCapture $maven.Source @('--version')
+            $mavenOk=$result.Code -eq 0 -and $result.Text -match 'Apache Maven 3\.(?:9|[1-9][0-9])\.'
+            if($result.Code -ne 0){Write-Warning ('Maven prerequisite check failed (exit '+$result.Code+'): '+(Protect-CgraphDiagnostic $result.Text))}
+        }finally{$env:JAVA_HOME=$previous}
     }
     [pscustomobject]@{Jdk=$jdk;Git=$git;Maven=$maven;MavenOk=$mavenOk}
 }
@@ -112,6 +160,7 @@ function Get-CgraphMcpArguments([string]$Selection,[string]$Endpoint,[bool]$Only
     '--mcp-url';$Endpoint
 }
 function Invoke-CgraphInstall {
+    if($RunTests -and $SkipTests){throw 'Choose -RunTests or -SkipTests, not both. Tests are skipped by default.'}
     $skillArguments=@(Get-CgraphSkillArguments $Skills ([bool]$BuildOnly))
     $mcpArguments=@(Get-CgraphMcpArguments $McpClients $McpUrl ([bool]$BuildOnly))
     $saved=@{}
@@ -141,8 +190,13 @@ function Invoke-CgraphInstall {
             Write-Host 'Proxy configured for Git and Maven; credentials are not saved in the application.'
         }
         if($NoProxy){$env:NO_PROXY=$NoProxy}
-        if($GitCaFile){$env:GIT_SSL_CAINFO=(Resolve-Path -LiteralPath $GitCaFile).Path}
-        if($MavenSettings){$MavenSettings=(Resolve-Path -LiteralPath $MavenSettings).Path}
+        $resolvedPem=$null
+        if($CertPem){
+            if(!(Test-Path -LiteralPath $CertPem -PathType Leaf)){throw 'The -CertPem file does not exist or is not a file.'}
+            $resolvedPem=(Resolve-Path -LiteralPath $CertPem).Path
+        }
+        $resolvedSettings=Resolve-CgraphMavenSettings $MavenSettings
+        if($resolvedSettings){Write-Host ('Using Maven settings: '+$resolvedSettings+' (unchanged).')}
         $requirements=Get-CgraphRequirements
         Write-Host ('Git: '+[bool]$requirements.Git+'; full JDK 25: '+[bool]$requirements.Jdk+'; Maven 3.9+: '+$requirements.MavenOk)
         Write-Host 'Node.js/npm are not needed: cgraph is installed as a native launcher with a bundled runtime.'
@@ -159,24 +213,24 @@ function Invoke-CgraphInstall {
         $env:JAVA_HOME=$requirements.Jdk
         if($SourceDir){$source=(Resolve-Path -LiteralPath $SourceDir).Path}
         else {
-            if($Repository -match '^https?://[^/]*@'){throw 'Do not put repository credentials in the URL; configure a Git credential helper.'}
+            if($Repository -match '^https?://[^/]*@'){throw 'Do not put repository credentials in the URL. Installer clones disable credential helpers/prompts; use -SourceDir with a separately authenticated checkout.'}
             $clone=Join-Path ([IO.Path]::GetTempPath()) ('cgraph-clone-'+[guid]::NewGuid().ToString('N'))
             $null=New-Item -ItemType Directory -Path $clone
             [IO.File]::WriteAllText((Join-Path $clone '.cgraph-clone-owner'),'cgraph-clone-v1')
             $source=Join-Path $clone 'source'
             Write-Host 'Cloning the selected repository/ref into a fresh temporary checkout...'
-            $gitOutput=Invoke-CgraphCapture $requirements.Git.Source @('clone','--no-hardlinks','--branch',$Ref,'--',$Repository,$source)
-            if($gitOutput.Code -ne 0){throw 'Git clone failed. Check repository/ref access, proxy authentication, NO_PROXY, and Git CA trust. Captured network output was suppressed to avoid revealing credentials.'}
+            Invoke-CgraphClone $requirements.Git.Source $Ref $Repository $source $resolvedPem
         }
         $engine=Join-Path $source 'installer/CgraphInstaller.java'
         if(!(Test-Path -LiteralPath $engine)){throw 'Selected repository/ref does not include this installer yet. Use a published ref containing it, or -SourceDir with your development checkout.'}
         $arguments=@($engine,'--source',$source,'--install-dir',[IO.Path]::GetFullPath($InstallDir),'--maven',$requirements.Maven.Source)
         $arguments+=$skillArguments
         $arguments+=$mcpArguments
-        if($MavenSettings){$arguments+=@('--maven-settings',$MavenSettings)}
+        if($resolvedSettings){$arguments+=@('--maven-settings',$resolvedSettings)}
+        if($resolvedPem){$arguments+=@('--cert-pem',$resolvedPem)}
         if($script:effectiveProxy){$arguments+=@('--proxy',$script:effectiveProxy)}
         if($NoProxy){$arguments+=@('--no-proxy',$NoProxy)}
-        if($SkipTests){$arguments+='--skip-tests'};if($NoPath){$arguments+='--no-path'}
+        if($RunTests){$arguments+='--run-tests'}else{$arguments+='--skip-tests'};if($NoPath){$arguments+='--no-path'}
         if($NonInteractive){$arguments+='--non-interactive'};if($KeepBuild){$arguments+='--keep-build'};if($BuildOnly){$arguments+='--build-only'}
         & (Join-Path $requirements.Jdk 'bin/java.exe') @arguments
         if($LASTEXITCODE -eq 2){
