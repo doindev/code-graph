@@ -16,7 +16,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   alias-aware sorting/filtering, editable Boolean filters, driver recipes and validation limits.
   [Editable, pageable grids and exports](docs/dba-editable-grids.md) add staged
   transactional row changes, 200-row server pages, selection/navigation, grid
-  settings, and bounded CSV/XLSX/TXT/SQL downloads with explicit capability gates.
+  settings, loaded-page Find/Replace with staged edits and ten-entry histories,
+  and bounded CSV/XLSX/TXT/SQL downloads with explicit capability gates.
   Double-click a table in the database tree to open a fixed-connection **Table** tab with a reusable
   Data grid and session recovery. Tables expand into lazy, vendor-aware categories such as
   Columns, Constraints and Foreign Keys; see [catalog navigation](docs/dba-catalog-tree.md#table-children).
@@ -78,6 +79,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Bounded MongoDB transactions](docs/mongodb-transactions.md) provide reviewed
   atomic CRUD on one existing ordinary collection in replica-set/sharded mode,
   with exact match checks, cancellation and explicit uncertain-commit outcomes.
+  The [MongoDB document editor](docs/mongodb-document-editor.md) adds staged,
+  canonical Extended JSON replacement with replica-set-only byte-exact original
+  BSON/collection UUID guards; standalone/sharded editing remains unavailable.
   [MongoDB change-stream batches](docs/mongodb-change-streams.md) add finite,
   resumable exact-collection reads with explicit history gaps and a next-batch UI.
   MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)

@@ -329,23 +329,35 @@ final class QueryJobs implements AutoCloseable {
         return read(owner,id,validated,parameters,false);
     }
     ObjectNode humanQuery(String owner,String id,String sql,JsonNode parameters,boolean autoCommit){
+        return humanQuery(owner,id,sql,parameters,autoCommit,null);
+    }
+    int browserRowLimit(JsonNode value){
+        if(value==null)return grids==null?config.uiRows():Math.min(200,config.uiRows());
+        if(!value.isIntegralNumber()||!value.canConvertToInt()||value.intValue()<1||value.intValue()>config.uiRows())
+            throw new IllegalArgumentException("rowLimit must be an integer between 1 and "+config.uiRows()+".");
+        return value.intValue();
+    }
+    ObjectNode humanQuery(String owner,String id,String sql,JsonNode parameters,boolean autoCommit,JsonNode rowLimit){
         if(owner.startsWith("agent:"))throw new SecurityException("Human SQL is not available to agents");
         if(sql==null||sql.isBlank()||sql.length()>16384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
-        HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();
+        HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
         return submit(owner,id,(job,c)->{
-            if(grids!=null)job.rowLimit=Math.min(200,job.rowLimit);
+            job.rowLimit=Math.min(requested,config.uiRows());
             ObjectNode result=HumanSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e));
             if(grids!=null)grids.capture(job,c,result,values);return result;
         },true,autoCommit);
     }
     /** Browser table grids: one validated SELECT, fixed catalog context, no script decisions. */
     ObjectNode tableQuery(String owner,String id,String sql,JsonNode parameters,String database){
+        return tableQuery(owner,id,sql,parameters,database,null);
+    }
+    ObjectNode tableQuery(String owner,String id,String sql,JsonNode parameters,String database,JsonNode rowLimit){
         if(owner.startsWith("agent:"))throw new SecurityException("Table grids are browser-only");
         if(database==null||database.length()>256||database.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid target database");
         ObjectNode validation=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");validation.set("parameters",parameters);
-        String validated=GridSql.prepare(validation).path("sql").asText();HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();
+        String validated=GridSql.prepare(validation).path("sql").asText();HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
         return catalogRead(owner,id,Profiles.JSON.createObjectNode().put("database",database),(job,c)->{
-            if(grids!=null)job.rowLimit=Math.min(200,job.rowLimit);
+            job.rowLimit=Math.min(requested,config.uiRows());
             try(PreparedStatement statement=c.prepareStatement(validated,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());statement.setFetchSize(64);statement.setMaxRows(job.rowLimit+1);
                 for(int i=0;i<values.size();i++){JsonNode v=values.get(i);if(v.isNull())statement.setNull(i+1,Types.NULL);else if(v.isBoolean())statement.setBoolean(i+1,v.asBoolean());else if(v.isNumber())statement.setBigDecimal(i+1,v.decimalValue());else statement.setString(i+1,v.asText());}

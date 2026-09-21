@@ -40,15 +40,24 @@ final class GridPaging {
             try(var rs=statement.executeQuery()){return QueryJobs.rows(rs,limit,job.byteLimit/2).put("kind","rows").put("sourceSql",context.orderedSql==null?context.sql:context.orderedSql);}
         }finally{job.statement=null;}
     }
-    static ObjectNode reload(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c)throws Exception{
-        SqlReadGuard.validate(context.sql);ObjectNode next=read(context,job,c,0,context.limit);next.set("columns",context.result.path("columns").deepCopy());service.check(context,job);c.rollback();
+    static int requestedLimit(GridResults service,GridResults.Context context,JsonNode request){
+        int ceiling=service.config.get().uiRows();JsonNode value=request.get("limit");
+        if(value==null)return Math.min(context.limit,ceiling);
+        if(!value.isIntegralNumber()||!value.canConvertToInt()||value.intValue()<1||value.intValue()>ceiling)
+            throw new IllegalArgumentException("Rows per page must be an integer between 1 and "+ceiling+".");
+        return value.intValue();
+    }
+    static ObjectNode reload(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c,JsonNode request)throws Exception{
+        GridResults.validateReload(context);int limit=requestedLimit(service,context,request);
+        String direction=request.path("direction").asText("refresh");if(!Set.of("first","refresh").contains(direction))throw new IllegalArgumentException("This query supports a bounded first-page reload, not server paging.");
+        ObjectNode next=read(context,job,c,0,limit);next.set("columns",context.result.path("columns").deepCopy());service.check(context,job);c.rollback();
         context.reservation.resize(Math.max(4096,Profiles.JSON.writeValueAsBytes(next).length*3L+context.baseBytes));
-        synchronized(service){service.check(context,job);context.result=next;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.uncertain=false;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
+        synchronized(service){service.check(context,job);context.result=next;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.limit=limit;context.uncertain=false;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
             ObjectNode out=next.deepCopy();out.set("grid",service.descriptor(context));return out;}
     }
     static ObjectNode page(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c,JsonNode request,boolean reconcile)throws Exception{
         if(context.orderedSql==null)throw new IllegalArgumentException(context.reason);
-        int limit=request.path("limit").asInt(context.limit);if(limit<1||limit>service.config.get().uiRows())throw new IllegalArgumentException("Page size exceeds the configured UI row limit.");
+        int limit=requestedLimit(service,context,request);
         String direction=request.path("direction").asText("refresh");if(!Set.of("first","last","next","previous","refresh").contains(direction))throw new IllegalArgumentException("Invalid page direction.");
         ObjectNode metadata=Profiles.JSON.createObjectNode();metadata.set("columns",context.result.path("columns"));
         if(!GridRelation.inspect(c,context.sql,metadata).fingerprint.equals(context.relation.fingerprint))throw new IllegalArgumentException("Table definition changed. Rerun the query.");

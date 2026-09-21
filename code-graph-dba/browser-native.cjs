@@ -6,6 +6,7 @@ module.exports=async(browser,base)=>{
   await require('./browser-redis-set.cjs')(browser,base);
   await require('./browser-redis-score.cjs')(browser,base);
   await require('./browser-redis-stream.cjs')(browser,base);
+  await require('./browser-mongo-document.cjs')(browser,base);
   const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));let queryCount=0;
   try{

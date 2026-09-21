@@ -144,3 +144,63 @@ browser and vendor runs rather than concealing the investigation.
 
 See [user/API/recovery documentation](dba-editable-grids.md) for the supported
 contract and [the existing DBA documentation](dba.md) for global limits/security.
+
+## Row-limit control regression — 2026-09-20
+
+- Decoupled bounded SELECT row limits from editable-result/server-paging
+  eligibility. Read-only computed projections and joins can reload the first
+  requested rows without claiming that they support ordered paging or writes.
+- Enter applies the numeric field; typing alone does not execute. Applied limits
+  survive refresh, filtering, sorting and Query Builder execution. Server-side
+  validation retains configured ceilings and SQL-authored limits; procedural
+  results cannot be replayed through the reload endpoint.
+- Live H2 HTTP/browser fixtures verified 17/300-row reloads, explicit database
+  targets, Query Builder limit retention, invalid values, CSRF and authored LIMIT
+  preservation. Browser assertions now observe retained-query reloads as well as
+  new query submissions, including cancellation and schedule disposal.
+- Isolated full Maven reactor: 907 tests, 843 passed, 64 skipped, no failures or
+  errors. All 19 browser suite groups passed across the final main run and the
+  corrected grid-edit/remainder run. JavaScript syntax checks and six grid
+  state/controller Node tests passed. Skipped live/platform cases are not passes.
+- Evidence: target/grid-row-limit-75a07b141ee8436083ff7f2abd7ea119
+  contains reactor.log, browser-all-verified.log, browser-remainder.log and the
+  isolated source/test reports. Earlier investigation failures remain alongside
+  these logs; the obsolete refresh-route assertion in the main browser run is
+  superseded by the passing grid-edit suite in browser-remainder.log.
+- The user's running application was not restarted; no commit or push was made.
+
+## Loaded-page Find/Replace — 2026-09-20
+
+- Replaced the magnifying-glass placeholder in the shared DataGridView with a
+  collapsible, dark two-row toolbar positioned clear of both scrollbars. Added
+  independent ten-entry search/replacement histories, case/regex/Unicode
+  whole-word/selected-row matching, occurrence navigation, highlighting and
+  local matching-row filtering.
+- Replace/current and Replace All use typed, atomic draft staging. Existing
+  Save/Cancel and read-only gates remain authoritative; Find never issues SQL.
+  Histories/options survive tab remounts, while closing clears search-only
+  effects without discarding row drafts. Filtered keyboard editing and Shift
+  selection follow visible rows, not hidden source indices.
+- Added bounded off-thread matching with timeouts, cancellation on close/unmount,
+  stale-replacement rejection and shared worker-input accounting. The matcher
+  and batch draft operations have focused Node tests.
+- Validation: all 20 browser suite groups passed in browser-all-final.log,
+  including real H2 search, staged changes/Cancel/Save, captures, history,
+  read-only skips, invalid-value atomicity, virtualization, a reusable non-Script
+  host, pathological-regex termination and worker cleanup. Browser verification
+  used Chromium/Edge on Windows; other browsers/OS accessibility environments
+  were not independently certified.
+- Full Maven reactor: 907 tests, 843 passed, 64 skipped, zero failures/errors.
+  JavaScript checks and 11 Node search/draft tests passed. Final packaging passed;
+  the six bundled grid assets were hash-checked against the working tree.
+- Reproduce: node --test code-graph-dba/grid-search.test.cjs
+  code-graph-dba/grid-state.test.cjs; run code-graph-dba/test-browser.ps1 with
+  Playwright's NodeModules path (DBA_BROWSER_SUITE=grid-search selects the focused
+  suite), and mvn -B -ntp package -Djava.awt.headless=true for the reactor.
+- Raw local evidence lives under
+  target/grid-find-0d6d66bd6d244adb9f1551a272bd14b9: reactor.log,
+  package-final.log, browser-all-final.log, isolated test reports and
+  source/code-graph-dba/target/grid-find-replace.png. Earlier diagnostic failures
+  remain in separate logs and are superseded by the final passing run.
+- Browser fixtures closed; no new Docker images were introduced. The user's
+  running server was preserved. No restart, commit or push was performed.

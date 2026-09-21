@@ -64,7 +64,13 @@ final class DbaInputSchemas {
             command.put("description",command.path("description").asText()+" MongoDB accepts {transaction: [CRUD command objects]} on explicit replica_set/sharded profiles: one exact existing ordinary collection, at most 32 commands and 100 total write entries. Atomic insert/update/delete; each update/delete entry must match one document. No DDL, views, capped/time-series collections, cross-collection commands or automatic commit retry.");
             var mongoBatch=alternatives.addObject().put("type","object").put("additionalProperties",false);
             mongoBatch.putArray("required").add("transaction");
-            var mongoChoices=mongoBatch.putObject("properties").putObject("transaction").put("type","array").put("minItems",1).put("maxItems",32).putObject("items").putArray("oneOf");
+            var guard=mongoBatch.withObject("properties").putObject("documentGuard").put("type","object").put("additionalProperties",false)
+                    .put("description","Optional byte-exact complete BSON guard for one replacement update on replica_set only. Existing ordinary collection; immutable string/ObjectId/Int32/Int64 _id; no upsert, multi, collation override or sharded routing. Original and replacement must each be canonical Extended JSON <=32 KiB. Guard runs inside the same transaction. Never remove it after conflict or retry uncertain commits.");
+            guard.putArray("required").add("collectionUuid").add("expected");
+            var guardFields=guard.putObject("properties");
+            guardFields.putObject("collectionUuid").put("type","string").put("contentEncoding","base64").put("minLength",24).put("maxLength",24).put("description","Exact listCollections info.uuid binary subtype 04, canonical base64 for 16 bytes.");
+            guardFields.putObject("expected").put("type","object").put("minProperties",1).putArray("required").add("_id");
+            var mongoChoices=mongoBatch.withObject("properties").putObject("transaction").put("type","array").put("minItems",1).put("maxItems",32).putObject("items").putArray("oneOf");
             for(String name:List.of("insert","update","delete")){
                 var entry=mongoChoices.addObject().put("type","object").put("additionalProperties",false);
                 String items=name.equals("insert")?"documents":name.equals("update")?"updates":"deletes";

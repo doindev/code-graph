@@ -43,6 +43,12 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
+The [MongoDB document editor](mongodb-document-editor.md) stages complete,
+bounded canonical Extended JSON replacements with immutable IDs and explicit
+review. Guarded saves require a replica-set profile and ordinary collection;
+other topologies are inspect-only. Original BSON and collection UUID changes
+conflict rather than silently overwriting concurrent edits.
+
 The [stream-entry composer](redis-stream-editor.md) stages an ordered, binary-safe
 entry for an existing stream. It uses reviewed XADD NOMKSTREAM, reports complete
 entry IDs/no-change receipts, and blocks uncertain resubmission. It does not edit

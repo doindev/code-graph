@@ -327,13 +327,13 @@ async function transformGrid(tab,result,change,execution){
   const ownedOptions={api,replace};
   if(!['save_rows','review_rows','reconcile'].includes(change.action)&&!await DataGridView.guard(result,()=>runOwnedGrid(result,{action:'save_rows'},execution,ownedOptions)))return;
   if(['save_rows','review_rows','page','export','reconcile'].includes(change.action)){await runOwnedGrid(result,change,execution,ownedOptions);return;}
-  if(refreshOnly&&result.grid?.capabilities.page){await runOwnedGrid(result,{action:'page',direction:'refresh',limit:result.grid.page.limit},execution,ownedOptions);return;}
+  if(refreshOnly&&(result.grid?.capabilities.rowLimit??result.grid?.capabilities.page)){await runOwnedGrid(result,{action:'page',direction:'refresh',limit:result.grid.page.limit},execution,ownedOptions);return;}
   try{
     const {displaySql,previewSql,...requestContext}=context;
     const edited=await api('/query/grid-edit','POST',{...requestContext,...change,...(refreshOnly?{action:'refresh'}:{})});execution.check();if(!retained())return;
     if(refreshOnly)edited.displaySql=context.displaySql??context.sql;
     gridContexts.set(result,{...context,previewSql:edited.displaySql??edited.sql});if(!refreshOnly)DataGridView.setFilter(result,edited.filterExpression??'');updateView();execution.check();
-    const response=await execution.submit({connectionId:context.connectionId,sql:edited.sql,parameters:edited.parameters,autoCommit:false,...(context.database!==undefined?{database:context.database}:{})});
+    const response=await execution.submit({connectionId:context.connectionId,sql:edited.sql,parameters:edited.parameters,autoCommit:false,rowLimit:result.grid?.page?.limit,...(context.database!==undefined?{database:context.database}:{})});
     if(!retained())return;
     const rows=response.results?.filter(r=>r.kind==='rows')??[];if(rows.length!==1)throw new Error('The edited SELECT did not return exactly one result; the old grid was retained.');
     const replacement={...rows[0],statementIndex:result.statementIndex};

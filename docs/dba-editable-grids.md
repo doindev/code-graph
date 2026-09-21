@@ -29,6 +29,43 @@ Grid settings control column order, visibility, width reset, NULL display and
 date/time presentation. Settings do not change database values and survive only
 for the result lifetime. Row data and drafts are not restored after a page reload.
 
+## Find and Replace
+
+The command strip's magnifying glass opens a floating Find/Replace bar above the
+grid's bottom/right scrollbars. The left chevron shows or hides the replacement
+row. Each result remembers its last ten searches and last ten used replacements
+in memory only; dropdown selections restore them. Selecting a search runs it;
+selecting replacement history only fills the replacement field.
+
+Enter searches the **loaded page and visible columns**, including staged values.
+Case-sensitive, regular-expression, Unicode whole-word, and selected-row-only
+toggles can be combined. Up/Down (or F3/Shift+F3) cycle through highlighted
+occurrences. The funnel hides nonmatching rows locally; it neither rewrites SQL
+nor fetches other pages. Selection remains separate from the active search match.
+NULL, DEFAULT and pending deletions are excluded. Truncated results search only
+the displayed previews and remain non-replaceable.
+
+Replace changes the current occurrence; Replace All stages matches in verified
+editable cells and reports skipped read-only matches. All replacement values
+are validated before any part of the batch is staged. Empty replacement means
+empty text, not SQL NULL. Plain searches use literal replacements; regex searches
+support JavaScript capture substitutions such as $1 and $<name>. Replacement
+stops scheduled refresh. **Save** commits the ordinary grid draft; **Cancel**
+reverts it. Query-builder view-definition editing never becomes row-data editing.
+
+Closing the bar clears search highlights/options and reveals hidden rows, but
+does not discard existing row selection or unsaved edits. Switching tabs retains
+the panel's preferences/history and recomputes matches against current data.
+Page refresh or result disposal discards them. No search data is persisted or
+sent to the server; only explicitly saved row drafts use existing database APIs.
+
+Regex work runs in a disposable worker with a 1.5-second deadline, at most four
+concurrent workers and 16 MiB shared input accounting. Per-search limits are
+8 MiB input accounting, 20,000 matches and 512 search characters; replacement
+text/cell outputs are bounded to 8192 characters plus the existing draft budget.
+Limit/regex errors do not apply partial replacements. Close/unmount terminates
+workers; expensive patterns cannot block the editor thread.
+
 ## Editability and paging boundaries
 
 | Engine | Ordinary transactional table | Simple view writes | Paging |
@@ -82,6 +119,17 @@ The initial requested page is 200 rows (or the lower configured UI ceiling).
 The footer input accepts 1–7 ASCII digits; Enter loads the first page. Merely
 typing does not query. The existing UI row/byte/cell/column and job limits remain
 authoritative, so a byte-limited page can contain fewer rows.
+
+Row limiting is independent of editing and server paging: supported single SELECT
+results (including joins and computed projections) can reload their first N rows
+even when they are read-only or have no verified unique ordering. The chosen
+limit survives refresh, sorting and filtering; unapplied input text does not
+change navigation requests. The server validates the integer against the current
+UI ceiling and applies it to JDBC fetching, not just to displayed rows. Authored
+SQL LIMIT/TOP/OFFSET semantics remain unchanged. Non-replayable results, such as
+procedure or write-statement results, keep the field disabled with a reason.
+The browser-only query execution API accepts an optional integer rowLimit;
+omitting it retains the initial 200-row default (or lower configured ceiling).
 
 Verified paging preserves authored LIMIT/TOP/OFFSET and appends unique ordering
 tie-breakers where safe. The executed ordered SQL is shown in the preview, without
@@ -147,7 +195,7 @@ page metadata and restrictions. There is no client-supplied editable table name.
 | POST /grids/{id}/prepare | Validate revision plus structured row/column changes; return a bounded retained plan |
 | POST /grids/{id}/apply | Execute retained planId; confirmed is required for deletions |
 | POST /grids/{id}/page | First/previous/next/last/refresh with revision and limit |
-| POST /grids/{id}/reload | Reread a verified editable source without server pagination |
+| POST /grids/{id}/reload | Reread one supported SELECT without server pagination; accepts revision, first/refresh direction and optional integer limit |
 | POST /grids/{id}/reconcile | Explicitly observe actual data after uncertain outcome; never replay writes |
 | POST /grids/{id}/export | Format, scope, column IDs and optional selected row handles |
 | DELETE /grids/{id} | Cancel work and release context |

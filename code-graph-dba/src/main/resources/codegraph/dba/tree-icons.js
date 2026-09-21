@@ -83,6 +83,9 @@ const shapes={
   "database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" />\n  <path d=\"M3 5V19A9 3 0 0 0 21 19V5\" />\n  <path d=\"M3 12A9 3 0 0 0 21 12\" />"
 };
 shapes.info='<circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>';
+shapes.filter='<path d="M4 3h16l-6 8v7l-4 3V11z"/>';
+shapes.replace='<path d="M14 4a2 2 0 0 1 2 2v1M4 7V4m0 3h3"/><path d="M4 7a4 4 0 0 1 4-4h2"/><rect x="3" y="12" width="7" height="7" rx="1"/><path d="m16 13 4 4-4 4M13 17h7"/>';
+shapes['replace-all']='<path d="M14 4a2 2 0 0 1 2 2v1M4 7V4m0 3h3M4 7a4 4 0 0 1 4-4h2"/><rect x="2" y="13" width="6" height="6" rx="1"/><path d="M5 10h6v6m5-3 4 4-4 4M13 17h7"/>';
 shapes.search='<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>';
 shapes.download='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>';
 export function lucide(name){

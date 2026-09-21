@@ -195,6 +195,11 @@ The frozen source ZIP SHA-256 is
 
 ## Recovery, deployment and cleanup
 
+The [MongoDB document-editor continuation](mongodb-document-editor.md) adds a
+bounded, replica-set-only complete-document guard and graphical draft workflow.
+Its separate acceptance report does not imply sharded graphical editing or
+completion of the remaining native roadmap.
+
 The subsequent [stream-entry composer](redis-stream-editor.md) adds bounded UI
 drafts and existing-only append receipts to the current Redis adapter. Its
 validation is recorded separately; general stream/key lifecycle and native

@@ -45,7 +45,7 @@ try{
     }
     $env:MONGO_TOPOLOGY_PORT=[string]$port;$env:MONGO_TOPOLOGY_KIND=$Topology;$env:MONGO_TOPOLOGY_OWNER=$owner
     Write-Output "Owned $Topology fixture $owner; pinned image $image; loopback port $port"
-    mvn -q -pl code-graph-dba -am test '-Dtest=MongoTopologyTest,NativeMongoTransactionTest,NativeMongoStreamTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
+    mvn -q -pl code-graph-dba -am test '-Dtest=MongoTopologyTest,NativeMongoTransactionTest,NativeMongoDocumentTest,NativeMongoStreamTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Djava.awt.headless=true' '-Dtest.jvm.args=-Xmx256m -XX:MaxDirectMemorySize=64m'
     if($LASTEXITCODE -ne 0){throw 'MongoDB topology gate failed'}
 }finally{
     if($container){$label=docker inspect $container --format '{{index .Config.Labels "io.doindev.codegraph.test"}}';if($label -eq $owner){docker rm --force --volumes $container}else{Write-Warning 'Ownership mismatch; container preserved'}}

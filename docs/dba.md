@@ -187,7 +187,7 @@ at most 128 MiB per JAR.
 | `POST /connections/{id}/reconnect` | Replace the established idle pool and start an owned connection job |
 | `POST /connections/{id}/disconnect` | Close the established idle pool; retain the profile, grants, and Script tabs |
 | `POST /metadata/node` | Start metadata job with `{connectionId, schema?, table?}` |
-| `POST /query/execute` | Start human SQL with `{connectionId, sql, parameters: [], autoCommit?: false}`; commit on success by default. Table grids add textual `database` for a single validated SELECT with explicit targeting and rollback-only read execution. |
+| `POST /query/execute` | Start human SQL with `{connectionId, sql, parameters: [], autoCommit?: false, rowLimit?: 200}`; commit on success by default. The optional rowLimit is an integer from 1 through the configured UI row ceiling; byte/cell limits may return fewer rows. Table grids add textual `database` for a single validated SELECT with explicit targeting and rollback-only read execution. |
 | `POST /metadata/table-query` | Browser-only asynchronous preparation from `{connectionId, parent, key}`; verifies a Tables child and returns quoted SELECT SQL and explicit database context |
 | `POST /query/explain` | Estimated PostgreSQL SELECT plan, never `EXPLAIN ANALYZE` |
 | `POST /metadata/ddl` | PostgreSQL catalog definition fragments with `{connectionId, schema, object}` |

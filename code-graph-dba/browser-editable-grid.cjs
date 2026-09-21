@@ -86,6 +86,27 @@ module.exports=async(browser,base,jar)=>{
     await footer.getByRole('button',{name:'First row',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–20'));
     await page.setViewportSize({width:760,height:720});assert.equal(await footer.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true);
     await page.screenshot({path:'code-graph-dba/target/editable-grid.png'});
+    // Row limiting must not require an editable relation or deterministic paging.
+    await page.setViewportSize({width:1450,height:980});
+    const readonlySql='SELECT ID+1 AS NEXT_ID, LABEL FROM PUBLIC.GRID_DATA ORDER BY ID';
+    await page.locator('#sql').fill(readonlySql);await page.locator('#run').click();
+    await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–200')&&document.querySelector('#grid')?.getAttribute('aria-busy')==='false');
+    const limit=footer.getByRole('textbox',{name:'Rows per page'});assert.equal(await limit.isEnabled(),true);
+    assert.equal(await footer.getByRole('button',{name:'Add row',exact:true}).isDisabled(),true);
+    const submitted=[];await page.route(/\/api\/dba\/(?:grids\/[^/]+\/(?:reload|page)|query\/execute)$/,async route=>{submitted.push({url:route.request().url(),body:route.request().postDataJSON()});await route.continue();});
+    await limit.fill('abc17');assert.equal(await limit.inputValue(),'17');assert.equal(submitted.length,0,'Typing alone does not execute SQL');
+    for(const invalid of ['','0','1001']){await limit.fill(invalid);await limit.press('Enter');assert.equal(await limit.evaluate(e=>e.checkValidity()),false);assert.equal(submitted.length,0);}
+    await limit.fill('17');await limit.press('Enter');await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–17')&&document.querySelector('#grid')?.getAttribute('aria-busy')==='false');
+    assert.equal(submitted.at(-1).body.limit,17);assert.ok(submitted.at(-1).url.endsWith('/reload'));assert.equal(await rows.count(),17);assert.equal(await limit.inputValue(),'17');
+    await footer.getByRole('button',{name:'Refresh',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false');
+    assert.equal(submitted.at(-1).body.limit,17);assert.equal(await rows.count(),17);
+    await page.locator('#grid .grid-filter-input').fill('ID > 20');await page.getByRole('button',{name:'Apply SQL filter expression',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false'&&document.querySelector('.grid-row-status')?.textContent.includes('1–17'));
+    assert.ok(submitted.at(-1).url.endsWith('/query/execute'));assert.equal(submitted.at(-1).body.rowLimit,17);assert.equal(await rows.count(),17);assert.equal(await rows.first().locator('[data-column-id=c1]').innerText(),'22');assert.equal(await limit.inputValue(),'17');assert.equal(await page.locator('#sql').inputValue(),readonlySql);
+    await limit.fill('300');await limit.press('Enter');await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–300')&&document.querySelector('#grid')?.getAttribute('aria-busy')==='false');
+    assert.equal(submitted.at(-1).body.limit,300);assert.equal(await limit.inputValue(),'300');
+    await page.screenshot({path:'code-graph-dba/target/grid-row-limit.png'});
+    await page.unroute(/\/api\/dba\/(?:grids\/[^/]+\/(?:reload|page)|query\/execute)$/);
     assert.deepEqual(errors,[]);console.log('Editable grids: conditional Value/NULL/DEFAULT selector, staging, Save/Stay/Cancel, row selection, first/last paging, settings, all export downloads and narrow footer passed.');
   }catch(error){console.error('Grid browser diagnostics',JSON.stringify({errors,status:await page.locator('#status').textContent(),error:await page.locator('#error').textContent(),grid:await page.locator('#grid').innerText()}));throw error;}finally{await context.close();}
 };

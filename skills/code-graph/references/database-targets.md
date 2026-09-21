@@ -171,6 +171,16 @@ inspect retained outcomes; an acknowledged mutation is not undone by cancellatio
 
 ### MongoDB transactions and change streams
 
+When advertised, optional command.documentGuard beside its transaction array is a
+complete-document replacement guard, not a general filter. On replica_set profiles only, supply
+the actual collection UUID (canonical base64 from listCollections info.uuid)
+and complete original canonical Extended JSON, each document <=32 KiB. Use one
+replacement update with the same typed _id in original/filter/replacement, no
+upsert, multi, projection or collation override. BSON field order and numeric
+types matter. A guard conflict requires reload/review; never remove the guard
+or retry an uncertain commit to force the write through. This grants no access
+and does not certify standalone/SRV/sharded graphical document editing.
+
 When advertised, MongoDB managed transactions use a `transaction` array of CRUD
 objects, unlike Redis argument arrays. They require an explicit replica-set or
 sharded profile and one existing ordinary collection. Every update/delete entry

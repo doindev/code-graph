@@ -17,7 +17,7 @@ final class NativeMongoTransactions {
     static NativeCommand.Classification classify(NativeTarget target,JsonNode command){
         if(!Set.of("replica_set","sharded").contains(target.topology()))throw new IllegalArgumentException("MongoDB transactions require an explicitly configured replica_set or sharded profile; standalone/SRV transaction certification is unavailable");
         if(target.collection().isEmpty()||target.collection().startsWith("system.")||target.collection().contains("$")||Set.of("admin","local","config").contains(target.database()))throw new IllegalArgumentException("Transactions require an exact non-system database and collection");
-        if(!command.isObject()||command.size()!=1||!command.has("transaction"))throw new IllegalArgumentException("MongoDB transaction accepts only the transaction array; session and concern settings are application-managed");
+        if(!command.isObject()||!command.has("transaction")||command.size()!=(command.has("documentGuard")?2:1))throw new IllegalArgumentException("MongoDB transaction accepts transaction and optional documentGuard only; session and concern settings are application-managed");
         var commands=command.path("transaction");
         if(!commands.isArray()||commands.isEmpty()||commands.size()>MAX_COMMANDS)throw new IllegalArgumentException("MongoDB transaction requires 1..32 CRUD command objects");
         int writes=0;boolean destructive=false;
@@ -32,7 +32,8 @@ final class NativeMongoTransactions {
             if(writes>MAX_WRITES)throw new IllegalArgumentException("MongoDB transaction exceeds 100 document-write entries");
             destructive|=name.equals("delete");
         }
-        return new NativeCommand.Classification("mongo.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,NOTICE);
+        if(command.has("documentGuard"))NativeMongoDocuments.validate(target,command);
+        return new NativeCommand.Classification("mongo.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,NOTICE+(command.has("documentGuard")?" "+NativeMongoDocuments.NOTICE:""));
     }
 
     static JsonNode execute(NativeConnections.Lease lease,NativeTarget target,JsonNode command,QueryJobs.Job job,Runnable authority){
@@ -45,7 +46,9 @@ final class NativeMongoTransactions {
         RawBsonDocument source=MongoCollectionMetadata.load(database,target,job);checkCollection(source);
         BsonValue originalId=source.getDocument("info",new BsonDocument()).get("uuid");
         if(originalId==null)throw new IllegalArgumentException("Collection identity unavailable; transaction cannot be validated");
+        if(command.has("documentGuard"))NativeMongoDocuments.collection(command.path("documentGuard"),originalId);
         ObjectNode result=Profiles.JSON.createObjectNode().put("kind","transaction").put("atomic",true).put("outcome","not_started");
+        if(command.has("documentGuard"))result.put("documentGuard",true);
         var entries=result.putArray("entries");
         try(ClientSession session=lease.mongo.startSession(ClientSessionOptions.builder().causallyConsistent(false).build())){
             boolean began=false,commitIssued=false;
@@ -54,10 +57,12 @@ final class NativeMongoTransactions {
                 session.startTransaction(TransactionOptions.builder().readPreference(ReadPreference.primary()).readConcern(ReadConcern.SNAPSHOT)
                         .writeConcern(WriteConcern.MAJORITY).timeout((long)job.remainingSeconds(),TimeUnit.SECONDS).build());
                 began=true;job.outcome="uncommitted";
+                if(command.has("documentGuard")){NativeMongoDocuments.check(database,session,target,command.path("documentGuard"));authority.run();check(job);}
                 int index=0;
                 for(JsonNode entry:commands){
                     authority.run();check(job);
                     BsonDocument request=BsonDocument.parse(entry.toString());
+                    if(command.has("documentGuard"))request.getArray("updates").get(0).asDocument().put("collation",new BsonDocument("locale",new BsonString("simple")));
                     // Timeout belongs to the whole transaction. Per-command overrides are forbidden by
                     // the driver; manual maxTimeMS plus client timeoutMS is also undefined.
                     var reply=database.runCommand(session,request,ReadPreference.primary(),RawBsonDocument.class);
@@ -94,7 +99,7 @@ final class NativeMongoTransactions {
                 if(failure instanceof MongoException mongo)result.put("vendorCode",mongo.getCode());
                 retain(job,result);
                 if(failure instanceof CancellationException||failure instanceof SecurityException)throw failure;
-                throw new IllegalArgumentException(failure instanceof Rejected?failure.getMessage():"MongoDB transaction failed; inspect its outcome and vendor code. Raw driver details are withheld.",failure);
+                throw new IllegalArgumentException(failure instanceof Rejected||failure instanceof NativeMongoDocuments.Conflict?failure.getMessage():"MongoDB transaction failed; inspect its outcome and vendor code. Raw driver details are withheld.",failure);
             }
             // Session close performs driver best-effort abort/cleanup because raw commit does not change
             // its client-side transaction state. It cannot undo an acknowledged commit or replay CRUD.

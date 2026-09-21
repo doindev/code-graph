@@ -134,6 +134,28 @@ class NativeMongoTransactionTest {
                 String jobId=submitted.path("jobId").asText();assertFalse(jobId.isBlank(),submitted.toPrettyString());
                 var done=ConnectionSetupTest.await(jobs,"agent:"+principal,Profiles.JSON.createObjectNode().put("id",jobId));assertEquals("complete",done.path("state").asText(),done.toPrettyString());assertEquals("commit_acknowledged",done.path("result").path("outcome").asText());
                 assertEquals(1,db.getCollection(collection).countDocuments());jobs.remove("agent:"+principal,jobId);
+                if(topology.equals("replica_set")){
+                    var selected=NativeTarget.resolve(profile,input);
+                    var definition=MongoCollectionMetadata.load(observer,selected,jobs.new Job("human",id));
+                    String uuid=Base64.getEncoder().encodeToString(definition.getDocument("info").getBinary("uuid").getData());
+                    BsonDocument original=db.getCollection(collection,BsonDocument.class).find().first();
+                    var replacement=original.clone().append("edited",BsonBoolean.TRUE);
+                    var edit=input.deepCopy().put("requestId",UUID.randomUUID().toString());
+                    edit.set("command",NativeMongoDocumentTest.guarded(collection,NativeMongoDocumentTest.canonical(original),NativeMongoDocumentTest.canonical(replacement),uuid));
+                    var proposed=requests.request(principal,session,"native_command",edit);
+                    if(!automatic){
+                        assertEquals("awaiting_approval",proposed.path("state").asText());
+                        assertFalse(db.getCollection(collection,BsonDocument.class).find().first().containsKey("edited"));
+                        String approvalId=proposed.path("id").asText();
+                        assertThrows(IllegalArgumentException.class,()->requests.decide("human",approvalId,"always_allow",true,Profiles.JSON.createObjectNode()));
+                        proposed=requests.decide("human",approvalId,"approve_once",true,Profiles.JSON.createObjectNode());
+                    }else assertEquals("automatic",proposed.path("approvalChannel").asText());
+                    var edited=ConnectionSetupTest.await(jobs,"agent:"+principal,Profiles.JSON.createObjectNode().put("id",proposed.path("jobId").asText()));
+                    assertEquals("complete",edited.path("state").asText(),edited.toPrettyString());
+                    assertTrue(edited.path("result").path("documentGuard").asBoolean());
+                    assertTrue(NativeMongoDocuments.same(replacement,db.getCollection(collection,BsonDocument.class).find().first()));
+                    jobs.remove("agent:"+principal,edited.path("id").asText());
+                }
                 sessions.remove(session);var expired=input.deepCopy().put("requestId",UUID.randomUUID().toString());
                 if(automatic)assertThrows(SecurityException.class,()->requests.request(principal,session,"native_command",expired));
                 assertTrue(agents.list().get(0).path("readPolicies").isEmpty());assertTrue(agents.list().get(0).path("grants").isEmpty());
@@ -142,7 +164,7 @@ class NativeMongoTransactionTest {
     }
     // A test-only transport boundary loses the response AFTER the real server committed.
     // No second commit or CRUD replay is allowed, even though reconciliation proves success.
-    private static MongoClient faultClient(MongoClient delegate,AtomicInteger commits){
+    static MongoClient faultClient(MongoClient delegate,AtomicInteger commits){
         return (MongoClient)Proxy.newProxyInstance(MongoClient.class.getClassLoader(),new Class[]{MongoClient.class},(_,method,args)->{
             Object result=invoke(delegate,method,args);return result instanceof MongoDatabase db?faultDatabase(db,commits):result;
         });

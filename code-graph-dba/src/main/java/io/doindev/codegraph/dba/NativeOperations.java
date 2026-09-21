@@ -76,7 +76,7 @@ final class NativeOperations implements AutoCloseable {
         if(classification.category().equals("redis.transaction"))review.put("transactionNotice",classification.reason());
         if(classification.category().equals("redis.pipeline"))review.put("transactionNotice",NativeRedisPipelines.NOTICE);
         if(classification.category().startsWith("redis.value."))review.put("transactionNotice",NativeRedisValues.NOTICE);
-        if(classification.category().equals("mongo.transaction"))review.put("transactionNotice",NativeMongoTransactions.NOTICE);
+        if(classification.category().equals("mongo.transaction"))review.put("transactionNotice",classification.reason());
         if(classification.category().equals("mongo.watch"))review.put("transactionNotice",NativeMongoStreams.NOTICE);
         if(classification.category().startsWith("redis.stream.")){review.put("transactionNotice",classification.reason());review.set("streamScope",NativeRedisStreams.scope(command));}
         if(target.transport()==DatabaseTransport.MONGODB&&command.has("renameCollection"))MongoCollectionRename.describe(review,command);

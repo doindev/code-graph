@@ -51,8 +51,11 @@ module.exports=async function(browser,base,jar){
     await page.locator('#tabs .tab[data-type="script"] > button').first().click();assert.equal(await page.locator('#sql').inputValue(),'SELECT unsaved_script_text');
     await page.locator('#tabs .tab[data-type="table"]').first().locator('button').first().click();await page.waitForFunction(()=>document.querySelector('#table-document .grid-column-label')?.textContent==='ID');assert.equal(await grid.locator('.grid-filter-input').inputValue(),'','Recovered tables do not restore transient filters');
     // Closing during a late submission cancels/releases that job rather than applying its rows.
-    let release,entered,resumed;const continued=new Promise(r=>resumed=r),enteredPromise=new Promise(r=>entered=r);await page.route('**/api/dba/query/execute',async route=>{entered();await new Promise(r=>release=r);await route.continue();resumed();});
-    await grid.getByRole('button',{name:'Refresh',exact:true}).click();await enteredPromise;const releasedJob=page.waitForRequest(r=>r.method()==='DELETE'&&/\/api\/dba\/jobs\//.test(r.url()));await page.locator('#tabs .tab.active .close').click();release();await continued;await releasedJob;await page.unroute('**/api/dba/query/execute');
+    const refreshRoute=/\/api\/dba\/(?:query\/execute|grids\/[^/]+\/(?:reload|page))$/;
+    let release,entered,resumed,entryTimer;const continued=new Promise(r=>resumed=r),enteredPromise=new Promise(r=>entered=r);await page.route(refreshRoute,async route=>{entered();await new Promise(r=>release=r);await route.continue();resumed();});
+    await grid.getByRole('button',{name:'Refresh',exact:true}).click();
+    try{await Promise.race([enteredPromise,new Promise((_,reject)=>{entryTimer=setTimeout(()=>reject(Error('Grid refresh did not submit within 10 seconds')),10000);})]);}finally{clearTimeout(entryTimer);}
+    const releasedJob=page.waitForRequest(r=>r.method()==='DELETE'&&/\/api\/dba\/jobs\//.test(r.url()));await page.locator('#tabs .tab.active .close').click();release();await continued;await releasedJob;await page.unroute(refreshRoute);
     await page.waitForFunction(()=>document.querySelectorAll('#tabs .tab[data-type="table"]').length===1);assert.equal(await page.locator('#tabs .tab[data-type="table"]').count(),1,'Only the closed Table tab was disposed after cancellation settled');
     assert.deepEqual(errors,[]);console.log('Table tabs: tree activation, fixed targets, reuse, full-size grid, filters, independent schemas, mixed recovery, lazy loading, and close races passed');
   }finally{

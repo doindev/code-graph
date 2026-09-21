@@ -29,7 +29,7 @@ final class GridResults implements AutoCloseable {
         List<String> rowIds=new ArrayList<>();
         long revision=1,offset;
         int limit;
-        boolean ready,busy,disposed,uncertain,hasMore,fullExport;
+        boolean ready,busy,disposed,uncertain,hasMore,fullExport,canLimitRows;
         QueryJobs.Job activeJob;
         Plan plan;
         Context(String owner,String connection,String profileRevision,String database,String schema,String sql,JsonNode parameters,String originJob,QueryJobs.RetainedReservation reservation){
@@ -58,7 +58,8 @@ final class GridResults implements AutoCloseable {
                 synchronized(this){if(contexts.size()>=MAX_CONTEXTS)throw new IllegalArgumentException("Close result tabs before creating more grid contexts.");}
                 reservation=jobs.retainAllowance(Math.max(4096,Profiles.JSON.writeValueAsBytes(row).length*3L+baseBytes(sql,values)));
                 Context context=new Context(job.owner,job.connection,ProjectContexts.profileRevision(connections.profile(job.connection)),catalog(c),schema(c),sql,values,job.id,reservation);
-                context.result=row.deepCopy();context.limit=Math.min(200,config.get().uiRows());context.hasMore=row.path("truncated").asBoolean();
+                context.result=row.deepCopy();context.limit=job.rowLimit;context.hasMore=row.path("truncated").asBoolean();
+                try{validateReload(context);context.canLimitRows=true;}catch(IllegalArgumentException unsupported){context.canLimitRows=false;}
                 try{SqlReadGuard.validate(sql);context.fullExport=output.path("statements").size()==1&&GridRelation.ENGINES.contains(GridRelation.engine(c.getMetaData().getDatabaseProductName()));}catch(Exception unsupported){context.fullExport=false;}
                 Savepoint observation=null;
                 try{
@@ -91,9 +92,15 @@ final class GridResults implements AutoCloseable {
         ObjectNode out=Profiles.JSON.createObjectNode().put("id",c.id).put("revision",c.revision).put("rowCeiling",config.get().uiRows()).put("connectionId",c.connection).put("connectionName",connections.profile(c.connection).path("name").asText()).put("database",c.database).put("schema",c.schema).put("uncertain",c.uncertain).put("busy",c.busy);
         out.putArray("rowIds").addAll(c.rowIds.stream().map(TextNode::valueOf).toList());
         out.putObject("page").put("offset",c.offset).put("limit",c.limit).put("hasMore",c.hasMore);
+        // A bounded replay of one SELECT does not require a unique key or verified paging.
         out.putObject("capabilities").put("edit",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("delete",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("insert",c.relation!=null&&c.relation.insert&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("page",c.orderedSql!=null).put("fullExport",c.fullExport).put("sqlExport",sqlExport(c)).put("reason",c.result.path("cellsTruncated").asBoolean()?"Truncated values make this page read-only.":c.reason).put("sqlExportReason",sqlExport(c)?"":"SQL export needs a verified target without generated/identity columns or truncated values.").put("pageReason",c.orderedSql==null?c.reason:"");
+        ((ObjectNode)out.path("capabilities")).put("rowLimit",c.orderedSql!=null||c.canLimitRows).put("rowLimitReason",c.canLimitRows||c.orderedSql!=null?"":"This result cannot safely replay one SELECT; rerun it from the SQL editor.");
         if(c.relation!=null){out.set("columns",c.relation.descriptor().path("columns"));out.put("table",c.relation.table);}else out.putArray("columns");
         return out;
+    }
+    static void validateReload(Context c){
+        ObjectNode request=Profiles.JSON.createObjectNode().put("sql",c.sql).put("action","refresh");
+        request.set("parameters",c.parameters);GridSql.prepare(request);
     }
     synchronized Context require(String owner,String id){Context c=contexts.get(id);if(c==null||!c.owner.equals(owner)||!alive.test(owner)||c.disposed||!c.ready)throw new SecurityException("Grid is unavailable or not owned by this browser session.");if(!c.profileRevision.equals(ProjectContexts.profileRevision(connections.profile(c.connection))))throw new IllegalArgumentException("Connection changed; rerun the query before using this grid.");return c;}
     void check(Context c,QueryJobs.Job job){if(job.cancelled||c.disposed||!alive.test(c.owner))throw new CancellationException();require(c.owner,c.id);}
@@ -110,7 +117,7 @@ final class GridResults implements AutoCloseable {
             connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);connection.setReadOnly(false);
             if(action.equals("page")||action.equals("reconcile"))connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             connection.setAutoCommit(false);
-            try{check(c,job);return switch(action){case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection);case "page","reconcile"->action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
+            try{check(c,job);return switch(action){case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
             catch(Exception error){if(!c.uncertain)try{connection.rollback();}catch(SQLException rollback){c.uncertain=true;}if(c.uncertain)job.outcome="unknown";else if(action.equals("apply"))job.outcome="rolled_back";if(error instanceof SQLException)throw new IllegalArgumentException(connections.humanError(c.connection,error),error);throw error;}
             finally{job.statement=null;try{connection.rollback();}catch(SQLException ignored){}}
         }},()->{synchronized(this){if(c.activeJob!=null&&c.activeJob.cancelled)exports.cancelled(c.activeJob.id);c.activeJob=null;c.busy=false;if(c.disposed)c.reservation.close();}});

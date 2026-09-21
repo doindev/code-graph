@@ -40,6 +40,8 @@ export class GridDraft {
     if(value.kind==='null'&&!metadata.nullable)throw Error('This column does not allow NULL.');
     if(value.kind==='default'&&!metadata.hasDefault)throw Error('This column has no usable default.');
     if(value.kind==='value'&&typeof value.value!=='string')throw Error('Cell values must be text; the server validates their database type.');
+    const current=this.cell(index,column);
+    if(current.kind===value.kind&&(value.kind!=='value'||String(current.value)===value.value))return;
     const insert=index-(this.result.rows?.length??0);
     if(insert>=0){const added=this.added.map((row,i)=>i===insert?{...row,values:{...row.values,[column.id]:value}}:row);this.checkSize(this.changes,added);this.added=added;return;}
     const id=this.id(index),old=this.result.rows[index][column.source];
@@ -47,6 +49,16 @@ export class GridDraft {
     if(value.kind==='null'&&old===null||value.kind==='value'&&old!==null&&String(old)===value.value)delete values[column.id];else values[column.id]=value;
     const changes=new Map(this.changes);if(Object.keys(values).length)changes.set(id,{rowId:id,operation:'update',values});else changes.delete(id);
     this.checkSize(changes);this.changes=changes;
+  }
+  setMany(edits){
+    // Validate and reserve the entire replacement before exposing any draft change.
+    const candidate=Object.assign(Object.create(GridDraft.prototype),this,{checkSize(){}});
+    for(const {index,column,value} of edits){
+      validateCell(this.column(column.id),value);
+      candidate.set(index,column,value);
+    }
+    this.checkSize(candidate.changes,candidate.added);
+    this.changes=candidate.changes;this.added=candidate.added;
   }
   add(){
     if(!this.capabilities.insert)throw Error(this.capabilities.reason||'Adding rows is unavailable for this result.');

@@ -12,6 +12,56 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GridHttpTest {
     @TempDir Path root;
+    @Test void rowLimitsApplyToReadOnlyAndPageableResultsWithoutWideningPaging()throws Exception{
+        var cfg=new DbaConfig(root.resolve("limits"),128L<<20,2,1000,100,15);
+        var server=HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(),0),0);
+        try(var runtime=new DbaRuntime(cfg,new DbaTest.MemoryVault());var client=HttpClient.newHttpClient()){
+            server.createContext("/",runtime::handle);server.start();String base="http://localhost:"+server.getAddress().getPort();
+            var login=DbaTest.request(client,base,"/api/dba/bootstrap","POST",Profiles.JSON.createObjectNode(),null,null);
+            String cookie=login.headers().firstValue("Set-Cookie").orElseThrow().split(";")[0],csrf=Profiles.JSON.readTree(login.body()).path("csrf").asText();
+            ObjectNode input=new DbaTest().input().put("saveUntested",true);input.put("url",input.path("url").asText()+";DB_CLOSE_DELAY=-1");
+            var created=DbaTest.request(client,base,"/api/dba/connections","POST",input,cookie,csrf);
+            assertEquals(201,created.statusCode(),created.body());String id=Profiles.JSON.readTree(created.body()).path("id").asText();
+            ObjectNode query=Profiles.JSON.createObjectNode().put("connectionId",id).put("sql","CREATE TABLE HTTP_LIMIT(ID INT PRIMARY KEY); INSERT INTO HTTP_LIMIT SELECT X FROM SYSTEM_RANGE(1,451)");
+            query.putArray("parameters");finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf));
+            query.put("sql","SELECT * FROM HTTP_LIMIT ORDER BY ID").put("rowLimit",350);
+            JsonNode rows=finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf)).path("result").path("results").get(0);
+            assertEquals(350,rows.path("rows").size());assertEquals(350,rows.path("grid").path("page").path("limit").asInt());
+            String database=rows.path("grid").path("database").asText();
+            for(boolean targeted:new boolean[]{false,true}){
+                if(targeted)query.put("database",database);else query.remove("database");
+                for(JsonNode invalid:Profiles.JSON.readTree("[0,-1,1001,1.5,\"7\",null,true,2147483648]")){
+                    query.set("rowLimit",invalid);var response=DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf);
+                    assertEquals(400,response.statusCode(),response.body());assertTrue(response.body().contains("rowLimit"));
+                }
+                query.put("rowLimit",17).put("sql","SELECT ID+1 AS NEXT_ID FROM HTTP_LIMIT ORDER BY ID");
+                rows=finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf)).path("result").path("results").get(0);
+                assertEquals(17,rows.path("rows").size());var grid=rows.path("grid");assertTrue(grid.path("capabilities").path("rowLimit").asBoolean(),grid.toString());assertFalse(grid.path("capabilities").path("page").asBoolean());assertFalse(grid.path("capabilities").path("edit").asBoolean());
+                String endpoint="/api/dba/grids/"+grid.path("id").asText();ObjectNode resize=Profiles.JSON.createObjectNode().put("revision",1).put("direction","first").put("limit",9);
+                assertEquals(403,DbaTest.request(client,base,endpoint+"/reload","POST",resize,cookie,null).statusCode());
+                for(JsonNode invalid:Profiles.JSON.readTree("[0,-1,1001,1.5,\"7\",null,true,2147483648]")){
+                    resize.set("limit",invalid);var response=finishAny(client,base,cookie,DbaTest.request(client,base,endpoint+"/reload","POST",resize,cookie,csrf));assertEquals("failed",response.path("state").asText());assertTrue(response.path("error").asText().contains("integer"),response.toString());
+                    DbaTest.request(client,base,"/api/dba/jobs/"+response.path("id").asText(),"DELETE",null,cookie,csrf);
+                }
+                resize.put("limit",9);
+                var reloaded=finish(client,base,cookie,csrf,DbaTest.request(client,base,endpoint+"/reload","POST",resize,cookie,csrf)).path("result");
+                assertEquals(9,reloaded.path("rows").size());assertEquals("2",reloaded.path("rows").get(0).get(0).asText());assertEquals(9,reloaded.path("grid").path("page").path("limit").asInt());
+                resize.put("revision",2).put("direction","refresh").remove("limit");
+                assertEquals(9,finish(client,base,cookie,csrf,DbaTest.request(client,base,endpoint+"/reload","POST",resize,cookie,csrf)).path("result").path("rows").size());
+                resize.put("revision",3).put("direction","next");
+                assertEquals("failed",finishAny(client,base,cookie,DbaTest.request(client,base,endpoint+"/reload","POST",resize,cookie,csrf)).path("state").asText());
+            }
+            query.remove("database");query.put("sql","SELECT ID+1 AS NEXT_ID FROM HTTP_LIMIT ORDER BY ID LIMIT 5").put("rowLimit",17);
+            rows=finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf)).path("result").path("results").get(0);
+            assertEquals(5,rows.path("rows").size(),"Authored SQL limits remain authoritative");
+            var grid=rows.path("grid");var resize=Profiles.JSON.createObjectNode().put("revision",1).put("direction","first").put("limit",30);
+            assertEquals(5,finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/grids/"+grid.path("id").asText()+"/reload","POST",resize,cookie,csrf)).path("result").path("rows").size());
+            query.put("sql","CALL 7");
+            rows=finish(client,base,cookie,csrf,DbaTest.request(client,base,"/api/dba/query/execute","POST",query,cookie,csrf)).path("result").path("results").get(0);
+            grid=rows.path("grid");assertFalse(grid.path("capabilities").path("rowLimit").asBoolean(),"Procedure results must not become replayable via row limiting");
+            assertEquals("failed",finishAny(client,base,cookie,DbaTest.request(client,base,"/api/dba/grids/"+grid.path("id").asText()+"/reload","POST",resize,cookie,csrf)).path("state").asText());
+        }finally{server.stop(0);}
+    }
     @Test void gridRoutesRequireOwnershipCsrfAndOneTransferDownloads()throws Exception{
         var cfg=new DbaConfig(root.resolve("http"),128L<<20,2,1000,100,15);
         var server=HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(),0),0);

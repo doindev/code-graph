@@ -117,6 +117,10 @@ project onboarding; both pages and MCP initialization returned HTTP 200.
 This stream-composer continuation is locally implemented and tested but was not
 committed, pushed or deployed again during this turn.
 
+Subsequent checkpoint (2026-09-20): committed and pushed as c7fa379, then
+restarted with the same ports and configuration before the
+[MongoDB document-editor continuation](mongodb-document-editor.md).
+
 The connected client exposed no code-graph navigation tools despite the healthy
 server. Focused filesystem reads were used; no MCP search savings are claimed.
 The maintained optional skill reference was updated using skill-creator guidance;

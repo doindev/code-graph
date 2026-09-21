@@ -7,6 +7,11 @@ change stream, or infrastructure-administration capability.
 
 ## Command and scope
 
+Optional documentGuard supports a narrowly scoped, byte-exact complete-document
+replacement on replica-set profiles only. It does not change ordinary transaction
+behavior. See [the editor and guard contract](mongodb-document-editor.md) for the
+canonical type/size, immutable ID, UUID, concurrency and recovery requirements.
+
 Use a native profile explicitly configured as `replica_set` or `sharded`, with
 **Allow reviewed writes** enabled. Supply the existing exact binding, or the
 standalone connection UUID/name/database, plus `collection`. For example, with

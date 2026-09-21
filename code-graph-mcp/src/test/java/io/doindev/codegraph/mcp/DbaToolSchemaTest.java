@@ -55,6 +55,11 @@ class DbaToolSchemaTest {
         var mongoBatch=command.path("properties").path("command").path("oneOf").get(3);
         assertFalse(mongoBatch.path("additionalProperties").asBoolean(true));
         assertEquals(3,mongoBatch.path("properties").path("transaction").path("items").path("oneOf").size());
+        var documentGuard=mongoBatch.path("properties").path("documentGuard");
+        assertFalse(documentGuard.path("additionalProperties").asBoolean(true));
+        assertEquals(24,documentGuard.path("properties").path("collectionUuid").path("maxLength").asInt());
+        assertEquals("_id",documentGuard.path("properties").path("expected").path("required").get(0).asText());
+        assertTrue(documentGuard.path("description").asText().contains("replica_set only"));
         var transaction=command.path("properties").path("command").path("oneOf").get(2);
         assertFalse(transaction.path("additionalProperties").asBoolean(true));
         assertEquals(32,transaction.path("properties").path("transaction").path("maxItems").asInt());

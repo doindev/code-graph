@@ -3,6 +3,7 @@ import {DataGridView} from './data-grid.js';
 import {RedisStringEditor} from './redis-string-editor.js';
 import {RedisMemberEditor} from './redis-set-editor.js';
 import {RedisStreamEditor} from './redis-stream-editor.js';
+import {MongoDocumentEditor} from './mongo-document-editor.js';
 
 const terminal=new Set(['complete','failed','cancelled']);
 // Enough for the bounded stream delivery/tombstone ID receipt even when payload display is full.
@@ -36,7 +37,7 @@ export class NativeWorkspace {
     const toolbar=el('div',null,'native-workspace-actions');
     this.runButton=this.button(toolbar,'Run native command','play',()=>this.run());
     this.cancelButton=this.button(toolbar,'Cancel current operation','square',()=>this.cancel());this.cancelButton.disabled=true;
-    if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;}
+    if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;this.documentButton=this.button(toolbar,'Edit MongoDB document','square-pen',()=>this.openDocumentEditor());}
     if(profile.transport==='redis'){
       this.stringButton=this.button(toolbar,'Edit Redis string value','square-pen',()=>this.openValueEditor('string'));
       this.hashButton=this.button(toolbar,'Edit Redis hash field','square-pen',()=>this.openValueEditor('hash'));
@@ -89,7 +90,18 @@ export class NativeWorkspace {
   get dirty(){return !!(this.stringEditor?.dirty||this.stringEditor?.uncertain);}
   canClose(){return this.stringEditor?.canClose()??true;}
   updateProfile(profile){if(this.stringEditor&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
-  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton,this.scoreButton,this.streamButton])if(button)button.disabled=locked;}
+  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;if(this.collection)this.collection.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(locked&&this.nextButton)this.nextButton.disabled=true;for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton,this.scoreButton,this.streamButton,this.documentButton])if(button)button.disabled=locked;}
+  openDocumentEditor(){
+    if(this.profile.transport!=='mongodb'||this.stringEditor||this.operation||this.disposed||this.unavailable)return;
+    if(!this.collection.value.trim()){this.status.textContent='Choose an exact collection before opening a document editor.';return;}
+    this.valueEditorBytes=512*1024;
+    try{this.account(this.displayBytes+this.valueEditorBytes);}catch(e){this.status.textContent=e.message;return;}
+    let id='""';try{const command=JSON.parse(this.editor.value);if(command.find===this.collection.value&&Object.hasOwn(command.filter??{},'_id')){const value=command.filter._id;id=JSON.stringify(value&&Object.hasOwn(value,'$eq')?value.$eq:value);}}catch{}
+    this.stringEditor=new MongoDocumentEditor({id,collection:this.collection.value,topology:this.profile.nativeOptions?.topology??'standalone',
+      run:(command,expectedTargetRevision)=>this.run(false,{command,expectedTargetRevision}),readOnly:()=>this.profile.readOnly!==false,changed:()=>this.changed(),
+      close:()=>{this.stringEditor.dispose();this.stringEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();}});
+    this.editor.after(this.stringEditor.root);this.lockStringTarget();this.stringEditor.key.focus();
+  }
   openValueEditor(kind){
     if(!['string','hash','list','set','zset','stream'].includes(kind))throw new Error('Unsupported Redis editor');
     const hash=kind==='hash',list=kind==='list',set=kind==='set',sorted=kind==='zset',stream=kind==='stream';
@@ -135,7 +147,8 @@ export class NativeWorkspace {
         receipt.kind='transaction';delete receipt.automaticAcknowledgement;
         receipt.notice='Transaction values omitted under the browser allowance. Inspect per-command outcomes; never retry uncertain writes automatically.';
         receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,state:entry.state,...(entry.value==='OK'?{value:'OK'}:{valueOmitted:true})}));
-        for(const key of ['reason','executed','atomic','rollbackSupported'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+        for(const key of ['reason','executed','atomic','rollbackSupported','documentGuard'])if(Object.hasOwn(result,key))receipt[key]=result[key];
+        if(result.documentGuard===true)receipt.entries=(result.entries||[]).map(entry=>({index:entry.index,operation:entry.operation,matchedOrInserted:entry.matchedOrInserted,modified:entry.modified,state:entry.state}));
       }
       receiptOnly=true;result=receipt;text=JSON.stringify(result,null,2);cost=new TextEncoder().encode(text).length*6;
       if(cost>RECEIPT_RESERVE)throw new Error('Stream receipt exceeds its reserved UI allowance; reconcile pending entries before retrying.');
@@ -194,7 +207,7 @@ export class NativeWorkspace {
           }else if(!this.disposed&&['stream','pipeline','redis_value','transaction'].includes(current.result?.kind)){
             this.showResult(current.result);this.selectView('json');this.status.textContent='Cancellation requested · received command receipts retained; inspect outcomes before retrying';
           }else this.status.textContent='Cancelled · previous results retained';
-          return{ok:!operation.cancelled,result:current.result,targetRevision:operation.targetRevision,uncertain:operation.writeSubmitted&&!['acknowledged','conflict','not_started'].includes(current.result?.outcome)};
+          return{ok:!operation.cancelled,result:current.result,targetRevision:operation.targetRevision,uncertain:operation.writeSubmitted&&!['acknowledged','commit_acknowledged','conflict','not_started','rollback_acknowledged'].includes(current.result?.outcome)};
         }
         await new Promise(resolve=>setTimeout(resolve,250));
       }

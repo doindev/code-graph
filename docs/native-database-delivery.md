@@ -82,6 +82,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Guarded complete-document editor: focused/live, browser and reactor gates pass.
+  Canonical Extended JSON, replica-set-only byte-exact BSON/UUID checks,
+  reviewed replacement and uncertain-commit reconciliation. Other topologies
+  remain inspect-only in this editor; no upsert or bulk/lifecycle editing.
+  See [scope and evidence](mongodb-document-editor.md).
+
 - [x] Bounded exact-collection change-stream pull batches with opaque resumable
   positions, explicit gaps/backpressure, UI continuation and cursor cleanup.
   Replica-set/router, reactor and all 19 browser gates pass; see
