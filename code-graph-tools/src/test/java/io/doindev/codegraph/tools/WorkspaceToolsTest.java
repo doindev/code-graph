@@ -115,6 +115,48 @@ class WorkspaceToolsTest {
         assertTrue(response.json().contains("alpha"));
     }
 
+    @Test void pendingInitialScanIsNotReportedAsAnUnknownProject() throws Exception {
+        try(var registry=CodeGraphTools.workspace(List.of(),name->{})){
+            tools=registry.tools();
+            var pending=new java.util.concurrent.atomic.AtomicBoolean(true);
+            registry.onboardingStatus(()->pending.get()?List.of(Map.of("name","loading","state","indexing","queryable",false)):List.of());
+            for(String name:List.of("search_symbols","get_file_outline","index_status","reindex")){
+                var response=tool(name).call(JSON.createObjectNode().put("project","loading").put("query","x").put("file","A.java"));
+                assertTrue(response.error(),name);
+                String error=JSON.readTree(response.json()).path("error").asText();
+                assertTrue(error.startsWith("project_onboarding:"),error);
+                assertTrue(error.contains("list_projects"),error);
+                assertFalse(error.contains("use add_project"),error);
+            }
+            assertTrue(JSON.readTree(tool("search_symbols").call(JSON.createObjectNode().put("query","x")).json())
+                    .path("error").asText().startsWith("project_onboarding:"));
+            // Explicitly different names are still unknown, not silently mapped.
+            assertFalse(tool("search_symbols").call(JSON.createObjectNode().put("project","other").put("query","x")).json().contains("project_onboarding:"));
+            pending.set(false);
+            assertFalse(tool("index_status").call(JSON.createObjectNode().put("project","loading")).json().contains("project_onboarding:"));
+            registry.addProject(new CodeGraphTools.ProjectTools("loading",graphWith("A.java","A.x"),CodeGraphConfig.defaults(),null,s->{}));
+            assertFalse(tool("search_symbols").call(JSON.createObjectNode().put("project","loading").put("query","x")).error());
+        }
+    }
+
+    @Test void pendingProjectsNeverReplaceAnExistingDefaultOrPinItsTtl() {
+        var tick=new java.util.concurrent.atomic.AtomicLong();
+        try(var registry=new WorkspaceTools(List.of(new CodeGraphTools.ProjectTools("ready",graphWith("A.java","A.x"),
+                CodeGraphConfig.defaults(),null,s->{})),name->{},tick::get,()->java.time.Instant.EPOCH.plusNanos(tick.get()))){
+            tools=registry.tools();
+            var statusReads=new java.util.concurrent.atomic.AtomicInteger();
+            registry.onboardingStatus(()->{statusReads.incrementAndGet();return List.of(Map.of("name","pending","state","indexing","queryable",false));});
+            tick.set(java.time.Duration.ofMinutes(30).toNanos());
+            assertTrue(tool("index_status").call(JSON.createObjectNode().put("project","pending")).error());
+            assertTrue(tool("search_symbols").call(JSON.createObjectNode().put("project","pending").put("query","x")).error());
+            assertEquals(java.time.Instant.EPOCH,registry.lifecycle().status("ready").lastActivityAt());
+            int beforeReadyQuery=statusReads.get();
+            assertFalse(tool("search_symbols").call(JSON.createObjectNode().put("query","x")).error());
+            assertEquals(beforeReadyQuery,statusReads.get(),"Ready queries must not inspect pending status");
+            assertTrue(tool("get_symbol_context").call(JSON.createObjectNode()).json().contains("requires an explicit project"));
+        }
+    }
+
     @Test
     void listProjectsShowsRosterWithDefaultFlag() throws Exception {
         JsonNode out = JSON.readTree(tool("list_projects").call(JSON.createObjectNode()).json());

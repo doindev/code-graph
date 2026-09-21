@@ -22,10 +22,13 @@ final class RouterTool implements GraphTool {
     private final java.util.function.Supplier<String> defaultProject;
     private final ToolSpec spec;
     private final ProjectLifecycle lifecycle;
+    private final java.util.function.Supplier<List<Map<String,Object>>> onboarding;
 
     RouterTool(Map<String, GraphTool> byProject, java.util.function.Supplier<String> defaultProject,
-               ToolSpec delegateSpec, ProjectLifecycle lifecycle) {
+               ToolSpec delegateSpec, ProjectLifecycle lifecycle,
+               java.util.function.Supplier<List<Map<String,Object>>> onboarding) {
         this.lifecycle = lifecycle;
+        this.onboarding = onboarding;
         this.byProject = byProject;
         this.defaultProject = defaultProject;
         this.spec = injectProjectParameter(delegateSpec);
@@ -42,12 +45,14 @@ final class RouterTool implements GraphTool {
             return ToolResponse.fail("get_symbol_context requires an explicit project; use list_projects for names");
         String project = ToolSupport.stringArg(args, "project", defaultProject.get());
         if (project == null || project.isBlank()) {
+            ToolResponse pending = pendingOnboarding(null);
+            if (pending != null) return pending;
             return ToolResponse.fail("no projects onboarded; use add_project or the admin UI first");
         }
         if (spec.name().equals("index_status")) {
             var before = lifecycle.status(project);
             GraphTool delegate = before == null ? null : byProject.get(project);
-            if (delegate == null) return ToolResponse.fail("unknown or expired project: " + project);
+            if (delegate == null) return unavailableProject(project);
             ToolResponse response = delegate.call(args);
             var after = lifecycle.status(project);
             if (after == null || after.instanceId() != before.instanceId())
@@ -56,14 +61,34 @@ final class RouterTool implements GraphTool {
         }
         try (var use = lifecycle.use(project)) {
             GraphTool delegate = use == null ? null : byProject.get(project);
-            if (delegate == null) {
-                List<String> known;
-                synchronized (byProject) { known = List.copyOf(byProject.keySet()); }
-                return ToolResponse.fail("unknown or expired project: " + project
-                        + " (known: " + String.join(", ", known) + "); use add_project to onboard it");
-            }
+            if (delegate == null) return unavailableProject(project);
             return delegate.call(args);
         }
+    }
+
+    private ToolResponse unavailableProject(String project) {
+        ToolResponse pending = pendingOnboarding(project);
+        if (pending != null) return pending;
+        List<String> known;
+        synchronized (byProject) { known = List.copyOf(byProject.keySet()); }
+        return ToolResponse.fail("unknown or expired project: " + project
+                + " (known: " + String.join(", ", known)
+                + "); check list_projects, including onboarding, before using add_project");
+    }
+
+    // Consult the existing live status source only for missing routes: no ready-query overhead,
+    // graph materialization, mutation retry, or renewal of an unrelated project's TTL.
+    private ToolResponse pendingOnboarding(String project) {
+        for (Map<String,Object> status : onboarding.get()) {
+            if (Boolean.FALSE.equals(status.get("queryable"))
+                    && (project == null || project.equals(status.get("name")))) {
+                return ToolResponse.fail("project_onboarding: "
+                        + (project == null ? "initial project indexing is still running" : project + " is still being indexed")
+                        + "; check list_projects.onboarding for progress and wait until the project appears in projects"
+                        + "; do not repeat add_project while onboarding is in progress");
+            }
+        }
+        return null;
     }
 
     private static ToolSpec injectProjectParameter(ToolSpec delegate) {

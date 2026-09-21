@@ -237,6 +237,59 @@ class HttpEndToEndTest {
         return rpc(client, endpoint, session, "tools/call", Map.of("name", name, "arguments", arguments));
     }
 
+    @Test @Timeout(60)
+    void pendingInitialScanReturnsActionableToolErrorsOverHttp() throws Exception {
+        Files.writeString(repo.resolve("Hello.java"),"class Hello {}\n");
+        for(boolean hybrid:List.of(false,true)){
+            var entered=new java.util.concurrent.CountDownLatch(1);
+            var release=new java.util.concurrent.CountDownLatch(1);
+            var analyzers=io.doindev.codegraph.index.Analyzers.discover();
+            var workspace=io.doindev.codegraph.index.Workspace.open(List.of(),analyzers,
+                    io.doindev.codegraph.config.loader.ConfigLoader::load,hybrid,32L<<20);
+            try(HttpServer server=HttpServer.start(workspace,0,-1,false,java.time.Duration.ofHours(1))){
+                var client=HttpClient.newHttpClient();
+                URI endpoint=URI.create("http://127.0.0.1:"+server.port()+"/mcp");
+                var init=client.send(post(endpoint,null,"""
+                        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                        "protocolVersion":"2025-06-18","capabilities":{},
+                        "clientInfo":{"name":"pending-route-test","version":"1"}}}
+                        """),HttpResponse.BodyHandlers.ofString());
+                String session=init.headers().firstValue("mcp-session-id").orElseThrow();
+                client.send(post(endpoint,session,"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"),HttpResponse.BodyHandlers.ofString());
+                // Hold the real workspace reservation deterministically, not with a large/slow fixture.
+                var initial=java.util.concurrent.CompletableFuture.supplyAsync(()->workspace.add("loading",repo,analyzers,root->{
+                    entered.countDown();
+                    try{if(!release.await(25,java.util.concurrent.TimeUnit.SECONDS))throw new IllegalStateException("fixture release timed out");}
+                    catch(InterruptedException e){Thread.currentThread().interrupt();throw new IllegalStateException(e);}
+                    return io.doindev.codegraph.config.CodeGraphConfig.defaults();
+                }));
+                try{
+                    assertTrue(entered.await(10,java.util.concurrent.TimeUnit.SECONDS));
+                    JsonNode roster=toolPayload(callTool(client,endpoint,session,"list_projects",Map.of()));
+                    assertEquals("loading",roster.path("onboarding").get(0).path("name").asText());
+                    assertTrue(roster.path("projects").isEmpty());
+                    for(String name:List.of("search_symbols","get_file_outline","index_status","reindex")){
+                        Map<String,Object> arguments=switch(name){
+                            case "search_symbols"->Map.of("project","loading","query","Hello");
+                            case "get_file_outline"->Map.of("project","loading","file","Hello.java");
+                            default->Map.of("project","loading");
+                        };
+                        JsonNode result=callTool(client,endpoint,session,name,arguments);
+                        assertTrue(result.path("isError").asBoolean(),result.toString());
+                        String error=toolPayload(result).path("error").asText();
+                        assertTrue(error.startsWith("project_onboarding:"),error);
+                        assertTrue(error.contains("list_projects.onboarding"),error);
+                        assertFalse(error.contains("use add_project"),error);
+                    }
+                    assertTrue(toolPayload(callTool(client,endpoint,session,"search_symbols",Map.of("query","Hello")))
+                            .path("error").asText().startsWith("project_onboarding:"));
+                    assertFalse(toolPayload(callTool(client,endpoint,session,"search_symbols",Map.of("project","other","query","Hello")))
+                            .path("error").asText().startsWith("project_onboarding:"));
+                }finally{release.countDown();initial.get(20,java.util.concurrent.TimeUnit.SECONDS);}
+            }
+        }
+    }
+
     @Test
     @Timeout(30)
     void scheduledExpiryIgnoresMcpListingsAndWatcherChanges() throws Exception {

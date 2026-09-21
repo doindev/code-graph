@@ -80,6 +80,12 @@ proof of speedup: measure latency and whether the answer remains correct.
 
 ## Bundles and freshness
 
+Initial onboarding is separate from refreshing an existing index. If a routed tool reports
+`project_onboarding`, inspect `list_projects.onboarding` and wait for the name to appear in
+`projects` before querying it. Do not repeat `add_project` just because a query or onboarding
+request timed out. `index_status` waits require a queryable project; they are not an initial-scan
+barrier. An explicit missing name must never be substituted with another ready project.
+
 Use `get_symbol_context` for 1–20 known IDs when a single bounded request can
 replace several lookups. Supply `project` explicitly. Defaults are declarations
 and coverage; opt into references, callers, callees or implementations only when

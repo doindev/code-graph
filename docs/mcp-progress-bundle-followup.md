@@ -136,3 +136,48 @@ coverage documents. Onboarding is still synchronous through MCP; these changes
 make pending work observable, not an asynchronous onboarding-job API. Progress is
 not a hard whole-process memory cap, and client catalog refresh remains outside
 the server's control. Cross-platform desktop/client checks were not rerun here.
+
+## Follow-up: routing during initial onboarding (2026-09-21)
+
+An actual MCP query issued before this checkout's initial scan completed returned
+`unknown or expired project ... use add_project to onboard it`, even though the
+directory was already reserved and indexing. The existing pending telemetry was
+correct; the shared tool router did not consult it when a project route was absent.
+
+The router now returns a `project_onboarding:` error prefix for that case, directs
+agents to `list_projects.onboarding`, and explicitly discourages repeating
+`add_project`. This also covers requests with no project while no default is ready.
+Unknown explicit names never fall back to another pending/ready project. Initial
+onboarding remains synchronous; `index_status` freshness waits still require a
+queryable project. No new tools, schemas, permissions or background work are added.
+
+Ready-project calls do not consult the pending-status provider. Missing-route
+checks reuse the existing at-most-four pending-project status source, without
+retaining a second graph or changing TTL behavior. Tests verify that pending
+queries cannot keep a different ready project alive.
+
+The isolated baseline failed the new routing regression with the exact misleading
+message. After the fix, all 12 workspace tests and seven HTTP end-to-end tests pass;
+the latter includes real pending-workspace reservations in memory and hybrid modes.
+The first HTTP fixture sent unrelated extra parameters to strict schemas; those
+test arguments were corrected without relaxing server validation.
+
+Navigation used the existing MCP harness because this client did not expose native
+code-graph tools. A watched-source search found the new `pendingOnboarding` method
+at generation 3 in 262.6 ms / 1,104 transport bytes. This is acquisition evidence,
+not a controlled speedup benchmark. Ordinary source reads remained necessary to
+implement the change. The optional skill reference now explains initial-scan
+status and the distinction from published-index freshness.
+
+Local evidence: `target/onboarding-discovery-40586c97288244c69ce427a84bb56568/`
+contains `baseline.log`, `focused.log`, `http-focused.log` (corrected fixture
+failure), `http-focused-final.log` and subsequent release logs. Navigation is
+recorded in `target/onboarding-discovery-navigation.jsonl`.
+
+Release validation passed: the 35-module package reactor ran 919 tests in 184
+suites (854 passed, 65 opt-in/live/platform skips, no failures/errors; 4:15).
+The root UI browser fixture and DBA core/project-context browser suites passed.
+Skill frontmatter/reference validation and all 14 skill distribution tests passed.
+Those checks used disposable fixtures; no global skill/MCP configuration or user
+database was changed. No Docker resources were needed. Remaining native/vendor
+and unavailable-client acceptance gates are unchanged by this routing-only fix.

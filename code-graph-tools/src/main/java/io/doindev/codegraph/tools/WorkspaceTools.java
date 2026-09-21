@@ -64,7 +64,7 @@ public final class WorkspaceTools implements AutoCloseable {
         List<GraphTool> built = new ArrayList<>();
         for (GraphTool template : templates) {
             built.add(new RouterTool(byToolThenProject.get(template.spec().name()),
-                    defaultName, template.spec(), lifecycle));
+                    defaultName, template.spec(), lifecycle, () -> onboardingStatus.get()));
         }
         built.add(new ListProjectsTool(graphs, defaultName, lifecycle, () -> onboardingStatus.get()));
         built.add(new WorkspaceContextTool(graphs));

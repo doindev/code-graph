@@ -299,6 +299,13 @@ indexing, so increase the client's request timeout for large projects. The retur
 name is deduplicated by name and can be passed to the analysis tools' `project` argument.
 Omitting that argument uses the first onboarded project. Runtime additions are session-local.
 
+While the initial scan is running, `list_projects.onboarding` reports progress separately from
+queryable `projects`. Routed tools targeting an in-flight project return `project_onboarding`
+with guidance to inspect that roster, not to onboard the directory again. The same applies when
+no default project is ready yet. `index_status` freshness waiting is available only after the
+project becomes queryable. A client timeout does not prove onboarding failed: check the roster
+before retrying `add_project`. Pending-status checks do not renew a ready project's idle TTL.
+
 Duplicate roots and children of already onboarded or in-flight roots are rejected before
 scanning. Real-path checks include symlink resolution and Windows case handling; a textual
 prefix alone is not a conflict (`acme-other` is a valid sibling of `acme`). The check is
