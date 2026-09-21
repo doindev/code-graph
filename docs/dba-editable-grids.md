@@ -37,6 +37,9 @@ Editing stops scheduled refresh. Page unload warns about pending edits.
 Grid settings control column order, visibility, width reset, NULL display and
 date/time presentation. Settings do not change database values and survive only
 for the result lifetime. Row data and drafts are not restored after a page reload.
+Resized widths use one shared layout for the header and virtualized rows,
+including newly fetched windows. Widths remain in the grid's in-process state
+only—not files, localStorage, or sessionStorage—and are discarded with the result.
 
 ## Find and Replace
 

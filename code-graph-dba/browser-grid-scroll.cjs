@@ -18,6 +18,21 @@ module.exports=async(browser,base,jar)=>{
     const status=page.locator('#grid .grid-row-status'),scroll=page.locator('#grid .data-grid-scroll'),footer=page.locator('#grid .data-grid-footer');
     const wait=async offset=>{await page.waitForFunction(offset=>document.querySelector('#grid .grid-row-status')?.textContent.startsWith((offset+1)+'–')&&document.querySelector('#grid')?.getAttribute('aria-busy')==='false',offset);};
     await wait(0);assert.equal(windows.length,0,'Opening a grid does not drain the query');
+    // Resize two columns by dragging, then assert widths across virtual and server page boundaries.
+    const widths={};
+    for(const [id,delta] of [['c1',130],['c2',220]]){
+      const header=page.locator('#grid .data-column-header[data-column-id='+id+']'),handle=header.locator('.column-resize'),bounds=await handle.boundingBox();
+      await page.mouse.move(bounds.x+5,bounds.y+10);await page.mouse.down();await page.mouse.move(bounds.x+5+delta,bounds.y+10);await page.mouse.up();
+      widths[id]=await header.evaluate(e=>e.getBoundingClientRect().width);
+    }
+    async function aligned(){
+      assert.equal(await scroll.evaluate((host,widths)=>{
+        const header=host.querySelector('.grid-row.header'),layout=getComputedStyle(header).gridTemplateColumns;
+        return [...host.querySelectorAll('.grid-body .grid-row')].every(row=>getComputedStyle(row).gridTemplateColumns===layout)&&
+          Object.entries(widths).every(([id,width])=>header.querySelector('[data-column-id='+id+']').getBoundingClientRect().width===width);
+      },widths),true,'Resized data columns remain aligned with the header across virtual/server windows');
+    }
+    await aligned();
     const runBefore=await page.locator('#run').isDisabled(),cancelBefore=await page.locator('#stop').isDisabled();
     let pause;
     await page.route('**/api/dba/grids/*/page',async route=>{
@@ -34,11 +49,13 @@ module.exports=async(browser,base,jar)=>{
     assert.equal(await page.locator('#run').isDisabled(),runBefore);assert.equal(await page.locator('#stop').isDisabled(),cancelBefore);
     assert.equal(await footer.evaluate(e=>e.inert),true);
     resume();pause=null;await wait(100);
+    await aligned();
     assert.ok(Math.abs(await scroll.evaluate(e=>e.scrollTop)+100*28-anchor)<2,'Overlapping window preserves visible row/pixel');
     assert.ok(await page.locator('#grid .grid-body .grid-row').count()<45,'DOM remains virtualized');
     const downCalls=windows.length;await page.waitForTimeout(450);assert.equal(windows.length,downCalls,'Publication does not trigger a paging loop');
     await scroll.evaluate(e=>e.scrollTop=80);await wait(0);
     assert.equal(windows.at(-1).offset,0);
+    await aligned();
     assert.ok(Math.abs(await scroll.evaluate(e=>e.scrollTop)-(80+100*28))<2);
     // Layout preferences survive window changes.
     const header=page.locator('#grid .data-column-header').first();await header.focus();await header.press('Alt+ArrowRight');
@@ -46,6 +63,7 @@ module.exports=async(browser,base,jar)=>{
     await scroll.evaluate(e=>e.scrollTop=e.scrollHeight-e.clientHeight-80);await wait(100);
     assert.equal(await page.locator('#grid .data-column-header').last().getAttribute('data-column-id'),'c1');
     // Editing pauses automatic paging; scrolling must not open Save/Discard dialogs.
+    await aligned();
     await footer.getByRole('button',{name:'First row',exact:true}).click();await wait(0);
     await page.locator('#grid .grid-body .grid-row').first().locator('[data-column-id=c2]').dblclick();
     await page.locator('.grid-cell-editor textarea').fill('pending edit');await page.locator('.grid-cell-editor textarea').press('Enter');
@@ -63,6 +81,7 @@ module.exports=async(browser,base,jar)=>{
     await page.mouse.wheel(0,-120);await wait(0);
     // No stale DOM/timers after view unmount; controller state survives tab switching.
     await limit.fill('200');await limit.press('Enter');await wait(0);
+    await aligned();
     await page.locator('#new-tab').click();const beforeHidden=windows.length;await page.waitForTimeout(450);assert.equal(windows.length,beforeHidden);
     assert.deepEqual(errors,[]);
     console.log('PASS grid-scroll: forward/backward overlapping windows, anchored viewport, bounded DOM, dirty/find pause, tiny pages, lifecycle');

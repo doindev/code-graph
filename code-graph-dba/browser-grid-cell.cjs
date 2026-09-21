@@ -30,6 +30,20 @@ module.exports=async(browser,base)=>{
   await page.screenshot({path:'code-graph-dba/target/grid-cell-floating.png'});
   await mode.focus();await mode.selectOption('null');assert.equal(await input.isDisabled(),true);await mode.selectOption('value');await input.fill('draft only');
   await input.press('Escape');assert.equal(await mode.count(),0);assert.equal(await cell.innerText(),'value-0-c0');
+  // Newly virtualized rows inherit the resized tracks, not an initial-width snapshot.
+  const resized=await page.evaluate(()=>cellFixture.view.state.widths.get('c0'));
+  async function aligned(){
+   const widths=await box.evaluate(host=>{
+    const header=host.querySelector('.grid-row.header'),layout=getComputedStyle(header).gridTemplateColumns;
+    return{aligned:[...host.querySelectorAll('.grid-body .grid-row')].every(row=>getComputedStyle(row).gridTemplateColumns===layout),
+      width:header.querySelector('[data-column-id=c0]').getBoundingClientRect().width};
+   });
+   assert.equal(widths.aligned,true,'Every rendered row uses the current header layout');assert.equal(widths.width,resized);
+  }
+  for(const top of [1200,2800,560,0]){
+   await scroll.evaluate((e,top)=>{e.scrollTop=top;e.dispatchEvent(new Event('scroll'));},top);
+   await aligned();
+  }
   // Keep the editor mounted while it is visible; scroll and resize reposition its portal.
   await box.locator('[data-row-index="5"] [data-column-id=c2]').dblclick();
   const oldTop=(await mode.boundingBox()).y;
@@ -54,9 +68,12 @@ module.exports=async(browser,base)=>{
   // Width survives data replacement, reordered columns and an unmount/remount.
   await page.evaluate(()=>{const f=cellFixture;f.view.moveBy('c0',1);f.view.updateData('SELECT updated');f.view.destroy();f.view=new f.DataGridView(f.host,f.result,{sourceSql:'SELECT updated'});});
   assert.equal(await corner.evaluate(e=>e.getBoundingClientRect().width),userWidth);
+  assert.equal(await box.evaluate(host=>{const v=cellFixture.view;return [...host.querySelectorAll('.grid-row')].every(row=>getComputedStyle(row).gridTemplateColumns===v.template());}),true,'Remount uses the same result-lifetime column widths');
   await rowResize.dblclick();assert.equal(await corner.evaluate(e=>e.getBoundingClientRect().width),firstWidth,'Double-click restores auto-fit');
   await row.locator('[data-column-id=c1]').dblclick();await mode.waitFor();
-  await page.evaluate(()=>{cellFixture.view.destroy();cellFixture.host.remove();});assert.equal(await mode.count(),0);
+  await page.evaluate(()=>{const f=cellFixture;f.view.destroy();f.view=new f.DataGridView(f.host,structuredClone(f.result),{sourceSql:'SELECT fresh result'});});assert.equal(await mode.count(),0);
+  assert.notEqual(await page.evaluate(()=>cellFixture.view.state.widths.get('c0')),600,'A new result has fresh widths; layout is not stored in browser storage');
+  await page.evaluate(()=>{cellFixture.view.destroy();cellFixture.host.remove();});
   assert.deepEqual(errors,[]);
   console.log('Grid cell controls passed: floating Value/NULL/DEFAULT, full-width editing, pointer/keyboard resize, scrolling, viewport fallback, cleanup, auto-fit and persistent resizable row numbers.');
  }finally{await context.close();}
