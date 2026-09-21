@@ -88,6 +88,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   The [MongoDB document editor](docs/mongodb-document-editor.md) adds staged,
   canonical Extended JSON creation, replacement and staged deletion with replica-set-only
   absence/original-BSON and collection UUID guards; standalone/sharded editing remains unavailable.
+  The [MongoDB pipeline builder](docs/mongodb-pipeline-builder.md) adds bounded
+  stage editing, disabling and reordering with a typed command preview. Use pipeline
+  hands the draft to the native editor; execution remains a separate action.
   [MongoDB change-stream batches](docs/mongodb-change-streams.md) add finite,
   resumable exact-collection reads with explicit history gaps and a next-batch UI.
   MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)

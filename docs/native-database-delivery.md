@@ -126,6 +126,10 @@ authentication and operation coverage remains tracked in later phases.
   Decimal128, int64, binary, missing/null and nested arrays/objects.
 - [ ] Find/filter/projection/sort, aggregation pipeline editor and builder,
   queryPlanner Explain; executionStats requires explicit execution intent.
+  - [x] Bounded stage-oriented pipeline builder: typed JSON values, stage ordering
+    and disabling, read-only preview, exact-target handoff without auto-execution.
+    See [builder coverage and validation](mongodb-pipeline-builder.md).
+    This does not certify every aggregation expression or executionStats workflow.
 - [ ] Insert/update/replace/delete/bulk, optimistic conflicts and exact review.
 - [ ] Collection create/rename/drop, validators, indexes/TTL indexes, view
   definitions, supported time-series/capped settings with restrictions visible.

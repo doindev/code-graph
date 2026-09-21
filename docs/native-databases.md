@@ -59,6 +59,12 @@ Guarded saves require a replica-set profile and existing ordinary collection;
 other topologies are inspect-only. Original BSON and collection UUID changes
 conflict rather than silently overwriting concurrent edits.
 
+The [aggregation pipeline builder](mongodb-pipeline-builder.md) edits and reorders
+up to 64 existing supported read-stage families with canonical BSON values and a
+128 KiB command bound. It imports only preservable options, shows an exact fixed
+collection target, and copies to the command editor without executing. Expression
+support, authorization and database resource limits remain server-validated.
+
 The [stream-entry composer](redis-stream-editor.md) stages an ordered, binary-safe
 entry for an existing stream. It uses reviewed XADD NOMKSTREAM, reports complete
 entry IDs/no-change receipts, and blocks uncertain resubmission. It does not edit

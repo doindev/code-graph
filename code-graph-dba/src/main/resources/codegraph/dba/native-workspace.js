@@ -4,6 +4,7 @@ import {RedisStringEditor} from './redis-string-editor.js';
 import {RedisMemberEditor} from './redis-set-editor.js';
 import {RedisStreamEditor} from './redis-stream-editor.js';
 import {MongoDocumentEditor} from './mongo-document-editor.js';
+import {MongoPipelineEditor} from './mongo-pipeline-editor.js';
 
 const terminal=new Set(['complete','failed','cancelled']);
 // Enough for the bounded stream delivery/tombstone ID receipt even when payload display is full.
@@ -38,6 +39,7 @@ export class NativeWorkspace {
     this.runButton=this.button(toolbar,'Run native command','play',()=>this.run());
     this.cancelButton=this.button(toolbar,'Cancel current operation','square',()=>this.cancel());this.cancelButton.disabled=true;
     if(profile.transport==='mongodb'){this.nextButton=this.button(toolbar,'Read next change batch','refresh-cw',()=>this.run(true));this.nextButton.disabled=true;this.documentButton=this.button(toolbar,'Edit MongoDB document','square-pen',()=>this.openDocumentEditor());}
+    if(profile.transport==='mongodb')this.pipelineButton=this.button(toolbar,'Build aggregation pipeline','workflow',()=>this.openPipelineEditor());
     if(profile.transport==='redis'){
       this.stringButton=this.button(toolbar,'Edit Redis string value','square-pen',()=>this.openValueEditor('string'));
       this.hashButton=this.button(toolbar,'Edit Redis hash field','square-pen',()=>this.openValueEditor('hash'));
@@ -86,13 +88,30 @@ export class NativeWorkspace {
   button(parent,label,icon,action){const button=el('button');button.type='button';button.title=label;button.setAttribute('aria-label',label);button.append(lucide(icon));button.onclick=action;parent.append(button);return button;}
   sync(){if(!this.editor)return;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;this.state.database=this.database.value;this.state.collection=this.collection?.value??'';this.state.commandText=this.editor.value;this.changed();}
   signature(){return JSON.stringify([this.profile.id,this.profile.name,this.database.value,this.collection?.value??'',this.editor.value]);}
-  retain(bytes){this.account(this.disposed?0:bytes+(this.stringEditor?this.valueEditorBytes:0));}
-  get dirty(){return !!(this.stringEditor?.dirty||this.stringEditor?.uncertain);}
-  canClose(){return this.stringEditor?.canClose()??true;}
-  updateProfile(profile){if(this.stringEditor&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
-  lockStringTarget(){const locked=!!this.stringEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;if(this.collection)this.collection.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(locked&&this.nextButton)this.nextButton.disabled=true;for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton,this.scoreButton,this.streamButton,this.documentButton])if(button)button.disabled=locked;}
+  retain(bytes){this.account(this.disposed?0:bytes+(this.stringEditor?this.valueEditorBytes:0)+(this.pipelineEditor?2*1024*1024:0));}
+  get dirty(){return !!(this.pipelineEditor||this.stringEditor?.dirty||this.stringEditor?.uncertain);}
+  canClose(){return this.pipelineEditor?window.confirm('Discard the unsaved pipeline builder draft? Nothing will execute.'):(this.stringEditor?.canClose()??true);}
+  updateProfile(profile){if((this.stringEditor||this.pipelineEditor)&&JSON.stringify(profile)!==JSON.stringify(this.profile))this.invalidate('Connection configuration changed. Draft retained; reopen the workspace and reload before editing.');this.profile=profile;}
+  lockStringTarget(){const locked=!!this.stringEditor||!!this.pipelineEditor||!!this.operation||this.disposed||!!this.unavailable;this.database.disabled=locked;if(this.collection)this.collection.disabled=locked;this.runButton.disabled=locked;this.streamExamples&&(this.streamExamples.disabled=locked);if(locked&&this.nextButton)this.nextButton.disabled=true;for(const button of [this.stringButton,this.hashButton,this.listButton,this.setButton,this.scoreButton,this.streamButton,this.documentButton,this.pipelineButton])if(button)button.disabled=locked;}
+  openPipelineEditor(){
+    if(this.profile.transport!=='mongodb'||this.stringEditor||this.pipelineEditor||this.operation||this.disposed||this.unavailable)return;
+    const signature=this.signature(),revision=JSON.stringify(this.profile);
+    try{
+      // Fixed reservation bounds strings, parsed previews and stage controls.
+      // This is accounting, not a hard cap on browser heap.
+      this.account(this.displayBytes+2*1024*1024);
+      this.pipelineEditor=new MongoPipelineEditor({collection:this.collection.value,text:this.editor.value,
+        target:this.profile.name+' / '+this.database.value+' / '+this.collection.value,
+        apply:text=>{
+          if(this.disposed||this.unavailable||this.operation||signature!==this.signature()||revision!==JSON.stringify(this.profile))throw Error('Workspace or connection changed. Reopen the builder from the current command; no command was replaced.');
+          this.editor.value=text;this.sync();this.status.textContent='Pipeline copied to command editor. Use Run to execute it.';
+        },
+        close:()=>{this.pipelineEditor?.dispose();this.pipelineEditor=null;this.lockStringTarget();this.retain(this.displayBytes);this.changed();if(this.root.isConnected)this.pipelineButton.focus();}});
+      this.pipelineEditor.open();this.lockStringTarget();this.changed();
+    }catch(error){this.pipelineEditor?.dispose();this.pipelineEditor=null;this.retain(this.displayBytes);this.status.textContent=error.message;}
+  }
   openDocumentEditor(){
-    if(this.profile.transport!=='mongodb'||this.stringEditor||this.operation||this.disposed||this.unavailable)return;
+    if(this.profile.transport!=='mongodb'||this.stringEditor||this.pipelineEditor||this.operation||this.disposed||this.unavailable)return;
     if(!this.collection.value.trim()){this.status.textContent='Choose an exact collection before opening a document editor.';return;}
     this.valueEditorBytes=512*1024;
     try{this.account(this.displayBytes+this.valueEditorBytes);}catch(e){this.status.textContent=e.message;return;}
@@ -165,7 +184,7 @@ export class NativeWorkspace {
     this.selectView(model?this.viewName:'json');
   }
   async run(next=false,supplied=null){
-    if(this.operation||this.disposed||this.unavailable||(this.stringEditor&&!supplied))return;
+    if(this.operation||this.disposed||this.unavailable||this.pipelineEditor||(this.stringEditor&&!supplied))return;
     const continuation=next?this.nextBatch:null;if(next&&(!continuation||continuation.signature!==this.signature()))return;
     try{this.retain(this.displayBytes+RECEIPT_RESERVE);}catch(error){this.status.textContent='Not started · '+error.message;return{ok:false,error:error.message};}
     const operation={cancelled:false,id:null};this.operation=operation;const started=performance.now();
@@ -239,6 +258,6 @@ export class NativeWorkspace {
     });
   }
   async cancel(){const operation=this.operation;if(!operation||operation.cancelled)return;operation.cancelled=true;operation.dismiss?.();this.cancelButton.disabled=true;if(operation.id)try{await this.api('/jobs/'+operation.id+'/cancel','POST',{});}catch(error){this.status.textContent='Cancellation not confirmed: '+error.message;}}
-  invalidate(message){this.unavailable=message;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;if(this.streamExamples)this.streamExamples.disabled=true;this.runButton.disabled=true;this.stringEditor?.invalidate(message);this.lockStringTarget();this.cancel();this.status.textContent=message;}
-  dispose(){this.disposed=true;this.nextBatch=null;this.cancel();this.stringEditor?.dispose();this.stringEditor=null;this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
+  invalidate(message){this.unavailable=message;this.nextBatch=null;if(this.nextButton)this.nextButton.disabled=true;if(this.streamExamples)this.streamExamples.disabled=true;this.runButton.disabled=true;this.stringEditor?.invalidate(message);this.pipelineEditor?.invalidate(message);this.lockStringTarget();this.cancel();this.status.textContent=message;}
+  dispose(){this.disposed=true;this.nextBatch=null;this.cancel();this.pipelineEditor?.dispose();this.pipelineEditor=null;this.stringEditor?.dispose();this.stringEditor=null;this.grid?.destroy();this.grid=null;this.gridModel=null;this.unmount();this.account(0);}
 }

@@ -46,6 +46,14 @@ Mongo SQL Interface/Redis Calcite JDBC profiles. Discover capabilities first;
 do not send SQL, JavaScript shell snippets, or redis-cli command strings to native
 connections. Native clients are bundled and require no JDBC driver installation.
 
+For MongoDB aggregation, preserve stage order and canonical BSON wrappers,
+especially int64 and Decimal128. Discover supported stages/expressions; do not
+infer read-only safety from the word aggregate ($out/$merge write data).
+The browser's bounded stage builder only copies a draft into its native command
+editor; it neither executes nor grants permission. MCP uses the existing exact
+native-command target and approval workflow, not a separate builder API.
+Query result limits do not bound all server-side scan/sort/group work.
+
 When advertised, `dba_request_native_command` accepts an Extended JSON command
 object for MongoDB or an argument array for Redis (text and supported base64
 key/value fields). Discover managed transaction/pipeline support from the actual

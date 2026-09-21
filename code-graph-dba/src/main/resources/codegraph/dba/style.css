@@ -217,6 +217,24 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .native-workspace-header input{width:180px;min-width:80px}
 .native-workspace-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .native-workspace-actions select{max-width:100%}
+.mongo-pipeline{width:min(1000px,94vw);height:min(760px,92vh);max-height:94vh;max-width:96vw;min-width:min(440px,92vw);min-height:min(440px,90vh);resize:both;padding:16px;overflow:auto}
+.mongo-pipeline[open]{display:flex;flex-direction:column;gap:10px}
+.mongo-pipeline-heading,.mongo-pipeline-controls,.mongo-pipeline-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.mongo-pipeline-heading h2{margin:0;flex:1}.mongo-pipeline-target,.mongo-pipeline-notice{margin:0;overflow-wrap:anywhere}.mongo-pipeline-target{color:var(--accent)}
+.mongo-pipeline svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.mongo-pipeline button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:5px;min-height:30px}
+.mongo-pipeline-controls select{flex:1;min-width:120px;max-width:100%}.mongo-pipeline-controls label{display:flex;flex-direction:row;align-items:center;margin:0}.mongo-pipeline input[type=checkbox]{width:16px;flex-shrink:0}
+.mongo-pipeline-body{display:grid;grid-template-columns:minmax(170px,34%) minmax(0,1fr);flex:1;min-height:170px;gap:12px}
+.mongo-pipeline-stages{margin:0;padding:2px;overflow:auto;list-style:none;border:1px solid var(--line);border-radius:6px}
+.mongo-pipeline-stages li{display:flex;align-items:center;gap:3px;padding:4px;border-bottom:1px solid var(--line)}
+.mongo-pipeline-stages li.selected{background:#1e3b45}.mongo-pipeline-stages li.drop-target{box-shadow:inset 0 3px var(--accent)}
+.mongo-pipeline-stages .mongo-stage-select{flex:1;min-width:0;justify-content:flex-start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mongo-pipeline-stages button:not(.mongo-stage-select){width:25px;flex-shrink:0;padding:3px}
+.mongo-pipeline-value{display:flex;flex-direction:column;min-width:0;min-height:0}.mongo-pipeline-value label{margin:0;flex:1;min-height:0}.mongo-pipeline-value p{font-size:12px;margin:6px 0 0}
+.mongo-pipeline textarea{font:var(--dba-input-font-size,14px)/1.5 Consolas,monospace;color:#b9e8dd;background:#101722;border:1px solid var(--line);border-radius:6px;padding:10px;min-width:0;resize:none}
+.mongo-pipeline-value textarea{flex:1;min-height:80px;width:100%}.mongo-pipeline-preview{flex-shrink:0}.mongo-pipeline-preview textarea{width:100%;height:120px;margin-top:6px}
+.mongo-pipeline-status{min-height:20px;overflow-wrap:anywhere;font-size:12px;color:var(--muted);flex-shrink:0}.mongo-pipeline-footer{border-top:1px solid var(--line);padding-top:10px}.mongo-pipeline-footer span{flex:1;color:var(--muted);font-size:12px}.mongo-pipeline-footer button:last-child{background:#236653}
+@media(max-width:600px){.mongo-pipeline-body{grid-template-columns:1fr;grid-template-rows:140px minmax(140px,1fr);min-height:310px}.mongo-pipeline-footer span{flex-basis:100%}}
 .native-status{min-width:0;overflow-wrap:anywhere}
 .native-workspace-actions button{width:30px;height:30px;display:grid;place-items:center;padding:5px}
 .native-workspace-actions svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

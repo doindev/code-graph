@@ -254,6 +254,23 @@ class NativeVendorTest {
             assertTrue(result.path("entries").get(0).path("at").has("$date"));
             JsonNode pipeline=Profiles.JSON.readTree("{\"aggregate\":\"users\",\"pipeline\":[{\"$match\":{\"name\":\"beta\"}}]}");
             assertEquals(1,NativeReadExecutor.execute(lease,target,pipeline,new NativeReadExecutor.Limits(100,65536,10),()->false).path("rowCount").asInt());
+            // Commands emitted by the builder retain typed literals and execute
+            // through the same bounded native path, not an independent client.
+            JsonNode built=Profiles.JSON.readTree("""
+                    {"aggregate":"users","allowDiskUse":false,"pipeline":[
+                      {"$match":{"n":{"$gte":{"$numberLong":"2"}}}},
+                      {"$sort":{"name":-1}},{"$project":{"_id":0,"name":1,"n":1}},{"$limit":2}]}
+                    """);
+            var builtResult=NativeReadExecutor.execute(lease,target,built,new NativeReadExecutor.Limits(100,65536,10),()->false);
+            assertEquals(2,builtResult.path("rowCount").asInt());assertEquals("gamma",builtResult.path("entries").get(0).path("name").asText());
+            assertEquals("beta",builtResult.path("entries").get(1).path("name").asText());
+            var grouped=Profiles.JSON.readTree("""
+                    {"aggregate":"users","allowDiskUse":false,"pipeline":[{"$group":{"_id":null,"count":{"$sum":1}}},{"$project":{"_id":0,"count":1}}]}
+                    """);
+            assertEquals(3,NativeReadExecutor.execute(lease,target,grouped,new NativeReadExecutor.Limits(100,65536,10),()->false).path("entries").get(0).path("count").path("$numberInt").asInt());
+            assertThrows(IllegalArgumentException.class,()->NativeReadExecutor.execute(lease,target,Profiles.JSON.readTree("""
+                    {"aggregate":"users","pipeline":[{"$out":"unexpected"}]}
+                    """),new NativeReadExecutor.Limits(100,65536,10),()->false));
             JsonNode plan=Profiles.JSON.readTree("{\"explain\":{\"find\":\"users\",\"filter\":{\"name\":\"alpha\"}},\"verbosity\":\"queryPlanner\"}");
             assertTrue(NativeReadExecutor.execute(lease,target,plan,new NativeReadExecutor.Limits(100,65536,10),()->false).path("estimated").asBoolean());
             JsonNode names=NativeReadExecutor.execute(lease,target,Profiles.JSON.readTree("{\"listCollections\":1,\"filter\":{\"name\":\"users\"}}"),new NativeReadExecutor.Limits(100,65536,10),()->false);
