@@ -64,7 +64,8 @@ Open `http://localhost:8137/dba` directly; there is no browser token or login di
 An automatic HttpOnly/SameSite session retains CSRF, Host/Origin validation, ownership and
 one-hour expiration. **Local users/processes can administer connections**: browser-origin
 protections do not authenticate local processes. The toolbar settings gear contains **RAM**
-and **Agent access**. There is no End session button; session expiration and the protected
+and **Agent access**, plus **Driver downloads** for persistent corporate Maven/mirror and
+certificate preferences. There is no End session button; session expiration and the protected
 logout API remain unchanged. Existing obsolete `browser-token` files are removed on UI startup.
 Local MCP clients need no token or Agent access setup. Both HTTP listeners bind to
 `127.0.0.1`, and token-free HTTP/stdio clients share a built-in **Trusted local agents**
@@ -90,8 +91,14 @@ Stdio can own a DBA runtime; it is not yet an attachment bridge to another runni
 
 DBA-specific settings without `--dba` and unknown DBA flags are rejected. Memory, concurrency,
 UI row cap, query timeout, and decision timeout can be changed through the RAM dialog for the current run; these
-changes are not persisted. Profile settings are persisted. The graph's memory/TTL settings
+changes are not persisted. Profile settings and [driver download settings](dba-driver-downloads.md)
+are persisted separately. Native file pickers have a fixed 90-second deadline. The graph's memory/TTL settings
 remain independent.
+
+Download startup overrides: `--dba-driver-download embedded|maven`,
+`--dba-maven-command PATH`, `--dba-maven-settings PATH`, `--dba-maven-cert PATH`, and
+`--dba-maven-insecure-tls true|false` (unsafe, default false). Omit overrides to use the
+saved `driverDownloads` section of `<dba-dir>/settings.json`.
 
 Use a new or empty dedicated data directory on first startup. An ownership marker is created
 for subsequent runs. The runtime refuses to adopt a non-empty, unowned directory rather than

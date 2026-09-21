@@ -273,3 +273,17 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .redis-pending-delete textarea{opacity:.65;text-decoration:line-through}
 .redis-string-actions button[aria-pressed="true"]{background:#462b34;color:#ffc5c5;border-color:#d88383}
 .native-workspace:has(.redis-string-editor){overflow:auto}
+#driver-download-settings-dialog{width:min(720px,94vw);max-height:90vh;overflow:auto}
+#driver-download-settings-dialog form{display:flex;flex-direction:column;gap:10px}
+#driver-download-settings-dialog fieldset{display:flex;flex-direction:column;gap:10px;border:1px solid #39434f;border-radius:8px;padding:12px;min-width:0}
+#driver-download-settings-dialog label{display:flex;flex-direction:column;gap:5px}
+#driver-download-settings-dialog h2,#driver-download-settings-dialog p,#driver-download-settings-dialog label{margin:0}
+#driver-download-settings-dialog .driver-insecure-choice input{width:auto;flex:none;margin:0}
+#driver-download-settings-dialog .actions{position:sticky;bottom:-28px;background:var(--panel);padding:12px 0;margin-top:0}
+#driver-download-settings-dialog input:not([type=checkbox]),#driver-download-settings-dialog select{width:100%;min-width:0;box-sizing:border-box}
+.driver-path-field{display:flex;gap:8px}.driver-path-field input{flex:1}.driver-path-field button{flex:none}
+#driver-download-settings-dialog .driver-insecure-choice{flex-direction:row;align-items:center}
+#driver-tls-warning{border:1px solid #b98945;background:#332b21;color:#ffd693;border-radius:6px;padding:10px}
+#driver-settings-status{color:#f0b6a8;overflow-wrap:anywhere}
+.driver-diagnostic pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:36vh;overflow:auto;background:#111821;border:1px solid #39434f;border-radius:6px;padding:12px;user-select:text}
+.driver-failure,.driver-choice{width:min(780px,94vw);max-height:90vh;overflow:auto}

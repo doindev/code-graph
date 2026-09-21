@@ -225,6 +225,10 @@ switches the active `cgraph` launcher to the incomplete release.
 
 Installer proxy options apply to installation, **not** later JDBC driver downloads or database
 connections. Configure runtime network access separately; installer secrets are not persisted.
+For later driver downloads, **DBA → Settings → Driver downloads** supports installed Maven
+with default/alternate settings.xml, an optional CA PEM and a separate, off-by-default
+TLS-verification bypass. These preferences persist in the application's settings.json.
+See [corporate Maven driver downloads](dba-driver-downloads.md).
 
 ## Runtime defaults and overrides
 

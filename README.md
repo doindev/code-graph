@@ -8,7 +8,7 @@ large text codebases into a queryable **code property graph** so AI agents can a
 
 - **DBA preview**: opt-in `/dba` connection management, capped SELECTs, PostgreSQL estimated
   plans/definition inspection, and authenticated read-only MCP access with or without the UI.
-  Direct local browser access, an alphabetical database picker, embedded Maven driver bundles,
+  Direct local browser access, an alphabetical database picker, embedded or installed Maven driver bundles,
   advanced JDBC settings, statement-aware human scripts, reusable/reorderable result grids,
   savepoint-backed browser error decisions, unsaved connection tests with version-query results, and Snowflake
   existing-file RSA key-pair authentication are described in [Connection setup](docs/dba-connections.md).
@@ -247,6 +247,14 @@ and prerequisite package-manager/signature checks remain unchanged.
 `-MavenSettings` / `--maven-settings` for corporate mirrors and authentication. See the
 [installation guide](docs/installation.md) for authenticated proxies, certificates,
 prerequisite checks, updates, native distribution and validation limits.
+
+**Corporate JDBC downloads:** in **DBA → Settings → Driver downloads**, select
+**Installed Maven** to use your company's mirrors, proxies and credentials. Leave the
+settings path blank for the normal user-default settings.xml, or Browse to an override.
+An optional CA PEM and an explicitly unsafe, off-by-default TLS-verification bypass are
+available for this download process only. Preferences persist in the application's
+settings.json; failures display sanitized details and Retry. Native file pickers allow
+90 seconds. See [runtime driver downloads](docs/dba-driver-downloads.md).
 
 ### Optional MCP connections and skills
 

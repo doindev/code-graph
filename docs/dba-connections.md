@@ -9,9 +9,12 @@ authentication. MCP agent authentication remains required; grants now also bind 
 1. Add a connection and choose from the [41 named JDBC templates](dba-grid-and-drivers.md),
    or Custom (always last). Search and arrow-key navigation
    work in the locally bundled icon grid. Custom starts with connection values blank.
-2. Named templates check Maven Central release metadata. A verified current installed bundle
+2. Named templates check release metadata through the configured downloader (embedded Central
+   or installed Maven with corporate settings). A verified current installed bundle
    is reused; otherwise choose Download latest via Maven, Browse, Cancel, or an explicitly
-   selected cached bundle. An unavailable latest-version check is labelled unavailable.
+   selected cached bundle. An unavailable latest-version check is labelled unavailable,
+   with sanitized failure details and Retry. Configure **Settings → Driver downloads**;
+   see [corporate mirrors, settings.xml, CA PEM and optional TLS bypass](dba-driver-downloads.md).
 3. Configure General, Driver, Authentication & TLS, Network, Driver properties, and Pool &
    lifecycle. The dialog is resizable. General can generate a URL or use an explicit URL.
    Advanced discovery is explicit/lazy and uses the selected driver’s `getPropertyInfo`.
@@ -166,7 +169,10 @@ remain on the separate restricted single-SELECT, read-only transaction and objec
 
 ## Drivers and persistence
 
-Embedded Maven Resolver uses HTTPS Maven Central with checksum failure enforcement. Runtime
+The default embedded Maven Resolver uses HTTPS Maven Central with checksum failure enforcement.
+Installed Maven mode instead uses the user's settings/mirrors for metadata and JARs; it never
+falls back to direct downloads. See [download configuration and diagnostics](dba-driver-downloads.md).
+Native file-selection dialogs allow 90 seconds independently of query/setup deadlines. Runtime
 dependency JARs are copied as a complete, atomically installed bundle under
 `<dba-dir>/drivers/<bundle-id>`. Manifests record exact versions, complete paths and SHA-256
 hashes. The private resolver cache is `<dba-dir>/drivers/repository`. Saved profiles remain
@@ -232,7 +238,9 @@ until the operation actually exits. There is no automatic retry of database oper
 | `POST /api/dba/setup/driver-install` | Above plus exact `version` → atomic bundle; progress via job status |
 | `POST /api/dba/setup/driver-inspect` | `jars:[]` → normalized paths and discovered classes |
 | `POST /api/dba/setup/properties` | `templateId, driverClass, jars, url` → JDBC/catalog descriptors |
-| `POST /api/dba/setup/file-select` | `kind: "jar"` or `"key"` → selected local paths / desktop unavailable |
+| `POST /api/dba/setup/file-select` | `kind: "jar", "key", "maven-settings", "maven-cert"` → selected local paths / desktop unavailable; 90-second deadline |
+| `GET /api/dba/settings/driver-downloads` | Effective download mode, optional executable/settings/PEM paths, TLS bypass flag and default settings path; no file contents |
+| `PUT /api/dba/settings/driver-downloads` | `mode, command?, settings?, certPem?, insecureTls?`; validate and atomically persist `settings.json.driverDownloads` |
 | `POST /api/dba/setup/key-validate` | `path, passphrase?` → non-secret key metadata |
 | `POST /api/dba/setup/draft-test` | Full unsaved profile, optional `connectionId` to keep saved secrets, optional `confirmDriverEffects` |
 | `POST /api/dba/connections` | Full profile plus temporary `receipt` or `saveUntested:true` |

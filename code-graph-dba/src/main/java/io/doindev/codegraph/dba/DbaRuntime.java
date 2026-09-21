@@ -46,7 +46,7 @@ public final class DbaRuntime implements AutoCloseable {
         try{agents=new AgentAccess(profiles.directory(),authorization);agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
-        setup=new ConnectionSetup(profiles,jobs);
+        setup=new ConnectionSetup(profiles,jobs,config.driverDownloads());
         contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
         authorization.sessions(approvals.reusable.sessions);
@@ -198,6 +198,12 @@ public final class DbaRuntime implements AutoCloseable {
                 if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo());jobs.configure(next);config=next;}
                 else if(!method.equals("GET"))throw new IllegalArgumentException("Unsupported settings method");
                 json(x,200,settings());return;
+            }
+            if(path.equals("/api/dba/settings/driver-downloads")){
+                if(method.equals("GET"))json(x,200,setup.bundles.settings.json());
+                else if(method.equals("PUT"))json(x,200,setup.bundles.settings.save(body(x)));
+                else throw new IllegalArgumentException("Unsupported driver settings method");
+                return;
             }
             if(path.equals("/api/dba/agents")){
                 if(method.equals("GET"))json(x,200,agents.list());
@@ -593,7 +599,7 @@ public final class DbaRuntime implements AutoCloseable {
     }
     static void asset(HttpExchange x,String path)throws IOException {
         if(Set.of("/dba/grid-state.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
-                "/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js").contains(path)){
+                "/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
             String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
                 if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
             }

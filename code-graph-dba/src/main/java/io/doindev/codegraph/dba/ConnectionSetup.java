@@ -15,10 +15,11 @@ final class ConnectionSetup {
     private final Profiles profiles;
     private final QueryJobs jobs;
     final DriverBundles bundles;
-    ConnectionSetup(Profiles profiles,QueryJobs jobs)throws java.io.IOException{this.profiles=profiles;this.jobs=jobs;bundles=new DriverBundles(profiles.directory());}
+    ConnectionSetup(Profiles profiles,QueryJobs jobs)throws java.io.IOException{this(profiles,jobs,DriverDownloadConfig.embedded());}
+    ConnectionSetup(Profiles profiles,QueryJobs jobs,DriverDownloadConfig config)throws java.io.IOException{this.profiles=profiles;this.jobs=jobs;bundles=new DriverBundles(profiles.directory(),config);}
     ObjectNode operation(String owner,String operation,JsonNode input){
         ObjectNode snapshot=input.deepCopy();
-        return jobs.local(owner,job->switch(operation){
+        QueryJobs.LocalTask task=job->switch(operation){
             case "driver-status" -> bundles.status(snapshot,()->job.cancelled);
             case "driver-install" -> {var result=bundles.install(snapshot,()->job.cancelled,p->job.progress=p);result.set("classes",classes(result));yield result;}
             case "driver-inspect" -> inspect(snapshot);
@@ -27,7 +28,8 @@ final class ConnectionSetup {
             case "file-select" -> select(snapshot,job);
             case "draft-test" -> test(owner,snapshot,job);
             default -> throw new IllegalArgumentException("Unsupported connection setup operation");
-        },snapshot::removeAll);
+        };
+        return operation.equals("file-select")?jobs.fileSelection(owner,task,snapshot::removeAll):jobs.local(owner,task,snapshot::removeAll);
     }
     ObjectNode test(String owner,ObjectNode input,QueryJobs.Job job)throws Exception {
         String id=input.hasNonNull("connectionId")?input.path("connectionId").asText():null;
@@ -119,8 +121,10 @@ final class ConnectionSetup {
     }
     private static String bounded(String value,int max){return value==null?"":value.substring(0,Math.min(max,value.length()));}
     private static ObjectNode select(JsonNode input,QueryJobs.Job job)throws Exception{
-        boolean key=input.path("kind").asText().equals("key");if(java.awt.GraphicsEnvironment.isHeadless())return Profiles.JSON.createObjectNode().put("available",false).put("message",key?"Enter the existing key path manually. Key upload is not supported.":"Enter JAR paths or upload JAR files.");
-        java.awt.FileDialog dialog=new java.awt.FileDialog((java.awt.Frame)null,key?"Select existing PKCS#8 private key (never uploaded)":"Select trusted JDBC JARs",java.awt.FileDialog.LOAD);dialog.setMultipleMode(!key);if(!key)dialog.setFilenameFilter((d,n)->n.toLowerCase(Locale.ROOT).endsWith(".jar"));
+        String kind=input.path("kind").asText();boolean key=kind.equals("key"),settings=kind.equals("maven-settings"),cert=kind.equals("maven-cert");
+        if(!Set.of("jar","key","maven-settings","maven-cert").contains(kind))throw new IllegalArgumentException("Unsupported file selection kind");
+        if(java.awt.GraphicsEnvironment.isHeadless())return Profiles.JSON.createObjectNode().put("available",false).put("message",settings||cert?"Enter the existing local file path manually. Settings/certificates are not uploaded.":key?"Enter the existing key path manually. Key upload is not supported.":"Enter JAR paths or upload JAR files.");
+        java.awt.FileDialog dialog=new java.awt.FileDialog((java.awt.Frame)null,settings?"Select Maven settings.xml":cert?"Select public CA certificate PEM":key?"Select existing PKCS#8 private key (never uploaded)":"Select trusted JDBC JARs",java.awt.FileDialog.LOAD);dialog.setMultipleMode(!key&&!settings&&!cert);if(!key)dialog.setFilenameFilter((d,n)->n.toLowerCase(Locale.ROOT).endsWith(settings?".xml":cert?".pem":".jar"));
         try{job.progress="Waiting for the native file picker";java.awt.EventQueue.invokeAndWait(()->dialog.setVisible(true));ArrayNode paths=Profiles.JSON.createArrayNode();for(var file:dialog.getFiles())paths.add(file.getAbsolutePath());return Profiles.JSON.createObjectNode().put("available",true).set("paths",paths);}finally{java.awt.EventQueue.invokeLater(dialog::dispose);}
     }
 }

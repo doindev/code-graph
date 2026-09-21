@@ -178,12 +178,19 @@ final class QueryJobs implements AutoCloseable {
         job.reservation=required;
     }
     synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup){
+        return local(owner,connection,task,cleanup,config.timeoutSeconds());
+    }
+    static final int FILE_SELECTION_TIMEOUT_SECONDS=90;
+    synchronized ObjectNode fileSelection(String owner,LocalTask task,Runnable cleanup){
+        return local(owner,"",task,cleanup,FILE_SELECTION_TIMEOUT_SECONDS);
+    }
+    private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup,int timeoutSeconds){
         long reservation=!connection.isEmpty()&&DatabaseTransport.of(connections.profile(connection))!=DatabaseTransport.JDBC?64L<<20:JOB_RESERVATION;
         reap();if(jobs.size()>=32||reservedBytes()+reservation>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs (native operations reserve 64 MiB including temporary decoding)");}
         Job job=new Job(owner,connection);job.reservation=reservation;jobs.put(job.id,job);
         try{workers.execute(()->{
             job.started=System.currentTimeMillis();job.state="running";job.thread=Thread.currentThread();
-            var deadline=timer.schedule(()->cancel(job),config.timeoutSeconds(),TimeUnit.SECONDS);
+            var deadline=timer.schedule(()->cancel(job),timeoutSeconds,TimeUnit.SECONDS);
             try{if(job.cancelled||!alive.test(owner))throw new CancellationException();JsonNode result=task.run(job);
                 if((job.cancelled||!alive.test(owner))&&!"commit_acknowledged".equals(job.outcome))throw new CancellationException();byte[] bytes=Profiles.JSON.writeValueAsBytes(result);
                 if(bytes.length>job.byteLimit)throw new IllegalArgumentException("Setup result too large");job.bytes=bytes.length;job.result=result;job.state="complete";
@@ -321,7 +328,7 @@ final class QueryJobs implements AutoCloseable {
         if(!scope.path("schema").asText().equals(Objects.toString(schema,"")))throw new SecurityException("Effective schema differs from permission scope");
     }
 
-    static ObjectNode exceptionInfo(Throwable error){ObjectNode out=Profiles.JSON.createObjectNode().put("type",error.getClass().getName()).put("details","Raw driver exception text is withheld because it may contain credentials or connection parameters.");ArrayNode chain=out.putArray("causes");for(int i=0;error!=null&&i<6;i++,error=error.getCause()){ObjectNode n=chain.addObject().put("type",error.getClass().getName());if(error instanceof SQLException sql){String state=sql.getSQLState();if(state!=null&&state.matches("[A-Za-z0-9]{5}"))n.put("sqlState",state);n.put("vendorCode",sql.getErrorCode());}}return out;}
+    static ObjectNode exceptionInfo(Throwable error){if(error instanceof DriverDiagnostics.Failure failure)return failure.diagnostic.deepCopy();ObjectNode out=Profiles.JSON.createObjectNode().put("type",error.getClass().getName()).put("details","Raw driver exception text is withheld because it may contain credentials or connection parameters.");ArrayNode chain=out.putArray("causes");for(int i=0;error!=null&&i<6;i++,error=error.getCause()){ObjectNode n=chain.addObject().put("type",error.getClass().getName());if(error instanceof SQLException sql){String state=sql.getSQLState();if(state!=null&&state.matches("[A-Za-z0-9]{5}"))n.put("sqlState",state);n.put("vendorCode",sql.getErrorCode());}}return out;}
     private static String validateSql(String owner,String sql){return owner.startsWith("agent:")?SqlReadGuard.validate(sql):SqlReadGuard.validateBrowser(sql);}
     ObjectNode query(String owner,String id,String sql,JsonNode parameters){
         if(!owner.startsWith("agent:"))return humanQuery(owner,id,sql,parameters,false);

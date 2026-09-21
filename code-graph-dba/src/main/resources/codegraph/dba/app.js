@@ -2,6 +2,7 @@ import {approvalHeaders} from './approval-client.js';
 import {NativeWorkspace} from './native-workspace.js';
 import {installProjectContext} from './project-context.js';
 import {connectionEditor} from './connection-editor.js';
+import {installDriverDownloadSettings} from './driver-download-settings.js';
 import {VisualQueryBuilder} from './query-builder.js';
 import {lucide} from './tree-icons.js';
 import {ObjectProperties} from './object-properties.js';
@@ -356,6 +357,7 @@ function shiftEditorLines(input,outdent){const value=input.value,start=input.sel
 $('sql').addEventListener('keydown',e=>{if(e.key==='Tab'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();shiftEditorLines(e.target,e.shiftKey);saveEditor();updateLineNumbers();renderTabs();}});
 $('sql').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='/'){e.preventDefault();const input=e.target,start=input.value.lastIndexOf('\n',input.selectionStart-1)+1;let end=input.value.indexOf('\n',input.selectionEnd);if(end<0)end=input.value.length;const lines=input.value.slice(start,end).split('\n'),uncomment=lines.every(l=>l.trimStart().startsWith('--'));const changed=lines.map(l=>uncomment?l.replace(/^(\s*)-- ?/,'$1'):'-- '+l).join('\n');input.setRangeText(changed,start,end,'select');saveEditor();}});
 const settingsToggle=$('workspace-settings'),settingsMenu=$('workspace-settings-menu');
+installDriverDownloadSettings({api,toast});
 settingsToggle.append(lucide('settings'));$('settings').prepend(lucide('cpu'));$('agents').prepend(lucide('key-round'));$('editor-pairing').prepend(lucide('panel-top-open'));
 function closeWorkspaceSettings(focus=false){settingsMenu.hidden=true;settingsToggle.setAttribute('aria-expanded','false');if(focus)settingsToggle.focus();}
 function showWorkspaceSettings(last=false){

@@ -69,6 +69,11 @@ public final class CgraphMain {
           --dba-approval-mode MODE   desktop (default), auto, browser, none
           --yolo                    DANGER: automatically authorize local MCP DBA operations; requires DBA
           --dba-dir PATH             DBA profiles/settings directory
+          --dba-driver-download MODE embedded (default) or maven (installed Maven)
+          --dba-maven-command PATH   Optional mvn/mvn.cmd path; otherwise PATH
+          --dba-maven-settings PATH  Optional override of ~/.m2/settings.xml
+          --dba-maven-cert PATH      Optional public CA PEM for Maven downloads
+          --dba-maven-insecure-tls true|false  UNSAFE: disable download TLS checks (default false)
           --root PATH                Explicitly onboard a project; repeatable
           --project-ttl 10m|1h        Idle project lifetime
           --no-ui                    Do not start the web UI
