@@ -166,6 +166,16 @@ class NativeMongoTransactionTest {
                     }else assertEquals("automatic",deleteRequest.path("approvalChannel").asText());
                     var deleted=ConnectionSetupTest.await(jobs,"agent:"+principal,Profiles.JSON.createObjectNode().put("id",deleteRequest.path("jobId").asText()));
                     assertEquals("complete",deleted.path("state").asText(),deleted.toPrettyString());assertEquals("commit_acknowledged",deleted.path("result").path("outcome").asText());assertEquals(0,db.getCollection(collection).countDocuments());jobs.remove("agent:"+principal,deleted.path("id").asText());
+                    var creation=edit.deepCopy().put("requestId",UUID.randomUUID().toString());
+                    creation.set("command",NativeMongoDocumentTest.creation(collection,NativeMongoDocumentTest.canonical(replacement),uuid));
+                    var createRequest=requests.request(principal,session,"native_command",creation);
+                    if(!automatic){
+                        assertEquals("awaiting_approval",createRequest.path("state").asText());assertEquals(0,db.getCollection(collection).countDocuments());
+                        String approvalId=createRequest.path("id").asText();assertThrows(IllegalArgumentException.class,()->requests.decide("human",approvalId,"always_allow",true,Profiles.JSON.createObjectNode()));
+                        createRequest=requests.decide("human",approvalId,"approve_once",true,Profiles.JSON.createObjectNode());
+                    }else assertEquals("automatic",createRequest.path("approvalChannel").asText());
+                    var created=ConnectionSetupTest.await(jobs,"agent:"+principal,Profiles.JSON.createObjectNode().put("id",createRequest.path("jobId").asText()));
+                    assertEquals("complete",created.path("state").asText(),created.toPrettyString());assertTrue(NativeMongoDocuments.same(replacement,db.getCollection(collection,BsonDocument.class).find().first()));jobs.remove("agent:"+principal,created.path("id").asText());
                 }
                 sessions.remove(session);var expired=input.deepCopy().put("requestId",UUID.randomUUID().toString());
                 if(automatic)assertThrows(SecurityException.class,()->requests.request(principal,session,"native_command",expired));

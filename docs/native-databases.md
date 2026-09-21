@@ -44,8 +44,9 @@ are shared with the existing editor.
 ## Workspace and tree
 
 The [MongoDB document editor](mongodb-document-editor.md) stages complete,
-bounded canonical Extended JSON replacements and staged deletions with immutable IDs and explicit
-review. Guarded saves require a replica-set profile and ordinary collection;
+bounded canonical Extended JSON creation, replacements and staged deletions with explicit
+review. New drafts may choose their typed ID; existing IDs remain immutable.
+Guarded saves require a replica-set profile and existing ordinary collection;
 other topologies are inspect-only. Original BSON and collection UUID changes
 conflict rather than silently overwriting concurrent edits.
 

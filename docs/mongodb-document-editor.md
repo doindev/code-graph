@@ -2,7 +2,8 @@
 
 The native workspace's **Edit MongoDB document** action provides a bounded,
 memory-only complete-document draft. Select an exact collection and enter an
-Extended JSON _id (string, ObjectId, Int32 or Int64). Opening the editor performs
+Extended JSON _id (string, ObjectId, Int32 or Int64) to load, or choose **New document**.
+Opening the editor performs
 no query. **Load document** explicitly requests exact collection metadata and a
 bounded find; incomplete, missing or ambiguous results cannot become editable
 snapshots. The native JSON command and SQL Script contents are not rewritten.
@@ -20,11 +21,22 @@ snapshots. The native JSON command and SQL Script contents are not rewritten.
   fields and explicit nulls. Numeric values require the appropriate BSON type
   wrappers. The server rejects noncanonical representations and unsupported IDs.
   [Canonical Extended JSON reference](https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/).
-- The _id is immutable. This is a complete replacement: removing a field from
-  the draft removes it from the saved document. No upsert, insert, bulk,
+- A loaded document's _id is immutable. Saving that draft is a complete replacement: removing a field from
+  the draft removes it from the saved document. No upsert, bulk,
   update-operator or projected-document editing is enabled here.
 - Save opens the existing exact native review. Only **Apply once** submits the
   retained reviewed plan. Canceling review preserves the draft.
+- **New document** loads only exact collection metadata, then starts an unsaved
+  draft with a suggested ObjectId (current timestamp and cryptographically random
+  suffix). The ID and fields can be changed before Save. The backend requires an
+  explicit typed ID, checks absence in the transaction and never changes an insert
+  into an update/upsert or creates a missing collection. An existing or competing
+  ID conflicts instead of being overwritten. Other unique indexes and validators
+  still apply. The suggestion is not an official driver-generated ObjectId and
+  does not constitute an absence guarantee; the reviewed transaction is authoritative.
+- New drafts are dirty even before adding fields. Revert resets to their initial
+  suggested ID; Close asks before discarding them. Delete is unavailable for an
+  uncreated draft. Nothing is inserted until Save, review and Apply succeed.
 - Revert restores the loaded original without a write. Reloading or closing a
   dirty draft requires confirmation. Tab switching preserves drafts; profile
   change/removal disables further operations. Drafts are not session-persisted.
@@ -74,7 +86,7 @@ actual listCollections info.uuid binary subtype 04 as canonical base64. The
 expected document must be complete canonical Extended JSON, not a projection
 or shortened result. Original and replacement are each at most 32 KiB.
 
-Only one replacement update or single-document delete is allowed. Original/filter/replacement must contain
+Only one insert, replacement update or single-document delete is allowed. Original/filter/replacement must contain
 the same supported, typed _id; guard fields, filters and options are allowlisted.
 The application controls simple collation and forbids caller collation overrides.
 Preflight verifies replica-set/session support, ordinary collection identity and
@@ -98,8 +110,20 @@ or non-1 limits are rejected. The server uses simple collation for both the
 snapshot guard and the delete. Missing/changed documents conflict; a concurrent
 write between comparison and deletion aborts the transaction.
 
+For creation, use `{"insert":"items","documents":[{"_id":"example","name":"new"}]}`
+as the sole transaction entry and `{"collectionUuid":"...","absentId":"example"}`
+as documentGuard. Supply **exactly one** of expected or absentId. Absent ID and
+insert ID must have identical canonical BSON types/values. Only the ID is read
+during the absence check; existing large documents are not loaded as a side effect.
+The collection must already exist with the reviewed UUID. MongoDB's unique ID
+constraint rejects a competing insert after the snapshot check; this depends on
+the verified replica-set boundary, not sharded global-ID assumptions. See the
+[unique-index behavior](https://www.mongodb.com/docs/manual/core/index-unique/).
+Collation or other unique constraints may reject additional values; they are not
+silently bypassed. A confirmed insert leaves the draft read-only until a fresh load.
+
 Receipts retain kind transaction, atomic true, documentGuard true, explicit
-commit/rollback outcome and exactly one update/delete's matched count/state. An HTTP
+commit/rollback outcome and exactly one insert/update/delete's matched count/state. An HTTP
 success or terminal job state alone is not proof of commit. Normal agents still
 need exact one-time approval; startup YOLO changes consent, not guard checks.
 No reusable write grants, additional tools or database-access authority are added.
@@ -177,8 +201,8 @@ mvn -B -ntp -pl code-graph-mcp-http -am test '-Djava.awt.headless=true' '-Dtest=
 mvn -B -ntp package '-Djava.awt.headless=true'
 ~~~
 
-The broad native roadmap remains incomplete: graphical document creation,
-sharded document identity/routing, aggregation builders, subscriptions, broader
+The broad native roadmap remains incomplete: sharded document identity/routing,
+bulk document editing, aggregation builders, subscriptions, broader
 administration and the remaining vendor/platform gates are not completed here.
 
 ## Guarded deletion checkpoint
@@ -217,3 +241,37 @@ no broad pruning was used. Other OS desktops and a new performance benchmark
 were not certified by this functional increment. The shared skill reference was
 updated without modifying installed clients. Commit/push/restart is performed
 only under the user's explicit per-task delivery instruction.
+
+## Guarded creation checkpoint
+
+The 2026-09-20 follow-up adds memory-only New document drafts and a server-enforced
+typed-ID absence guard. No insert occurs during metadata loading, drafting or
+review cancellation. Saves target the existing collection UUID and never use
+upsert, replacement or implicit collection creation. The existing one-time
+approval, target/revision, audit, transaction and resource boundaries apply.
+
+- Focused Java/HTTP/MCP checks: 48 passed, five optional live skips, zero failures.
+- Owned MongoDB 8.0 replica-set gate: 20 passed, no skips/failures. Creation checks
+  cover duplicate IDs, a competing insert after the absence read, cancellation,
+  revoked authority, collection removal/replacement and a lost real commit reply
+  without replay. Normal agent approval and YOLO both retain the same guard.
+- Full Maven reactor: 35 modules, 183 suites, 910 tests; 845 passed, 65 explicit
+  optional/platform skips, zero failures/errors. Package succeeded in 4:01.
+- Focused native browser checks cover New/review/Cancel/Save/Revert, typed IDs,
+  immutable loaded IDs, draft remount, read-only targets, conflicts, reconciliation
+  and narrow layouts. All 20 browser suite groups passed sequentially after the
+  completed Maven build; no compiler replaced their classes during the run.
+- Skill validation passed. Node installer/skill regressions: 14 passed, two
+  optional real-client checks skipped. Eleven grid unit tests and Windows bootstrap
+  checks also passed. No installed client settings were changed.
+
+Raw local evidence: target/mongo-document-create-43a87e6fb0894495a9822f0942e7c969,
+including focused.log, mongo-replica.log, live-reports/replica, reactor.log,
+browser-native.log, browser-all-final.log and installer-node.log. Production/test
+source hashes were checked against this isolated tested snapshot before delivery.
+The pinned image/client and capped live-test resource settings above are unchanged.
+
+The owned container/volumes and newly introduced Mongo image were removed;
+existing Docker resources were preserved. Standalone/SRV/sharded guards remain
+rejected, not advertised as verified creation support. No additional platform or
+performance certification is implied. The broader roadmap remains incomplete.

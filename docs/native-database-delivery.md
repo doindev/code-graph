@@ -82,6 +82,11 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Guarded document creation follow-up: memory-only New drafts, explicit typed
+  ID, existing collection UUID/absence guard, exact review, duplicate/conflict
+  rejection and uncertain-commit recovery. Replica-set, browser and full reactor
+  gates pass; see [the creation checkpoint](mongodb-document-editor.md#guarded-creation-checkpoint).
+
 - [x] Guarded document deletion follow-up: staged Delete/Save/Revert, exact
   destructive review, byte-exact original/UUID transaction checks and explicit
   uncertainty recovery. Replica-set, browser and full reactor gates pass; see

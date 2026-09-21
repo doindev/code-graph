@@ -60,6 +60,9 @@ class DbaToolSchemaTest {
         assertEquals(24,documentGuard.path("properties").path("collectionUuid").path("maxLength").asInt());
         assertEquals("_id",documentGuard.path("properties").path("expected").path("required").get(0).asText());
         assertTrue(documentGuard.path("description").asText().contains("replica_set only"));
+        assertEquals(2,documentGuard.path("oneOf").size());
+        assertEquals("absentId",documentGuard.path("oneOf").get(1).path("required").get(0).asText());
+        assertEquals(4,documentGuard.path("properties").path("absentId").path("oneOf").size());
         var transaction=command.path("properties").path("command").path("oneOf").get(2);
         assertFalse(transaction.path("additionalProperties").asBoolean(true));
         assertEquals(32,transaction.path("properties").path("transaction").path("maxItems").asInt());

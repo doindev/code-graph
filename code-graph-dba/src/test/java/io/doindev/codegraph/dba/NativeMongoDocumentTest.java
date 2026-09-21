@@ -28,6 +28,26 @@ class NativeMongoDocumentTest {
         command.putArray("transaction").addObject().put("delete",collection).putArray("deletes").addObject().put("limit",1).putObject("q").set("_id",original.path("_id"));
         command.putObject("documentGuard").put("collectionUuid",uuid).set("expected",original);return command;
     }
+    static ObjectNode creation(String collection,JsonNode document,String uuid){
+        var command=Profiles.JSON.createObjectNode();command.putArray("transaction").addObject().put("insert",collection).putArray("documents").add(document);
+        command.putObject("documentGuard").put("collectionUuid",uuid).set("absentId",document.path("_id"));return command;
+    }
+    @Test void creationRequiresSingleCanonicalInsertAndExclusiveTypedAbsenceGuard()throws Exception{
+        var document=json("{\"_id\":{\"$numberLong\":\"9007199254740993\"},\"name\":\"new\"}");var selected=target("replica_set");
+        var command=creation("items",document,UUID64);var classification=NativeCommand.classify(selected,command);
+        assertEquals(NativeCommand.Effect.WRITE,classification.effect());assertFalse(classification.reusableRead());
+        for(String topology:List.of("standalone","srv","sharded"))assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target(topology),command));
+        var both=command.deepCopy();((ObjectNode)both.path("documentGuard")).set("expected",document);assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,both));
+        for(String invalid:List.of("null","1","{}","{\"$numberLong\":\"9007199254740994\"}","\"other\"")){
+            var wrong=command.deepCopy();((ObjectNode)wrong.path("documentGuard")).set("absentId",json(invalid));assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,wrong));
+        }
+        var bulk=command.deepCopy();((ObjectNode)bulk.path("transaction").get(0)).withArray("documents").add(document);assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,bulk));
+        var bypass=command.deepCopy();((ObjectNode)bypass.path("transaction").get(0)).put("bypassDocumentValidation",true);assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,bypass));
+        for(ObjectNode wrong:List.of(deletion("items",document,UUID64),guarded("items",document,document,UUID64))){wrong.set("documentGuard",command.path("documentGuard"));assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,wrong));}
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,creation("other",document,UUID64)));
+        var profile=profile("1","replica_set");assertTrue(NativeCatalog.describe(profile,selected,true).path("operations").path("guardedDocumentCreation").path("available").asBoolean());
+        profile.put("readOnly",true);assertFalse(NativeCatalog.describe(profile,selected,true).path("operations").path("guardedDocumentCreation").path("available").asBoolean());
+    }
     @Test void deletionIsSingleExactDestructiveAndNeverReusable()throws Exception{
         var original=json("{\"_id\":{\"$numberLong\":\"9007199254740993\"},\"name\":\"original\"}");
         var command=deletion("items",original,UUID64);var selected=target("replica_set");
@@ -108,6 +128,33 @@ class NativeMongoDocumentTest {
     }
     static ObjectNode targetInput(ObjectNode profile){return Profiles.JSON.createObjectNode().put("connectionId",profile.path("id").asText()).put("connectionName","Document fixture").put("database","documents").put("collection","items");}
 
+    @Test @Timeout(150) void liveReplicaCreationConflictsRollbackAndUnknownCommit()throws Exception{
+        String port=System.getenv("MONGO_TOPOLOGY_PORT"),topology=Objects.toString(System.getenv("MONGO_TOPOLOGY_KIND"),"");
+        Assumptions.assumeTrue(port!=null&&topology.equals("replica_set"),"Owned replica-set fixture required");
+        assertTrue(Objects.toString(System.getenv("MONGO_TOPOLOGY_OWNER"),"").startsWith("cgraph-mongo-topology-"));
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var jdbc=new Connections(profiles);
+            var jobs=new QueryJobs(jdbc,new DbaConfig(root,128L<<20,2,100,100,20),_->true);var clients=new NativeConnections(profiles);var ops=new NativeOperations(profiles,jobs)){
+            var profile=profiles.put(null,profile(port,topology));var input=targetInput(profile).put("collection","creates");var selected=NativeTarget.resolve(profile,input);
+            try(var lease=clients.acquire(selected.connectionId())){
+                var db=lease.mongo.getDatabase("documents");db.createCollection("creates");var collection=db.getCollection("creates",BsonDocument.class);
+                var metadata=MongoCollectionMetadata.load(lease,selected,jobs.new Job("human",selected.connectionId()));String uuid=Base64.getEncoder().encodeToString(metadata.getDocument("info").getBinary("uuid").getData());
+                var document=BsonDocument.parse("{_id:{$numberLong:'9007199254740993'},name:'created',decimal:{$numberDecimal:'1.2300'},empty:null}");
+                var command=creation("creates",canonical(document),uuid);input.set("command",command);var review=ops.prepareBrowser("human",input);assertEquals(0,collection.countDocuments());
+                var created=ConnectionSetupTest.await(jobs,"human",ops.applyBrowser("human",review.path("id").asText()));assertEquals("complete",created.path("state").asText(),created.toPrettyString());assertEquals("insert",created.path("result").path("entries").get(0).path("operation").asText());assertTrue(NativeMongoDocuments.same(document,collection.find().first()));jobs.remove("human",created.path("id").asText());
+                var duplicate=jobs.new Job("human",selected.connectionId());assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,command,duplicate,()->{}));assertEquals("rollback_acknowledged",duplicate.outcome);assertEquals(1,collection.countDocuments());
+                var competitor=BsonDocument.parse("{_id:'competing',name:'external'}");var requested=BsonDocument.parse("{_id:'competing',name:'requested'}");
+                var race=creation("creates",canonical(requested),uuid);var checks=new AtomicInteger();var raced=jobs.new Job("human",selected.connectionId());
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,race,raced,()->{if(checks.incrementAndGet()==2)collection.insertOne(competitor);}));assertEquals("rollback_acknowledged",raced.outcome);assertEquals("external",collection.find(new BsonDocument("_id",new BsonString("competing"))).first().getString("name").getValue());
+                var stoppedCommand=creation("creates",json("{\"_id\":\"cancelled\"}"),uuid);
+                for(boolean revoked:List.of(false,true)){checks.set(0);var stopped=jobs.new Job("human",selected.connectionId());assertThrows(RuntimeException.class,()->NativeMutations.execute(lease,selected,stoppedCommand,stopped,()->{if(checks.incrementAndGet()==3){if(revoked)throw new SecurityException("revoked");stopped.cancelled=true;}}));assertEquals("rollback_acknowledged",stopped.outcome);assertEquals(0,collection.countDocuments(new BsonDocument("_id",new BsonString("cancelled"))));}
+                var lostCommand=creation("creates",json("{\"_id\":\"lost\"}"),uuid);var commits=new AtomicInteger();
+                try(var lost=new NativeConnections.Lease(NativeMongoTransactionTest.faultClient(lease.mongo,commits),null,null,new byte[32],lease.revision,()->{})){var unknown=jobs.new Job("human",selected.connectionId());assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lost,selected,lostCommand,unknown,()->{}));assertEquals(1,commits.get());assertEquals("commit_unknown",unknown.outcome);assertEquals(1,collection.countDocuments(new BsonDocument("_id",new BsonString("lost"))));}
+                collection.drop();var missing=jobs.new Job("human",selected.connectionId());assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,command,missing,()->fail("No implicit collection creation")));assertFalse(db.listCollectionNames().into(new ArrayList<>()).contains("creates"));
+                db.createCollection("creates");assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,command,jobs.new Job("human",selected.connectionId()),()->fail("No replaced collection insert")));assertEquals(0,db.getCollection("creates").countDocuments());
+            }
+            assertEquals(0,clients.telemetry().path("activeLeases").asInt());
+        }
+    }
     @Test @Timeout(150) void liveGuardedReplacementConflictRollbackAndUnknownCommit()throws Exception{
         String port=System.getenv("MONGO_TOPOLOGY_PORT"),topology=Objects.toString(System.getenv("MONGO_TOPOLOGY_KIND"),"");
         Assumptions.assumeTrue(port!=null&&Set.of("replica_set","sharded").contains(topology),"Owned Mongo topology required");

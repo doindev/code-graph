@@ -33,7 +33,7 @@ final class NativeCatalog {
         result.set("target",target.json());result.put("clientVersion",target.transport()==DatabaseTransport.MONGODB?"5.12.0":"7.7.0.RELEASE");
         var operations=result.putObject("operations");
         operations.putObject("boundedReads").put("available",true).put("requiresPermission",true);
-        if(target.transport()==DatabaseTransport.MONGODB)for(String operation:List.of("guardedDocumentReplacement","guardedDocumentDeletion"))operations.putObject(operation)
+        if(target.transport()==DatabaseTransport.MONGODB)for(String operation:List.of("guardedDocumentCreation","guardedDocumentReplacement","guardedDocumentDeletion"))operations.putObject(operation)
                 .put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)&&target.topology().equals("replica_set"))
                 .put("requiresPermission",true).put("maximumDocumentJsonBytes",NativeMongoDocuments.MAX_JSON_BYTES)
                 .put("restriction",NativeMongoDocuments.NOTICE);

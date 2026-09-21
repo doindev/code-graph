@@ -8,7 +8,7 @@ change stream, or infrastructure-administration capability.
 ## Command and scope
 
 Optional documentGuard supports a narrowly scoped, byte-exact complete-document
-replacement or single-document deletion on replica-set profiles only. It does not change ordinary transaction
+creation (absentId), replacement or single-document deletion on replica-set profiles only. It does not change ordinary transaction
 behavior. See [the editor and guard contract](mongodb-document-editor.md) for the
 canonical type/size, immutable ID, UUID, concurrency and recovery requirements.
 

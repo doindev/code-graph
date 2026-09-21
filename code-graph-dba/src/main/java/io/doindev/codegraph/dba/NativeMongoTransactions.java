@@ -62,7 +62,7 @@ final class NativeMongoTransactions {
                 for(JsonNode entry:commands){
                     authority.run();check(job);
                     BsonDocument request=BsonDocument.parse(entry.toString());
-                    if(command.has("documentGuard"))request.getArray(entry.has("delete")?"deletes":"updates").get(0).asDocument().put("collation",new BsonDocument("locale",new BsonString("simple")));
+                    if(command.has("documentGuard")&&!entry.has("insert"))request.getArray(entry.has("delete")?"deletes":"updates").get(0).asDocument().put("collation",new BsonDocument("locale",new BsonString("simple")));
                     // Timeout belongs to the whole transaction. Per-command overrides are forbidden by
                     // the driver; manual maxTimeMS plus client timeoutMS is also undefined.
                     var reply=database.runCommand(session,request,ReadPreference.primary(),RawBsonDocument.class);

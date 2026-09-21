@@ -80,8 +80,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   atomic CRUD on one existing ordinary collection in replica-set/sharded mode,
   with exact match checks, cancellation and explicit uncertain-commit outcomes.
   The [MongoDB document editor](docs/mongodb-document-editor.md) adds staged,
-  canonical Extended JSON replacement and staged deletion with replica-set-only byte-exact original
-  BSON/collection UUID guards; standalone/sharded editing remains unavailable.
+  canonical Extended JSON creation, replacement and staged deletion with replica-set-only
+  absence/original-BSON and collection UUID guards; standalone/sharded editing remains unavailable.
   [MongoDB change-stream batches](docs/mongodb-change-streams.md) add finite,
   resumable exact-collection reads with explicit history gaps and a next-batch UI.
   MongoDB supports [reviewed same-database collection renames](docs/mongodb-collection-rename.md)

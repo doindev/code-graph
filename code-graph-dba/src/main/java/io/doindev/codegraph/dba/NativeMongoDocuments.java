@@ -9,19 +9,28 @@ import org.bson.codecs.BsonDocumentCodec;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Exact BSON guard for one reviewed replacement or deletion, inside the existing transaction lifecycle. */
+/** Exact BSON/absence guard for one reviewed document change, inside the transaction lifecycle. */
 final class NativeMongoDocuments {
     static final int MAX_JSON_BYTES=32768;
-    static final String NOTICE="Replaces or deletes one existing document after a byte-exact BSON comparison in an atomic transaction; deletion removes the entire document and replacement removes omitted fields. Requires a replica-set profile, ordinary collection UUID and unchanged _id. Field order and numeric types are significant. No upsert, sharded routing, projection, bulk editing or automatic retry. A lost commit acknowledgement requires reconciliation; matching data is not historical identity.";
+    static final String NOTICE="Creates one document after an exact _id absence check, or replaces/deletes one existing document after a byte-exact BSON comparison in an atomic transaction. Deletion removes the whole document and replacement removes omitted fields. Requires a replica-set profile and existing ordinary collection UUID. Field order and numeric types are significant; existing _id values are immutable. No upsert, implicit collection creation, sharded routing, projection, bulk editing or automatic retry. A lost commit acknowledgement requires reconciliation; matching data is not historical identity.";
 
     static void validate(NativeTarget target,JsonNode command){
         if(!target.topology().equals("replica_set"))throw new IllegalArgumentException("Document guards require an explicit replica_set profile; standalone/SRV/sharded document editing is not verified");
         JsonNode guard=command.path("documentGuard");
-        fields(guard,Set.of("collectionUuid","expected"));
+        boolean creating=guard.has("absentId");
+        fields(guard,creating?Set.of("collectionUuid","absentId"):Set.of("collectionUuid","expected"));
         uuid(guard.path("collectionUuid"));
-        BsonDocument original=document(guard.path("expected"));
-        if(command.path("transaction").size()!=1)throw new IllegalArgumentException("Document guard requires exactly one replacement update or single-document delete");
+        BsonDocument original=creating?identity(guard.path("absentId")):document(guard.path("expected"));
+        if(command.path("transaction").size()!=1)throw new IllegalArgumentException("Document guard requires exactly one insert, replacement update or single-document delete");
         JsonNode entry=command.path("transaction").get(0);
+        if(creating){
+            fields(entry,Set.of("insert","documents","ordered"));
+            if(!entry.path("insert").asText().equals(target.collection())||!entry.path("documents").isArray()||entry.path("documents").size()!=1)
+                throw new IllegalArgumentException("Absent document guard requires exactly one insert on the selected collection");
+            BsonDocument inserted=document(entry.path("documents").get(0));
+            if(!same(original,new BsonDocument("_id",inserted.get("_id"))))throw new IllegalArgumentException("Insert _id must exactly match the typed absentId guard");
+            return;
+        }
         if(entry.has("delete")){
             fields(entry,Set.of("delete","deletes","ordered"));
             if(!entry.path("delete").asText().equals(target.collection())||!entry.path("deletes").isArray()||entry.path("deletes").size()!=1)
@@ -76,6 +85,17 @@ final class NativeMongoDocuments {
         if(!uuid(guard.path("collectionUuid")).equals(observed))throw new IllegalArgumentException("Collection identity changed; reload before reviewing another document change");
     }
     static void check(MongoDatabase database,ClientSession session,NativeTarget target,JsonNode guard){
+        if(guard.has("absentId")){
+            // Inspect only _id: an existing large document is a conflict, not a reason
+            // to decode or retain its full payload. The insert's unique _id constraint
+            // also rejects a competing writer after this snapshot observation.
+            try(var cursor=database.getCollection(target.collection(),RawBsonDocument.class)
+                    .find(session,identity(guard.path("absentId"))).projection(new BsonDocument("_id",new BsonInt32(1)))
+                    .collation(Collation.builder().locale("simple").build()).limit(1).batchSize(1).iterator()){
+                if(cursor.hasNext())throw new Conflict("Document conflict: _id already exists; no commit attempted");
+            }
+            return;
+        }
         BsonDocument expected=document(guard.path("expected"));
         try(var cursor=database.getCollection(target.collection(),RawBsonDocument.class)
                 .find(session,new BsonDocument("_id",expected.get("_id")))
@@ -90,6 +110,9 @@ final class NativeMongoDocuments {
         RawBsonDocument a=left instanceof RawBsonDocument raw?raw:new RawBsonDocument(left,new BsonDocumentCodec());
         RawBsonDocument b=right instanceof RawBsonDocument raw?raw:new RawBsonDocument(right,new BsonDocumentCodec());
         return a.getByteBuffer().asNIO().equals(b.getByteBuffer().asNIO());
+    }
+    private static BsonDocument identity(JsonNode id){
+        var value=Profiles.JSON.createObjectNode();value.set("_id",id);return document(value);
     }
     private static void fields(JsonNode value,Set<String> allowed){
         if(!value.isObject())throw new IllegalArgumentException("Guarded document fields must be objects");

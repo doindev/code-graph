@@ -183,6 +183,13 @@ types matter. A guard conflict requires reload/review; never remove the guard
 or retry an uncertain commit to force the write through. This grants no access
 and does not certify standalone/SRV/sharded graphical document editing.
 
+When guardedDocumentCreation is advertised, `documentGuard.absentId` replaces
+`expected` for exactly one insert. Supply the same explicit, typed ID in the new
+canonical document; the existing collection UUID is still required. Never combine
+absence and original-value guards, substitute upsert, create a missing collection,
+or choose a new ID merely to retry an uncertain insert. A lost commit reply needs
+authorized reconciliation. Creation still needs exact approval and grants no access.
+
 When advertised, MongoDB managed transactions use a `transaction` array of CRUD
 objects, unlike Redis argument arrays. They require an explicit replica-set or
 sharded profile and one existing ordinary collection. Every update/delete entry
