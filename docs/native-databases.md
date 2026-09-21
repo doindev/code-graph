@@ -43,6 +43,11 @@ are shared with the existing editor.
 
 ## Workspace and tree
 
+The [stream-entry composer](redis-stream-editor.md) stages an ordered, binary-safe
+entry for an existing stream. It uses reviewed XADD NOMKSTREAM, reports complete
+entry IDs/no-change receipts, and blocks uncertain resubmission. It does not edit
+existing entries, create keys, trim data or consume/acknowledge messages.
+
 The [sorted-set member editor](redis-sorted-set-editor.md) stages finite binary64
 score updates, explicit member insertion and deletion in existing sorted sets.
 Current-score/absence WATCH guards never recreate missing keys; deleting the

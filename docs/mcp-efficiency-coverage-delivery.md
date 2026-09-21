@@ -195,6 +195,11 @@ The frozen source ZIP SHA-256 is
 
 ## Recovery, deployment and cleanup
 
+The subsequent [stream-entry composer](redis-stream-editor.md) adds bounded UI
+drafts and existing-only append receipts to the current Redis adapter. Its
+validation is recorded separately; general stream/key lifecycle and native
+administration remain incomplete.
+
 Deploy only after an explicit restart request and reindex to publish method edges
 and hashes. Fresh sessions discover the updated catalog; stale client caches may
 still require their client's reconnect procedure. Existing page cursors and session

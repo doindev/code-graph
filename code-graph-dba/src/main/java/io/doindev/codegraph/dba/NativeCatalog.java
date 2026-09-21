@@ -54,6 +54,7 @@ final class NativeCatalog {
         if(target.transport()==DatabaseTransport.REDIS)operations.putObject("streamConsumerGroups")
                 .put("boundedReads",true).put("available",approvalsEnabled&&!profile.path("readOnly").asBoolean(true)).put("requiresPermission",true)
                 .put("maximumMessages",100).put("continuousSubscription",false).put("automaticAcknowledgement",false)
+                .put("appendExistingStream",true).put("appendReceipt","XADD returns applied, entryId and existingStreamOnly. NOMKSTREAM requires Redis 6.2+; missing key returns applied false. No snapshot or key-recreation detection.")
                 .put("restriction",NativeRedisStreams.NOTICE).put("verification","Redis 7.4.1 fixture target; server version and ACL remain authoritative");
         for(String name:List.of("cachedCatalog","schemaCapture","schemaComparison","contractValidation"))operations.putObject(name).put("available",true).put("requiresPermission",true).put("restriction","Bounded native observations; samples are optional type-only evidence, never a complete schema");
         if(target.transport()==DatabaseTransport.MONGODB)operations.putObject("changeStreams")

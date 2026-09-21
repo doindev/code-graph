@@ -125,6 +125,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] Existing-stream graphical entry composer verified against standalone,
+  Cluster and Sentinel Redis, all 19 browser suites and the full Maven reactor.
+  Bounded ordered/binary pairs, explicit staging/review, NOMKSTREAM,
+  typed append/no-change receipts and uncertain-outcome reconciliation.
+  No entry replacement or continuous subscription. See [scope](redis-stream-editor.md).
+
 - [x] List-end lifecycle: staged prepend/
   append and deletion of the loaded first/last item. Server-required length/value
   guard, single-command deletion, no raw/pipeline trim or interior manipulation.

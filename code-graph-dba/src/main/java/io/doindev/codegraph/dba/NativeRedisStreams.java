@@ -17,14 +17,26 @@ final class NativeRedisStreams {
     private static final Set<String> COMMANDS=Set.of("XADD","XDEL","XTRIM","XREAD","XREADGROUP","XACK","XPENDING","XCLAIM","XAUTOCLAIM","XGROUP");
     record Spec(String name,String action,int key,int group,int consumer,int count,NativeCommand.Effect effect){}
     static boolean handles(JsonNode command){return command.isArray()&&!command.isEmpty()&&command.get(0).isTextual()&&COMMANDS.contains(command.get(0).asText().toUpperCase(Locale.ROOT));}
-    static NativeCommand.Classification classify(JsonNode command){var spec=parse(command);boolean read=spec.effect==NativeCommand.Effect.READ;return new NativeCommand.Classification("redis.stream."+(read?"read":"mutation"),spec.effect,read,NOTICE);}
+    static NativeCommand.Classification classify(JsonNode command){
+        var spec=parse(command);boolean read=spec.effect==NativeCommand.Effect.READ;
+        String detail=spec.name.equals("XADD")?(existingOnly(command)
+                ?" XADD NOMKSTREAM appends only if the key is currently an existing stream; a missing key returns applied false. TTL is preserved, but same-name key recreation is not detected. Requires Redis 6.2+."
+                :" XADD can create a missing stream. Appending with an automatic ID is not idempotent. No automatic retry."):"";
+        return new NativeCommand.Classification("redis.stream."+(read?"read":"mutation"),spec.effect,read,NOTICE+detail);
+    }
+    private static boolean existingOnly(JsonNode command){return command.path(2).isTextual()&&command.path(2).asText().equalsIgnoreCase("NOMKSTREAM");}
     static Spec parse(JsonNode command){
         if(!handles(command))throw new IllegalArgumentException("Unsupported Redis stream command");
         String name=text(command,0).toUpperCase(Locale.ROOT),action=name;int key=1,group=-1,consumer=-1,count=1;
         NativeCommand.Effect effect=NativeCommand.Effect.WRITE;
-        Set<Integer> binary=new HashSet<>();
+        Set<Integer> binary=new HashSet<>();int fieldStart=-1;
         switch(name){
-            case "XADD" -> {arity(command,5,203);if(command.size()%2!=1)throw bad("XADD requires field/value pairs");id(command,2,Set.of("*"));for(int i=3;i<command.size();i++)binary.add(i);}
+            case "XADD" -> {
+                boolean existing=existingOnly(command);
+                fieldStart=existing?4:3;arity(command,fieldStart+2,fieldStart+200);
+                if((command.size()-fieldStart)%2!=0)throw bad("XADD requires ordered field/value pairs");
+                id(command,fieldStart-1,Set.of("*"));for(int i=fieldStart;i<command.size();i++)binary.add(i);
+            }
             case "XDEL","XACK" -> {int start=name.equals("XDEL")?2:3;arity(command,start+1,start+100);if(start==3)group=2;for(int i=start;i<command.size();i++)id(command,i,Set.of());count=command.size()-start;effect=name.equals("XDEL")?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE;}
             case "XTRIM" -> {arity(command,4,4);String mode=text(command,2).toUpperCase(Locale.ROOT);if(mode.equals("MAXLEN"))number(command,3,0,1_000_000_000);else if(mode.equals("MINID"))id(command,3,Set.of());else throw bad("XTRIM accepts exact MAXLEN or MINID only; no approximate/extra options");effect=NativeCommand.Effect.DESTRUCTIVE;}
             case "XREAD" -> {arity(command,6,6);keyword(command,1,"COUNT");count=(int)number(command,2,1,100);keyword(command,3,"STREAMS");key=4;id(command,5,Set.of("$"));effect=NativeCommand.Effect.READ;}
@@ -47,7 +59,7 @@ final class NativeRedisStreams {
         binary.add(key);if(group>=0)binary.add(group);if(consumer>=0)binary.add(consumer);
         for(int i=1;i<command.size();i++){
             if(binary.contains(i)){
-                byte[] value=NativeRedisArguments.bytes(command,i);int max=name.equals("XADD")&&i>=4&&i%2==0?65536:8192;
+                byte[] value=NativeRedisArguments.bytes(command,i);int max=fieldStart>=0&&i>fieldStart&&(i-fieldStart)%2==1?65536:8192;
                 if(value.length>max||(i==key||i==group||i==consumer)&&value.length==0)throw bad("Stream key/group/consumer/field exceeds its allowance or a target name is empty");
             }else text(command,i);
         }
@@ -103,6 +115,18 @@ final class NativeRedisStreams {
             case "XPENDING" -> {
                 if(raw.size()>spec.count)throw bad("Pending reply exceeds reviewed count");
                 for(Object value:raw){var tuple=list(value);if(tuple.size()!=4)throw bad("Unsupported pending-entry reply");var entry=Profiles.JSON.createObjectNode().put("id",replyId(tuple.get(0))).put("idleMillis",integerReply(tuple.get(2))).put("deliveryCount",integerReply(tuple.get(3)));entry.set("consumer",NativeResults.binary(binary(tuple.get(1)),8192));if(!rows.add(entry))break;}
+            }
+            case "XADD" -> {
+                if(raw.size()!=1)throw bad("Unexpected append receipt; reconcile before retry");
+                Object value=raw.getFirst();boolean existing=existingOnly(command);
+                out.put("existingStreamOnly",existing);
+                if(value==null){
+                    if(!existing)throw bad("Unexpected null append receipt; reconcile before retry");
+                    out.putNull("value").putNull("entryId").put("applied",false);
+                }else{
+                    String entryId=replyId(value);if(entryId.equals("0-0"))throw bad("Invalid appended entry ID; reconcile before retry");
+                    out.put("value",entryId).put("entryId",entryId).put("applied",true);
+                }
             }
             default -> {
                 if(raw.size()!=1)throw bad("Unexpected stream mutation receipt; reconcile before retry");Object value=raw.getFirst();out.set("value",value instanceof Number?TextNode.valueOf(integerReply(value)):TextNode.valueOf(value instanceof byte[]?new String((byte[])value,StandardCharsets.UTF_8):Objects.toString(value)));

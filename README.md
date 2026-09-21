@@ -57,6 +57,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   and TTL preservation. It also stages prepend/append and guarded first/last-item
   deletion without loading the list. A position is not a stable record identity;
   deleting the last item removes its key and TTL.
+  The [stream-entry composer](docs/redis-stream-editor.md) stages bounded ordered
+  text/base64 field pairs and appends only to an existing stream after review;
+  explicit receipts distinguish a new entry from a missing-key no-op.
   A [set-member editor](docs/redis-set-editor.md) checks one exact member and
   stages reviewed insertion/deletion with membership conflict checks.
   The [sorted-set member editor](docs/redis-sorted-set-editor.md) stages finite

@@ -43,6 +43,46 @@ class NativeRedisStreamTest {
         input.set(2,Profiles.JSON.createObjectNode().put("base64","Kg=="));assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(input));
         input.set(2,TextNode.valueOf("*"));input.set(4,TextNode.valueOf("x".repeat(65537)));assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(input));
     }
+    @Test void existingOnlyAppendGrammarAndTypedReceipts()throws Exception{
+        var input=command("XADD","stream","NOMKSTREAM","*","","","same","a","same","b");
+        assertEquals(NativeCommand.Effect.WRITE,NativeCommand.classify(target(),input).effect());
+        assertTrue(NativeCommand.classify(target(),input).reason().contains("NOMKSTREAM"));
+        assertFalse(NativeCommand.classify(target(),input).reusableRead());NativeMutations.validate(target(),input);
+        input.set(4,Profiles.JSON.createObjectNode().put("base64","AP8="));input.set(5,Profiles.JSON.createObjectNode().put("base64","/wA="));NativeRedisStreams.parse(input);
+        input.set(4,TextNode.valueOf("f".repeat(8193)));assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(input));
+        input.set(4,TextNode.valueOf("f"));input.set(5,TextNode.valueOf("v".repeat(65536)));NativeRedisStreams.parse(input);
+        input.set(5,TextNode.valueOf("v".repeat(65537)));assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(input));
+        for(var invalid:List.of(command("XADD","s","NOMKSTREAM","*"),command("XADD","s","NOMKSTREAM","*","f"),
+                command("XADD","s","NOMKSTREAM","MAXLEN","1","*","f","v"),command("XADD","s","NOMKSTREAM","IDMP","producer","id","*","f","v"))){
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target(),invalid));
+        }
+        var hundred=command("XADD","s","NOMKSTREAM","*");for(int i=0;i<100;i++)hundred.add("f").add("v");
+        NativeRedisStreams.parse(hundred);hundred.add("f").add("v");assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(hundred));
+        var binaryControl=command("XADD","s","NOMKSTREAM","*","f","v");binaryControl.set(3,Profiles.JSON.createObjectNode().put("base64","Kg=="));assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.parse(binaryControl));
+        var batch=Profiles.JSON.createObjectNode();batch.putArray("pipeline").add(command("XADD","s","NOMKSTREAM","*","f","v"));assertThrows(IllegalArgumentException.class,()->NativeCommand.classify(target(),batch));
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(root,128L<<20,2,100,100,10),_->true)){
+            var job=jobs.new Job("human","fixture");var existing=command("XADD","s","NOMKSTREAM","*","f","v");
+            var spec=NativeRedisStreams.parse(existing);
+            var missing=NativeRedisStreams.project(spec,Collections.singletonList(null),existing,job,8192);
+            assertFalse(missing.path("applied").asBoolean());assertTrue(missing.path("value").isNull());assertTrue(missing.path("entryId").isNull());
+            var appended=NativeRedisStreams.project(spec,List.of(bytes("18446744073709551615-18446744073709551615")),existing,job,8192);
+            assertTrue(appended.path("applied").asBoolean());assertEquals(appended.path("value"),appended.path("entryId"));assertTrue(appended.path("existingStreamOnly").asBoolean());
+            for(String invalid:List.of("OK","0-0","18446744073709551616-0"))assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.project(spec,List.of(bytes(invalid)),existing,job,8192));
+            var ordinary=command("XADD","s","*","f","v");
+            assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.project(NativeRedisStreams.parse(ordinary),Collections.singletonList(null),ordinary,job,8192));
+            assertThrows(IllegalArgumentException.class,()->NativeRedisStreams.project(spec,List.of(1L),existing,job,8192));
+            var profile=profiles.put(null,Profiles.JSON.createObjectNode().put("name","Append").put("templateId","redis-native").put("url","redis://localhost:1").put("readOnly",false));
+            try(var operations=new NativeOperations(profiles,jobs)){
+                var proposal=Profiles.JSON.createObjectNode().put("connectionId",profile.path("id").asText()).put("connectionName","Append").put("database","0").set("command",existing);
+                var review=operations.prepareBrowser("owner",proposal);assertTrue(review.path("mutation").asBoolean());assertFalse(review.path("eligiblePersistentRead").asBoolean());assertEquals(1,operations.telemetry().path("retainedReviews").asInt());
+                assertTrue(review.path("transactionNotice").asText().contains("NOMKSTREAM"));assertTrue(review.path("transactionNotice").asText().contains("recreation"));
+                assertThrows(SecurityException.class,()->operations.applyBrowser("other",review.path("id").asText()));
+                var changed=((ObjectNode)proposal).deepCopy();changed.withArray("command").set(3,TextNode.valueOf("7-0"));assertThrows(IllegalArgumentException.class,()->operations.validate(review,changed));
+                operations.discardBrowser("owner",review.path("id").asText());assertEquals(0,operations.telemetry().path("retainedReviews").asInt());
+                profiles.put(profile.path("id").asText(),Profiles.JSON.createObjectNode().put("readOnly",true));assertThrows(IllegalArgumentException.class,()->operations.prepare(proposal));
+            }
+        }
+    }
     @Test void boundedProjectionPreservesDeliveryIdsDuplicatesAndBinaryValues()throws Exception{
         try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(root,128L<<20,2,100,100,10),_->true)){
             var input=command("XREADGROUP","GROUP","g","c","COUNT","2","STREAMS","s",">");var job=jobs.new Job("human","fixture");int reserve=job.byteLimit-24000;
@@ -99,6 +139,29 @@ class NativeRedisStreamTest {
                     var revoked=jobs.new Job("human",target.connectionId());checks.set(0);assertThrows(SecurityException.class,()->NativeRedisStreams.execute(lease,target,command("XACK",key,"workers","1-0"),revoked,()->{if(checks.incrementAndGet()==2)throw new SecurityException("revoked");}));assertEquals("not_started",revoked.outcome);
                     var lateCancel=jobs.new Job("human",target.connectionId());checks.set(0);assertThrows(java.util.concurrent.CancellationException.class,()->NativeRedisStreams.execute(lease,target,command("XADD",key,"4-0","f","v"),lateCancel,()->{if(checks.incrementAndGet()==3)lateCancel.cancelled=true;}));assertEquals("acknowledged",lateCancel.outcome);assertEquals("4-0",lateCancel.result.path("value").asText());run.apply(command("XDEL",key,"4-0"));
                     var binary=command("XADD",key,"5-0","f","");binary.set(4,Profiles.JSON.createObjectNode().put("base64","AP8="));run.apply(binary);assertEquals("AP8=",run.apply(command("XREAD","COUNT","1","STREAMS",key,"4-0")).path("entries").get(0).path("fields").get(0).path("value").path("base64").asText());run.apply(command("XDEL",key,"5-0"));
+                    String composing=key+":composer";
+                    try{
+                        var absent=run.apply(command("XADD",composing,"NOMKSTREAM","*","f","v"));
+                        assertFalse(absent.path("applied").asBoolean());assertTrue(absent.path("entryId").isNull());assertEquals(0,observer.sync().exists(bytes(composing)));
+                        run.apply(command("XADD",composing,"1-0","seed","kept"));observer.sync().pexpire(bytes(composing),60000);
+                        var append=command("XADD",composing,"NOMKSTREAM","*","same","","same","last");append.set(5,Profiles.JSON.createObjectNode().put("base64","AP8="));
+                        var appended=run.apply(append);assertTrue(appended.path("applied").asBoolean());assertTrue(appended.path("existingStreamOnly").asBoolean());
+                        assertEquals(appended.path("value"),appended.path("entryId"));assertEquals(2,observer.sync().xlen(bytes(composing)));assertTrue(observer.sync().pttl(bytes(composing))>0);
+                        var pairRow=run.apply(command("XREAD","COUNT","1","STREAMS",composing,"1-0")).path("entries").get(0);
+                        assertEquals(2,pairRow.path("fields").size());assertEquals(pairRow.path("fields").get(0).path("field"),pairRow.path("fields").get(1).path("field"));
+                        assertEquals("AP8=",pairRow.path("fields").get(0).path("value").path("base64").asText());
+                        var empty=run.apply(command("XADD",composing,"NOMKSTREAM","*","",""));assertTrue(empty.path("applied").asBoolean());
+                        var cancelled=jobs.new Job("human",target.connectionId());checks.set(0);
+                        assertThrows(java.util.concurrent.CancellationException.class,()->NativeRedisStreams.execute(lease,target,append,cancelled,()->{if(checks.incrementAndGet()==2)cancelled.cancelled=true;}));
+                        assertEquals(3,observer.sync().xlen(bytes(composing)));assertEquals("not_started",cancelled.outcome);
+                        var denied=jobs.new Job("human",target.connectionId());assertThrows(SecurityException.class,()->NativeRedisStreams.execute(lease,target,append,denied,()->{throw new SecurityException("revoked");}));
+                        assertEquals(3,observer.sync().xlen(bytes(composing)));
+                        var afterDispatch=jobs.new Job("human",target.connectionId());checks.set(0);
+                        assertThrows(java.util.concurrent.CancellationException.class,()->NativeRedisStreams.execute(lease,target,append,afterDispatch,()->{if(checks.incrementAndGet()==3)afterDispatch.cancelled=true;}));
+                        assertEquals("acknowledged",afterDispatch.outcome);assertTrue(afterDispatch.result.path("applied").asBoolean());assertEquals(4,observer.sync().xlen(bytes(composing)));
+                        observer.sync().pexpire(bytes(composing),0);assertFalse(run.apply(append).path("applied").asBoolean());assertEquals(0,observer.sync().exists(bytes(composing)));
+                        observer.sync().set(bytes(composing),bytes("not a stream"));assertThrows(io.lettuce.core.RedisCommandExecutionException.class,()->run.apply(append));assertArrayEquals(bytes("not a stream"),observer.sync().get(bytes(composing)));
+                    }finally{observer.sync().del(bytes(composing));}
                     var wrongType=jobs.new Job("human",target.connectionId());observer.sync().set(bytes(key+":wrong"),bytes("value"));assertThrows(io.lettuce.core.RedisCommandExecutionException.class,()->NativeRedisStreams.execute(lease,target,command("XADD",key+":wrong","*","f","v"),wrongType,()->{}));assertEquals("rejected",wrongType.outcome);
                     assertEquals("OK",run.apply(command("XGROUP","SETID",key,"workers","$")).path("value").asText());
                     assertEquals("0",run.apply(command("XGROUP","DELCONSUMER",key,"workers","one")).path("value").asText());

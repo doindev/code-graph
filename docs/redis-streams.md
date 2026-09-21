@@ -9,6 +9,7 @@ Cluster always uses database 0. No new tool or subscription endpoint is added.
 | `XREAD COUNT n STREAMS key id` | Read, no wait; `$` means the current end |
 | `XPENDING key group start end count [consumer]` | Read bounded pending-entry details; `-`/`+` or full ID bounds, optional exclusive `(` |
 | `XADD key id field value [field value ...]` | Add an entry; `*` generates an ID |
+| `XADD key NOMKSTREAM id field value [field value ...]` | Append only to a currently existing stream; a missing key returns an explicit no-change receipt |
 | `XREADGROUP GROUP group consumer COUNT n STREAMS key id` | Changes delivery/pending state; `>` selects never-delivered messages |
 | `XACK key group id [id ...]` | Explicitly acknowledge only those message IDs |
 | `XCLAIM key group consumer min-idle-ms id [id ...]` | Claim explicit pending IDs |
@@ -31,6 +32,12 @@ consumer and field names accept text/canonical base64 up to 8 KiB; values up to
 preserved as ordered field/value pairs rather than collapsed into a map.
 
 ## Approval, resources and recovery
+
+The [stream-entry composer](redis-stream-editor.md) stages bounded ordered pairs
+in the UI and uses the existing-only form. XADD receipts include applied, entryId
+and existingStreamOnly; an acknowledged null receipt is not a successful append.
+NOMKSTREAM does not establish historical key identity. No retries or newer
+idempotency/trimming options are added.
 
 XREADGROUP changes pending entries and delivery counters even when reading a
 consumer's already-pending history. It is **not a safe read**. See the

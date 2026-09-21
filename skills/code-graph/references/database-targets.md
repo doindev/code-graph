@@ -191,6 +191,14 @@ later events were consumed or that an empty batch means complete history.
 
 ### Redis key scans and stream delivery
 
+When advertised, XADD key NOMKSTREAM id field value ... appends only to an
+existing stream; missing keys return applied false and null entryId/value.
+Preserve ordered pairs and duplicate field names. Acknowledged alone does not
+mean appended; inspect applied and the complete string entryId. NOMKSTREAM
+preserves current TTL but cannot detect same-name key recreation. Automatic-ID
+appends are not idempotent: reconcile an uncertain reply with authorized reads,
+never remove NOMKSTREAM or retry merely because no ID reached the client.
+
 For Sentinel/Cluster, preserve opaque SCAN cursors exactly. They are tied to the
 profile/database and observed primary/topology and can expire; restart from 0
 after a stale-cursor error rather than substituting a raw cursor. Cluster targets
