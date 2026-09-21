@@ -21,13 +21,18 @@ snapshots. The native JSON command and SQL Script contents are not rewritten.
   wrappers. The server rejects noncanonical representations and unsupported IDs.
   [Canonical Extended JSON reference](https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/).
 - The _id is immutable. This is a complete replacement: removing a field from
-  the draft removes it from the saved document. No upsert, insert, delete, bulk,
+  the draft removes it from the saved document. No upsert, insert, bulk,
   update-operator or projected-document editing is enabled here.
 - Save opens the existing exact native review. Only **Apply once** submits the
   retained reviewed plan. Canceling review preserves the draft.
 - Revert restores the loaded original without a write. Reloading or closing a
   dirty draft requires confirmation. Tab switching preserves drafts; profile
   change/removal disables further operations. Drafts are not session-persisted.
+- **Delete document** stages removal of the loaded complete document and locks
+  the text area. Nothing is sent until **Save document** opens the exact destructive
+  review and **Apply once** is selected. Revert cancels all draft changes, including
+  deletion. Failed or cancelled reviews retain the pending deletion; confirmed
+  commit clears the displayed document. This never drops the collection.
 - A confirmed commit leaves the submitted text visible but read-only; explicitly
   Load again before another edit. It is not presented as freshly queried data.
 - Conflicts and confirmed rollback preserve the draft. Lost replies, invalid
@@ -69,14 +74,14 @@ actual listCollections info.uuid binary subtype 04 as canonical base64. The
 expected document must be complete canonical Extended JSON, not a projection
 or shortened result. Original and replacement are each at most 32 KiB.
 
-Only one replacement update is allowed. Original/filter/replacement must contain
+Only one replacement update or single-document delete is allowed. Original/filter/replacement must contain
 the same supported, typed _id; guard fields, filters and options are allowlisted.
 The application controls simple collation and forbids caller collation overrides.
 Preflight verifies replica-set/session support, ordinary collection identity and
 the reviewed UUID. Within the existing snapshot transaction it reads the exact
 document and compares BSON bytes, including field order and numeric types.
-The subsequent update shares that transaction, so concurrent changes cannot be
-silently overwritten. Collection identity and authorization are rechecked before
+The subsequent update/delete shares that transaction, so concurrent changes cannot be
+silently overwritten or removed. Collection identity and authorization are rechecked before
 the single non-retrying commit. Existing transaction cancellation, timeouts,
 audit, ownership, resource reservations and cleanup remain unchanged.
 
@@ -86,8 +91,15 @@ as equivalent. Values returning to the exact original bytes are not historical
 identity evidence. BSON documents whose duplicate fields or ordering cannot be
 faithfully represented through JSON must not be edited this way.
 
+For deletion, use `{"delete":"items","deletes":[{"q":{"_id":"example"},"limit":1}]}`
+as the sole transaction entry, with the same complete original and UUID guard.
+Additional filter fields, collation overrides, multiple deletes and non-integer
+or non-1 limits are rejected. The server uses simple collation for both the
+snapshot guard and the delete. Missing/changed documents conflict; a concurrent
+write between comparison and deletion aborts the transaction.
+
 Receipts retain kind transaction, atomic true, documentGuard true, explicit
-commit/rollback outcome and exactly one update's matched count/state. An HTTP
+commit/rollback outcome and exactly one update/delete's matched count/state. An HTTP
 success or terminal job state alone is not proof of commit. Normal agents still
 need exact one-time approval; startup YOLO changes consent, not guard checks.
 No reusable write grants, additional tools or database-access authority are added.
@@ -165,6 +177,43 @@ mvn -B -ntp -pl code-graph-mcp-http -am test '-Djava.awt.headless=true' '-Dtest=
 mvn -B -ntp package '-Djava.awt.headless=true'
 ~~~
 
-The broad native roadmap remains incomplete: graphical document creation/deletion,
+The broad native roadmap remains incomplete: graphical document creation,
 sharded document identity/routing, aggregation builders, subscriptions, broader
 administration and the remaining vendor/platform gates are not completed here.
+
+## Guarded deletion checkpoint
+
+The 2026-09-20 continuation adds staged single-document deletion to this editor
+and the existing guarded native transaction contract. It retains the replica-set
+boundary, exact target and UUID checks, immutable typed ID, complete original
+comparison, one-time approval, resource accounting and non-retrying commit.
+No new tool or endpoint is introduced; capabilities advertise guardedDocumentDeletion.
+
+- Focused Java/HTTP/MCP checks: 47 passed, four optional live skips, no failures.
+- Owned MongoDB 8.0 replica-set gate: 18 passed, no skips or failures, using the
+  pinned image and client above. Includes changed/missing originals, concurrent
+  writes, collection replacement, rollback/cancellation, exact human/YOLO agent
+  approval and loss of a real commit response without replay. Unsupported
+  standalone/SRV/sharded guards remain rejected by unit tests.
+- Full Maven reactor: 35 modules, 183 suites, 908 tests; 844 passed, 64 explicit
+  optional/platform skips, zero failures/errors. Package succeeded in 4:23.
+- All 20 browser suite groups passed sequentially after packaging. The focused
+  native suite also passed; deletion staging, Revert, review Cancel, remount,
+  read-only state, conflict and uncertainty handling are covered. Narrow-screen
+  screenshot inspection confirms wrapped controls do not overlap the editor.
+- Eleven grid Node tests, skill validation, Windows bootstrap and 14 Node
+  installer/skill tests passed; two real-client checks remained opt-in skips.
+
+Raw local evidence: target/mongo-document-delete-80153cf5108648b0ae5f07af59192223,
+including focused.log, mongo-replica.log, live-reports/replica, reactor.log,
+browser-native.log, browser-all-final.log and installer logs. An earlier browser
+run lost fixture classes during a concurrent Maven compile; it is retained in
+browser-all.log and superseded by the complete sequential run. Do not rebuild
+the same class directory while browser fixtures are using it.
+
+The owned fixture/container and newly pulled Mongo image were removed. The
+55-image Docker baseline is unchanged. Existing databases/images were preserved;
+no broad pruning was used. Other OS desktops and a new performance benchmark
+were not certified by this functional increment. The shared skill reference was
+updated without modifying installed clients. Commit/push/restart is performed
+only under the user's explicit per-task delivery instruction.

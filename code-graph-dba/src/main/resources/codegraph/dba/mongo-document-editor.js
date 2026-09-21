@@ -47,26 +47,28 @@ export class MongoDocumentEditor{
     const label=el('label','_id');this.key=el('input');this.key.value=id;this.key.maxLength=8192;this.key.spellcheck=false;this.key.setAttribute('aria-label','Document _id as Extended JSON');label.append(this.key);header.append(label);
     this.loadButton=this.button(header,'Load document','refresh-cw',()=>this.load());
     this.closeButton=this.button(header,'Close document editor','x',()=>{if(this.canClose())this.close();});this.root.append(header);
-    this.root.append(el('p','Save replaces the whole document, removing omitted fields. Changes require exact review.'));
+    this.root.append(el('p','Save replaces the whole document, removing omitted fields. Delete stages removal until Save and exact review.'));
     const details=el('details');details.append(el('summary','BSON types and editing requirements'),el('p','Use canonical BSON type wrappers ($numberInt, $numberLong, $numberDecimal, $date, $binary). _id is immutable. Saves require a replica set and an ordinary collection; other topologies are inspect-only. No retries, upserts or bulk writes.'));this.root.append(details);
     this.value=el('textarea');this.value.className='mongo-document-value';this.value.wrap='off';this.value.spellcheck=false;this.value.maxLength=32768;this.value.setAttribute('aria-label','Complete document as canonical Extended JSON');this.value.rows=14;
     this.value.oninput=()=>{if(bytes(this.value.value)>MAX_BYTES){this.value.value=this.lastBounded??'';this.status.textContent='Document exceeds 32 KiB; last bounded draft retained.';}this.lastBounded=this.value.value;this.sync();this.changed();};this.root.append(this.value);
-    const footer=el('div');footer.className='redis-string-actions';this.saveButton=this.button(footer,'Save document','save',()=>this.save());this.revertButton=this.button(footer,'Revert document draft','undo-2',()=>this.revert());this.reconcileButton=this.button(footer,'Discard reconciled document draft','check',()=>this.reconcile());
+    const footer=el('div');footer.className='redis-string-actions';this.saveButton=this.button(footer,'Save document','save',()=>this.save());this.revertButton=this.button(footer,'Revert document draft','undo-2',()=>this.revert());this.deleteButton=this.button(footer,'Delete document','trash-2',()=>this.stageDelete());this.reconcileButton=this.button(footer,'Discard reconciled document draft','check',()=>this.reconcile());
     this.status=el('span','Choose an exact _id. Opening this editor does not query or write.');this.status.setAttribute('role','status');footer.append(this.status);this.root.append(footer);this.sync();
   }
   button(parent,label,icon,action){const b=el('button',label);b.type='button';b.title=label;b.setAttribute('aria-label',label);b.prepend(lucide(icon));b.onclick=action;parent.append(b);return b;}
-  get dirty(){return !!this.snapshot&&this.value.value!==this.snapshot.text;}
+  get dirty(){return !!this.snapshot&&(this.pendingDelete||this.value.value!==this.snapshot.text);}
   blocked(){return this.busy||this.disposed||!!this.unavailable;}
   editable(){return !this.readOnly()&&this.topology==='replica_set'&&!!this.snapshot?.ordinary;}
-  canClose(){return !(this.dirty||this.uncertain)||window.confirm(this.uncertain?'Reconcile the previous replacement before another write. Close this retained document draft?':'Discard this unsaved document draft? Nothing will be written.');}
+  canClose(){return !(this.dirty||this.uncertain)||window.confirm(this.uncertain?'Reconcile the previous document change before another write. Close this retained document draft?':'Discard this unsaved document draft? Nothing will be written.');}
   sync(){
     const locked=this.blocked()||this.uncertain;
     this.key.disabled=locked||!!this.snapshot;this.loadButton.disabled=locked;this.closeButton.disabled=this.busy;
-    this.value.readOnly=locked||!this.snapshot||!this.editable();this.saveButton.disabled=locked||!this.editable()||!this.dirty;this.revertButton.disabled=locked||!this.dirty;
+    this.value.readOnly=locked||this.pendingDelete||!this.snapshot||!this.editable();this.saveButton.disabled=locked||!this.editable()||!this.dirty;this.revertButton.disabled=locked||!this.dirty;
+    this.deleteButton.disabled=locked||!this.editable()||!!this.pendingDelete;this.deleteButton.setAttribute('aria-pressed',String(!!this.pendingDelete));
     this.reconcileButton.hidden=!this.uncertain;this.reconcileButton.disabled=this.blocked();this.root.setAttribute('aria-busy',String(this.busy));
   }
-  revert(){if(this.blocked()||this.uncertain||!this.snapshot)return;this.value.value=this.lastBounded=this.snapshot.text;this.status.textContent='Draft reverted; no write was sent.';this.sync();this.changed();}
-  reconcile(){if(this.blocked()||!this.uncertain||!window.confirm('Have you reconciled the previous write using authorized reads? Discarding this draft neither retries nor undoes it.'))return;this.snapshot=null;this.value.value=this.lastBounded='';this.uncertain=false;this.status.textContent='Reconciled draft discarded. Load the document again.';this.sync();this.changed();}
+  stageDelete(){if(this.blocked()||this.uncertain||!this.editable())return;this.pendingDelete=true;this.status.textContent='Deletion staged for this complete document. Nothing written; Save opens exact destructive review, Revert cancels the draft.';this.sync();this.changed();}
+  revert(){if(this.blocked()||this.uncertain||!this.snapshot)return;this.pendingDelete=false;this.value.value=this.lastBounded=this.snapshot.text;this.status.textContent='Draft reverted; no write was sent.';this.sync();this.changed();}
+  reconcile(){if(this.blocked()||!this.uncertain||!window.confirm('Have you reconciled the previous write using authorized reads? Discarding this draft neither retries nor undoes it.'))return;this.snapshot=null;this.pendingDelete=false;this.value.value=this.lastBounded='';this.uncertain=false;this.status.textContent='Reconciled draft discarded. Load the document again.';this.sync();this.changed();}
   async load(){
     if(this.blocked()||this.uncertain||this.dirty&&!window.confirm('Discard the current document draft and load authoritative data?'))return;
     let id;try{id=mongoDocumentJson('{"_id":'+this.key.value+'}')._id;}catch(e){this.status.textContent=e.message;return;}
@@ -84,28 +86,29 @@ export class MongoDocumentEditor{
       const uuid=definition.info?.uuid?.$binary;
       const ordinary=definition.type==='collection'&&!definition.options?.capped&&!definition.options?.timeseries&&uuid?.subType==='04'&&typeof uuid.base64==='string';
       this.snapshot={original,text,collectionUuid:uuid?.base64,targetRevision:reply.targetRevision,ordinary};
-      this.value.value=this.lastBounded=text;
+      this.pendingDelete=false;this.value.value=this.lastBounded=text;
       this.status.textContent=this.editable()?'Loaded complete document. Save checks collection UUID and byte-exact original BSON inside a transaction.':'Document loaded for inspection only: saves need a writable replica-set profile and ordinary collection metadata.';
     }catch(e){if(!this.disposed){this.snapshot=null;this.status.textContent=e.message;}}finally{this.busy=false;if(!this.disposed){this.sync();this.changed();}}
   }
   async save(){
     if(this.blocked()||this.uncertain||!this.editable()||!this.dirty)return;
-    const snapshot=this.snapshot;let replacement;
-    try{replacement=mongoDocumentJson(this.value.value);if(JSON.stringify(replacement._id)!==JSON.stringify(snapshot.original._id))throw Error('_id is immutable; restore its original typed value.');}catch(e){this.status.textContent=e.message;return;}
-    const command={transaction:[{update:this.collection,updates:[{q:{_id:snapshot.original._id},u:replacement,multi:false,upsert:false}]}],documentGuard:{collectionUuid:snapshot.collectionUuid,expected:snapshot.original}};
+    const snapshot=this.snapshot,deleting=!!this.pendingDelete;let replacement;
+    if(!deleting)try{replacement=mongoDocumentJson(this.value.value);if(JSON.stringify(replacement._id)!==JSON.stringify(snapshot.original._id))throw Error('_id is immutable; restore its original typed value.');}catch(e){this.status.textContent=e.message;return;}
+    const change=deleting?{delete:this.collection,deletes:[{q:{_id:snapshot.original._id},limit:1}]}:{update:this.collection,updates:[{q:{_id:snapshot.original._id},u:replacement,multi:false,upsert:false}]};
+    const command={transaction:[change],documentGuard:{collectionUuid:snapshot.collectionUuid,expected:snapshot.original}};
     this.busy=true;this.sync();
     try{
       const reply=await this.run(command,snapshot.targetRevision);if(this.disposed)return;
       const result=reply?.result,entry=result?.entries?.[0];
-      if(result?.kind==='transaction'&&result.atomic===true&&result.documentGuard===true&&result.outcome==='commit_acknowledged'&&result.entries?.length===1&&entry.index===0&&entry.state==='committed'&&entry.operation==='update'&&entry.matchedOrInserted===1){
-        this.snapshot=null;this.status.textContent='Document saved. Displayed draft is not a fresh read; Load document before editing again.';
+      if(result?.kind==='transaction'&&result.atomic===true&&result.documentGuard===true&&result.outcome==='commit_acknowledged'&&result.entries?.length===1&&entry.index===0&&entry.state==='committed'&&entry.operation===(deleting?'delete':'update')&&entry.matchedOrInserted===1){
+        this.snapshot=null;this.pendingDelete=false;if(deleting)this.value.value=this.lastBounded='';this.status.textContent=deleting?'Document deleted; transaction commit confirmed.':'Document saved. Displayed draft is not a fresh read; Load document before editing again.';
       }else{
         this.uncertain=!!reply?.uncertain||result?.outcome==='commit_acknowledged';
-        this.status.textContent=this.uncertain?'Replacement outcome uncertain. Draft retained; reconcile before another write.':reply?.error??'Replacement not committed. Draft retained; reload after a conflict.';
+        this.status.textContent=this.uncertain?'Document change outcome uncertain. Draft retained; reconcile before another write.':reply?.error??'Document change not committed. Draft retained; reload after a conflict.';
       }
-    }catch(e){this.uncertain=true;this.status.textContent='Replacement outcome uncertain. Reconcile before another write. '+e.message;}
+    }catch(e){this.uncertain=true;this.status.textContent='Document change outcome uncertain. Reconcile before another write. '+e.message;}
     finally{this.busy=false;if(!this.disposed){this.sync();this.changed();}}
   }
   invalidate(message){this.unavailable=message;this.status.textContent=message;this.sync();}
-  dispose(){this.disposed=true;this.snapshot=null;this.value.value=this.lastBounded=this.key.value='';this.root.remove();}
+  dispose(){this.disposed=true;this.snapshot=null;this.pendingDelete=false;this.value.value=this.lastBounded=this.key.value='';this.root.remove();}
 }

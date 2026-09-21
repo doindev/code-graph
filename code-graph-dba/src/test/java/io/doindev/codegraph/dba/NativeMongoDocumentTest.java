@@ -23,6 +23,36 @@ class NativeMongoDocumentTest {
         update.putObject("q").set("_id",original.path("_id"));update.set("u",replacement);
         command.putObject("documentGuard").put("collectionUuid",uuid).set("expected",original);return command;
     }
+    static ObjectNode deletion(String collection,JsonNode original,String uuid){
+        var command=Profiles.JSON.createObjectNode();
+        command.putArray("transaction").addObject().put("delete",collection).putArray("deletes").addObject().put("limit",1).putObject("q").set("_id",original.path("_id"));
+        command.putObject("documentGuard").put("collectionUuid",uuid).set("expected",original);return command;
+    }
+    @Test void deletionIsSingleExactDestructiveAndNeverReusable()throws Exception{
+        var original=json("{\"_id\":{\"$numberLong\":\"9007199254740993\"},\"name\":\"original\"}");
+        var command=deletion("items",original,UUID64);var selected=target("replica_set");
+        var classification=NativeCommand.classify(selected,command);
+        assertEquals(NativeCommand.Effect.DESTRUCTIVE,classification.effect());assertFalse(classification.reusableRead());
+        for(String topology:List.of("standalone","srv","sharded"))assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target(topology),command));
+        for(String invalid:List.of("0","2","1.0","\"1\"","true","4294967297")){
+            var bad=command.deepCopy();((ObjectNode)bad.path("transaction").get(0).path("deletes").get(0)).set("limit",json(invalid));
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,bad));
+        }
+        for(String extra:List.of("collation","hint","comment")){
+            var bad=command.deepCopy();((ObjectNode)bad.path("transaction").get(0).path("deletes").get(0)).put(extra,"override");
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,bad));
+        }
+        var wrongId=command.deepCopy();((ObjectNode)wrongId.path("transaction").get(0).path("deletes").get(0).path("q")).put("_id","other");
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,wrongId));
+        var extraFilter=command.deepCopy();((ObjectNode)extraFilter.path("transaction").get(0).path("deletes").get(0).path("q")).put("name","original");
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,extraFilter));
+        var bulk=command.deepCopy();((ObjectNode)bulk.path("transaction").get(0)).withArray("deletes").add(command.path("transaction").get(0).path("deletes").get(0));
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,bulk));
+        assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(selected,deletion("other",original,UUID64)));
+        var profile=profile("1","replica_set");
+        assertTrue(NativeCatalog.describe(profile,selected,true).path("operations").path("guardedDocumentDeletion").path("available").asBoolean());
+        assertFalse(NativeCatalog.describe(profile,selected,false).path("operations").path("guardedDocumentDeletion").path("available").asBoolean());
+    }
     @Test void exactTypedOriginalAndImmutableIdentity()throws Exception{
         var original=canonical(BsonDocument.parse("{_id:{$oid:'0123456789abcdef01234567'},n:{$numberLong:'9007199254740993'},price:{$numberDecimal:'1.2300'},at:{$date:{$numberLong:'1'}},bin:{$binary:{base64:'AP8=',subType:'00'}},nested:[null,{x:{$numberInt:'2'}}]}"));
         var replacement=original.deepCopy();((ObjectNode)replacement).put("name","changed");
@@ -115,8 +145,30 @@ class NativeMongoDocumentTest {
                     var error=assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lost,selected,exact,unknown,()->{}));
                     assertEquals(1,commits.get());assertEquals("commit_unknown",unknown.outcome);assertFalse(error.getMessage().contains("secret-sentinel"));assertTrue(collection.find().first().containsKey("next"));
                 }
+                var deleteOriginal=collection.find().first();var remove=deletion("items",canonical(deleteOriginal),uuid);
+                var staleDelete=jobs.new Job("human",selected.connectionId());
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,deletion("items",canonical(original),uuid),staleDelete,()->{}));
+                assertEquals("rollback_acknowledged",staleDelete.outcome);assertEquals(1,collection.countDocuments());
+                var cancelledDelete=jobs.new Job("human",selected.connectionId());var deleteChecks=new AtomicInteger();
+                assertThrows(RuntimeException.class,()->NativeMutations.execute(lease,selected,remove,cancelledDelete,()->{if(deleteChecks.incrementAndGet()==3)cancelledDelete.cancelled=true;}));
+                assertEquals("rollback_acknowledged",cancelledDelete.outcome);assertTrue(NativeMongoDocuments.same(deleteOriginal,collection.find().first()));
+                var concurrentDelete=jobs.new Job("human",selected.connectionId());deleteChecks.set(0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,remove,concurrentDelete,()->{if(deleteChecks.incrementAndGet()==2)collection.updateOne(new BsonDocument("_id",deleteOriginal.get("_id")),new BsonDocument("$set",new BsonDocument("concurrent",BsonBoolean.TRUE)));}));
+                assertEquals("rollback_acknowledged",concurrentDelete.outcome);assertEquals(1,collection.countDocuments());
+                var finalDelete=deletion("items",canonical(collection.find().first()),uuid);
+                input.set("command",finalDelete);var deleteReview=ops.prepareBrowser("human",input);
+                assertTrue(deleteReview.path("destructive").asBoolean(),deleteReview.toPrettyString());
+                var deleted=ConnectionSetupTest.await(jobs,"human",ops.applyBrowser("human",deleteReview.path("id").asText()));
+                assertEquals("complete",deleted.path("state").asText(),deleted.toPrettyString());assertEquals("delete",deleted.path("result").path("entries").get(0).path("operation").asText());assertEquals(0,collection.countDocuments());jobs.remove("human",deleted.path("id").asText());
+                var missing=jobs.new Job("human",selected.connectionId());assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,finalDelete,missing,()->{}));assertEquals("rollback_acknowledged",missing.outcome);
+                collection.insertOne(deleteOriginal);commits.set(0);
+                try(var lost=new NativeConnections.Lease(NativeMongoTransactionTest.faultClient(lease.mongo,commits),null,null,new byte[32],lease.revision,()->{})){
+                    var unknownDelete=jobs.new Job("human",selected.connectionId());
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lost,selected,remove,unknownDelete,()->{}));assertEquals(1,commits.get());assertEquals("commit_unknown",unknownDelete.outcome);assertEquals(0,collection.countDocuments());
+                }
                 collection.drop();db.createCollection("items");var recreated=db.getCollection("items",BsonDocument.class);recreated.insertOne(original);
                 var replaced=jobs.new Job("human",selected.connectionId());assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,command,replaced,()->fail("UUID check before writes")));assertTrue(NativeMongoDocuments.same(original,recreated.find().first()));
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,selected,deletion("items",canonical(original),uuid),jobs.new Job("human",selected.connectionId()),()->fail("UUID check before deletion")));assertEquals(1,recreated.countDocuments());
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());
         }

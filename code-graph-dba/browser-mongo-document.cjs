@@ -24,7 +24,7 @@ module.exports=async(browser,base)=>{
       const api=async(path,method,input)=>{
         if(path==='/native/prepare'){
           f.command=input.command;f.requests.push(structuredClone(input));
-          return{id:'document-review',targetRevision:'document-r1',mutation:!!input.command.transaction,expiresAt:Date.now()+60000,target:{connectionName:'Document fixture',database:input.database,collection:input.collection},after:{nativeCommand:input.command},transactionNotice:'Byte-exact BSON and collection UUID guard; complete replacement, no automatic retries.'};
+          return{id:'document-review',targetRevision:'document-r1',mutation:!!input.command.transaction,destructive:!!input.command.transaction?.[0]?.delete,expiresAt:Date.now()+60000,target:{connectionName:'Document fixture',database:input.database,collection:input.collection},after:{nativeCommand:input.command},transactionNotice:'Byte-exact BSON and collection UUID guard; complete replacement or deletion, no automatic retries.'};
         }
         if(path==='/native/apply'){f.applies++;if(f.lostReply)throw Error('Lost commit reply');return{id:'document-job'};}
         if(path==='/native/execute')return{id:'document-job'};
@@ -33,7 +33,7 @@ module.exports=async(browser,base)=>{
         if(path==='/jobs/document-job'){
           if(f.phase==='running')return{id:'document-job',state:'running'};
           let result;
-          if(f.command.transaction)result={kind:'transaction',atomic:true,documentGuard:!f.badReceipt,outcome:f.fail?'rollback_acknowledged':'commit_acknowledged',entries:[{index:0,operation:'update',state:f.fail?'rolled_back':'committed',matchedOrInserted:1,modified:1}]};
+          if(f.command.transaction)result={kind:'transaction',atomic:true,documentGuard:!f.badReceipt,outcome:f.fail?'rollback_acknowledged':'commit_acknowledged',entries:[{index:0,operation:f.command.transaction[0].delete?'delete':'update',state:f.fail?'rolled_back':'committed',matchedOrInserted:1,modified:1}]};
           else if(f.command.listCollections)result={kind:'documents',entries:[{name:'items',type:f.view?'view':'collection',options:{},info:{uuid:{$binary:{base64:'AAAAAAAAAAAAAAAAAAAAAA==',subType:'04'}}}}]};
           else result={kind:'documents',truncated:!!f.truncated,entries:f.missing?[]:[structuredClone(f.original)]};
           return{id:'document-job',state:f.command.transaction&&f.fail?'failed':'complete',finished:Date.now(),error:f.fail?'Document changed concurrently':undefined,result};
@@ -65,6 +65,19 @@ module.exports=async(browser,base)=>{
     await value.fill('{"bad":');await save.click();assert.match(await status.innerText(),/JSON|Expected/);
     await value.fill('{"_id":"a","nested":{"same":"first","same":"second"}}');await save.click();assert.match(await status.innerText(),/Duplicate JSON field/);
     await revert.click();assert.equal(await value.inputValue(),original);
+    const remove=editor.getByRole('button',{name:'Delete document',exact:true});
+    const beforeDelete=await page.evaluate(()=>mongoEditorFixture.requests.length);
+    await remove.click();assert.equal(await page.evaluate(()=>mongoEditorFixture.requests.length),beforeDelete);assert.equal(await value.getAttribute('readonly'),'');assert.equal(await remove.getAttribute('aria-pressed'),'true');assert.equal(await save.isDisabled(),false);
+    await page.evaluate(()=>{const w=mongoEditorFixture.workspace;w.unmount();w.mount(document.querySelector('#mongo-editor-fixture'));});
+    assert.equal(await remove.getAttribute('aria-pressed'),'true');page.once('dialog',d=>d.dismiss());await close.click();assert.equal(await editor.isVisible(),true);
+    await revert.click();assert.equal(await remove.getAttribute('aria-pressed'),'false');assert.equal(await save.isDisabled(),true);assert.equal(await value.inputValue(),original);
+    await remove.click();await save.click();await review.waitFor();assert.match(await review.innerText(),/delete/);await review.getByRole('button',{name:'Cancel',exact:true}).click();await status.filter({hasText:'Cancelled before execution'}).waitFor();assert.equal(await remove.getAttribute('aria-pressed'),'true');
+    await page.evaluate(()=>mongoEditorFixture.fail=true);await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await status.filter({hasText:'Document changed concurrently'}).waitFor();assert.equal(await save.isDisabled(),false);assert.equal(await remove.getAttribute('aria-pressed'),'true');
+    await page.evaluate(()=>{mongoEditorFixture.fail=false;mongoEditorFixture.badReceipt=true;});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await status.filter({hasText:'outcome uncertain'}).waitFor();assert.equal(await save.isDisabled(),true);assert.equal(await remove.isDisabled(),true);assert.equal(await load.isDisabled(),true);
+    page.once('dialog',d=>d.accept());await editor.getByRole('button',{name:'Discard reconciled document draft'}).click();await page.evaluate(()=>mongoEditorFixture.badReceipt=false);await load.click();await status.filter({hasText:'Loaded complete document'}).waitFor();
+    await remove.click();await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await status.filter({hasText:'Document deleted; transaction commit confirmed'}).waitFor();
+    const deleted=await page.evaluate(()=>mongoEditorFixture.requests.at(-1));assert.deepEqual(deleted.command.transaction,[{delete:'items',deletes:[{q:{_id:JSON.parse(original)._id},limit:1}]}]);assert.deepEqual(deleted.command.documentGuard.expected,JSON.parse(original));assert.equal(await value.inputValue(),'');assert.equal(await save.isDisabled(),true);assert.equal(await remove.isDisabled(),true);assert.equal(await page.evaluate(()=>mongoEditorFixture.workspace.dirty),false);
+    await load.click();await status.filter({hasText:'Loaded complete document'}).waitFor();
     await value.fill(JSON.stringify(changed));await page.evaluate(()=>mongoEditorFixture.fail=true);await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await status.filter({hasText:'Document changed concurrently'}).waitFor();assert.equal(await save.isDisabled(),false);assert.equal(JSON.parse(await value.inputValue()).name,'edited');
     await page.evaluate(()=>{mongoEditorFixture.fail=false;mongoEditorFixture.badReceipt=true;});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await status.filter({hasText:'outcome uncertain'}).waitFor();assert.equal(await load.isDisabled(),true);assert.equal(await revert.isDisabled(),true);
     const reconcile=editor.getByRole('button',{name:'Discard reconciled document draft'});
@@ -81,7 +94,7 @@ module.exports=async(browser,base)=>{
     assert.ok(await editor.evaluate(e=>e.scrollWidth<=e.clientWidth+2),'No horizontal control clipping');
     assert.ok(await value.evaluate(e=>e.getBoundingClientRect().height>=140),'Narrow editor retains a usable 140px border-box multi-line draft area');
     assert.ok(await editor.evaluate(e=>e.lastElementChild.getBoundingClientRect().top>=e.querySelector('textarea').getBoundingClientRect().bottom-1),'Footer stays below editor');
-    await page.evaluate(()=>{mongoEditorFixture.workspace.profile.readOnly=true;mongoEditorFixture.workspace.stringEditor.sync();});assert.equal(await save.isDisabled(),true);const count=await page.evaluate(()=>mongoEditorFixture.requests.length);await page.evaluate(()=>mongoEditorFixture.workspace.stringEditor.save());assert.equal(await page.evaluate(()=>mongoEditorFixture.requests.length),count);
+    await page.evaluate(()=>{mongoEditorFixture.workspace.profile.readOnly=true;mongoEditorFixture.workspace.stringEditor.sync();});assert.equal(await save.isDisabled(),true);assert.equal(await remove.isDisabled(),true);const count=await page.evaluate(()=>mongoEditorFixture.requests.length);await page.evaluate(()=>{mongoEditorFixture.workspace.stringEditor.stageDelete();mongoEditorFixture.workspace.stringEditor.save();});assert.equal(await page.evaluate(()=>mongoEditorFixture.requests.length),count);
     await page.evaluate(()=>{mongoEditorFixture.workspace.profile.readOnly=false;mongoEditorFixture.workspace.stringEditor.sync();});await save.click();await review.waitFor();await page.evaluate(()=>mongoEditorFixture.phase='running');await review.getByRole('button',{name:'Apply once'}).click();await page.waitForFunction(()=>mongoEditorFixture.workspace.operation?.id==='document-job');await page.getByRole('button',{name:'Cancel current operation'}).click();await page.evaluate(()=>mongoEditorFixture.phase='complete');await status.filter({hasText:'Document saved'}).waitFor();assert.equal(await page.evaluate(()=>mongoEditorFixture.cancelled),true);
     await close.click();assert.equal(await page.getByRole('textbox',{name:'Collection',exact:true}).isDisabled(),false);
     await page.evaluate(()=>mongoEditorFixture.workspace.profile.nativeOptions.topology='sharded');await open.click();await load.click();await status.filter({hasText:'inspection only'}).waitFor();assert.equal(await value.getAttribute('readonly'),'');await close.click();

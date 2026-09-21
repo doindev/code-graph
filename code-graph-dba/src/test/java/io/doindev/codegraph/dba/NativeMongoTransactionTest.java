@@ -155,6 +155,17 @@ class NativeMongoTransactionTest {
                     assertTrue(edited.path("result").path("documentGuard").asBoolean());
                     assertTrue(NativeMongoDocuments.same(replacement,db.getCollection(collection,BsonDocument.class).find().first()));
                     jobs.remove("agent:"+principal,edited.path("id").asText());
+                    var deletion=edit.deepCopy().put("requestId",UUID.randomUUID().toString());
+                    deletion.set("command",NativeMongoDocumentTest.deletion(collection,NativeMongoDocumentTest.canonical(replacement),uuid));
+                    var deleteRequest=requests.request(principal,session,"native_command",deletion);
+                    if(!automatic){
+                        assertEquals("awaiting_approval",deleteRequest.path("state").asText());assertEquals(1,db.getCollection(collection).countDocuments());
+                        String approvalId=deleteRequest.path("id").asText();
+                        assertThrows(IllegalArgumentException.class,()->requests.decide("human",approvalId,"always_allow",true,Profiles.JSON.createObjectNode()));
+                        deleteRequest=requests.decide("human",approvalId,"approve_once",true,Profiles.JSON.createObjectNode());
+                    }else assertEquals("automatic",deleteRequest.path("approvalChannel").asText());
+                    var deleted=ConnectionSetupTest.await(jobs,"agent:"+principal,Profiles.JSON.createObjectNode().put("id",deleteRequest.path("jobId").asText()));
+                    assertEquals("complete",deleted.path("state").asText(),deleted.toPrettyString());assertEquals("commit_acknowledged",deleted.path("result").path("outcome").asText());assertEquals(0,db.getCollection(collection).countDocuments());jobs.remove("agent:"+principal,deleted.path("id").asText());
                 }
                 sessions.remove(session);var expired=input.deepCopy().put("requestId",UUID.randomUUID().toString());
                 if(automatic)assertThrows(SecurityException.class,()->requests.request(principal,session,"native_command",expired));

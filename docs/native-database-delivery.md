@@ -82,6 +82,11 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 2: MongoDB developer and database workflows
 
+- [x] Guarded document deletion follow-up: staged Delete/Save/Revert, exact
+  destructive review, byte-exact original/UUID transaction checks and explicit
+  uncertainty recovery. Replica-set, browser and full reactor gates pass; see
+  [the deletion checkpoint](mongodb-document-editor.md#guarded-deletion-checkpoint).
+
 - [x] Guarded complete-document editor: focused/live, browser and reactor gates pass.
   Canonical Extended JSON, replica-set-only byte-exact BSON/UUID checks,
   reviewed replacement and uncertain-commit reconciliation. Other topologies

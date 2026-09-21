@@ -9,10 +9,10 @@ import org.bson.codecs.BsonDocumentCodec;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Exact BSON guard for one reviewed replacement, inside the existing transaction lifecycle. */
+/** Exact BSON guard for one reviewed replacement or deletion, inside the existing transaction lifecycle. */
 final class NativeMongoDocuments {
     static final int MAX_JSON_BYTES=32768;
-    static final String NOTICE="Replaces one existing document after a byte-exact BSON comparison in an atomic transaction; fields omitted from the replacement are removed. Requires a replica-set profile, ordinary collection UUID and unchanged _id. Field order and numeric types are significant. No upsert, sharded routing, projection, bulk editing or automatic retry. A lost commit acknowledgement requires reconciliation; matching data is not historical identity.";
+    static final String NOTICE="Replaces or deletes one existing document after a byte-exact BSON comparison in an atomic transaction; deletion removes the entire document and replacement removes omitted fields. Requires a replica-set profile, ordinary collection UUID and unchanged _id. Field order and numeric types are significant. No upsert, sharded routing, projection, bulk editing or automatic retry. A lost commit acknowledgement requires reconciliation; matching data is not historical identity.";
 
     static void validate(NativeTarget target,JsonNode command){
         if(!target.topology().equals("replica_set"))throw new IllegalArgumentException("Document guards require an explicit replica_set profile; standalone/SRV/sharded document editing is not verified");
@@ -20,8 +20,19 @@ final class NativeMongoDocuments {
         fields(guard,Set.of("collectionUuid","expected"));
         uuid(guard.path("collectionUuid"));
         BsonDocument original=document(guard.path("expected"));
-        if(command.path("transaction").size()!=1)throw new IllegalArgumentException("Document guard requires exactly one replacement update");
+        if(command.path("transaction").size()!=1)throw new IllegalArgumentException("Document guard requires exactly one replacement update or single-document delete");
         JsonNode entry=command.path("transaction").get(0);
+        if(entry.has("delete")){
+            fields(entry,Set.of("delete","deletes","ordered"));
+            if(!entry.path("delete").asText().equals(target.collection())||!entry.path("deletes").isArray()||entry.path("deletes").size()!=1)
+                throw new IllegalArgumentException("Document guard requires one delete on the selected collection");
+            JsonNode deletion=entry.path("deletes").get(0);
+            fields(deletion,Set.of("q","limit"));fields(deletion.path("q"),Set.of("_id"));
+            if(!deletion.path("limit").isIntegralNumber()||!deletion.path("limit").canConvertToInt()||deletion.path("limit").intValue()!=1
+                    ||!same(new BsonDocument("_id",original.get("_id")),document(deletion.path("q"))))
+                throw new IllegalArgumentException("Guarded deletion requires limit 1 and the exact original typed _id");
+            return;
+        }
         fields(entry,Set.of("update","updates","ordered"));
         if(!entry.path("update").asText().equals(target.collection())||!entry.path("updates").isArray()||entry.path("updates").size()!=1)
             throw new IllegalArgumentException("Document guard requires one update on the selected collection");
@@ -62,7 +73,7 @@ final class NativeMongoDocuments {
         }catch(IllegalArgumentException error){throw new IllegalArgumentException("Document guard requires a canonical base64 collection UUID");}
     }
     static void collection(JsonNode guard,BsonValue observed){
-        if(!uuid(guard.path("collectionUuid")).equals(observed))throw new IllegalArgumentException("Collection identity changed; reload before reviewing another document replacement");
+        if(!uuid(guard.path("collectionUuid")).equals(observed))throw new IllegalArgumentException("Collection identity changed; reload before reviewing another document change");
     }
     static void check(MongoDatabase database,ClientSession session,NativeTarget target,JsonNode guard){
         BsonDocument expected=document(guard.path("expected"));

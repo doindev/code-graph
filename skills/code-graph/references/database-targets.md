@@ -172,10 +172,12 @@ inspect retained outcomes; an acknowledged mutation is not undone by cancellatio
 ### MongoDB transactions and change streams
 
 When advertised, optional command.documentGuard beside its transaction array is a
-complete-document replacement guard, not a general filter. On replica_set profiles only, supply
+complete-document replacement/deletion guard, not a general filter. On replica_set profiles only, supply
 the actual collection UUID (canonical base64 from listCollections info.uuid)
 and complete original canonical Extended JSON, each document <=32 KiB. Use one
-replacement update with the same typed _id in original/filter/replacement, no
+replacement update with the same typed _id in original/filter/replacement, or one
+delete with `limit: 1` and only the same typed `_id` filter. Deletion is destructive,
+requires exact review and never gains reusable write permission. Use no
 upsert, multi, projection or collation override. BSON field order and numeric
 types matter. A guard conflict requires reload/review; never remove the guard
 or retry an uncertain commit to force the write through. This grants no access

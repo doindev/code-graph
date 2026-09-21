@@ -65,7 +65,7 @@ final class DbaInputSchemas {
             var mongoBatch=alternatives.addObject().put("type","object").put("additionalProperties",false);
             mongoBatch.putArray("required").add("transaction");
             var guard=mongoBatch.withObject("properties").putObject("documentGuard").put("type","object").put("additionalProperties",false)
-                    .put("description","Optional byte-exact complete BSON guard for one replacement update on replica_set only. Existing ordinary collection; immutable string/ObjectId/Int32/Int64 _id; no upsert, multi, collation override or sharded routing. Original and replacement must each be canonical Extended JSON <=32 KiB. Guard runs inside the same transaction. Never remove it after conflict or retry uncertain commits.");
+                    .put("description","Optional byte-exact complete BSON guard for one replacement update or single-document delete on replica_set only. Existing ordinary collection; immutable string/ObjectId/Int32/Int64 _id; delete requires limit 1 and only the original _id filter. No upsert, multi, collation override or sharded routing. Original and replacement must each be canonical Extended JSON <=32 KiB. Guard runs inside the same transaction. Never remove it after conflict or retry uncertain commits.");
             guard.putArray("required").add("collectionUuid").add("expected");
             var guardFields=guard.putObject("properties");
             guardFields.putObject("collectionUuid").put("type","string").put("contentEncoding","base64").put("minLength",24).put("maxLength",24).put("description","Exact listCollections info.uuid binary subtype 04, canonical base64 for 16 bytes.");
