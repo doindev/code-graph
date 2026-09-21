@@ -141,6 +141,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] String expiry follow-up: staged preserve/no-expiry/seconds choices,
+  single reviewed SET, exact-byte/absence guards, explicit reload after expiry
+  changes. Focused/live topology, all 20 browser groups and full reactor passed.
+  See [the expiry checkpoint](redis-string-editor.md#string-expiry-checkpoint--2026-09-21).
+  Other key types and general lifecycle administration remain separate work.
+
 - [x] String lifecycle follow-up: explicit absent-key drafts with reviewed SET NX,
   and staged whole-key deletion with exact original-byte WATCH expectations.
   Standalone/Cluster/ACL-Sentinel, all 20 browser groups and the full reactor passed.

@@ -49,7 +49,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   execution errors do not roll back successful commands.
   A [bounded Redis string editor](docs/redis-string-editor.md) adds binary-safe
   drafts, conflict checks and reviewed TTL-preserving saves for existing small values,
-  plus explicit absent-key creation and staged whole-string deletion.
+  plus explicit absent-key creation, staged whole-string deletion, and reviewed
+  expiry choices (preserve, no expiry, or 1–2147483647 seconds).
   The [hash-field editor](docs/redis-hash-editor.md) adds the same bounded workflow
   for existing fields, plus explicit new-field drafts and staged deletion. Every
   Save is reviewed; absent/original-value checks reject concurrent changes.

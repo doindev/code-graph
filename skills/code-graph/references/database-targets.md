@@ -82,6 +82,15 @@ expiry. This is the browser string editor's workflow, not a new permission or a
 guarantee that a string contains ordinary text. A conflict requires reconciliation;
 never remove its expectation or replay an uncertain write automatically.
 
+For an explicitly requested string expiry change, use a single guarded SET
+with EX seconds, or omit expiry options to clear expiry, rather than a separate
+value-write/EXPIRE sequence. This rewrites the string even when only its expiry
+changes. The UI bounds durations to 1–2147483647 whole seconds. The duration
+starts at execution; the earlier PTTL reading is not an expiry precondition.
+WATCH checks subsequent changes during the transaction, not all changes since
+the earlier read. Keep NX/XX and the exact absence/value expectation; require
+ordinary mutation authorization and reconcile uncertain outcomes before retry.
+
 Explicit new strings can use one reviewed `SET key value NX` with the same key's
 `expected: null` WATCH guard; disclose that a new key has no expiry unless an
 explicit supported expiry is reviewed. Existing empty values are not absence.

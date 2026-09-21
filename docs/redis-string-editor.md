@@ -1,7 +1,7 @@
 # Bounded Redis string editor
 
 Current lifecycle follow-up evidence is recorded in
-[the checkpoint below](#string-lifecycle-checkpoint).
+[the checkpoints below](#string-lifecycle-checkpoint).
 
 In a Redis **Native workspace**, choose **Edit Redis string value**. GET,
 GETRANGE, TYPE and STRLEN command drafts prefill the exact key; otherwise enter
@@ -17,7 +17,8 @@ offered by this editor.
 value. If absent, it starts a dirty draft (including a valid empty value). Save
 reviews one `SET key value NX` with `watch.expected: null`. Absence is rechecked
 inside the managed WATCH transaction, and a competing creation conflicts rather
-than being overwritten. New strings have **no expiry**, shown before Save.
+than being overwritten. New strings default to **no expiry**, shown before Save;
+an explicit **Expire after** choice adds EX seconds to the same SET.
 Revert discards a new draft. After confirmed creation, Load again to edit it;
 the retained submitted text is not represented as a fresh database read.
 
@@ -36,6 +37,31 @@ Deleted/expired keys are not recreated. Concurrent changes cause a conflict;
 drafts remain available for reconciliation. Redis TYPE string also covers
 application-specific binary formats (including bitmaps/HyperLogLogs): this editor
 does not infer their semantics or make arbitrary value replacement harmless.
+
+## Staged expiry
+
+The string editor offers **Preserve current expiry**, **No expiry**, and
+**Expire after**. Existing strings default to preserve; new strings default to
+no expiry and cannot select preserve. Expire after accepts 1–2147483647 whole
+ASCII-digit seconds. Invalid, fractional, negative, zero, empty and oversized
+durations disable Save and show corrective guidance. Typing does not send a write.
+
+Expiry-only edits are dirty drafts. Revert restores preserve mode for a loaded
+string, and review Cancel retains the draft. Save generates exactly one SET:
+XX KEEPTTL to preserve an existing expiry, XX (without expiry options) to remove
+it, or XX EX seconds to set it. Creation uses NX, optionally with EX seconds.
+This rewrites the same string bytes even for expiry-only changes and may trigger
+SET/keyspace-notification effects. It is not a metadata-only EXPIRE operation.
+Deletion ignores the expiry draft and reviews DEL instead.
+
+The duration starts when Redis executes the command, not when loaded, drafted or
+reviewed. Exact original-byte/absence WATCH guards remain required. The earlier
+PTTL reading is informational, not a compare-and-set condition: expiry changes
+before WATCH are not detected by a value expectation alone; expiry changes during
+the watched transaction conflict. Expired/deleted keys are never recreated by an
+existing-string save. Explicit expiry saves require Load again before further
+editing; displayed submitted values are not claimed to be a fresh read.
+Hash/list/other-key expiry editors and rename remain separate unfinished work.
 
 Save opens the ordinary native review showing the exact target and command.
 Cancel in that review sends no write. Revert discards the local draft, not database
@@ -86,7 +112,7 @@ The browser suite exercises the actual component and review/job lifecycle with
 controlled replies, separate from live Redis adapter tests. Neither alone claims
 full end-to-end browser-to-live-vendor coverage. Disposable Redis fixtures use the
 existing pinned 7.4.1 image and ownership-scoped cleanup; existing resources are
-preserved. Further key lifecycle, rename, TTL editing and server administration
+preserved. Further key lifecycle, rename, other-key TTL editing and server administration
 are tracked separately in the [native roadmap](native-database-delivery.md).
 
 ## Original replacement-editor acceptance evidence — 2026-09-20
@@ -175,3 +201,38 @@ unchanged; no existing databases/images or installed client configuration were
 modified. Native rename/general TTL editors, broader infrastructure support and
 platform/performance certification are not completed by this increment.
 Commit/push/restart follow the user's explicit per-task delivery instruction.
+
+## String expiry checkpoint — 2026-09-21
+
+This increment adds staged expiry-only/value-and-expiry edits and expiring new
+strings, with no new endpoint, MCP permission or live-setting changes.
+
+- Focused DBA/review/HTTP/MCP: 47 passed, two explicit live-fixture skips.
+- Redis 7.4.1 standalone: 40 passed, four Mongo-only skips; three-primary Cluster
+  and ACL-authenticated Sentinel: 37 passed each, no skips/failures. Fixtures use
+  Lettuce 7.7.0.RELEASE, a 256 MiB heap and 64 MiB direct-memory limit.
+- Live checks cover the exact single-command EX/KEEPTTL/no-expiry forms, unchanged
+  binary bytes for expiry-only edits, absent-key expiring creation, competing
+  value/expiry changes, expiry removal and refusal to recreate expired keys.
+- Focused native browser suite passed: numeric bounds, explicit expiry drafts,
+  cancellation without writes, Revert, remount retention, exact reviewed commands,
+  required reload after confirmed changes, uncertainty locks and read-only modes.
+  Existing hash/list/set/sorted-set/stream and Mongo editor checks also passed.
+- Full reactor/package: 35 modules, 183 suites, 911 tests; 846 passed, 65 explicit
+  opt-in/platform skips, zero failures/errors (4:02). This is not a claim that
+  skipped vendor/platform gates passed.
+- All 29 DBA JavaScript modules pass syntax checks; skill validation, 11 grid
+  unit tests, Windows bootstrap checks and 14 installer/skill checks pass.
+  Two optional real-client checks remain unverified.
+
+All 20 final browser suite groups passed sequentially after packaging, including
+native editors, grids/search/export, object/table/view designers, catalogs,
+workspace recovery, editor pairing and ordinary/YOLO approval behavior. No
+compiler modified fixture classes during these runs. Evidence is retained
+under target/redis-string-expiry-f396647ef1ff47958b30bd8a3a917816:
+focused.log, browser-native.log, redis-standalone.log, redis-cluster.log,
+redis-sentinel.log, live-reports, full-reactor.log and all-browser.log.
+Owned Redis containers/volumes were removed. Docker image identities match the
+55-image pre-test baseline; pre-existing resources were preserved.
+The code-graph MCP tools were not exposed to this client, so implementation used
+focused local reads; no MCP-versus-filesystem performance claim is made.

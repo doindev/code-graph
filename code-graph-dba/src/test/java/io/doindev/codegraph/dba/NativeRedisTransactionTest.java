@@ -57,6 +57,18 @@ class NativeRedisTransactionTest {
             assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target("standalone"),field));
         }
     }
+    @Test void stringExpiryCommandsRemainStructurallyValidatedWrites()throws Exception{
+        for(String options:List.of("\"XX\",\"EX\",\"1\"","\"NX\",\"EX\",\"2147483647\"","\"XX\",\"KEEPTTL\"","\"XX\"")){
+            var command=json("{\"transaction\":[[\"SET\",\"key\",\"value\","+options+"]],\"watch\":[{\"key\":\"key\",\"expected\":null}]}");
+            NativeMutations.validate(target("standalone"),command);
+            assertEquals(NativeCommand.Effect.WRITE,NativeCommand.classify(target("standalone"),command).effect());
+            assertFalse(NativeCommand.classify(target("standalone"),command).reusableRead());
+        }
+        for(String options:List.of("\"EX\"","\"EX\",\"0\"","\"EX\",\"-1\"","\"EX\",\"1.5\"","\"EX\",\"1e3\"","\"EX\",\"1\",\"KEEPTTL\"","\"NX\",\"XX\"")){
+            var command=json("{\"transaction\":[[\"SET\",\"key\",\"value\","+options+"]]}");
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target("standalone"),command),options);
+        }
+    }
     @Test void reviewIsExactOwnedReadOnlyAndNonReusable()throws Exception{
         try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var jdbc=new Connections(profiles);
             var jobs=new QueryJobs(jdbc,new DbaConfig(root,128L<<20,2,100,100,10),_->true);var ops=new NativeOperations(profiles,jobs)){
@@ -83,6 +95,10 @@ class NativeRedisTransactionTest {
             var stringCreate=transaction("string","");((com.fasterxml.jackson.databind.node.ArrayNode)stringCreate.path("transaction").get(0)).add("NX");stringCreate.putArray("watch").addObject().put("key","string").putNull("expected");
             input.set("command",stringCreate);var createReview=ops.prepareBrowser("owner",input);assertTrue(createReview.path("mutation").asBoolean());assertFalse(createReview.path("eligiblePersistentRead").asBoolean());
             assertEquals(stringCreate,createReview.path("after").path("nativeCommand"));ops.discardBrowser("owner",createReview.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
+            ((com.fasterxml.jackson.databind.node.ArrayNode)stringCreate.path("transaction").get(0)).add("EX").add("120");
+            input.set("command",stringCreate);var expiryReview=ops.prepareBrowser("owner",input);
+            assertFalse(expiryReview.path("eligiblePersistentRead").asBoolean());assertEquals(stringCreate,expiryReview.path("after").path("nativeCommand"));
+            ops.discardBrowser("owner",expiryReview.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
             var limited=jobs.new Job("agent:fixture",profile.path("id").asText());limited.rowLimit=1;
             var batch=transaction("a","b");batch.withArray("transaction").addArray().add("SET").add("a").add("c");
             assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(null,target("standalone"),batch,limited,()->fail("No authority callback before admission")));
@@ -143,6 +159,26 @@ class NativeRedisTransactionTest {
                 redis.del(binaryKey);
                 assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
                 assertEquals(0L,redis.exists(binaryKey),"Expired/deleted keys must not be recreated by the editor");
+                // Explicit expiry is a single SET, including expiry-only edits with unchanged binary bytes.
+                redis.set(binaryKey,new byte[]{1,2});watch.set("expected",Profiles.JSON.createObjectNode().put("base64","AQI="));
+                set.remove(4);set.add("EX").add("120");
+                assertEquals("OK",NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asText());
+                assertArrayEquals(new byte[]{1,2},redis.get(binaryKey));assertTrue(redis.pttl(binaryKey)>0&&redis.pttl(binaryKey)<=120000);
+                watch.set("expected",Profiles.JSON.createObjectNode().put("base64","AP8="));
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
+                assertArrayEquals(new byte[]{1,2},redis.get(binaryKey));assertTrue(redis.pttl(binaryKey)>0);
+                watch.set("expected",Profiles.JSON.createObjectNode().put("base64","AQI="));checks.set(0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{if(checks.incrementAndGet()==2)redis.pexpire(binaryKey,240000);}));
+                assertTrue(redis.pttl(binaryKey)>120000,"WATCH also detects an expiry change during the transaction");
+                set.remove(5);set.remove(4);
+                NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{});assertEquals(-1L,redis.pttl(binaryKey));
+                assertArrayEquals(new byte[]{1,2},redis.get(binaryKey));
+                set.add("EX").add("120");redis.pexpire(binaryKey,0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));assertEquals(0L,redis.exists(binaryKey));
+                var expiringNew=Profiles.JSON.createObjectNode();expiringNew.putArray("transaction").addArray().add("SET").add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","")).add("NX").add("EX").add("120");
+                expiringNew.putArray("watch").addObject().set("key",encodedKey);expiringNew.withArray("watch").get(0).withObject("").putNull("expected");
+                NativeMutations.execute(lease,target,expiringNew,jobs.new Job("human",target.connectionId()),()->{});assertArrayEquals(new byte[0],redis.get(binaryKey));assertTrue(redis.pttl(binaryKey)>0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,expiringNew,jobs.new Job("human",target.connectionId()),()->{}));redis.del(binaryKey);
                 // Explicit New string uses absence WATCH plus NX; empty content is not absence.
                 var stringCreate=Profiles.JSON.createObjectNode();stringCreate.putArray("transaction").addArray().add("SET").add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","")).add("NX");
                 stringCreate.putArray("watch").addObject().set("key",encodedKey);stringCreate.withArray("watch").get(0).withObject("").putNull("expected");

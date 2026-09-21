@@ -48,11 +48,34 @@ module.exports=async(browser,base)=>{
     const request=await page.evaluate(()=>stringFixture.commands.at(-1));assert.equal(request.database,'3');assert.equal(request.connectionId,'redis-1');assert.equal(request.expectedTargetRevision,'revision-1');
     assert.deepEqual(request.command,{transaction:[['SET',{base64:'AP8='},{base64:btoa('new value')},'XX','KEEPTTL']],watch:[{key:{base64:'AP8='},expected:{base64:btoa('old value')}}]});
     assert.equal(await page.locator('#string-fixture .native-command').inputValue(),'["GET",{"base64":"AP8="}]','Value saves never rewrite the command draft');
+    // Expiry-only drafts use one reviewed SET; no implicit write, separate EXPIRE, or stale TTL reset.
+    const expiry=page.getByRole('combobox',{name:'Expiry',exact:true}),seconds=page.getByRole('textbox',{name:'Expiry seconds',exact:true}),expirySave=page.getByRole('button',{name:'Save string',exact:true});
+    assert.equal(await expiry.inputValue(),'preserve');assert.equal(await seconds.isVisible(),false);
+    const beforeExpiry=await page.evaluate(()=>stringFixture.applies);
+    await expiry.selectOption('duration');assert.equal(await expirySave.isDisabled(),true);
+    for(const invalid of ['','0','-1','1.5','1e3','2147483648','abc']){
+      await seconds.fill(invalid);assert.equal(await seconds.getAttribute('aria-invalid'),'true');assert.equal(await expirySave.isDisabled(),true);
+    }
+    assert.equal(await page.evaluate(()=>stringFixture.applies),beforeExpiry);
+    await seconds.fill('120');assert.equal(await expirySave.isEnabled(),true);assert.equal(await value.inputValue(),'new value');
+    await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});
+    assert.equal(await seconds.inputValue(),'120');await expirySave.click();await review.waitFor();
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['SET',{base64:'AP8='},{base64:btoa('new value')},'XX','EX','120']],watch:[{key:{base64:'AP8='},expected:{base64:btoa('new value')}}]});
+    await review.getByRole('button',{name:'Cancel',exact:true}).click();await editor.getByRole('status').filter({hasText:'Cancelled before execution'}).waitFor();
+    assert.equal(await page.evaluate(()=>stringFixture.applies),beforeExpiry);assert.equal(await seconds.inputValue(),'120');
+    await page.getByRole('button',{name:'Revert string draft'}).click();assert.equal(await expiry.inputValue(),'preserve');assert.equal(await expirySave.isDisabled(),true);
+    await expiry.selectOption('duration');await seconds.fill('120');await expirySave.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();
+    await editor.getByRole('status').filter({hasText:'Saved string with expiry 120 seconds'}).waitFor();assert.equal(await expiry.isDisabled(),true);assert.equal(await expirySave.isDisabled(),true);
+    await page.evaluate(()=>{stringFixture.base64=btoa('new value');});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 9 bytes'}).waitFor();
+    await expiry.selectOption('none');await expirySave.click();await review.waitFor();
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command.transaction,[['SET',{base64:'AP8='},{base64:btoa('new value')},'XX']]);
+    await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Saved string with no expiry'}).waitFor();
     // Creation is explicit, absence-checked, dirty even for an empty value, and never sent by preparation.
     const newButton=page.getByRole('button',{name:'Prepare new string',exact:true}),save=page.getByRole('button',{name:'Save string',exact:true}),deletion=page.getByRole('button',{name:'Mark string key for deletion',exact:true});
     await newButton.click();await editor.getByRole('status').filter({hasText:'Key already exists'}).waitFor();
     await page.evaluate(()=>{stringFixture.type='none';});const beforeCreate=await page.evaluate(()=>stringFixture.applies);
     await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
+    assert.equal(await expiry.inputValue(),'none');assert.equal(await expiry.locator('option[value="preserve"]').isDisabled(),true);
     assert.equal(await value.inputValue(),'');assert.equal(await save.isEnabled(),true);assert.equal(await deletion.isDisabled(),true);assert.equal(await page.evaluate(()=>stringFixture.applies),beforeCreate);
     assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{pipeline:[['TYPE',{base64:'AP8='}]]});
     await save.click();await review.waitFor();assert.match(await review.innerText(),/NX/);await review.getByRole('button',{name:'Cancel',exact:true}).click();await editor.getByRole('status').filter({hasText:'Cancelled before execution'}).waitFor();
@@ -71,8 +94,13 @@ module.exports=async(browser,base)=>{
     await page.evaluate(()=>stringFixture.outcome='conflict');await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Original value changed'}).waitFor();assert.equal(await deletion.getAttribute('aria-pressed'),'true');
     await page.evaluate(()=>stringFixture.outcome='acknowledged');await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Deleted string key and its TTL'}).waitFor();
     assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['DEL',{base64:'AP8='}]],watch:[{key:{base64:'AP8='},expected:{base64:''}}]});assert.equal(await deletion.isDisabled(),true);
+    await page.evaluate(()=>{stringFixture.type='none';});await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
+    await expiry.selectOption('duration');await seconds.fill('300');await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();
+    await editor.getByRole('status').filter({hasText:'Created string with expiry 300 seconds'}).waitFor();
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['SET',{base64:'AP8='},{base64:''},'NX','EX','300']],watch:[{key:{base64:'AP8='},expected:null}]});
     await page.evaluate(()=>{stringFixture.type='none';stringFixture.submissionFailure=true;});await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
     await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'outcome uncertain'}).waitFor();assert.equal(await newButton.isDisabled(),true);assert.equal(await save.isDisabled(),true);
+    assert.equal(await expiry.isDisabled(),true);
     await page.evaluate(()=>{stringFixture.submissionFailure=false;stringFixture.type='string';});page.once('dialog',d=>d.accept());
     // Binary and CRLF values never undergo lossy text normalization.
     await page.evaluate(()=>{stringFixture.base64='AP8=';});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 2 bytes'}).waitFor();
@@ -96,6 +124,13 @@ module.exports=async(browser,base)=>{
       const result={kind:'pipeline',entries:['string',2,{base64:'AP8=',truncated:true},-1].map((value,index)=>({index,state:'acknowledged',value}))};try{redisStringSnapshot(result);rejected.push(false);}catch{rejected.push(true);}
       for(const input of [{kind:'pipeline',entries:[]},{kind:'pipeline',entries:[{index:0,state:'acknowledged',value:'hash'}]},{kind:'pipeline',truncated:true,entries:[{index:0,state:'acknowledged',value:'none'}]},{kind:'pipeline',entries:[{index:0,state:'acknowledged',value:'none',valueOmitted:true}]}])try{redisNewStringSnapshot(input);rejected.push(false);}catch{rejected.push(true);}return rejected;
     });assert.deepEqual(cases,Array(9).fill(true));
+    const expiryCases=await page.evaluate(async()=>{
+      const {redisStringExpiry}=await import('/dba/redis-string-editor.js');
+      const rejected=[];for(const args of [['preserve','',true],['unknown',''],['duration',''],['duration','0'],['duration','-1'],['duration','1.1'],['duration','1e3'],['duration','2147483648'],['duration','١'],['duration',' 1'],['duration',1]]){
+        try{redisStringExpiry(...args);rejected.push(false);}catch{rejected.push(true);}
+      }
+      return{rejected,valid:[redisStringExpiry('preserve',''),redisStringExpiry('none','',true),redisStringExpiry('duration','0001'),redisStringExpiry('duration','2147483647')]};
+    });assert.deepEqual(expiryCases,{rejected:Array(11).fill(true),valid:[['KEEPTTL'],[],['EX','1'],['EX','2147483647']]});
     // Unmount retains draft. Dispose cancels an in-flight job and releases memory.
     await value.fill('AQI=');await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await value.inputValue(),'AQI=');
     await page.screenshot({path:'code-graph-dba/target/redis-string-editor.png'});
@@ -112,12 +147,13 @@ module.exports=async(browser,base)=>{
     assert.equal(await value.inputValue(),'');assert.equal(await value.getAttribute('readonly'),'');
     assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
     assert.equal(await newButton.isDisabled(),true);assert.equal(await deletion.isDisabled(),true);
+    assert.equal(await expiry.isDisabled(),true);
     await page.evaluate(async()=>{stringFixture.direct.toggleDelete();await stringFixture.direct.load(true);});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
     await page.evaluate(async()=>{stringFixture.direct.value.value='blocked';await stringFixture.direct.save();});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
     await page.setViewportSize({width:480,height:760});
     assert.equal(await editor.evaluate(n=>n.scrollWidth<=n.clientWidth+1),true,'Narrow editor has no horizontal control clipping');
     await page.evaluate(()=>{stringFixture.readOnly=false;stringFixture.direct.invalidate('Connection removed');});assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
     await page.evaluate(()=>stringFixture.direct.dispose());assert.deepEqual(errors,[]);
-    console.log('Redis string editor passed: staged absent-key creation/deletion, binary/empty values, exact review/revision, Revert, TTL behavior, conflicts, uncertainty, cancellation, read-only profiles, remount and narrow layout.');
+    console.log('Redis string editor passed: staged expiry-only/creation/deletion, duration limits, exact SET EX/KEEPTTL/clear expiry, binary/empty values, exact review/revision, Revert, conflicts, uncertainty, cancellation, read-only profiles, remount and narrow layout.');
   }finally{await context.close();}
 };
