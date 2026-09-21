@@ -238,7 +238,7 @@ until the operation actually exits. There is no automatic retry of database oper
 | `POST /api/dba/setup/driver-install` | Above plus exact `version` → atomic bundle; progress via job status |
 | `POST /api/dba/setup/driver-inspect` | `jars:[]` → normalized paths and discovered classes |
 | `POST /api/dba/setup/properties` | `templateId, driverClass, jars, url` → JDBC/catalog descriptors |
-| `POST /api/dba/setup/file-select` | `kind: "jar", "key", "maven-settings", "maven-cert"` → selected local paths / desktop unavailable; 90-second deadline |
+| `POST /api/dba/setup/file-select` | `kind: "jar", "key", "maven-executable", "maven-settings", "maven-cert"` → selected local paths / desktop unavailable; 90-second deadline; Maven selection returns one launcher file, never uploads or executes it |
 | `GET /api/dba/settings/driver-downloads` | Effective download mode, optional executable/settings/PEM paths, TLS bypass flag and default settings path; no file contents |
 | `PUT /api/dba/settings/driver-downloads` | `mode, command?, settings?, certPem?, insecureTls?`; validate and atomically persist `settings.json.driverDownloads` |
 | `POST /api/dba/setup/key-validate` | `path, passphrase?` → non-secret key metadata |

@@ -253,6 +253,8 @@ prerequisite checks, updates, native distribution and validation limits.
 **Corporate JDBC downloads:** in **DBA → Settings → Driver downloads**, select
 **Installed Maven** to use your company's mirrors, proxies and credentials. Leave the
 settings path blank for the normal user-default settings.xml, or Browse to an override.
+Browse can also select Maven's bin/mvn.cmd (Windows) or bin/mvn (macOS/Linux);
+leaving the executable path blank uses PATH.
 An optional CA PEM and an explicitly unsafe, off-by-default TLS-verification bypass are
 available for this download process only. Preferences persist in the application's
 settings.json; failures display sanitized details and Retry. Native file pickers allow

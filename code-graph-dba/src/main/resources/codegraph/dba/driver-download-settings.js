@@ -8,7 +8,8 @@ export function installDriverDownloadSettings({api,toast}) {
   const dialog=document.createElement('dialog');dialog.id='driver-download-settings-dialog';dialog.setAttribute('aria-labelledby','driver-download-title');
   dialog.innerHTML='<form><h2 id="driver-download-title">Driver downloads</h2><p>Use installed Maven when your company routes packages through a private mirror.</p>'
     +'<label>Download method<select name="mode"><option value="embedded">Embedded Maven · public Maven Central</option><option value="maven">Installed Maven · corporate settings</option></select></label>'
-    +'<fieldset><legend>Installed Maven</legend><label>Maven executable (optional)<input name="command" placeholder="mvn / mvn.cmd from PATH" autocomplete="off" spellcheck="false"></label>'
+    +'<fieldset><legend>Installed Maven</legend><label>Maven executable (optional)<span class="driver-path-field"><input name="command" placeholder="mvn / mvn.cmd from PATH" autocomplete="off" spellcheck="false"><button type="button" data-browse="command" aria-label="Browse for Maven executable" title="Select bin/mvn.cmd on Windows or bin/mvn on macOS/Linux">Browse…</button></span></label>'
+    +'<p class="muted">Select the Maven launcher file in its bin directory, not the installation folder. Leave blank to find Maven on PATH.</p>'
     +'<label>Maven settings.xml (optional)<span class="driver-path-field"><input name="settings" autocomplete="off" spellcheck="false"><button type="button" data-browse="settings">Browse…</button></span></label>'
     +'<p class="muted" id="driver-default-settings"></p>'
     +'<label>CA certificate PEM (optional)<span class="driver-path-field"><input name="certPem" placeholder="Full path to public CA certificate.pem" autocomplete="off" spellcheck="false"><button type="button" data-browse="certPem">Browse…</button></span></label>'
@@ -43,7 +44,8 @@ export function installDriverDownloadSettings({api,toast}) {
   for(const browse of dialog.querySelectorAll('[data-browse]'))browse.onclick=async()=>{
     busy=true;pickerCancelled=false;update();status.textContent='Choose an existing local file…';
     try{
-      const job=await api('/setup/file-select','POST',{kind:browse.dataset.browse==='settings'?'maven-settings':'maven-cert'});
+      const kinds={command:'maven-executable',settings:'maven-settings',certPem:'maven-cert'};
+      const job=await api('/setup/file-select','POST',{kind:kinds[browse.dataset.browse]});
       picker=job.id;if(pickerCancelled){await api('/jobs/'+picker+'/cancel','POST',{});return;}
       for(;;){
         await new Promise(resolve=>setTimeout(resolve,200));

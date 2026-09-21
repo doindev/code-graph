@@ -65,6 +65,33 @@ class DriverDownloadTest {
             assertEquals("cancelled",ConnectionSetupTest.await(jobs,"browser",query).path("state").asText());
         }
     }
+    @Test void mavenPickerRecognizesLaunchersAndRejectsOtherFilesWithoutRunningThem()throws Exception{
+        for(String name:List.of("mvn","mvn.cmd","mvn.bat","mvn.exe","MVN.CMD")){
+            assertTrue(ConnectionSetup.mavenLauncherName(name));
+            Path file=Files.writeString(root.resolve(name),"not executed by file selection");
+            assertDoesNotThrow(()->ConnectionSetup.validateMavenSelection(file));
+        }
+        for(String name:List.of("settings.xml","maven.jar","mvn.cmd.txt","mvn --version")){
+            assertFalse(ConnectionSetup.mavenLauncherName(name));
+            Path file=Files.writeString(root.resolve(name),"");
+            assertThrows(IllegalArgumentException.class,()->ConnectionSetup.validateMavenSelection(file));
+        }
+        assertThrows(IllegalArgumentException.class,()->ConnectionSetup.validateMavenSelection(root));
+        assertThrows(IllegalArgumentException.class,()->ConnectionSetup.validateMavenSelection(root.resolve("missing/mvn")));
+    }
+    @Test void headlessMavenPickerOffersManualPathWithoutSavingOrExecuting()throws Exception{
+        Assumptions.assumeTrue(java.awt.GraphicsEnvironment.isHeadless(),"Headless fallback requires a headless test JVM");
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var connections=new Connections(profiles);
+            var jobs=new QueryJobs(connections,new DbaConfig(root,64L<<20,2,100,100,10),o->true)){
+            var setup=new ConnectionSetup(profiles,jobs);
+            var state=ConnectionSetupTest.await(jobs,"browser",setup.operation("browser","file-select",Profiles.JSON.createObjectNode().put("kind","maven-executable")));
+            assertEquals("complete",state.path("state").asText(),state.toString());
+            assertFalse(state.path("result").path("available").asBoolean(true));
+            assertTrue(state.path("result").path("message").asText().contains("manually"));
+            assertFalse(Files.exists(root.resolve("settings.json")));
+            assertEquals(0,connections.count());
+        }
+    }
     @Test void settingsApiRequiresSessionAndCsrfAndPreservesOtherRuntimeSettings()throws Exception{
         var config=new DbaConfig(root.resolve("runtime"),64L<<20,2,100,100,10);
         var server=com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress(java.net.InetAddress.getLoopbackAddress(),0),0);

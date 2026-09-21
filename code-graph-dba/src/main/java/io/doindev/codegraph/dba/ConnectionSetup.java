@@ -121,10 +121,16 @@ final class ConnectionSetup {
     }
     private static String bounded(String value,int max){return value==null?"":value.substring(0,Math.min(max,value.length()));}
     private static ObjectNode select(JsonNode input,QueryJobs.Job job)throws Exception{
-        String kind=input.path("kind").asText();boolean key=kind.equals("key"),settings=kind.equals("maven-settings"),cert=kind.equals("maven-cert");
-        if(!Set.of("jar","key","maven-settings","maven-cert").contains(kind))throw new IllegalArgumentException("Unsupported file selection kind");
-        if(java.awt.GraphicsEnvironment.isHeadless())return Profiles.JSON.createObjectNode().put("available",false).put("message",settings||cert?"Enter the existing local file path manually. Settings/certificates are not uploaded.":key?"Enter the existing key path manually. Key upload is not supported.":"Enter JAR paths or upload JAR files.");
-        java.awt.FileDialog dialog=new java.awt.FileDialog((java.awt.Frame)null,settings?"Select Maven settings.xml":cert?"Select public CA certificate PEM":key?"Select existing PKCS#8 private key (never uploaded)":"Select trusted JDBC JARs",java.awt.FileDialog.LOAD);dialog.setMultipleMode(!key&&!settings&&!cert);if(!key)dialog.setFilenameFilter((d,n)->n.toLowerCase(Locale.ROOT).endsWith(settings?".xml":cert?".pem":".jar"));
-        try{job.progress="Waiting for the native file picker";java.awt.EventQueue.invokeAndWait(()->dialog.setVisible(true));ArrayNode paths=Profiles.JSON.createArrayNode();for(var file:dialog.getFiles())paths.add(file.getAbsolutePath());return Profiles.JSON.createObjectNode().put("available",true).set("paths",paths);}finally{java.awt.EventQueue.invokeLater(dialog::dispose);}
+        String kind=input.path("kind").asText();boolean key=kind.equals("key"),settings=kind.equals("maven-settings"),cert=kind.equals("maven-cert"),maven=kind.equals("maven-executable");
+        if(!Set.of("jar","key","maven-settings","maven-cert","maven-executable").contains(kind))throw new IllegalArgumentException("Unsupported file selection kind");
+        if(java.awt.GraphicsEnvironment.isHeadless())return Profiles.JSON.createObjectNode().put("available",false).put("message",maven?"Enter the existing local mvn/mvn.cmd file path manually, or leave blank to use PATH. Executables are not uploaded.":settings||cert?"Enter the existing local file path manually. Settings/certificates are not uploaded.":key?"Enter the existing key path manually. Key upload is not supported.":"Enter JAR paths or upload JAR files.");
+        java.awt.FileDialog dialog=new java.awt.FileDialog((java.awt.Frame)null,maven?"Select Maven launcher (bin/mvn or bin/mvn.cmd)":settings?"Select Maven settings.xml":cert?"Select public CA certificate PEM":key?"Select existing PKCS#8 private key (never uploaded)":"Select trusted JDBC JARs",java.awt.FileDialog.LOAD);dialog.setMultipleMode(kind.equals("jar"));if(!key)dialog.setFilenameFilter((d,n)->maven?mavenLauncherName(n):n.toLowerCase(Locale.ROOT).endsWith(settings?".xml":cert?".pem":".jar"));
+        try{job.progress="Waiting for the native file picker";java.awt.EventQueue.invokeAndWait(()->dialog.setVisible(true));ArrayNode paths=Profiles.JSON.createArrayNode();for(var file:dialog.getFiles()){if(maven)validateMavenSelection(file.toPath());paths.add(file.getAbsolutePath());}return Profiles.JSON.createObjectNode().put("available",true).set("paths",paths);}finally{java.awt.EventQueue.invokeLater(dialog::dispose);}
+    }
+    static boolean mavenLauncherName(String name){return Set.of("mvn","mvn.cmd","mvn.bat","mvn.exe").contains(name.toLowerCase(Locale.ROOT));}
+    // Native filename filters are advisory on some desktops. Validate the selection as well.
+    static void validateMavenSelection(Path path){
+        if(!Files.isRegularFile(path)||!Files.isReadable(path)||!mavenLauncherName(path.getFileName().toString()))
+            throw new IllegalArgumentException("Select the readable Maven launcher file (bin/mvn or bin/mvn.cmd), not its installation folder. Custom launchers can be entered manually.");
     }
 }

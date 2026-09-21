@@ -9,6 +9,9 @@ and your installed Maven already works with an internal mirror.
   Installed mode invokes the local Maven application for **both version metadata and JARs**.
   It never falls back to the embedded downloader after a failure.
 - **Maven executable:** optional full path to mvn/mvn.cmd; blank searches PATH.
+  Use **Browse** to select the launcher file in Maven's **bin** directory:
+  **mvn.cmd** on Windows, **mvn** on macOS/Linux (not the installation folder).
+  Browsing does not run Maven or download anything; Apply persists the selected path.
   Use Maven 3.9.x with Java 25. Installed Maven is an additional prerequisite only for
   this mode; the application's embedded mode still needs no external Maven.
 - **Maven settings.xml:** optional complete local filename, with Browse. Blank leaves Maven
@@ -41,8 +44,8 @@ honored. Saved connections stay pinned. Changing preferences affects subsequent 
 an already running download keeps its original configuration. Missing mounted files fail
 the affected operation without preventing the application from starting.
 
-Native Browse dialogs for JARs, keys, settings and PEMs allow **90 seconds**, independent of
-query timeouts. No desktop: enter the local server path manually; XML/PEM/key uploads are
+Native Browse dialogs for JARs, keys, Maven launchers, settings and PEMs allow **90 seconds**, independent of
+query timeouts. No desktop: enter the local server path manually; executable/XML/PEM/key uploads are
 not offered. Browsing happens on the machine running code-graph.
 
 ## Startup overrides
