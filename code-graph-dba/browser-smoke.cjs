@@ -31,6 +31,7 @@ const [base,jar,schema='']=process.argv.slice(2);
   };return context;};
   try {
     if(process.env.DBA_BROWSER_SUITE==='driver-downloads'){await require('./browser-driver-downloads.cjs')(browser,base);return;}
+    if(process.env.DBA_BROWSER_SUITE==='grid-cell'){await require('./browser-grid-cell.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-search'){await require('./browser-grid-search.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='editable-grid'){await require('./browser-editable-grid.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-scroll'){await require('./browser-grid-scroll.cjs')(browser,base,jar);return;}

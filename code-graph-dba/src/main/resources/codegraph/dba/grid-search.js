@@ -44,12 +44,12 @@ export class GridSearch {
     for(const [key,label,icon,text] of [
       ['caseSensitive','Match case',null,'Aa'],['regex','Use regular expression',null,'.*'],
       ['wholeWord','Match whole word',null,'ab'],['selectedOnly','Search selected rows only','list']]){
-      const control=button(label,icon,()=>{s[key]=!s[key];this.searchNow(false);},text);
+      const control=button(label,icon,()=>{s[key]=!s[key];if(!s.pendingInput&&s.text===s.query&&s.query)void this.scan(false);else this.update();},text);
       if(key==='wholeWord')control.classList.add('grid-find-word');this.toggles[key]=control;top.append(control);
     }
     this.previous=button('Previous match','chevron-up',()=>this.move(-1));
     this.next=button('Next match','chevron-down',()=>this.move(1));
-    this.only=button('Show matching rows only','filter',()=>{s.filterMatches=!s.filterMatches;this.update();this.view.renderTable();if(!s.query&&s.text)this.searchNow(false);});
+    this.only=button('Show matching rows only','filter',()=>{s.filterMatches=!s.filterMatches;this.update();this.view.renderTable();});
     const close=button('Close Find and Replace','x',()=>this.close());
     top.append(divider(),this.previous,this.next,this.only,close);
     this.bottom=document.createElement('div');this.bottom.className='grid-find-row grid-find-replacement';
@@ -71,8 +71,9 @@ export class GridSearch {
     const id='grid-find-history-'+ ++sequence;input.setAttribute('aria-controls',id);
     const caret=button(historyLabel,'chevron-down',()=>this.toggleHistory({host,input,caret,id,key,historyKey,submit}));
     caret.setAttribute('aria-haspopup','listbox');caret.setAttribute('aria-expanded','false');
-    input.oninput=()=>{this.state[key]=input.value;this.closeHistory();if(key==='text'){this.stop();this.state.query='';this.clearMatches();this.message='';this.view.renderTable();this.update();}else if(this.replacing){this.stop();this.message='Replacement changed; apply it again.';this.update();}};
+    input.oninput=()=>{this.state[key]=input.value;this.closeHistory();if(key==='text'){this.stop();this.state.pendingInput=true;this.updateDraft();}else if(this.replacing){this.stop();this.message='Replacement changed; apply it again.';this.update();}};
     input.onkeydown=event=>{
+      if(event.isComposing)return;
       if(event.key==='ArrowDown'&&(!this.history||event.altKey)){event.preventDefault();this.toggleHistory({host,input,caret,id,key,historyKey,submit});return;}
       if(this.history?.input===input&&['ArrowDown','ArrowUp','Enter'].includes(event.key)){
         event.preventDefault();const buttons=[...this.history.list.children];
@@ -102,7 +103,7 @@ export class GridSearch {
     return{rows:this.view.result.rows,changes:draft.changes,added:draft.added,size:draft.changes.size,length:draft.length,columns:this.view.columns().map(c=>c.id).join(','),selection:this.state.selectedOnly?[...draft.selection].sort((a,b)=>a-b).join(','):''};
   }
   changed(snapshot=this.signature){const now=this.snapshot();return !snapshot||Object.keys(now).some(key=>now[key]!==snapshot[key]);}
-  refreshIfChanged(){if(!this.state.open||!this.state.query||!this.changed())return;this.signature=this.snapshot();this.message='';this.queue();}
+  refreshIfChanged(){if(!this.state.open||!this.state.query||this.state.pendingInput||this.state.text!==this.state.query||!this.changed())return;this.signature=this.snapshot();this.message='';this.queue();}
   queue(){clearTimeout(this.queued);this.queued=setTimeout(()=>{this.queued=null;void this.scan(false);},100);}
   cells(){
     const view=this.view,draft=view.state.draft,columns=view.columns(),cells=[];let bytes=0;
@@ -120,7 +121,7 @@ export class GridSearch {
   canReplace(row,column){return this.view.rowActions&&!this.view.draftActions&&!this.view.displayOnly&&!this.view.result.cellsTruncated&&!this.view.result.grid?.uncertain&&this.view.state.draft.canEdit(row,column.id);}
   stop(){this.revision++;clearTimeout(this.queued);this.queued=null;this.task?.cancel();this.task=null;this.busy=false;this.replacing=false;}
   clearMatches(){this.matches=[];this.byCell.clear();this.current=-1;this.view.searchRows=null;}
-  searchNow(navigate=true){this.state.query=this.state.text;this.message='';return this.scan(navigate);}
+  searchNow(navigate=true){this.state.query=this.state.text;this.state.pendingInput=false;this.error=this.message='';return this.scan(navigate);}
   async scan(navigate=false,replacing=false,all=false){
     // A Tab move may already have opened the next editor. Recompute when it closes.
     if(this.view.finishCell&&!navigate&&!replacing){this.signature=null;return;}
@@ -150,11 +151,11 @@ export class GridSearch {
     }catch(error){if(generation!==this.revision||this.disposed)return;this.busy=false;this.replacing=false;this.task=null;if(error.name!=='AbortError'){this.error=error.message;this.clearMatches();this.view.renderTable();}this.update();}
   }
   project(){this.view.searchRows=this.state.open&&this.state.query&&this.state.filterMatches&&!this.error?[...new Set(this.matches.map(m=>m.row))]:null;}
-  move(direction){if(this.busy)return;if(this.state.text!==this.state.query){void this.searchNow();return;}if(!this.matches.length)return;this.current=(this.current+direction+this.matches.length)%this.matches.length;this.message='';this.reveal();this.update();}
+  move(direction){if(this.busy||this.state.pendingInput||this.state.text!==this.state.query)return;if(!this.matches.length)return;this.current=(this.current+direction+this.matches.length)%this.matches.length;this.message='';this.reveal();this.update();}
   reveal(){
     const match=this.matches[this.current];if(!match)return;this.view.revealRow(match.row);
-    const columns=this.view.columns(),at=columns.findIndex(c=>c.id===match.column),left=52+columns.slice(0,at).reduce((n,c)=>n+(this.view.state.widths.get(c.id)??180),0),width=this.view.state.widths.get(match.column)??180,scroll=this.view.scroll;
-    if(left<scroll.scrollLeft+52)scroll.scrollLeft=left-52;else if(left+width>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,left+Math.min(width,scroll.clientWidth-52)-scroll.clientWidth);
+    const columns=this.view.columns(),at=columns.findIndex(c=>c.id===match.column),gutter=this.view.rowNumberWidth,left=gutter+columns.slice(0,at).reduce((n,c)=>n+(this.view.state.widths.get(c.id)??180),0),width=this.view.state.widths.get(match.column)??180,scroll=this.view.scroll;
+    if(left<scroll.scrollLeft+gutter)scroll.scrollLeft=left-gutter;else if(left+width>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,left+Math.min(width,scroll.clientWidth-gutter)-scroll.clientWidth);
     // Keep the active cell above the floating panel, without moving keyboard focus.
     const cell=scroll.querySelector('[data-row-index="'+match.row+'"] [data-column-id="'+CSS.escape(match.column)+'"]');
     if(cell){const rect=cell.getBoundingClientRect(),panel=this.panel.getBoundingClientRect();if(rect.right>panel.left&&rect.bottom>panel.top)scroll.scrollTop+=rect.bottom-panel.top+4;}
@@ -167,14 +168,14 @@ export class GridSearch {
     cell.append(document.createTextNode(text.slice(end)));
   }
   replace(all){
-    if(this.busy||this.view.controller?.busy)return;
+    if(this.busy||this.view.controller?.busy||this.state.pendingInput||this.state.text!==this.state.query)return;
     this.view.controller?.stopRefresh();if(!this.view.controller&&this.view.refresh){this.view.refresh.clear();this.view.refresh.seconds=0;this.view.refresh.requested=false;this.view.refresh.emit();}
     return this.scan(false,true,all);
   }
   toggle(){if(this.state.open)this.close();else this.open();}
-  open(){this.state.open=true;this.update();this.search.input.focus();this.search.input.select();if(this.state.text)this.searchNow(false);}
+  open(){this.state.open=true;this.update();this.search.input.focus();this.search.input.select();}
   close(){
-    this.stop();this.closeHistory();Object.assign(this.state,{open:false,query:'',expanded:false,caseSensitive:false,regex:false,wholeWord:false,selectedOnly:false,filterMatches:false});
+    this.stop();this.closeHistory();Object.assign(this.state,{open:false,pendingInput:false,query:'',expanded:false,caseSensitive:false,regex:false,wholeWord:false,selectedOnly:false,filterMatches:false});
     this.clearMatches();this.error=this.message='';this.update();this.view.renderTable();this.view.findButton?.focus({preventScroll:true});
   }
   position(){
@@ -182,6 +183,14 @@ export class GridSearch {
     this.panel.style.right=right+'px';this.panel.style.bottom=bottom+'px';this.panel.style.maxWidth='calc(100% - '+(right+8)+'px)';
     scroll.style.paddingBottom=this.state.open?this.panel.offsetHeight+12+'px':'';
     if(this.history){const {input,list}=this.history,rect=input.getBoundingClientRect();list.style.width=Math.min(Math.max(160,rect.width),innerWidth-16)+'px';list.style.left=Math.max(8,Math.min(rect.left,innerWidth-list.offsetWidth-8))+'px';list.style.top=Math.max(8,rect.top-list.offsetHeight-3)+'px';}
+  }
+  // Typing is O(1): retain accepted matches and filtered rows, without walking cells or rebuilding the grid.
+  updateDraft(){
+    const pending=this.state.pendingInput||this.state.text!==this.state.query;
+    for(const [control,disabled] of this.acceptedControls??[])control.disabled=pending||disabled;
+    this.panel.setAttribute('aria-busy',String(this.busy));
+    this.status.classList.toggle('error',!pending&&!!this.error);
+    this.status.textContent=pending?'Press Enter to search. Previous matches are unchanged.':this.acceptedStatus??'';
   }
   update(){
     const s=this.state;this.panel.hidden=!s.open;this.panel.setAttribute('aria-busy',String(this.busy));this.view.findButton?.setAttribute('aria-expanded',String(s.open));
@@ -196,6 +205,7 @@ export class GridSearch {
     const reason='Only verified editable cells can be replaced; changes remain staged until Save.';
     this.replaceOne.title=this.replaceOne.disabled?reason:'Replace current match';this.replaceAll.title=this.replaceAll.disabled?reason:'Replace all matches';
     this.status.classList.toggle('error',!!this.error);this.status.textContent=this.busy?'Searching loaded rows…':this.error||this.message||(s.query?(this.current<0?'0':this.current+1)+' of '+this.matches.length+' matches · loaded rows, visible columns'+(this.view.result.cellsTruncated?' · previews only':''):'Search loaded rows and visible columns. Replacements are staged, not saved.');
+    this.acceptedControls=[this.previous,this.next,this.replaceOne,this.replaceAll].map(control=>[control,control.disabled]);this.acceptedStatus=this.status.textContent;this.updateDraft();
     this.position();
   }
   destroy(){this.disposed=true;this.stop();this.closeHistory();this.observer.disconnect();document.removeEventListener('pointerdown',this.outside,true);this.panel.remove();this.view.searchRows=null;}

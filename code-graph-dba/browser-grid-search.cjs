@@ -65,8 +65,8 @@ module.exports=async(browser,base,jar)=>{
   // A non-Script host exercises reusable state, read-only cells and hostile patterns.
   await page.evaluate(async()=>{
    const {DataGridView,GridQueryController}=await import('/dba/data-grid.js');
-   const NativeWorker=window.Worker;window.searchWorkers=0;
-   window.Worker=class extends NativeWorker{constructor(...args){super(...args);window.searchWorkers++;}postMessage(data){if(!window.holdSearchWork)super.postMessage(data);}terminate(){if(!this.stopped){this.stopped=true;window.searchWorkers--;}super.terminate();}};
+   const NativeWorker=window.Worker;window.searchWorkers=0;window.searchStarts=0;
+   window.Worker=class extends NativeWorker{constructor(...args){super(...args);window.searchWorkers++;window.searchStarts++;}postMessage(data){if(!window.holdSearchWork)super.postMessage(data);}terminate(){if(!this.stopped){this.stopped=true;window.searchWorkers--;}super.terminate();}};
    const host=document.createElement('div');host.id='search-fixture';Object.assign(host.style,{position:'fixed',inset:'100px 40px',display:'flex',zIndex:'50',background:'#101722'});document.body.append(host);
    const result={columns:[{id:'c1',label:'duplicate',jdbcType:12},{id:'c2',label:'number',jdbcType:4},{id:'c3',label:'duplicate',jdbcType:12}],rows:Array.from({length:250},(_,i)=>[i===0?'111':'value-'+i,i===0?111:i,'111']),grid:{capabilities:{edit:true,page:false},rowIds:Array.from({length:250},(_,i)=>'r'+i),columns:[{id:'c1',name:'Text',jdbcType:12,editable:true,size:80},{id:'c2',name:'Number',jdbcType:4,editable:true},{id:'c3',name:'Read only',jdbcType:12,editable:false}]}};
    result.rows[249][0]='a'.repeat(30000)+'!';const controller=new GridQueryController({run:async()=>{},api:async()=>{}});
@@ -77,6 +77,19 @@ module.exports=async(browser,base,jar)=>{
   const done=()=>page.waitForFunction(()=>document.querySelector('#search-fixture .grid-find')?.getAttribute('aria-busy')==='false');
   async function localFind(text){await term.fill(text);await term.press('Enter');await done();}
   await bar.getByRole('button',{name:'Show replacement controls',exact:true}).click();
+  await localFind('value-1');await bar.getByRole('button',{name:'Show matching rows only',exact:true}).click();
+  const accepted=await page.evaluate(()=>{const v=searchFixture.view;window.searchRenders=0;const render=v.renderTable.bind(v);v.renderTable=(...args)=>{window.searchRenders++;return render(...args);};return{matches:JSON.stringify(v.find.matches),rows:JSON.stringify(v.searchRows),starts:window.searchStarts};});
+  await term.fill('value-2');await term.pressSequentially('48',{delay:20});await page.waitForTimeout(250);
+  assert.deepEqual(await page.evaluate(()=>({matches:JSON.stringify(searchFixture.view.find.matches),rows:JSON.stringify(searchFixture.view.searchRows),starts:window.searchStarts})),accepted,'Typing keeps applied matches, visible rows and worker starts unchanged');
+  assert.equal(await page.evaluate(()=>window.searchRenders),0,'Typing must not rebuild the grid');assert.match(await info.innerText(),/Press Enter/);
+  await term.fill('value-1');assert.equal(await bar.getByRole('button',{name:'Next match',exact:true}).isDisabled(),true,'Even retyping the accepted query waits for Enter');
+  await term.fill('value-248');
+  assert.equal(await bar.getByRole('button',{name:'Replace all matches',exact:true}).isDisabled(),true);
+  await term.dispatchEvent('keydown',{key:'Enter',isComposing:true});assert.equal(await page.evaluate(()=>window.searchStarts),accepted.starts);
+  await term.press('Enter');await done();assert.equal(await page.evaluate(()=>searchFixture.view.find.state.query),'value-248');assert.match(await info.innerText(),/1 of 1/);
+  await term.fill('');assert.equal(await page.evaluate(()=>searchFixture.view.find.matches.length),1);await term.press('Enter');await done();assert.equal(await page.evaluate(()=>searchFixture.view.find.matches.length),0);
+  await bar.getByRole('button',{name:'Search history',exact:true}).click();await page.locator('.grid-find-history').getByRole('option',{name:'value-1',exact:true}).click();await done();assert.equal(await page.evaluate(()=>searchFixture.view.find.state.query),'value-1','History selection explicitly submits');
+  await bar.getByRole('button',{name:'Show matching rows only',exact:true}).click();
   await localFind('111');await replace.fill('invalid');await bar.getByRole('button',{name:'Replace all matches',exact:true}).click();await done();
   assert.match(await info.innerText(),/whole number/);assert.equal(await page.evaluate(()=>searchFixture.view.state.draft.dirty),false,'An invalid numeric replacement cannot partially edit text cells');
   await localFind('111');await replace.fill('222');await bar.getByRole('button',{name:'Replace all matches',exact:true}).click();await done();

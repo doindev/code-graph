@@ -26,7 +26,8 @@ module.exports=async(browser,base,jar)=>{
     await input.fill('999');await input.press('Escape');assert.equal(await rows.first().locator('[data-column-id=c1]').innerText(),'1');
     for(const [column,nullable,hasDefault] of [['c2',true,false],['c3',true,true],['c4',false,true]]){
       await rows.first().locator('[data-column-id='+column+']').dblclick();
-      const mode=editor.getByRole('combobox',{name:'Value mode'});assert.equal(await mode.isVisible(),true);
+      const mode=page.getByRole('combobox',{name:'Value mode'});assert.equal(await mode.isVisible(),true);
+      assert.equal(await editor.locator('select').count(),0);assert.equal(await editor.evaluate(e=>Math.abs(e.getBoundingClientRect().width-e.querySelector('textarea').getBoundingClientRect().width)<3),true);
       assert.equal(await mode.locator('option[value=null]').isEnabled(),nullable);
       assert.equal(await mode.locator('option[value=default]').isEnabled(),hasDefault);
       await mode.focus();
@@ -77,7 +78,7 @@ module.exports=async(browser,base,jar)=>{
     if(await page.locator('.grid-cell-editor').count())await page.locator('.grid-cell-editor textarea').press('Enter');
     const added=page.locator('.grid-row-added');
     await added.locator('[data-column-id=c1]').dblclick();await page.locator('.grid-cell-editor textarea').fill('999');await page.locator('.grid-cell-editor textarea').press('Enter');
-    await added.locator('[data-column-id=c2]').dblclick();await page.locator('.grid-cell-editor select').selectOption('value');await page.locator('.grid-cell-editor textarea').fill('inserted through grid');await page.locator('.grid-cell-editor textarea').press('Enter');
+    await added.locator('[data-column-id=c2]').dblclick();await page.locator('.grid-cell-options select').selectOption('value');await page.locator('.grid-cell-editor textarea').fill('inserted through grid');await page.locator('.grid-cell-editor textarea').press('Enter');
     await footer.getByRole('button',{name:'Save',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false'&&document.querySelector('.grid-row-status')?.textContent.includes('of 452'));
     await footer.getByRole('button',{name:'Last row',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('433–452'));
     await rows.last().locator('.row-number').click();await footer.getByRole('button',{name:'Delete',exact:true}).click();await footer.getByRole('button',{name:'Save',exact:true}).click();

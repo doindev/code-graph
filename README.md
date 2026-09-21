@@ -17,7 +17,8 @@ large text codebases into a queryable **code property graph** so AI agents can a
   [Editable, pageable grids and exports](docs/dba-editable-grids.md) add staged
   transactional row changes, 200-row server windows with bidirectional near-edge
   loading, virtualized rows and bounded backend caching, selection/navigation, grid
-  settings, loaded-page Find/Replace with staged edits and ten-entry histories,
+  settings, resizable row numbers, full-width cell editors with floating value modes,
+  Enter-applied loaded-page Find/Replace with staged edits and ten-entry histories,
   and bounded CSV/XLSX/TXT/SQL downloads with explicit capability gates.
   Double-click a table in the database tree to open a fixed-connection **Table** tab with a reusable
   Data grid and session recovery. Tables expand into lazy, vendor-aware categories such as

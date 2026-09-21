@@ -12,10 +12,19 @@ to toggle rows. Selection is local to the loaded page. First/Previous/Next/Last
 navigate loaded rows and, when verified paging is available, adjacent pages.
 Last loads the final **N** rows, not the remainder of a numbered page.
 
+The sticky row-number column auto-fits large ordinals. Drag its header's right
+edge or focus that separator and press Left/Right to resize it. Double-click
+the separator to restore auto-fit. Its width survives paging, filtering and tab
+switches for the lifetime of the result.
+
 Double-click a writable cell or press F2. Enter accepts the cell draft, Escape
 abandons that cell edit, and Tab/Shift+Tab moves between editable cells. The
 value-mode selector distinguishes text (including an empty string), SQL NULL,
 and database DEFAULT. Text is bound as a value, never executed as SQL.
+When NULL or DEFAULT is available, the selector floats beside the cell instead
+of narrowing its textarea. It follows scrolling and column/window resizing,
+flips or moves above/below when space is limited, and closes when the edited
+cell leaves view. Finishing an edit stages it; it does not save to the database.
 
 Add row and Delete stage local changes. Save applies the entire draft in one
 transaction, in delete/update/insert order. Deletions require confirmation with
@@ -38,6 +47,11 @@ in memory only; dropdown selections restore them. Selecting a search runs it;
 selecting replacement history only fills the replacement field.
 
 Enter searches the **loaded page and visible columns**, including staged values.
+Typing does not scan cells, clear accepted matches, or rebuild the grid. Previous
+highlights and matching-row visibility stay unchanged until Enter; match navigation
+and replacement are disabled while typed input is awaiting submission.
+Press Enter on an empty search to clear it. Search-history selection is
+also an explicit search action.
 Case-sensitive, regular-expression, Unicode whole-word, and selected-row-only
 toggles can be combined. Up/Down (or F3/Shift+F3) cycle through highlighted
 occurrences. The funnel hides nonmatching rows locally; it neither rewrites SQL
@@ -65,6 +79,20 @@ concurrent workers and 16 MiB shared input accounting. Per-search limits are
 text/cell outputs are bounded to 8192 characters plus the existing draft budget.
 Limit/regex errors do not apply partial replacements. Close/unmount terminates
 workers; expensive patterns cannot block the editor thread.
+
+### Editor and search regression checks
+
+Focused UI regressions (using the disposable H2 browser fixture):
+
+    $env:DBA_BROWSER_SUITE = 'grid-cell'
+    ./code-graph-dba/test-browser.ps1 -NodeModules <path-to-node_modules>
+    $env:DBA_BROWSER_SUITE = 'grid-search'
+    ./code-graph-dba/test-browser.ps1 -NodeModules <path-to-node_modules>
+
+These cover floating-editor positioning/focus/cleanup, row-number pointer and
+keyboard resizing, layout retention, and zero search-worker starts or grid
+rebuilds while typing. The editable-grid suite also verifies staged edits and
+database saves. Unset DBA_BROWSER_SUITE to run the full browser suite.
 
 ## Editability and paging boundaries
 
