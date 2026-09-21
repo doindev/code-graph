@@ -37,9 +37,11 @@ public record Node(NodeId id, NodeKind kind, String name, String displaySignatur
         attrs = attrs == null ? Map.of() : Map.copyOf(attrs);
     }
 
-    /** Language code for symbol nodes, {@code null} otherwise. */
+    /** Language from a symbol's identity or an indexed file's analyzer metadata.
+     * Unknown file languages stay unknown; extensions are not a language oracle. */
     public String lang() {
-        return id instanceof SymbolId s ? s.lang() : null;
+        if (id instanceof SymbolId s) return s.lang();
+        return kind == NodeKind.FILE && id instanceof FileId ? attrs.get("lang") : null;
     }
 
     /** Repo-relative path of the owning file, {@code null} for repository/module nodes. */

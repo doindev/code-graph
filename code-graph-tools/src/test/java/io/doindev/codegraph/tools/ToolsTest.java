@@ -76,6 +76,27 @@ class ToolsTest {
         assertFalse(out.get("truncated").asBoolean());
     }
 
+    @Test void languageFilteredFilesPageWithoutGapsAndKeepUnknownLanguagesUnknown() throws Exception {
+        var files=new ArrayList<Node>();
+        for(String name:List.of("navigation-a.js","navigation-b.js","navigation.ts","navigation-unknown.js")){
+            var attrs=name.contains("unknown")?Map.<String,String>of():Map.of("lang",name.endsWith(".ts")?"ts":"js");
+            files.add(new Node(new FileId(name),NodeKind.FILE,name,name,new SourceSpan(name,1,1,1,1),Metrics.NONE,attrs));
+        }
+        graph.apply(new GraphDelta(2,List.of(),files,List.of(),List.of()));
+        assertEquals(2,graph.findSymbols("navigation",java.util.Set.of(NodeKind.FILE),"js",10).size());
+        var args=JSON.createObjectNode().put("query","navigation").put("kind","file").put("lang","js").put("limit",1);
+        var first=JSON.readTree(tool("search_symbols").call(args).json());
+        assertEquals(2,first.path("total").asInt());assertTrue(first.has("nextCursor"));
+        assertEquals("file:navigation-a.js",first.path("symbols").get(0).path("id").asText());
+        args.put("cursor",first.path("nextCursor").asText());
+        var second=JSON.readTree(tool("search_symbols").call(args).json());
+        assertEquals("file:navigation-b.js",second.path("symbols").get(0).path("id").asText());assertFalse(second.has("nextCursor"));
+        args.put("lang","ts");assertTrue(tool("search_symbols").call(args).error(),"A cursor cannot change languages");
+        args.remove("cursor");assertEquals(1,JSON.readTree(tool("search_symbols").call(args).json()).path("total").asInt());
+        args.remove("lang");args.put("limit",10);assertEquals(4,JSON.readTree(tool("search_symbols").call(args).json()).path("total").asInt());
+        assertEquals("js",call("get_symbol","{\"symbol_id\":\"file:navigation-a.js\"}").path("lang").asText());
+    }
+
     @Test
     void searchSymbolsMarksTruncation() throws Exception {
         JsonNode out = call("search_symbols", "{\"query\":\"acme\",\"limit\":1}");

@@ -58,8 +58,13 @@ targets and exhausted work budgets require narrower checks or source inspection.
    authorized refresh if needed, or use current source for the specific gap.
    Never combine old pages with a new generation.
 
-Use small pages (for example 10 for symbol discovery). On current servers, limit
-is a maximum: byte-aware pages may contain fewer rows and supply a next cursor.
+Use small pages (for example 10 for symbol discovery). Language filters apply
+to file declarations as well as symbols on current servers. Use advertised
+language IDs such as `js` or `ts`, not display names such as `javascript`. Unknown
+file languages do not match a language filter; do not infer language from an ID's
+`file:` prefix. A filename result already gives its path without another lookup.
+
+The limit is a maximum: byte-aware pages may contain fewer rows and supply a next cursor.
 Follow that cursor unchanged; do not issue speculative smaller-limit retries.
 An item_too_large error means one record plus required metadata cannot fit; narrow
 the target or report the configured allowance problem. Older servers can still

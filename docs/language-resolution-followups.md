@@ -106,8 +106,8 @@ See [raw results and tradeoffs](validation/mcp-efficiency/README.md).
 
 ## LR-4: language-filtered filename discovery omits indexed files
 
-Status: reproduced through the running MCP on 2026-09-21, generation 7;
-not fixed by the Redis key-browser checkpoint.
+Status: reproduced through the running MCP on 2026-09-21, generation 7.
+Fixed in the subsequent file-language checkpoint (not the Redis browser build).
 
 `search_symbols` for `native-workspace`, kind `file`, returns the indexed
 `code-graph-dba/src/main/resources/codegraph/dba/native-workspace.js` declaration.
@@ -117,9 +117,33 @@ the failure with the documented `js` ID is the actual defect.
 
 Source inspection shows shared parser file nodes carry `attrs.lang`, but
 `Node.lang()` returns a language only for SymbolId. Search uses that accessor,
-so adding a language filter excludes all FileId declarations. Address the
-accessor/query contract with memory/hybrid and cursor regression coverage, not
-an extra server alias or extension guessing.
+so adding a language filter excluded all FileId declarations. The shared accessor
+now reads existing analyzer metadata for FileId/FILE nodes. Symbol identity still
+determines symbol language; missing metadata remains unknown. No new index,
+extension guessing, persisted-record migration or second graph is required.
+
+Regression fixtures cover JavaScript/TypeScript files, unknown language metadata,
+symbol identity precedence, stable IDs, paged language-filtered search and changed
+cursor filters. Hybrid tests check disk-backed publication, changed metadata and
+removal. Real HTTP onboarding tests exercise Java and JavaScript file discovery
+through both memory and hybrid workspaces. The baseline test failed as expected
+(`expected js but was null`); the evidence is retained under
+`target/file-language-8f9e180180504f96af347ef71d1c2224/before.log`.
+
+Validation: all 28 focused tests passed. The full 35-module reactor/package ran
+916 tests in 184 suites: 851 passed, 65 explicitly skipped opt-in/platform gates,
+no failures/errors (4:13). Installer/skill regressions passed 18 checks with two
+real-client checks unavailable; skill validation passed. Evidence is under the
+same task directory (`focused.log`, `full-reactor.log`, `installer.log`).
+Core DBA, tree-context and native browser groups also passed against the packaged
+fix. All 20 browser groups passed in the immediately preceding Redis checkpoint;
+only these three groups were rerun for the accessor-only change.
+
+Before deployment, the exact live filtered request returned zero matches
+(267.9 ms / 662 transport bytes); its unfiltered fallback returned the one known
+file (164.3 ms / 940 bytes). These are observations, not a controlled speed
+benchmark. The correctness fix removes the need for that fallback for this case;
+it does not establish an overall throughput or indexing-performance improvement.
 
 MCP was reached through the existing repository benchmark client at the user's
 explicit request because this Codex session exposed no code-graph tools. Ledger:

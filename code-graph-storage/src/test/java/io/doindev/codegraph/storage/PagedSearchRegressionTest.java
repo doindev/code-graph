@@ -9,6 +9,24 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Search/paging safety guards; wall-clock performance is measured by the isolated MCP benchmark. */
 class PagedSearchRegressionTest {
+    @Test void indexedFileLanguagesSurviveDiskPublicationAndInvalidation(){
+        try(var storage=new GraphStorage(true,32L<<20)){
+            var graph=(PagedGraph)storage.create();
+            var id=new FileId("src/navigation.js");
+            var js=new Node(id,NodeKind.FILE,"navigation.js","navigation.js",null,Metrics.NONE,Map.of("lang","js"));
+            var unknown=new Node(new FileId("src/navigation-unknown.js"),NodeKind.FILE,"navigation-unknown.js","navigation-unknown.js",null,Metrics.NONE,Map.of());
+            graph.rebuild(b->{b.node(js);b.node(unknown);return null;});
+            assertEquals(List.of(js),graph.findSymbols("navigation",Set.of(NodeKind.FILE),"js",10));
+            assertEquals("js",graph.node(id).orElseThrow().lang());
+            var ts=new Node(id,NodeKind.FILE,js.name(),js.displaySignature(),null,Metrics.NONE,Map.of("lang","ts"));
+            graph.update(b->{b.node(ts);return null;});
+            assertTrue(graph.findSymbols("navigation",Set.of(NodeKind.FILE),"js",10).isEmpty());
+            assertEquals(List.of(ts),graph.findSymbols("navigation",Set.of(NodeKind.FILE),"ts",10));
+            graph.update(b->{b.removeNode(id);return null;});
+            assertTrue(graph.findSymbols("navigation",Set.of(NodeKind.FILE),"ts",10).isEmpty());
+            assertEquals(List.of(unknown),graph.findSymbols("navigation",Set.of(NodeKind.FILE),null,10));
+        }
+    }
     private static Node node(int i) {
         String path="src/Service"+i+".java";
         return new Node(new SymbolId("java",path,"Service"+i+".Méthod",0),NodeKind.FUNCTION,

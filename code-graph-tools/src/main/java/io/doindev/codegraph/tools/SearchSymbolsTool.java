@@ -16,8 +16,8 @@ import static io.doindev.codegraph.tools.ToolSupport.JSON;
 
 /**
  * {@code search_symbols} — the entry-point tool: agents call it first to obtain valid symbol
- * IDs. Rows carry only {id, kind, sig, line}; file/lang/name are recoverable from the ID,
- * which roughly halves tokens on full result pages.
+ * IDs. Rows carry only {id, kind, sig, line}; symbol IDs encode language and path,
+ * while file IDs encode the path. File-language filters use indexed analyzer metadata.
  */
 final class SearchSymbolsTool implements GraphTool {
 

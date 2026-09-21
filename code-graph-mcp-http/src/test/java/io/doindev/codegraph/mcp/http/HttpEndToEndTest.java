@@ -147,6 +147,7 @@ class HttpEndToEndTest {
         Path child = Files.createDirectory(parent.resolve("child"));
         Path sibling = Files.createDirectory(repo.resolve("project-other"));
         Files.writeString(parent.resolve("Hello.java"), "public class Hello {}\n");
+        Files.writeString(parent.resolve("navigation.js"), "export function navigate() {}\n");
         var workspace = io.doindev.codegraph.index.Workspace.open(List.of(), io.doindev.codegraph.index.Analyzers.discover(),
                 io.doindev.codegraph.config.loader.ConfigLoader::load, hybrid, 32L << 20);
         try (HttpServer server = HttpServer.start(workspace, 0, readOnlyUi ? 0 : -1, false, java.time.Duration.ofHours(1))) {
@@ -177,6 +178,12 @@ class HttpEndToEndTest {
                     .path("projects").size());
             assertTrue(toolPayload(callTool(client, endpoint, session, "search_symbols",
                     Map.of("query", "Hello"))).path("total").asInt() > 0);
+            for(var language:Map.of("java","Hello.java","js","navigation.js").entrySet()){
+                JsonNode found=toolPayload(callTool(client,endpoint,session,"search_symbols",
+                        Map.of("project","project","query",language.getValue(),"kind","file","lang",language.getKey())));
+                assertEquals(1,found.path("total").asInt(),found.toString());
+                assertEquals("file:"+language.getValue(),found.path("symbols").get(0).path("id").asText());
+            }
 
             if (readOnlyUi) {
                 String base = "http://localhost:" + server.vizPort();

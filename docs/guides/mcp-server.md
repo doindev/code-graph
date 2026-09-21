@@ -31,8 +31,11 @@ Progress goes to stderr; stdout belongs to the protocol.
 
 ### Efficient evidence and freshness
 
-Use `search_symbols` once to identify targets, then `get_symbol_context` for
-1–20 known IDs when declarations plus optional references/callers/callees/
+Use `search_symbols` only when target identities are not already known.
+For indexed filenames, combine `kind: "file"` with an optional analyzer
+language ID such as `js`, `ts`, `java` or `sql`; file-language metadata is honored
+without extension guessing. Unknown file languages match only unfiltered searches.
+Use `get_symbol_context` for 1–20 known IDs when declarations plus optional references/callers/callees/
 implementations would answer the question together. Sections are opt-in; the
 default is declarations and coverage, not every relationship. One generation,
 one byte/result allowance and a 100,000-edge inspection budget cover the entire
