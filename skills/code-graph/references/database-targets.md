@@ -98,6 +98,15 @@ Whole-string deletion uses one reviewed `DEL key` with the complete original-byt
 guard. Never drop the guard to bypass a conflict or replace a different key type.
 The UI stages these actions until Save; normal agent writes still need approval.
 
+For a requested small-string rename, prefer one reviewed RENAMENX with exact
+source-byte and destination-absence WATCH expectations. Never replace it with
+RENAME to get past an occupied destination. Cluster requires both keys in one
+hash slot; the current expiry moves with the key. Transaction receipts require
+boolean true for applied rename, not a merely acknowledged reply or numeric 1.
+On uncertain outcomes, inspect both names before another reviewed attempt.
+The string editor stages rename separately from value/expiry edits; this does
+not grant broader key-type or infrastructure administration authority.
+
 Conditional single-command SET reports `applied: false` when its condition did
 not match. That is not a transport failure and must not trigger an unconditional
 retry. Pipeline receipts instead carry the command's value; an `acknowledged`

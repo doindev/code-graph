@@ -141,6 +141,12 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] String-key rename follow-up: staged binary-safe destination, exact
+  source-byte/destination-absence WATCH guards, non-overwriting RENAMENX and
+  current TTL preservation. Focused/live topology, all 20 browser groups and
+  the full reactor passed. See [the rename checkpoint](redis-string-editor.md#string-rename-checkpoint--2026-09-21).
+  Other key types and broader key lifecycle remain separate work.
+
 - [x] String expiry follow-up: staged preserve/no-expiry/seconds choices,
   single reviewed SET, exact-byte/absence guards, explicit reload after expiry
   changes. Focused/live topology, all 20 browser groups and full reactor passed.

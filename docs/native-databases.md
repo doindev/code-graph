@@ -47,8 +47,10 @@ The [Redis string editor](redis-string-editor.md) supports bounded binary/empty
 values, explicit absent-key creation, TTL-preserving replacement and staged
 whole-key deletion. Expiry can be preserved, removed or explicitly set in seconds
 in the same reviewed SET. Every Save uses exact absence/original-byte WATCH
-checks; creation defaults to no expiry. Rename and other-key-type TTL editors are separate
-unfinished work. String storage alone does not establish application semantics.
+checks; creation defaults to no expiry. String-key rename uses RENAMENX with
+source-byte and destination-absence guards; Cluster requires one hash slot.
+Other-key-type rename/TTL editors remain unfinished. String storage alone does
+not establish application semantics.
 
 The [MongoDB document editor](mongodb-document-editor.md) stages complete,
 bounded canonical Extended JSON creation, replacements and staged deletions with explicit

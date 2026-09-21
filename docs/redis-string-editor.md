@@ -61,7 +61,32 @@ before WATCH are not detected by a value expectation alone; expiry changes durin
 the watched transaction conflict. Expired/deleted keys are never recreated by an
 existing-string save. Explicit expiry saves require Load again before further
 editing; displayed submitted values are not claimed to be a fresh read.
-Hash/list/other-key expiry editors and rename remain separate unfinished work.
+Hash/list/other-key expiry editors remain separate unfinished work.
+
+## Staged string-key rename
+
+Load a complete existing string, then choose **Rename string key**. Enter a
+nonempty destination as UTF-8 text or canonical base64 (up to 8 KiB). It must
+differ from the source bytes, and Redis must verify it is absent. Starting rename
+asks before discarding another value/expiry/deletion draft; it never combines
+those actions into a multi-command save. Revert cancels rename without a write.
+Read-only profiles, uncreated keys and uncertain outcomes cannot start rename.
+
+Save reviews one RENAMENX with two WATCH expectations: the complete original
+source bytes and destination absence. Existing destinations of any type are
+never overwritten; concurrent source or destination changes conflict. Cluster
+requires one hash slot for both keys, checked by the server before dispatch.
+This is a current-value guard, not a historical object-identity guarantee:
+same-name deletion/recreation with identical bytes before WATCH is not detected.
+
+The current expiry moves with the key. A complete boolean-true transaction
+receipt confirms rename; boolean false means it was not applied, while missing,
+incorrectly typed or lost receipts require reconciliation. Inspect both names
+after uncertain outcomes, and never automatically retry. After confirmed rename
+the editor selects the exact destination in base64 mode and requires Load before
+another edit. The native command draft is never rewritten implicitly.
+Other key types and overwriting rename are not offered by this editor.
+See [Redis RENAMENX](https://redis.io/docs/latest/commands/renamenx/).
 
 Save opens the ordinary native review showing the exact target and command.
 Cancel in that review sends no write. Revert discards the local draft, not database
@@ -112,7 +137,7 @@ The browser suite exercises the actual component and review/job lifecycle with
 controlled replies, separate from live Redis adapter tests. Neither alone claims
 full end-to-end browser-to-live-vendor coverage. Disposable Redis fixtures use the
 existing pinned 7.4.1 image and ownership-scoped cleanup; existing resources are
-preserved. Further key lifecycle, rename, other-key TTL editing and server administration
+preserved. Further key lifecycle, other-key rename/TTL editing and server administration
 are tracked separately in the [native roadmap](native-database-delivery.md).
 
 ## Original replacement-editor acceptance evidence — 2026-09-20
@@ -236,3 +261,38 @@ Owned Redis containers/volumes were removed. Docker image identities match the
 55-image pre-test baseline; pre-existing resources were preserved.
 The code-graph MCP tools were not exposed to this client, so implementation used
 focused local reads; no MCP-versus-filesystem performance claim is made.
+
+## String rename checkpoint — 2026-09-21
+
+Staged non-overwriting rename extends the existing bounded string editor, not
+the general key-type administration surface. It adds no endpoint or MCP grant.
+
+- Focused DBA/review/HTTP/MCP: 47 passed, two explicit live-fixture skips.
+- Redis 7.4.1 standalone: 40 passed, four Mongo-only skips. Cluster and
+  ACL-authenticated Sentinel: 37 passed each, no skips/failures. Same pinned image,
+  Lettuce 7.7.0.RELEASE and 256 MiB heap/64 MiB direct-memory fixture bounds.
+- Live checks verify exact two-key guards, occupied/competing destinations,
+  changed/expired sources, binary and empty values, single-slot enforcement,
+  typed true receipts, TTL/no-expiry preservation, cancellation before EXEC
+  and no replay after confirmed rename.
+- Focused native browser tests pass: staged rename, discard confirmation,
+  empty/same/invalid destination rejection, read-only value/expiry controls,
+  exact review, Cancel/Revert, conflicts, typed false versus invalid replies,
+  uncertain-outcome locks, renamed-key selection, tab remount, read-only
+  profiles, cancellation/disposal and 480 px layout. Screenshots were inspected.
+- Full Maven reactor/package: 35 modules, 183 suites, 911 tests; 846 passed,
+  65 explicit opt-in/platform skips, zero failures/errors (4:03).
+- 29 JavaScript syntax checks, skill validation, 11 grid unit tests, Windows
+  bootstrap checks and 14 installer/skill checks pass; two real-client checks
+  remain explicitly unverified.
+
+All 20 final browser suite groups passed sequentially after packaging, including
+grids/search/export, native editors, designers, catalogs, editor pairing,
+workspace recovery and approval flows. No compiler modified fixture classes
+during validation. Raw evidence:
+target/redis-string-rename-1789988260545 (focused.log, browser-native.log,
+redis-standalone.log, redis-cluster.log, redis-sentinel.log, live-reports,
+full-reactor.log, all-browser.log and regression logs).
+Owned Redis containers/volumes were removed; the existing 55-image baseline and
+user databases were preserved. Source reads were local because code-graph tools
+were not exposed to this client. No query-efficiency speedup is claimed.

@@ -18,7 +18,7 @@ module.exports=async(browser,base)=>{
         if(path==='/jobs/key-job'){
           if(f.phase==='running')return{id:'key-job',state:'running'};
           const values=f.command.pipeline?.length===1?[f.type??'string']:[f.type??'string',f.length??atob(f.base64).length,{base64:f.base64,truncated:!!f.truncated},f.ttl];
-          const result=f.command.pipeline?{kind:'pipeline',entries:values.map((value,index)=>({index,state:'acknowledged',value}))}:{kind:'transaction',outcome:f.outcome,entries:[{index:0,state:'acknowledged',value:f.command.transaction?.[0]?.[0]==='DEL'?1:'OK'}]};
+          const result=f.command.pipeline?{kind:'pipeline',entries:values.map((value,index)=>({index,state:'acknowledged',value}))}:{kind:'transaction',outcome:f.outcome,entries:[{index:0,state:'acknowledged',value:f.command.transaction?.[0]?.[0]==='RENAMENX'?(f.renameReceipt??true):f.command.transaction?.[0]?.[0]==='DEL'?1:'OK'}]};
           return{id:'key-job',state:f.outcome==='conflict'&&f.command.transaction?'failed':'complete',error:f.outcome==='conflict'?'Original value changed':undefined,finished:Date.now(),result};
         }
         throw new Error('Unexpected API '+path);
@@ -133,6 +133,30 @@ module.exports=async(browser,base)=>{
     });assert.deepEqual(expiryCases,{rejected:Array(11).fill(true),valid:[['KEEPTTL'],[],['EX','1'],['EX','2147483647']]});
     // Unmount retains draft. Dispose cancels an in-flight job and releases memory.
     await value.fill('AQI=');await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await value.inputValue(),'AQI=');
+    const rename=page.getByRole('button',{name:'Rename string key',exact:true}),newKey=page.getByRole('textbox',{name:'New key name',exact:true}),newMode=page.getByRole('combobox',{name:'New key encoding',exact:true});
+    page.once('dialog',d=>d.dismiss());await rename.click();assert.equal(await newKey.isVisible(),false);assert.equal(await value.inputValue(),'AQI=');
+    page.once('dialog',d=>d.accept());await rename.click();assert.equal(await value.inputValue(),btoa('a\r\nb'));assert.equal(await save.isDisabled(),true);assert.equal(await newKey.evaluate(n=>document.activeElement===n),true);
+    assert.equal(await expiry.isDisabled(),true);assert.equal(await deletion.isDisabled(),true);assert.equal(await value.getAttribute('readonly'),'');
+    await newMode.selectOption('base64');await newKey.fill('AP8=');assert.equal(await newKey.getAttribute('aria-invalid'),'true');
+    await newKey.fill('!');assert.equal(await save.isDisabled(),true);await newKey.fill('AQE=');assert.equal(await save.isEnabled(),true);
+    const beforeRename=await page.evaluate(()=>stringFixture.applies);
+    await save.click();await review.waitFor();assert.match(await review.innerText(),/RENAMENX/);
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['RENAMENX',{base64:'AP8='},{base64:'AQE='}]],watch:[{key:{base64:'AP8='},expected:{base64:btoa('a\r\nb')}},{key:{base64:'AQE='},expected:null}]});
+    await review.getByRole('button',{name:'Cancel',exact:true}).click();await editor.getByRole('status').filter({hasText:'Cancelled before execution'}).waitFor();assert.equal(await page.evaluate(()=>stringFixture.applies),beforeRename);
+    await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await newKey.inputValue(),'AQE=');
+    await page.getByRole('button',{name:'Revert string draft'}).click();assert.equal(await newKey.isVisible(),false);assert.equal(await save.isDisabled(),true);
+    await rename.click();await newMode.selectOption('base64');await newKey.fill('AQE=');
+    await page.evaluate(()=>{stringFixture.outcome='conflict';});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Original value changed'}).waitFor();assert.equal(await newKey.inputValue(),'AQE=');
+    await page.evaluate(()=>{stringFixture.outcome='acknowledged';stringFixture.renameReceipt=false;});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Rename was not applied'}).waitFor();
+    assert.equal(await page.getByRole('textbox',{name:'Key',exact:true}).inputValue(),'AP8=');
+    await page.evaluate(()=>{delete stringFixture.renameReceipt;});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Renamed string key'}).waitFor();
+    assert.equal(await page.getByRole('textbox',{name:'Key',exact:true}).inputValue(),'AQE=');assert.equal(await newKey.isVisible(),false);assert.equal(await rename.isDisabled(),true);assert.equal(await save.isDisabled(),true);
+    assert.equal(await page.locator('#string-fixture .native-command').inputValue(),'["GET",{"base64":"AP8="}]');
+    await page.evaluate(()=>{stringFixture.type='string';});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 4 bytes'}).waitFor();
+    await rename.click();await newKey.fill('another name');await page.evaluate(()=>{stringFixture.renameReceipt=1;});await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'reconcile both source and destination keys'}).waitFor();
+    assert.equal(await save.isDisabled(),true);assert.equal(await newKey.isDisabled(),true);assert.equal(await rename.isDisabled(),true);
+    page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 4 bytes'}).waitFor();assert.equal(await newKey.isVisible(),false);
+    await rename.click();await newKey.fill('recovered draft');await page.setViewportSize({width:480,height:760});assert.equal(await editor.evaluate(n=>n.scrollWidth<=n.clientWidth+1),true);await page.setViewportSize({width:1280,height:900});
     await page.screenshot({path:'code-graph-dba/target/redis-string-editor.png'});
     page.once('dialog',d=>d.accept());await page.evaluate(()=>{stringFixture.type='string';stringFixture.phase='running';});await page.getByRole('button',{name:'Load string',exact:true}).click();
     await page.waitForFunction(()=>stringFixture.workspace.operation?.id==='key-job');await page.evaluate(()=>{stringFixture.workspace.dispose();stringFixture.phase='complete';});await page.waitForFunction(()=>!stringFixture.workspace.operation);
@@ -147,6 +171,7 @@ module.exports=async(browser,base)=>{
     assert.equal(await value.inputValue(),'');assert.equal(await value.getAttribute('readonly'),'');
     assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
     assert.equal(await newButton.isDisabled(),true);assert.equal(await deletion.isDisabled(),true);
+    assert.equal(await rename.isDisabled(),true);await page.evaluate(()=>stringFixture.direct.stageRename());assert.equal(await newKey.isVisible(),false);
     assert.equal(await expiry.isDisabled(),true);
     await page.evaluate(async()=>{stringFixture.direct.toggleDelete();await stringFixture.direct.load(true);});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
     await page.evaluate(async()=>{stringFixture.direct.value.value='blocked';await stringFixture.direct.save();});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
@@ -154,6 +179,6 @@ module.exports=async(browser,base)=>{
     assert.equal(await editor.evaluate(n=>n.scrollWidth<=n.clientWidth+1),true,'Narrow editor has no horizontal control clipping');
     await page.evaluate(()=>{stringFixture.readOnly=false;stringFixture.direct.invalidate('Connection removed');});assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
     await page.evaluate(()=>stringFixture.direct.dispose());assert.deepEqual(errors,[]);
-    console.log('Redis string editor passed: staged expiry-only/creation/deletion, duration limits, exact SET EX/KEEPTTL/clear expiry, binary/empty values, exact review/revision, Revert, conflicts, uncertainty, cancellation, read-only profiles, remount and narrow layout.');
+    console.log('Redis string editor passed: staged rename/expiry/create/delete, exact two-key guards and typed rename receipts, binary/empty values, duration limits, review/revision, Revert, conflicts, uncertainty, cancellation, read-only profiles, remount and narrow layout.');
   }finally{await context.close();}
 };

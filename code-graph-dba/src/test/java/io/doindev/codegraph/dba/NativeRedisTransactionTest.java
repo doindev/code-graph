@@ -99,6 +99,11 @@ class NativeRedisTransactionTest {
             input.set("command",stringCreate);var expiryReview=ops.prepareBrowser("owner",input);
             assertFalse(expiryReview.path("eligiblePersistentRead").asBoolean());assertEquals(stringCreate,expiryReview.path("after").path("nativeCommand"));
             ops.discardBrowser("owner",expiryReview.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
+            var rename=json("{\"transaction\":[[\"RENAMENX\",\"{a}:source\",\"{a}:destination\"]],\"watch\":[{\"key\":\"{a}:source\",\"expected\":\"original\"},{\"key\":\"{a}:destination\",\"expected\":null}]}");
+            NativeMutations.validate(target("cluster"),rename);input.set("command",rename);
+            var renameReview=ops.prepareBrowser("owner",input);assertTrue(renameReview.path("destructive").asBoolean());assertFalse(renameReview.path("eligiblePersistentRead").asBoolean());
+            assertEquals(rename,renameReview.path("after").path("nativeCommand"));ops.discardBrowser("owner",renameReview.path("id").asText());
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target("cluster"),json(rename.toString().replace("{a}:destination","{b}:destination"))));
             var limited=jobs.new Job("agent:fixture",profile.path("id").asText());limited.rowLimit=1;
             var batch=transaction("a","b");batch.withArray("transaction").addArray().add("SET").add("a").add("c");
             assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(null,target("standalone"),batch,limited,()->fail("No authority callback before admission")));
@@ -179,6 +184,29 @@ class NativeRedisTransactionTest {
                 expiringNew.putArray("watch").addObject().set("key",encodedKey);expiringNew.withArray("watch").get(0).withObject("").putNull("expected");
                 NativeMutations.execute(lease,target,expiringNew,jobs.new Job("human",target.connectionId()),()->{});assertArrayEquals(new byte[0],redis.get(binaryKey));assertTrue(redis.pttl(binaryKey)>0);
                 assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,expiringNew,jobs.new Job("human",target.connectionId()),()->{}));redis.del(binaryKey);
+                // Graphical rename never overwrites and watches complete source bytes plus destination absence.
+                byte[] destinationKey=Arrays.copyOf(binaryKey,binaryKey.length+1);destinationKey[destinationKey.length-1]=3;
+                var destination=Profiles.JSON.createObjectNode().put("base64",Base64.getEncoder().encodeToString(destinationKey));
+                var rename=Profiles.JSON.createObjectNode();rename.putArray("transaction").addArray().add("RENAMENX").add(encodedKey).add(destination);
+                var renameWatch=rename.putArray("watch");var sourceExpectation=renameWatch.addObject();sourceExpectation.set("key",encodedKey);sourceExpectation.set("expected",Profiles.JSON.createObjectNode().put("base64","AP8="));
+                var destinationExpectation=renameWatch.addObject();destinationExpectation.set("key",destination);destinationExpectation.putNull("expected");
+                redis.set(binaryKey,new byte[]{0,(byte)255});redis.pexpire(binaryKey,60000);redis.set(destinationKey,bytes("occupied"));
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{}));
+                assertArrayEquals(new byte[]{0,(byte)255},redis.get(binaryKey));assertArrayEquals(bytes("occupied"),redis.get(destinationKey));redis.del(destinationKey);
+                redis.set(binaryKey,bytes("changed"));
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{}));assertEquals(0L,redis.exists(destinationKey));
+                redis.set(binaryKey,new byte[]{0,(byte)255});redis.pexpire(binaryKey,60000);checks.set(0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{if(checks.incrementAndGet()==2)redis.set(destinationKey,bytes("competing"));}));
+                assertArrayEquals(bytes("competing"),redis.get(destinationKey));assertArrayEquals(new byte[]{0,(byte)255},redis.get(binaryKey));redis.del(destinationKey);
+                checks.set(0);var renameCancel=jobs.new Job("human",target.connectionId());
+                assertThrows(java.util.concurrent.CancellationException.class,()->NativeMutations.execute(lease,target,rename,renameCancel,()->{if(checks.incrementAndGet()==2)renameCancel.cancelled=true;}));assertEquals(0L,redis.exists(destinationKey));
+                ttlBefore=redis.pttl(binaryKey);var renamed=NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value");
+                assertTrue(renamed.isBoolean()&&renamed.booleanValue());assertEquals(0L,redis.exists(binaryKey));assertArrayEquals(new byte[]{0,(byte)255},redis.get(destinationKey));assertTrue(redis.pttl(destinationKey)>0&&redis.pttl(destinationKey)<=ttlBefore);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{}));assertArrayEquals(new byte[]{0,(byte)255},redis.get(destinationKey));redis.del(destinationKey);
+                redis.set(binaryKey,new byte[0]);sourceExpectation.put("expected","");
+                NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{});assertArrayEquals(new byte[0],redis.get(destinationKey));assertEquals(-1L,redis.pttl(destinationKey));redis.del(destinationKey);
+                redis.set(binaryKey,new byte[0]);redis.pexpire(binaryKey,0);
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,rename,jobs.new Job("human",target.connectionId()),()->{}));assertEquals(0L,redis.exists(destinationKey));
                 // Explicit New string uses absence WATCH plus NX; empty content is not absence.
                 var stringCreate=Profiles.JSON.createObjectNode();stringCreate.putArray("transaction").addArray().add("SET").add(encodedKey).add(Profiles.JSON.createObjectNode().put("base64","")).add("NX");
                 stringCreate.putArray("watch").addObject().set("key",encodedKey);stringCreate.withArray("watch").get(0).withObject("").putNull("expected");
