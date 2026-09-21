@@ -1,13 +1,32 @@
 # Bounded Redis string editor
 
+Current lifecycle follow-up evidence is recorded in
+[the checkpoint below](#string-lifecycle-checkpoint).
+
 In a Redis **Native workspace**, choose **Edit Redis string value**. GET,
 GETRANGE, TYPE and STRLEN command drafts prefill the exact key; otherwise enter
 it explicitly. Keys and values support UTF-8 text or canonical base64. The
-editor updates existing strings only, up to **8,192 complete bytes**. Unsupported
-types, oversized/truncated reads and missing keys cannot establish an editable
-snapshot. Carriage-return-containing or invalid UTF-8 values stay in base64 to
+editor updates existing strings, explicitly creates absent keys and stages
+whole-string deletion, up to **8,192 complete bytes**. Unsupported
+types, oversized/truncated reads and missing keys cannot establish a loaded
+replacement/deletion snapshot. Carriage-return-containing or invalid UTF-8 values stay in base64 to
 avoid textarea normalization. Empty string values are valid; empty keys are not
 offered by this editor.
+
+**Prepare new string** checks TYPE only; it never writes or reads an existing
+value. If absent, it starts a dirty draft (including a valid empty value). Save
+reviews one `SET key value NX` with `watch.expected: null`. Absence is rechecked
+inside the managed WATCH transaction, and a competing creation conflicts rather
+than being overwritten. New strings have **no expiry**, shown before Save.
+Revert discards a new draft. After confirmed creation, Load again to edit it;
+the retained submitted text is not represented as a fresh database read.
+
+**Mark string key for deletion** stages removal of the loaded whole key and TTL,
+not an empty-string assignment. Save reviews one `DEL key` with the complete
+original bytes as its WATCH expectation. The editor requires an acknowledged
+one-key deletion receipt. Changed, expired, missing or differently typed keys
+conflict; no deletion is sent while drafting or canceling review. Revert undoes
+the staged deletion. New, unsaved drafts cannot be marked for database deletion.
 
 Load uses the existing bounded TYPE/STRLEN/GETRANGE/PTTL pipeline. These reads
 are live, not one frozen snapshot. Save performs a fresh exact-byte WATCH check
@@ -47,6 +66,12 @@ workflow without granting permission to use it.
 
 Run from an isolated source checkout/copy so tests do not replace running classes:
 
+The browser fixture also needs its test-scope dependency JARs under
+`code-graph-dba/target/test-lib`; assemble those with Maven (or copy an unchanged,
+verified dependency directory). Missing fixture dependencies are a setup failure,
+not a passing browser test. Do not compile the same classes while a browser
+fixture is running.
+
 ```powershell
 mvn -pl code-graph-dba -am test -Djava.awt.headless=true
 $env:DBA_BROWSER_SUITE = 'native'
@@ -61,10 +86,10 @@ The browser suite exercises the actual component and review/job lifecycle with
 controlled replies, separate from live Redis adapter tests. Neither alone claims
 full end-to-end browser-to-live-vendor coverage. Disposable Redis fixtures use the
 existing pinned 7.4.1 image and ownership-scoped cleanup; existing resources are
-preserved. Remaining hash/list/set/zset/stream graphical editors and server
-administration are tracked separately in the [native roadmap](native-database-delivery.md).
+preserved. Further key lifecycle, rename, TTL editing and server administration
+are tracked separately in the [native roadmap](native-database-delivery.md).
 
-## Acceptance evidence — 2026-09-20
+## Original replacement-editor acceptance evidence — 2026-09-20
 
 - Final isolated Maven reactor: **35 modules passed; 890 tests, 830 passed,
   60 explicitly skipped, zero failures/errors**. The skipped cases require
@@ -108,3 +133,45 @@ production data mutation or application restart is part of this increment.
 The preceding pipeline/value changes were committed and pushed as `a6d3b3b`
 before editor implementation. The string editor and subsequent toolbar/grid
 polish were then committed and pushed as `2c98f0b` on 2026-09-20.
+
+## String lifecycle checkpoint
+
+The 2026-09-20 follow-up adds explicit New drafts and staged whole-string
+deletion without new endpoints, MCP schemas or approval permissions. It reuses
+the existing managed transaction, exact target revision, review, cancellation,
+byte accounting and cleanup services. Browser-only drafts remain bounded to
+8 KiB values, preserve binary/empty content and survive tab remounts, not refreshes.
+
+- Focused DBA, ownership/review and HTTP/MCP checks: 46 passed, two explicit
+  live-fixture skips, zero failures/errors.
+- Redis 7.4.1 standalone: 39 passed, four Mongo-only skips; Cluster and ACL
+  Sentinel: 36 passed each, no skips/failures. All use Lettuce 7.7.0.RELEASE,
+  the pinned Redis image above, a 256 MiB test heap and 64 MiB direct-memory limit.
+- Live additions verify the exact UI SET NX and DEL transactions, empty/binary
+  content, no-expiry creation, changed values, wrong types, missing keys,
+  competing insert/delete races, pre-execution cancellation and no replay after
+  confirmed deletion. Existing normal-agent/YOLO and topology checks also run.
+- Focused native browser checks passed: no preparation writes, existing-key
+  rejection, draft Revert, denied reviews, exact commands/revisions, staged
+  deletion, conflicts, lost replies, read-only profiles, tab remount, disposal
+  and narrow layout. Screenshot inspection found no overlapping controls.
+- Skill validation, 11 grid unit tests, Windows bootstrap checks and 14 Node
+  installer/skill checks passed. Two optional real-client checks remain skipped.
+
+The full Maven reactor/package passed: 35 modules, 183 suites, 910 tests;
+845 passed, 65 explicit opt-in/platform skips, zero failures/errors (4:14).
+All 20 final browser suite groups passed sequentially after packaging. All 29
+DBA JavaScript modules passed syntax checks. Production/test source hashes match
+the isolated snapshot; no compiler replaced browser fixture classes during this run.
+Evidence: target/redis-string-lifecycle-a6b4b471663e4a428a0dadd84eccaca9,
+including focused.log, browser-native-rerun.log, redis-standalone.log,
+redis-cluster.log, redis-sentinel.log, live-reports and final regression logs.
+The first browser-native.log is retained as a failed setup attempt: missing
+test-lib dependencies prevented the fixture starting. Supplying the unchanged
+verified dependency directory fixed setup; the complete native rerun passed.
+
+Only owned fixture containers/volumes were removed. The 55-image baseline is
+unchanged; no existing databases/images or installed client configuration were
+modified. Native rename/general TTL editors, broader infrastructure support and
+platform/performance certification are not completed by this increment.
+Commit/push/restart follow the user's explicit per-task delivery instruction.

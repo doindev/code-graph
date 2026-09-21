@@ -183,8 +183,10 @@ Before this continuation, the validated Redis stream composer was committed and
 pushed as c7fa379 and restarted with MCP 3000, admin/DBA UI 8137, desktop approvals,
 hybrid storage, a 1536 MiB graph/cache budget and no automatically onboarded
 project. Both UI pages and MCP initialization returned HTTP 200. This MongoDB
-increment is implemented and tested locally; it has not been committed, pushed
-or deployed over that running server.
+increment was implemented and tested locally at that original checkpoint.
+Subsequent delivery committed/pushed the editor as cd60bbe, guarded deletion as
+bb55e51 and guarded creation as 3f3810b, restarting and checking the UI/MCP after
+each delivery. The later checkpoints below supersede the original deployment state.
 
 The connected client exposed no code-graph navigation tools despite the healthy
 server. Focused filesystem reads were necessary; no MCP navigation savings are

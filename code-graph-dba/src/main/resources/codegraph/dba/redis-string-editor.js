@@ -47,6 +47,13 @@ export function redisNewHashSnapshot(result){
   return{base64:'',create:true};
 }
 
+export function redisNewStringSnapshot(result){
+  const entries=result?.entries;
+  if(result?.kind!=='pipeline'||result.truncated||entries?.length!==1||entries[0].index!==0||entries[0].state!=='acknowledged'||entries[0].valueOmitted)throw new Error('Incomplete key check; no new-string draft was created.');
+  if(entries[0].value!=='none')throw new Error('Key already exists; New string never replaces an existing key. Load an existing string to edit it.');
+  return{base64:'',ttl:-1,create:true};
+}
+
 /** Small, bounded, memory-only draft. Services own review, jobs, cancellation and accounting. */
 export class RedisStringEditor{
   constructor({run,readOnly,changed,close,key='',field,listIndex}){
@@ -65,16 +72,17 @@ export class RedisStringEditor{
     this.loadButton=this.button(header,'Load '+noun,'refresh-cw',()=>this.load());
     if(this.isList){this.listIndex=this.input(header,'Index (zero-based)',String(listIndex));this.listIndex.maxLength=4;this.listIndex.inputMode='numeric';header.insertBefore(this.listIndex.parentElement,this.loadButton);}
     if(this.isList)this.resetButton=this.button(header,'Choose another position','refresh-cw',()=>this.resetList());
-    if(this.isHash)this.newButton=this.button(header,'Prepare new hash field','plus',()=>this.load(true));
+    if(!this.isList)this.newButton=this.button(header,this.isHash?'Prepare new hash field':'Prepare new string','plus',()=>this.load(true));
     this.closeButton=this.button(header,'Close value editor','x',()=>{if(this.canClose())this.close();});
     this.root.append(header);
     this.notice=node('p',this.isHash?'One field in an existing hash · exact-value/absence WATCH checks · Redis 7.4+ required for Save. Expiring fields are unsupported. Changes are staged until reviewed Save; deleting the last field removes its hash key. No automatic retries.':'Exact-value conflict checks · existing TTL is preserved · no automatic retries. Binary/string type does not identify application semantics (for example bitmaps or HyperLogLogs).');
     this.root.append(this.notice);
+    if(!this.isHash&&!this.isList)this.notice.textContent='Load an existing string, or prepare a new absent key. New strings have no expiry; existing saves preserve current TTL. Delete stages whole-key removal. Save reviews exact bytes/absence; no automatic retries. Binary strings may be application formats, not ordinary text.';
     if(this.isList)this.notice.textContent='One existing list position · exact length/value WATCH checks. Stage replacement, prepend/append, or deletion of the loaded first/last item. At most 10,000 items; no key creation, interior deletion or reordering. Positions are not stable identities. TTL is preserved unless the last item is deleted. No automatic retries.';
     const format=node('div');format.className='redis-string-actions';this.mode=this.select(format,'Value encoding',['text','base64']);this.mode.onchange=()=>this.changeMode();this.root.append(format);
     this.value=node('textarea');this.value.setAttribute('aria-label','Redis '+noun+' value');this.value.spellcheck=false;this.value.wrap='off';this.value.maxLength=10924;this.value.oninput=()=>{this.sync();this.changed();};this.root.append(this.value);
     const footer=node('div');footer.className='redis-string-actions';this.saveButton=this.button(footer,'Save '+noun,'save',()=>this.save());this.revertButton=this.button(footer,'Revert '+noun+' draft','undo-2',()=>this.revert());
-    if(this.isHash)this.deleteButton=this.button(footer,'Mark hash field for deletion','trash-2',()=>this.toggleDelete());
+    if(!this.isList)this.deleteButton=this.button(footer,this.isHash?'Mark hash field for deletion':'Mark string key for deletion','trash-2',()=>this.toggleDelete());
     if(this.isList){this.prependButton=this.button(footer,'Stage prepend item','list-plus',()=>this.stageListEnd('prepend'));this.appendButton=this.button(footer,'Stage append item','list-plus',()=>this.stageListEnd('append'));this.deleteButton=this.button(footer,'Mark list end item for deletion','trash-2',()=>this.toggleDelete());}
     this.status=node('span','Load an existing key. Draft values are never saved in workspace state.');this.status.setAttribute('role','status');footer.append(this.status);this.root.append(footer);
     this.key.oninput=this.keyMode.onchange=()=>{this.sync();};this.activeMode='text';this.sync();
@@ -93,13 +101,13 @@ export class RedisStringEditor{
     this.value.readOnly=blocked||!this.snapshot||this.pendingDelete||this.readOnly();this.mode.disabled=blocked||!this.snapshot||this.pendingDelete;
     this.loadButton.disabled=blocked;this.closeButton.disabled=this.busy;
     if(this.resetButton)this.resetButton.disabled=blocked||this.uncertain||!this.snapshot;
-    if(this.newButton)this.newButton.disabled=blocked||this.readOnly();
+    if(this.newButton)this.newButton.disabled=blocked||this.uncertain||this.readOnly();
     if(this.deleteButton){this.deleteButton.disabled=blocked||this.uncertain||!this.snapshot||!!this.snapshot.create||this.readOnly()||(this.isList&&(!this.atListEnd||!!this.listAction));this.deleteButton.setAttribute('aria-pressed',String(!!this.pendingDelete));if(this.isList)this.deleteButton.title=this.atListEnd?'Stage deletion of the loaded end item; last-item deletion removes its key/TTL':'Load the first or last item; interior deletion is unsupported';}
     for(const [button,action] of [[this.prependButton,'prepend'],[this.appendButton,'append']])if(button){button.disabled=blocked||this.uncertain||!this.snapshot||this.snapshot.length>=10000||this.readOnly();button.setAttribute('aria-pressed',String(this.listAction===action));button.title=this.snapshot?.length>=10000?'List is at the 10,000-item editor limit':'Stage one '+action+'; Save reviews it before execution';}
     this.saveButton.disabled=blocked||this.uncertain||!this.dirty||(!valid&&!this.pendingDelete)||this.readOnly();this.revertButton.disabled=blocked||!this.dirty||this.uncertain;
     this.root.classList.toggle('redis-pending-delete',!!this.pendingDelete);
     this.root.setAttribute('aria-busy',String(this.busy));this.value.setAttribute('aria-invalid',String(!valid));
-    this.saveButton.title=this.readOnly()?'This profile does not allow writes':this.uncertain?'Reload and reconcile the uncertain outcome before another Save':this.pendingDelete?'Review deletion; deleting the last item also deletes its key and TTL':'Review exact old/new bytes before saving; preserve key TTL';
+    this.saveButton.title=this.readOnly()?'This profile does not allow writes':this.uncertain?'Reload and reconcile the uncertain outcome before another Save':this.pendingDelete?'Review deletion; deleting the last item or whole string removes its key and TTL':this.snapshot?.create&&!this.isHash?'Review absent-key creation; the new string has no expiry':'Review exact old/new bytes before saving; preserve key TTL';
   }
   setValue(base64){
     const bytes=redisBytes(base64,'base64');let text;
@@ -111,7 +119,7 @@ export class RedisStringEditor{
       if(this.mode.value==='text'&&text.includes('\r'))throw new Error('Use base64 to preserve carriage returns exactly.');this.value.value=text;this.activeMode=this.mode.value;
     }catch(e){this.mode.value=this.activeMode;this.status.textContent=e.message;}this.sync();
   }
-  revert(){if(this.busy||this.disposed||this.uncertain)return;this.pendingDelete=false;this.listAction=null;if(this.snapshot?.create){this.snapshot=null;this.setValue('');this.status.textContent='New-field draft discarded; nothing was written.';}else if(this.snapshot){this.setValue(this.snapshot.base64);this.status.textContent='Draft reverted; nothing was written.';}this.sync();this.changed();}
+  revert(){if(this.busy||this.disposed||this.uncertain)return;this.pendingDelete=false;this.listAction=null;if(this.snapshot?.create){this.snapshot=null;this.setValue('');this.status.textContent=(this.isHash?'New-field':'New-string')+' draft discarded; nothing was written.';}else if(this.snapshot){this.setValue(this.snapshot.base64);this.status.textContent='Draft reverted; nothing was written.';}this.sync();this.changed();}
   stageListEnd(action){
     // The source position stays fixed until this draft is explicitly discarded or saved.
     if(!this.isList||!['prepend','append'].includes(action)||this.busy||this.disposed||this.unavailable||this.uncertain||!this.snapshot||this.snapshot.length>=10000||this.readOnly()||this.listAction===action)return;
@@ -122,19 +130,19 @@ export class RedisStringEditor{
     // Interior removal would require a different, separately verified workflow.
     if(this.busy||this.disposed||this.unavailable||this.uncertain||!this.snapshot||this.snapshot.create||this.readOnly())return;
     if(this.isList&&(!this.atListEnd||this.listAction))return;
-    this.pendingDelete=!this.pendingDelete;this.status.textContent=this.pendingDelete?'Deletion staged · Save opens destructive review. Deleting the last item removes its key and TTL. Revert undoes this draft.':'Deletion unmarked; value draft retained.';this.sync();this.changed();
+    this.pendingDelete=!this.pendingDelete;this.status.textContent=this.pendingDelete?'Deletion staged · Save opens destructive review. Deleting the last item or whole string removes its key and TTL. Revert undoes this draft.':'Deletion unmarked; value draft retained.';this.sync();this.changed();
   }
   async load(create=false){
     // Loading reconciles the current state; it is never an automatic write retry.
-    if(this.busy||this.disposed||this.unavailable||(create&&(!this.isHash||this.readOnly()))||!this.canClose())return;
+    if(this.busy||this.disposed||this.unavailable||(create&&(this.isList||this.uncertain||this.readOnly()))||!this.canClose())return;
     let key,field,index;try{key={base64:redisBase64(redisBytes(this.key.value,this.keyMode.value))};if(!key.base64)throw new Error('Choose a nonempty key.');if(this.isHash)field={base64:redisBase64(redisBytes(this.field.value,this.fieldMode.value))};if(this.isList)index=redisListIndex(this.listIndex.value);}catch(e){this.status.textContent=e.message;return;}
     this.busy=true;this.sync();
     try{
-      const reply=await this.run(create?{pipeline:[['TYPE',key],['HEXISTS',key,field]]}:this.isList?{pipeline:[['TYPE',key],['LLEN',key],['LINDEX',key,String(index)],['PTTL',key]]}:this.isHash?['HGET',key,field]:{pipeline:[['TYPE',key],['STRLEN',key],['GETRANGE',key,'0','8191'],['PTTL',key]]});
+      const reply=await this.run(create?{pipeline:this.isHash?[['TYPE',key],['HEXISTS',key,field]]:[['TYPE',key]]}:this.isList?{pipeline:[['TYPE',key],['LLEN',key],['LINDEX',key,String(index)],['PTTL',key]]}:this.isHash?['HGET',key,field]:{pipeline:[['TYPE',key],['STRLEN',key],['GETRANGE',key,'0','8191'],['PTTL',key]]});
       if(this.disposed)return;if(!reply?.ok)throw new Error(reply?.error??'Key load did not complete.');
       if(!reply.targetRevision)throw new Error('Missing target revision; no editable snapshot was created.');
-      const snapshot=create?redisNewHashSnapshot(reply.result):this.isList?redisListSnapshot(reply.result,index):this.isHash?redisHashSnapshot(reply.result):redisStringSnapshot(reply.result);this.snapshot={...snapshot,key,...(this.isHash?{field}:{}),targetRevision:reply.targetRevision};this.uncertain=false;this.pendingDelete=false;this.listAction=null;this.setValue(snapshot.base64);
-      this.status.textContent=create?'New field draft · empty values are valid. Save rechecks field absence and existing hash; nothing has been written.':'Loaded '+redisBytes(snapshot.base64,'base64').length+' bytes · '+(this.isHash?'Save verifies persistent field and preserves key TTL':snapshot.ttl===-1?'no expiry':'TTL at read: '+snapshot.ttl+' ms')+' · Save rechecks exact bytes. Reads are not a frozen snapshot.';
+      const snapshot=create?(this.isHash?redisNewHashSnapshot(reply.result):redisNewStringSnapshot(reply.result)):this.isList?redisListSnapshot(reply.result,index):this.isHash?redisHashSnapshot(reply.result):redisStringSnapshot(reply.result);this.snapshot={...snapshot,key,...(this.isHash?{field}:{}),targetRevision:reply.targetRevision};this.uncertain=false;this.pendingDelete=false;this.listAction=null;this.setValue(snapshot.base64);
+      this.status.textContent=create?(this.isHash?'New field draft · empty values are valid. Save rechecks field absence and existing hash; nothing has been written.':'New string draft · empty values are valid; no expiry. Save rechecks absence and reviews SET NX. Nothing has been written.'):'Loaded '+redisBytes(snapshot.base64,'base64').length+' bytes · '+(this.isHash?'Save verifies persistent field and preserves key TTL':snapshot.ttl===-1?'no expiry':'TTL at read: '+snapshot.ttl+' ms')+' · Save rechecks exact bytes. Reads are not a frozen snapshot.';
     }catch(e){if(!this.disposed)this.status.textContent=e.message;}
     finally{this.busy=false;if(!this.disposed){this.sync();this.changed();}}
   }
@@ -147,16 +155,18 @@ export class RedisStringEditor{
     try{
       const adding=this.isList&&!!this.listAction;
       const command=this.draftCommand(snapshot,next,deleting);
-      const expectedReceipt=adding?snapshot.length+1:this.isHash?(deleting||snapshot.create?1:0):'OK';
+      const expectedReceipt=adding?snapshot.length+1:this.isHash?(deleting||snapshot.create?1:0):deleting&&!this.isList?1:'OK';
       const reply=await this.run({transaction:[command],watch:[{key:snapshot.key,...(this.isList?{index:snapshot.index,length:snapshot.length}:this.isHash?{field:snapshot.field}:{}),expected:snapshot.create?null:{base64:snapshot.base64}}]},snapshot.targetRevision);
       if(this.disposed)return;
       // A job can fail/cancel after EXEC. Require the exact receipt, not just terminal job status.
       const result=reply?.result,entry=result?.entries?.[0];
       if(result?.outcome==='acknowledged'&&result.entries.length===1&&entry?.index===0&&entry.state==='acknowledged'&&entry.value===expectedReceipt){
         if(this.isList&&(adding||deleting))this.listIndex.value=String(adding?(this.listAction==='prepend'?0:snapshot.length):Math.min(snapshot.index,Math.max(0,snapshot.length-2)));
-        this.snapshot=deleting||adding?null:{...snapshot,base64:next,create:false};this.pendingDelete=false;this.listAction=null;this.uncertain=false;
+        this.snapshot=deleting||adding||(snapshot.create&&!this.isHash)?null:{...snapshot,base64:next,create:false};this.pendingDelete=false;this.listAction=null;this.uncertain=false;
         if(deleting||adding)this.setValue('');
         this.status.textContent=adding?'Added list item · key TTL preserved. Positions changed; reload before another edit.':deleting?(this.isList?'Deleted list end item':'Deleted field')+' · if it was the last item, Redis also removed the key and TTL. Nothing was recreated.':snapshot.create?'Created field · key TTL preserved. Reload to observe subsequent changes.':'Saved · '+(this.isHash?'key TTL':'TTL')+' preserved. Reload to observe subsequent changes.';
+        if(!this.isHash&&!this.isList&&deleting)this.status.textContent='Deleted string key and its TTL. Reload before another edit; nothing was recreated.';
+        if(!this.isHash&&!this.isList&&snapshot.create)this.status.textContent='Created string with no expiry. Displayed draft is not a fresh read; Load string before editing again.';
       }else{
         this.uncertain=!!reply?.uncertain||result?.outcome==='acknowledged';
         this.status.textContent=this.uncertain?'Save outcome uncertain. Draft retained; reload and reconcile before another Save.':reply?.error??'Value update was not confirmed. Reload before retrying.';
@@ -172,6 +182,8 @@ export class RedisStringEditor{
       return ['LSET',snapshot.key,String(snapshot.index),{base64:next}];
     }
     if(this.isHash)return deleting?['HDEL',snapshot.key,snapshot.field]:['HSET',snapshot.key,snapshot.field,{base64:next}];
+    if(deleting)return ['DEL',snapshot.key];
+    if(snapshot.create)return ['SET',snapshot.key,{base64:next},'NX'];
     return ['SET',snapshot.key,{base64:next},'XX','KEEPTTL'];
   }
   resetList(){if(!this.isList||this.busy||this.disposed||this.unavailable||this.uncertain||!this.snapshot||!this.canClose())return;this.snapshot=null;this.pendingDelete=false;this.listAction=null;this.setValue('');this.status.textContent='Choose an existing list position and load it before editing.';this.sync();this.changed();this.listIndex.focus();}

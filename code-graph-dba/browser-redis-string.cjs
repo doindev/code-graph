@@ -17,7 +17,8 @@ module.exports=async(browser,base)=>{
         if(path.endsWith('/cancel')){f.cancelled=true;return{};}
         if(path==='/jobs/key-job'){
           if(f.phase==='running')return{id:'key-job',state:'running'};
-          const result=f.command.pipeline?{kind:'pipeline',entries:[f.type??'string',f.length??atob(f.base64).length,{base64:f.base64,truncated:!!f.truncated},f.ttl].map((value,index)=>({index,state:'acknowledged',value}))}:{kind:'transaction',outcome:f.outcome,entries:[{index:0,state:'acknowledged',value:'OK'}]};
+          const values=f.command.pipeline?.length===1?[f.type??'string']:[f.type??'string',f.length??atob(f.base64).length,{base64:f.base64,truncated:!!f.truncated},f.ttl];
+          const result=f.command.pipeline?{kind:'pipeline',entries:values.map((value,index)=>({index,state:'acknowledged',value}))}:{kind:'transaction',outcome:f.outcome,entries:[{index:0,state:'acknowledged',value:f.command.transaction?.[0]?.[0]==='DEL'?1:'OK'}]};
           return{id:'key-job',state:f.outcome==='conflict'&&f.command.transaction?'failed':'complete',error:f.outcome==='conflict'?'Original value changed':undefined,finished:Date.now(),result};
         }
         throw new Error('Unexpected API '+path);
@@ -47,6 +48,32 @@ module.exports=async(browser,base)=>{
     const request=await page.evaluate(()=>stringFixture.commands.at(-1));assert.equal(request.database,'3');assert.equal(request.connectionId,'redis-1');assert.equal(request.expectedTargetRevision,'revision-1');
     assert.deepEqual(request.command,{transaction:[['SET',{base64:'AP8='},{base64:btoa('new value')},'XX','KEEPTTL']],watch:[{key:{base64:'AP8='},expected:{base64:btoa('old value')}}]});
     assert.equal(await page.locator('#string-fixture .native-command').inputValue(),'["GET",{"base64":"AP8="}]','Value saves never rewrite the command draft');
+    // Creation is explicit, absence-checked, dirty even for an empty value, and never sent by preparation.
+    const newButton=page.getByRole('button',{name:'Prepare new string',exact:true}),save=page.getByRole('button',{name:'Save string',exact:true}),deletion=page.getByRole('button',{name:'Mark string key for deletion',exact:true});
+    await newButton.click();await editor.getByRole('status').filter({hasText:'Key already exists'}).waitFor();
+    await page.evaluate(()=>{stringFixture.type='none';});const beforeCreate=await page.evaluate(()=>stringFixture.applies);
+    await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
+    assert.equal(await value.inputValue(),'');assert.equal(await save.isEnabled(),true);assert.equal(await deletion.isDisabled(),true);assert.equal(await page.evaluate(()=>stringFixture.applies),beforeCreate);
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{pipeline:[['TYPE',{base64:'AP8='}]]});
+    await save.click();await review.waitFor();assert.match(await review.innerText(),/NX/);await review.getByRole('button',{name:'Cancel',exact:true}).click();await editor.getByRole('status').filter({hasText:'Cancelled before execution'}).waitFor();
+    await page.getByRole('button',{name:'Revert string draft'}).click();await editor.getByRole('status').filter({hasText:'New-string draft discarded'}).waitFor();assert.equal(await save.isDisabled(),true);
+    await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
+    await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await save.isEnabled(),true);
+    await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Created string with no expiry'}).waitFor();
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['SET',{base64:'AP8='},{base64:''},'NX']],watch:[{key:{base64:'AP8='},expected:null}]});
+    assert.equal(await value.getAttribute('readonly'),'');assert.equal(await save.isDisabled(),true);
+    // Delete stages the loaded exact bytes. Revert and review Cancel issue no DEL.
+    await page.evaluate(()=>{stringFixture.type='string';stringFixture.base64='';});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 0 bytes'}).waitFor();
+    await deletion.click();assert.equal(await deletion.getAttribute('aria-pressed'),'true');assert.equal(await value.getAttribute('readonly'),'');
+    await page.getByRole('button',{name:'Revert string draft'}).click();assert.equal(await deletion.getAttribute('aria-pressed'),'false');
+    await deletion.click();await save.click();await review.waitFor();assert.match(await review.innerText(),/DEL/);await review.getByRole('button',{name:'Cancel',exact:true}).click();await editor.getByRole('status').filter({hasText:'Cancelled before execution'}).waitFor();
+    assert.equal(await deletion.getAttribute('aria-pressed'),'true');await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await deletion.getAttribute('aria-pressed'),'true');
+    await page.evaluate(()=>stringFixture.outcome='conflict');await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Original value changed'}).waitFor();assert.equal(await deletion.getAttribute('aria-pressed'),'true');
+    await page.evaluate(()=>stringFixture.outcome='acknowledged');await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'Deleted string key and its TTL'}).waitFor();
+    assert.deepEqual((await page.evaluate(()=>stringFixture.commands.at(-1))).command,{transaction:[['DEL',{base64:'AP8='}]],watch:[{key:{base64:'AP8='},expected:{base64:''}}]});assert.equal(await deletion.isDisabled(),true);
+    await page.evaluate(()=>{stringFixture.type='none';stringFixture.submissionFailure=true;});await newButton.click();await editor.getByRole('status').filter({hasText:'New string draft'}).waitFor();
+    await save.click();await review.waitFor();await review.getByRole('button',{name:'Apply once'}).click();await editor.getByRole('status').filter({hasText:'outcome uncertain'}).waitFor();assert.equal(await newButton.isDisabled(),true);assert.equal(await save.isDisabled(),true);
+    await page.evaluate(()=>{stringFixture.submissionFailure=false;stringFixture.type='string';});page.once('dialog',d=>d.accept());
     // Binary and CRLF values never undergo lossy text normalization.
     await page.evaluate(()=>{stringFixture.base64='AP8=';});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Loaded 2 bytes'}).waitFor();
     assert.equal(await page.getByRole('combobox',{name:'Value encoding'}).inputValue(),'base64');assert.equal(await value.inputValue(),'AP8=');
@@ -64,10 +91,11 @@ module.exports=async(browser,base)=>{
     assert.equal(await value.inputValue(),btoa('a\r\nb'));
     await page.evaluate(()=>{stringFixture.length=4;stringFixture.type='hash';});await page.getByRole('button',{name:'Load string',exact:true}).click();await editor.getByRole('status').filter({hasText:'Only existing Redis strings'}).waitFor();
     const cases=await page.evaluate(async()=>{
-      const {redisBytes,redisStringSnapshot}=await import('/dba/redis-string-editor.js');const rejected=[];
+      const {redisBytes,redisStringSnapshot,redisNewStringSnapshot}=await import('/dba/redis-string-editor.js');const rejected=[];
       for(const [text,mode] of [['AR==','base64'],['a===','base64'],['a '.repeat(9000),'text'],['\ud800','text']])try{redisBytes(text,mode);rejected.push(false);}catch{rejected.push(true);}
-      const result={kind:'pipeline',entries:['string',2,{base64:'AP8=',truncated:true},-1].map((value,index)=>({index,state:'acknowledged',value}))};try{redisStringSnapshot(result);rejected.push(false);}catch{rejected.push(true);}return rejected;
-    });assert.deepEqual(cases,[true,true,true,true,true]);
+      const result={kind:'pipeline',entries:['string',2,{base64:'AP8=',truncated:true},-1].map((value,index)=>({index,state:'acknowledged',value}))};try{redisStringSnapshot(result);rejected.push(false);}catch{rejected.push(true);}
+      for(const input of [{kind:'pipeline',entries:[]},{kind:'pipeline',entries:[{index:0,state:'acknowledged',value:'hash'}]},{kind:'pipeline',truncated:true,entries:[{index:0,state:'acknowledged',value:'none'}]},{kind:'pipeline',entries:[{index:0,state:'acknowledged',value:'none',valueOmitted:true}]}])try{redisNewStringSnapshot(input);rejected.push(false);}catch{rejected.push(true);}return rejected;
+    });assert.deepEqual(cases,Array(9).fill(true));
     // Unmount retains draft. Dispose cancels an in-flight job and releases memory.
     await value.fill('AQI=');await page.evaluate(()=>{stringFixture.workspace.unmount();stringFixture.workspace.mount(document.querySelector('#string-fixture'));});assert.equal(await value.inputValue(),'AQI=');
     await page.screenshot({path:'code-graph-dba/target/redis-string-editor.png'});
@@ -83,11 +111,13 @@ module.exports=async(browser,base)=>{
     });
     assert.equal(await value.inputValue(),'');assert.equal(await value.getAttribute('readonly'),'');
     assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
+    assert.equal(await newButton.isDisabled(),true);assert.equal(await deletion.isDisabled(),true);
+    await page.evaluate(async()=>{stringFixture.direct.toggleDelete();await stringFixture.direct.load(true);});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
     await page.evaluate(async()=>{stringFixture.direct.value.value='blocked';await stringFixture.direct.save();});assert.equal(await page.evaluate(()=>stringFixture.directCalls),1);
     await page.setViewportSize({width:480,height:760});
     assert.equal(await editor.evaluate(n=>n.scrollWidth<=n.clientWidth+1),true,'Narrow editor has no horizontal control clipping');
     await page.evaluate(()=>{stringFixture.readOnly=false;stringFixture.direct.invalidate('Connection removed');});assert.equal(await page.getByRole('button',{name:'Save string',exact:true}).isDisabled(),true);
     await page.evaluate(()=>stringFixture.direct.dispose());assert.deepEqual(errors,[]);
-    console.log('Redis string editor checks passed: bounded binary drafts, exact review/revision, TTL command, conflicts, unknown outcomes, cancellation, read-only profiles and narrow layout.');
+    console.log('Redis string editor passed: staged absent-key creation/deletion, binary/empty values, exact review/revision, Revert, TTL behavior, conflicts, uncertainty, cancellation, read-only profiles, remount and narrow layout.');
   }finally{await context.close();}
 };

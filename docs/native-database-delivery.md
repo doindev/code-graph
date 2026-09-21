@@ -141,6 +141,11 @@ authentication and operation coverage remains tracked in later phases.
 
 ## Phase 3: Redis developer and database workflows
 
+- [x] String lifecycle follow-up: explicit absent-key drafts with reviewed SET NX,
+  and staged whole-key deletion with exact original-byte WATCH expectations.
+  Standalone/Cluster/ACL-Sentinel, all 20 browser groups and the full reactor passed.
+  See [the lifecycle checkpoint](redis-string-editor.md#string-lifecycle-checkpoint).
+
 - [x] Existing-stream graphical entry composer verified against standalone,
   Cluster and Sentinel Redis, all 19 browser suites and the full Maven reactor.
   Bounded ordered/binary pairs, explicit staging/review, NOMKSTREAM,

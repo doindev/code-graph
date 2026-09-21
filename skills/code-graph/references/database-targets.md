@@ -82,6 +82,13 @@ expiry. This is the browser string editor's workflow, not a new permission or a
 guarantee that a string contains ordinary text. A conflict requires reconciliation;
 never remove its expectation or replay an uncertain write automatically.
 
+Explicit new strings can use one reviewed `SET key value NX` with the same key's
+`expected: null` WATCH guard; disclose that a new key has no expiry unless an
+explicit supported expiry is reviewed. Existing empty values are not absence.
+Whole-string deletion uses one reviewed `DEL key` with the complete original-byte
+guard. Never drop the guard to bypass a conflict or replace a different key type.
+The UI stages these actions until Save; normal agent writes still need approval.
+
 Conditional single-command SET reports `applied: false` when its condition did
 not match. That is not a transport failure and must not trigger an unconditional
 retry. Pipeline receipts instead carry the command's value; an `acknowledged`
