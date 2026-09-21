@@ -120,7 +120,7 @@ cgraph_main() {
       --mcp-url)
         [[ $# -ge 2 && -n "$2" && "$mcp_url_set" == 0 ]] || { printf 'Expected one value for --mcp-url\n' >&2;return 1; }
         mcp_url=$2;mcp_url_set=1;shift 2;;
-      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--mcp-clients all|none|codex,copilot,copilot-vscode,claude,windsurf]\n  [--mcp-url http://localhost:3000/mcp] [--skills all|none|codex,copilot,claude,windsurf]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\nInteractive installs ask about MCP first, then offer optional skills only for detected code-graph connections.\nUnattended installs default to neither. Existing connections, skills and approvals are preserved.\n';return;;
+      --help|-h) printf 'Usage: bash install.sh [--check] [--non-interactive] [--source-dir DIR] [--install-dir DIR]\n  [--repository URL] [--ref BRANCH_OR_TAG] [--skip-tests] [--no-path] [--keep-build] [--build-only]\n  [--mcp-clients all|none|codex,copilot,copilot-vscode,claude,windsurf]\n  [--mcp-url http://localhost:3000/mcp] [--skills all|none|codex,copilot,claude,windsurf]\n  [--proxy http://HOST:PORT] [--proxy-user USER] [--no-proxy HOSTS] [--git-ca-file PEM] [--maven-settings XML]\nInteractive installs ask about MCP first, then offer optional skills only for detected code-graph connections.\nUnattended installs default to neither. Differing skills prompt before replacement (default No); approved updates keep backups.\nWithout an interactive console, differing skills are skipped. MCP settings and approvals are preserved.\n';return;;
       *) printf 'Unknown installer option: %s\n' "$1" >&2;return 1;;
     esac
   done
@@ -190,7 +190,7 @@ cgraph_main() {
   "$jdk/bin/java" "${arguments[@]}" || install_status=$?
   if [[ $install_status == 2 ]]; then
     success=1;cgraph_cleanup;trap - EXIT
-    printf 'Application installed, but optional MCP/skill setup was incomplete; existing settings and skills were preserved. Resolve reported conflicts manually.\n' >&2
+    printf 'Application installed, but optional MCP/skill setup was incomplete; inspect per-client results and any backup paths. Resolve reported errors before retrying.\n' >&2
     return 2
   elif [[ $install_status != 0 ]]; then return "$install_status";fi
   success=1

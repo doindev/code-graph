@@ -3,6 +3,7 @@ import {lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFil
 import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
+import {createInterface} from 'node:readline';
 
 const directory=path.dirname(fileURLToPath(import.meta.url));
 const locations=Object.fromEntries((await readFile(path.join(directory,'clients.properties'),'utf8'))
@@ -56,7 +57,21 @@ async function safeDirectories(target) {
   }
 }
 
-export async function installSkill({client,project,global=false,dryRun=false,userHome=os.homedir(),environment=process.env}) {
+const sameInventory=(left,right)=>left.length===right.length && left.every(([name,bytes],i)=>name===right[i][0] && bytes.equals(right[i][1]));
+
+export async function promptOverwrite({client,destination},readAnswer,write) {
+  write(`Existing ${client} skill differs: ${destination}\nReplacement includes SKILL.md and all references. The previous folder will be backed up outside the skills directory.\n`);
+  while(true) {
+    write('Overwrite this skill? [y/N]: ');
+    const answer=(await readAnswer())?.trim().toLowerCase();
+    if(!answer || answer==='n' || answer==='no')return false;
+    if(answer==='y' || answer==='yes')return true;
+    write('Enter yes or no; Enter keeps the existing skill.\n');
+  }
+}
+
+export async function installSkill({client,project,global=false,dryRun=false,nonInteractive=false,confirmOverwrite,
+  userHome=os.homedir(),environment=process.env}) {
   if(!Object.hasOwn(clients,client)) throw new Error('Choose codex, copilot, claude or windsurf');
   if(global && project)throw new Error('--global and --project are mutually exclusive');
   if(!global && !project) throw new Error('An explicit --project directory or --global is required');
@@ -70,28 +85,53 @@ export async function installSkill({client,project,global=false,dryRun=false,use
   await safeDirectories(parent);
   const destination=path.join(parent,'code-graph'), current=await exists(destination);
   const original=await inventory(source);
+  if(!original.some(([name])=>name==='SKILL.md'))throw new Error('Missing SKILL.md');
+  let existing=null;
   if(current) {
     if(current.isSymbolicLink() || !current.isDirectory()) throw new Error('Refusing to replace the existing destination');
     await safeDirectories(destination);
-    const existing=await inventory(destination);
-    if(original.length===existing.length && original.every(([name,bytes],i)=>name===existing[i][0] && bytes.equals(existing[i][1])))
+    existing=await inventory(destination);
+    if(sameInventory(original,existing))
       return {status:'already-installed',destination};
-    throw new Error('Existing code-graph skill differs; preserve it and merge updates manually. Nothing was overwritten.');
+    if(dryRun)return {status:'would-update',destination,requiresConfirmation:true};
+    if(nonInteractive || !confirmOverwrite || await confirmOverwrite({client,destination})!==true)
+      return {status:'skipped-existing',destination,message:'Existing skill kept. Rerun interactively to approve replacement.'};
   }
   if(dryRun) return {status:'would-install',destination};
   await mkdir(parent,{recursive:true});
   await safeDirectories(parent);
   const stage=await mkdtemp(path.join(parent,'.code-graph-install-'));
+  let backup=null;
   try {
     for(const [name,bytes] of original) {
       const file=path.join(stage,'code-graph',name);
       await mkdir(path.dirname(file),{recursive:true});await writeFile(file,bytes,{flag:'wx'});
     }
-    // No recursive writes into the final location, and never intentionally replace a user skill.
+    await safeDirectories(destination);
+    if(existing) {
+      if(!sameInventory(existing,await inventory(destination)))throw new Error('Skill changed after confirmation; rerun to review it again. Nothing was overwritten.');
+      const backupRoot=path.join(path.dirname(parent),'.code-graph-skill-backups');
+      await safeDirectories(backupRoot);await mkdir(backupRoot,{recursive:true});await safeDirectories(backupRoot);
+      backup=path.join(await mkdtemp(path.join(backupRoot,'code-graph-')),'code-graph');
+      await rename(destination,backup);
+      if(!sameInventory(existing,await inventory(backup)))throw new Error('Skill changed while being backed up; replacement cancelled.');
+    }
+    // No recursive writes into the final location; reject a concurrently created destination.
     if(await exists(destination)) throw new Error('Destination appeared during installation; nothing was replaced');
     await rename(path.join(stage,'code-graph'),destination);
+  } catch(error) {
+    if(backup && await exists(backup)) {
+      try {
+        await safeDirectories(destination);
+        if(await exists(destination))throw new Error('Destination appeared during replacement');
+        await rename(backup,destination);
+      } catch {
+        throw new Error(error.message+' Previous skill retained at '+backup+'; restore it manually after checking the destination.',{cause:error});
+      }
+    }
+    throw error;
   } finally { await rm(stage,{recursive:true,force:true}); }
-  return {status:'installed',destination};
+  return {status:backup?'updated':'installed',destination,...(backup?{backup}:{})};
 }
 
 export async function installSkills(options) {
@@ -102,13 +142,13 @@ export async function installSkills(options) {
   }
   return results;
 }
-export const usage='Usage: node skills/install-skill.mjs --client all|none|codex,copilot,claude,windsurf (--global | --project PATH) [--dry-run]';
+export const usage='Usage: node skills/install-skill.mjs --client all|none|codex,copilot,claude,windsurf (--global | --project PATH) [--dry-run] [--non-interactive]';
 export function parseOptions(args) {
   const options={};
   for(let i=0;i<args.length;i++) {
-    const flag=args[i], key=flag==='--dry-run'?'dryRun':flag.slice(2);
+    const flag=args[i], key=flag==='--dry-run'?'dryRun':flag==='--non-interactive'?'nonInteractive':flag.slice(2);
     if(Object.hasOwn(options,key))throw new Error('Duplicate option: '+flag);
-    if(flag==='--dry-run'||flag==='--global'||flag==='--help')options[key]=true;
+    if(flag==='--dry-run'||flag==='--global'||flag==='--help'||flag==='--non-interactive')options[key]=true;
     else if(flag==='--client'||flag==='--project') {
       const value=args[++i];
       if(!value || value.startsWith('--'))throw new Error('Expected one value for '+flag);
@@ -123,14 +163,21 @@ export function parseOptions(args) {
 }
 
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+  let reader;
   try {
     const options=parseOptions(process.argv.slice(2));
-    if(options.help)console.log(usage+'\nOptional guidance only; no MCP setup, permissions, server startup, or network access. Existing differing skills are never overwritten.');
+    if(options.help)console.log(usage+'\nOptional guidance only; no MCP setup, permissions, server startup, or network access. Differing skills prompt for replacement (default No), with a backup. Without an interactive terminal, existing skills are kept.');
     else {
+      if(!options.nonInteractive && !options.dryRun && process.stdin.isTTY && process.stderr.isTTY) {
+        reader=createInterface({input:process.stdin,output:process.stderr});
+        const lines=reader[Symbol.asyncIterator]();
+        options.confirmOverwrite=request=>promptOverwrite(request,async()=>{const line=await lines.next();return line.done?null:line.value;},text=>process.stderr.write(text));
+      }
       const results=await installSkills(options);
       // Preserve the original single-client CLI response shape.
       console.log(JSON.stringify(selectClients(options.client).length===1?results[0]:results));
       if(results.some(result=>result.status==='failed'))process.exitCode=1;
     }
   } catch(error) { console.error(error.message); process.exitCode=1; }
+  finally { reader?.close(); }
 }

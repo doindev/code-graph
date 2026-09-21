@@ -246,8 +246,10 @@ code-graph connections (including pre-existing connections). Use `-Skills all`
 (Windows) or `--skills all` (macOS/Linux), a subset such as `codex,claude`, or
 `none`. Unattended installs default to none. The skill recommends code-graph only
 when its MCP tools are available and useful; otherwise agents use their normal
-tools. Existing customized skills and connection settings are preserved; no tool
-permissions change. `all` skills means all detected matching clients.
+tools. Differing installed skills prompt before replacement (default **No**); an
+approved update keeps a backup of the entire previous skill folder. Declining or
+running non-interactively keeps the existing skill without failing installation.
+Connection settings and tool permissions remain unchanged. `all` skills means all detected matching clients.
 See [global skill paths and standalone installation](docs/installation.md#optional-global-agent-skills).
 
 For example, configure Codex and Claude Code, then install skills for all detected

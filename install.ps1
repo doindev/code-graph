@@ -11,6 +11,7 @@ param(
     [string]$GitCaFile,
     [string]$MavenSettings,
     # Optional current-user skills: all, none, or comma-separated codex,copilot,claude,windsurf.
+    # Differing copies prompt before replacement; No/non-interactive keeps them. Approved updates keep a backup.
     [string]$Skills,
     # Optional current-user MCP connections; skill choices are offered afterward.
     [string]$McpClients,
@@ -180,7 +181,7 @@ function Invoke-CgraphInstall {
         & (Join-Path $requirements.Jdk 'bin/java.exe') @arguments
         if($LASTEXITCODE -eq 2){
             $success=$true
-            throw 'Application installed, but optional MCP/skill setup was incomplete. Existing settings and skills were preserved; inspect the per-client messages. No server was restarted.'
+            throw 'Application installed, but optional MCP/skill setup was incomplete. Inspect the per-client results and any backup paths. No server was restarted.'
         }
         if($LASTEXITCODE -ne 0){throw 'The native installer failed; the existing server was not stopped or restarted.'}
         $success=$true

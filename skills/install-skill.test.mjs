@@ -4,7 +4,7 @@ import {mkdtemp,readFile,writeFile,mkdir,rm,symlink,access,readdir,realpath} fro
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import os from 'node:os';
-import {clients,installSkill,installSkills,parseOptions,selectClients} from './install-skill.mjs';
+import {clients,installSkill,installSkills,parseOptions,selectClients,promptOverwrite} from './install-skill.mjs';
 import {spawnSync} from 'node:child_process';
 
 const source=path.join(path.dirname(fileURLToPath(import.meta.url)),'code-graph');
@@ -62,7 +62,7 @@ test('skill MCP tool references exist in the generated server contract',async()=
   assert.ok(references.size>0,'skill must expose useful workflow tool references');
 });
 
-test('dry run does not create directories and customized skills are never overwritten',async()=>{
+test('dry run and unapproved replacement preserve customized skills without failing',async()=>{
   const project=await mkdtemp(path.join(os.tmpdir(),'cgraph-skill-test-'));
   try {
     assert.equal((await installSkill({project,client:'codex',dryRun:true})).status,'would-install');
@@ -70,7 +70,12 @@ test('dry run does not create directories and customized skills are never overwr
     const {destination}=await installSkill({project,client:'codex'});
     const file=path.join(destination,'SKILL.md');
     await writeFile(file,'custom instructions');
-    await assert.rejects(installSkill({project,client:'codex'}),/Nothing was overwritten/);
+    assert.equal((await installSkill({project,client:'codex'})).status,'skipped-existing');
+    const confirmOverwrite=()=>{throw new Error('Must not ask during dry run or non-interactive installation');};
+    const preview=await installSkill({project,client:'codex',dryRun:true,confirmOverwrite});
+    assert.equal(preview.status,'would-update');assert.equal(preview.requiresConfirmation,true);
+    assert.equal((await installSkill({project,client:'codex',nonInteractive:true,confirmOverwrite})).status,'skipped-existing');
+    await assert.rejects(access(path.join(project,'.agents/.code-graph-skill-backups')));
     assert.equal(await readFile(file,'utf8'),'custom instructions');
     await assert.rejects(installSkill({project,client:'unknown'}));
     await assert.rejects(installSkill({client:'codex'}));
@@ -119,7 +124,7 @@ test('global dry-run and documented config overrides are explicit; customized cl
     const first=await installSkill({...options,client:'codex'});
     await writeFile(path.join(first.destination,'references','approvals-and-jobs.md'),'customized policy');
     const results=await installSkills(options);
-    assert.equal(results[0].status,'failed');assert.match(results[0].error,/Nothing was overwritten/);
+    assert.equal(results[0].status,'skipped-existing');
     assert.ok(results.slice(1).every(item=>item.status==='installed'));
     assert.equal(await readFile(path.join(first.destination,'references','approvals-and-jobs.md'),'utf8'),'customized policy');
     const environment={CLAUDE_CONFIG_DIR:path.join(root,'claude config'),COPILOT_HOME:path.join(root,'copilot config')};
@@ -150,8 +155,9 @@ test('CLI choices preserve project mode and require explicit scope',()=>{
     assert.throws(()=>selectClients(selection));
   assert.deepEqual(parseOptions(['--client','all','--global','--dry-run']),{client:'all',global:true,dryRun:true});
   assert.deepEqual(parseOptions(['--client','claude','--project','project with spaces']),{client:'claude',project:'project with spaces'});
+  assert.deepEqual(parseOptions(['--client','all','--global','--non-interactive']),{client:'all',global:true,nonInteractive:true});
   for(const args of [[],['--client','all'],['--client','none','--global','--project','x'],['--client','--global'],
-    ['--client','all','--global','--global'],['--unknown']])assert.throws(()=>parseOptions(args));
+    ['--client','all','--global','--global'],['--client','all','--global','--non-interactive','--non-interactive'],['--unknown']])assert.throws(()=>parseOptions(args));
 });
 
 test('real CLI global installs honor a disposable user home without requiring a running MCP',async()=>{
@@ -169,6 +175,71 @@ test('real CLI global installs honor a disposable user home without requiring a 
     const repeat=run('--client','codex','--global');assert.equal(JSON.parse(repeat.stdout).status,'already-installed');
     await writeFile(path.join(root,'.agents/skills/code-graph/SKILL.md'),'local override');
     const conflict=run('--client','all','--global');
-    assert.equal(conflict.status,1);assert.equal(JSON.parse(conflict.stdout)[0].status,'failed');
+    assert.equal(conflict.status,0);assert.equal(JSON.parse(conflict.stdout)[0].status,'skipped-existing');
+    assert.equal(await readFile(path.join(root,'.agents/skills/code-graph/SKILL.md'),'utf8'),'local override');
   } finally {await rm(root,{recursive:true,force:true});}
+});
+
+test('overwrite prompt requires explicit yes, identifies the client and folder, and safely handles EOF',async()=>{
+  for(const [answers,expected] of [[['y'],true],[[' YES '],true],[['n'],false],[['NO'],false],[[''],false],[[null],false],[['invalid','yes'],true]]) {
+    const lines=[...answers];let output='';
+    assert.equal(await promptOverwrite({client:'codex',destination:'/chosen/skills/code-graph'},async()=>lines.shift(),text=>output+=text),expected);
+    assert.match(output,/Existing codex skill differs: \/chosen\/skills\/code-graph/);
+    assert.match(output,/SKILL.md and all references/);assert.match(output,/backed up outside/);assert.match(output,/\[y\/N\]/);
+    if(answers[0]==='invalid')assert.match(output,/Enter yes or no/);
+  }
+});
+
+test('approved per-client updates replace the whole skill and retain customized backups outside discovery',async()=>{
+  const userHome=await mkdtemp(path.join(os.tmpdir(),'cgraph-skill-test-'));
+  try {
+    const options={userHome,environment:{},global:true,client:'all'};
+    const installed=await installSkills(options),previous=new Map();
+    for(const result of installed){
+      await writeFile(path.join(result.destination,'SKILL.md'),'local '+result.client);
+      await writeFile(path.join(result.destination,'references','local-only.md'),'custom reference');
+      previous.set(result.client,await inventory(result.destination));
+    }
+    const prompts=[];
+    const results=await installSkills({...options,confirmOverwrite:async request=>{prompts.push(request);return request.client!=='claude';}});
+    assert.deepEqual(prompts.map(p=>p.client),Object.keys(clients));
+    for(const result of results){
+      if(result.client==='claude'){
+        assert.equal(result.status,'skipped-existing');assert.deepEqual(await inventory(result.destination),previous.get(result.client));continue;
+      }
+      assert.equal(result.status,'updated');assert.deepEqual(await inventory(result.destination),await inventory(source));
+      assert.deepEqual(await inventory(result.backup),previous.get(result.client));
+      assert.ok(!result.backup.startsWith(path.dirname(result.destination)+path.sep));
+      assert.equal(path.basename(path.dirname(path.dirname(result.backup))),'.code-graph-skill-backups');
+      assert.equal((await installSkill({...options,client:result.client,confirmOverwrite:()=>{throw new Error('Identical skill must not prompt');}})).status,'already-installed');
+    }
+    // Project installs share the same confirmation and backup behavior.
+    const first=await installSkill({project:userHome,client:'copilot'});
+    await writeFile(path.join(first.destination,'SKILL.md'),'project customization');
+    const updated=await installSkill({project:userHome,client:'copilot',confirmOverwrite:()=>true});
+    assert.equal(updated.status,'updated');assert.equal(await readFile(path.join(updated.backup,'SKILL.md'),'utf8'),'project customization');
+  }finally{await rm(userHome,{recursive:true,force:true});}
+});
+
+test('a skill changed during the prompt is never replaced by an earlier approval',async()=>{
+  const project=await mkdtemp(path.join(os.tmpdir(),'cgraph-skill-test-'));
+  try{
+    const {destination}=await installSkill({project,client:'codex'}),file=path.join(destination,'SKILL.md');
+    await writeFile(file,'first customization');
+    await assert.rejects(installSkill({project,client:'codex',confirmOverwrite:async()=>{await writeFile(file,'concurrent customization');return true;}}),/changed after confirmation/);
+    assert.equal(await readFile(file,'utf8'),'concurrent customization');
+    assert.deepEqual(await readdir(path.dirname(destination)),['code-graph']);
+  }finally{await rm(project,{recursive:true,force:true});}
+});
+
+test('replacement refuses a linked backup location and preserves the original',async()=>{
+  const project=await mkdtemp(path.join(os.tmpdir(),'cgraph-skill-test-'));
+  try{
+    const {destination}=await installSkill({project,client:'codex'}),file=path.join(destination,'SKILL.md');
+    await writeFile(file,'must keep');
+    const outside=path.join(project,'outside');await mkdir(outside);
+    await symlink(outside,path.join(project,'.agents/.code-graph-skill-backups'),process.platform==='win32'?'junction':'dir');
+    await assert.rejects(installSkill({project,client:'codex',confirmOverwrite:()=>true}),/linked/);
+    assert.equal(await readFile(file,'utf8'),'must keep');assert.deepEqual(await readdir(outside),[]);
+  }finally{await rm(project,{recursive:true,force:true});}
 });

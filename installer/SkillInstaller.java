@@ -7,7 +7,29 @@ final class SkillInstaller {
     final Path source;
     final Properties locations = new Properties();
     final List<String> clients;
-    record Result(String client, String status, Path destination, String error) {}
+    record Result(String client, String status, Path destination, Path backup, String error) {}
+    record CopyResult(String status, Path backup) {}
+    @FunctionalInterface interface OverwriteConfirmation {
+        boolean approve(String client, Path destination) throws IOException;
+    }
+
+    static OverwriteConfirmation confirmation(boolean nonInteractive, Console console) {
+        if (nonInteractive || console == null) return (client, target) -> false;
+        BufferedReader input = new BufferedReader(console.reader());
+        return (client, target) -> promptOverwrite(input, console.writer(), client, target);
+    }
+
+    static boolean promptOverwrite(BufferedReader input, PrintWriter output, String client, Path target) throws IOException {
+        output.println("Existing " + client + " skill differs: " + target);
+        output.println("Replacement includes SKILL.md and all references. The previous folder will be backed up outside the skills directory.");
+        while (true) {
+            output.print("Overwrite this skill? [y/N]: "); output.flush();
+            String answer = input.readLine();
+            if (answer == null || answer.isBlank() || Set.of("n", "no").contains(answer.strip().toLowerCase(Locale.ROOT))) return false;
+            if (Set.of("y", "yes").contains(answer.strip().toLowerCase(Locale.ROOT))) return true;
+            output.println("Enter yes or no; Enter keeps the existing skill.");
+        }
+    }
 
     SkillInstaller(Path repository) throws IOException {
         source = repository.resolve("skills/code-graph");
@@ -102,14 +124,19 @@ final class SkillInstaller {
     }
 
     List<Result> install(List<String> selected, Path home, Map<String, String> environment) {
+        return install(selected, home, environment, (client, target) -> false);
+    }
+
+    List<Result> install(List<String> selected, Path home, Map<String, String> environment, OverwriteConfirmation confirmation) {
         List<Result> results = new ArrayList<>();
         for (String client : selected) {
             Path target = null;
             try {
                 target = destination(client, home.toRealPath(), environment);
-                results.add(new Result(client, copy(source, target), target, null));
+                CopyResult copied = copy(source, target, client, confirmation);
+                results.add(new Result(client, copied.status(), target, copied.backup(), null));
             } catch (IOException | IllegalArgumentException e) {
-                results.add(new Result(client, "failed", target, e.getMessage()));
+                results.add(new Result(client, "failed", target, null, e.getMessage()));
             }
         }
         return results;
@@ -149,20 +176,25 @@ final class SkillInstaller {
         return files;
     }
 
-    static String copy(Path source, Path target) throws IOException {
+    static boolean same(Map<String, byte[]> left, Map<String, byte[]> right) {
+        return left.keySet().equals(right.keySet())
+                && left.entrySet().stream().allMatch(e -> Arrays.equals(e.getValue(), right.get(e.getKey())));
+    }
+
+    static CopyResult copy(Path source, Path target, String client, OverwriteConfirmation confirmation) throws IOException {
         Map<String, byte[]> contents = inventory(source);
         if (!contents.containsKey("SKILL.md")) throw new IOException("Missing SKILL.md");
         safeDirectories(target);
+        Map<String, byte[]> existing = null;
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            Map<String, byte[]> existing = inventory(target);
-            if (contents.keySet().equals(existing.keySet())
-                    && contents.entrySet().stream().allMatch(e -> Arrays.equals(e.getValue(), existing.get(e.getKey()))))
-                return "already-installed";
-            throw new IOException("Existing code-graph skill differs; merge updates manually. Nothing was overwritten.");
+            existing = inventory(target);
+            if (same(contents, existing)) return new CopyResult("already-installed", null);
+            if (!confirmation.approve(client, target)) return new CopyResult("skipped-existing", null);
         }
         Files.createDirectories(target.getParent());
         safeDirectories(target.getParent());
         Path stage = Files.createTempDirectory(target.getParent(), ".code-graph-install-");
+        Path backup = null;
         try {
             Path staged = stage.resolve("code-graph");
             for (var entry : contents.entrySet()) {
@@ -171,9 +203,27 @@ final class SkillInstaller {
                 Files.write(file, entry.getValue(), StandardOpenOption.CREATE_NEW);
             }
             safeDirectories(target);
-            // No REPLACE_EXISTING: a concurrent installation must not overwrite a user's directory.
+            if (existing != null) {
+                if (!same(existing, inventory(target))) throw new IOException("Skill changed after confirmation; rerun to review it again. Nothing was overwritten.");
+                Path backupRoot = target.getParent().getParent().resolve(".code-graph-skill-backups");
+                safeDirectories(backupRoot);
+                Files.createDirectories(backupRoot);
+                safeDirectories(backupRoot);
+                backup = Files.createTempDirectory(backupRoot, "code-graph-").resolve("code-graph");
+                Files.move(target, backup);
+                if (!same(existing, inventory(backup))) throw new IOException("Skill changed while being backed up; replacement cancelled.");
+            }
+            // No REPLACE_EXISTING: never overwrite a concurrently created destination.
             Files.move(staged, target);
-            return "installed";
+            return new CopyResult(backup == null ? "installed" : "updated", backup);
+        } catch (IOException failure) {
+            if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS)) {
+                try { safeDirectories(target); Files.move(backup, target); }
+                catch (IOException restore) {
+                    throw new IOException(failure.getMessage() + " Previous skill retained at " + backup + "; restore it manually after checking the destination.", failure);
+                }
+            }
+            throw failure;
         } finally {
             // Only this operation's uniquely created staging directory; never recurse into the destination.
             try (var paths = Files.walk(stage)) {

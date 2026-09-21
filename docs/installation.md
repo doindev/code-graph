@@ -378,18 +378,33 @@ loopback endpoint merely by installing a skill.
 
 One maintained source (`skills/code-graph`) and all supporting references are copied.
 Identical copies are a no-op. Differing existing copies—including customized references—
-are preserved and reported for manual merging, never overwritten or deleted.
-Linked destinations are refused. A conflict for one client does not prevent the
-other explicitly selected clients from being installed. Skills are copied only after
-the application installation succeeds; optional skill failures are reported as a
-partial installation with a nonzero exit, not as a failed application build.
+prompt **Overwrite this skill? [y/N]** separately for each selected client. The prompt
+shows the client and exact destination. Only `y` or `yes` approves replacement;
+No, Enter or end-of-input preserves it and reports `skipped-existing`, not failure.
+Without an interactive console, or with `-NonInteractive` / `--non-interactive`,
+existing differing skills are also kept. Selecting `all` is not overwrite consent.
+
+An approved update replaces the whole maintained folder, including references, and
+reports `updated` plus a recoverable backup path. Backups are stored under
+`<client configuration directory>/.code-graph-skill-backups/code-graph-<unique>/code-graph`,
+outside that client's `skills` directory so the old copy is not discovered as a
+second active skill. Custom files remain in the backup, not in the new active copy.
+The installer never automatically deletes these backups. Compare/merge customizations
+after the update, or restore the saved folder manually with the client closed.
+If publication fails, the installer attempts to restore the old folder; if a
+concurrent destination prevents restoration, it reports the retained backup path.
+
+Linked destinations/backup directories are refused; changes made while a confirmation
+is pending invalidate that approval. Declining one client does not prevent installation
+for the others. Skills are copied only after the application installation succeeds;
+actual filesystem/configuration errors are reported as partial installation with a
+nonzero exit, not as a failed application build. Inspect per-client statuses: some
+approved updates may have succeeded even if another optional setup step failed.
 Rerunning with `none` does not uninstall previously selected skills.
 
 For an update, compare the entire installed folder with `skills/code-graph`, not
-just `SKILL.md`: most workflow details live in the references. Preserve local
-customizations while merging. A differing copy can also be an older unmodified
-release; confirm that against repository history before replacing its stock
-files. The installer intentionally does not guess whether differences are yours.
+just `SKILL.md`: most workflow details live in the references. A differing copy may
+be an older stock release or a customization; the installer asks rather than guessing.
 
 To install skills separately, without rebuilding the application, use the optional
 Node.js helper from a checkout. It requires explicit scope and never downloads anything:
@@ -399,7 +414,14 @@ node skills/install-skill.mjs --client all --global --dry-run
 node skills/install-skill.mjs --client all --global
 node skills/install-skill.mjs --client codex,claude --global
 node skills/install-skill.mjs --client codex --project PATH
+node skills/install-skill.mjs --client all --global --non-interactive
 ```
+
+The Node helper uses the same confirmation/default/backup behavior. Its `--dry-run`
+reports `would-update` with `requiresConfirmation: true` for differing copies and
+never prompts, creates backups or writes files. CLI result JSON remains on stdout;
+interactive replacement prompts are written to stderr. Without a terminal it skips
+differing copies rather than hanging for input or automatically overwriting them.
 
 Project installation remains supported: Codex `.agents/skills`, Copilot
 `.github/skills`, Claude `.claude/skills`, Windsurf `.windsurf/skills`.
@@ -507,6 +529,16 @@ It deliberately supplies an invalid system JAVA_HOME to verify the bundled runti
 `ProxySmokeTest` exercises real Git/Maven HTTPS requests through a local Basic-auth HTTP proxy,
 which always rejects authenticated requests and never forwards anything externally. It verifies
 authentication, environment-secret interpolation and failure behavior without pulling packages.
+
+Overwrite-prompt validation (2026-09-21): 80 JDK skill checks, 39 application-installer
+checks and 150 MCP-setup checks passed, including approved backups, declined/default/EOF
+decisions, per-client choices, changed-during-review rejection and an unattended
+application upgrade that skips a customized skill without failing. The combined
+Node skill/bootstrap/uninstall run passed 18 tests; two opt-in real-client tests
+were skipped, not passed. Windows PowerShell 5.1 and Git Bash checks passed, as did
+actual Windows terminal prompts for both Java and Node using disposable skills.
+macOS/Linux forwarding used simulated OS detection; native runs remain unverified.
+No real user skills, client settings, or running application were changed.
 
 Validation status (2026-09-17): Windows/PowerShell 5.1 prerequisite checks, complete HTTP-runtime
 reactor test/package, native image creation, bundled-runtime Graph/DBA/MCP smoke with desktop

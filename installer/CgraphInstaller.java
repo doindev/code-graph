@@ -29,7 +29,7 @@ public final class CgraphInstaller {
         catch (Exception e) { System.err.println("Installation failed: " + e.getMessage()); System.err.println("For network failures, check HTTPS_PROXY/HTTP_PROXY/NO_PROXY, --proxy, Git CA certificates, and --maven-settings. TLS verification is never disabled."); System.exit(1); }
     }
     static final class OptionalSetupFailure extends IOException {
-        OptionalSetupFailure() { super("Application installed, but optional MCP/skill setup was incomplete. Existing settings/skills were preserved; resolve the reported conflicts and rerun the helpers."); }
+        OptionalSetupFailure() { super("Application installed, but optional MCP/skill setup was incomplete. Inspect per-client results and any backup paths; resolve reported errors and rerun the helpers."); }
     }
 
     static Map<String,String> parse(String[] args) {
@@ -152,8 +152,11 @@ public final class CgraphInstaller {
         try {
             List<String> chosen = skills.chooseConfigured(options.get("--skills"), options.containsKey("--non-interactive"), false, System.console(), eligible);
             if (chosen.isEmpty()) System.out.println("Optional skills skipped (no selection, or no detected code-graph MCP connections).");
-            for (var result : skills.install(chosen, home, environment)) {
+            for (var result : skills.install(chosen, home, environment,
+                    SkillInstaller.confirmation(options.containsKey("--non-interactive"), System.console()))) {
                 System.out.println("Skill " + result.client() + ": " + result.status() + " — " + result.destination()
+                        + (result.backup() == null ? "" : " — Previous skill backup: " + result.backup())
+                        + (result.status().equals("skipped-existing") ? " — Existing skill kept. Rerun interactively to approve replacement." : "")
                         + (result.error() == null ? "" : " (" + result.error() + ")"));
                 failed |= result.status().equals("failed");
             }

@@ -132,6 +132,10 @@ public class McpInstallerTest {
                 check(Files.isRegularFile(flowHome.resolve(".codeium/windsurf/skills/code-graph/SKILL.md")),"MCP-first flow installs matching Windsurf skill");
                 check(!Files.exists(flowHome.resolve(".claude"))&&!Files.exists(flowHome.resolve(".copilot")),"Unselected/unconfigured clients untouched");
                 installer.finishOptionalSetup(Path.of(""),List.of(),url); // Existing connections eligible on later installs.
+                Path customized=flowHome.resolve(".agents/skills/code-graph/SKILL.md");
+                Files.writeString(customized,"local instructions");
+                installer.finishOptionalSetup(Path.of(""),List.of(),url); // A skipped overwrite must not produce OptionalSetupFailure.
+                check(Files.readString(customized).equals("local instructions"),"Unattended application upgrade keeps customized skill without failing");
             } finally {System.setProperty("user.home",originalHome);}
             Path external=Files.createDirectory(root.resolve("external"));Path link=home.resolve("redirect");
             if(CgraphInstaller.WINDOWS) {
