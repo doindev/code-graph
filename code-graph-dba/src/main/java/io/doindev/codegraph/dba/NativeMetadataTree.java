@@ -33,15 +33,27 @@ final class NativeMetadataTree {
             command=metadata;
         }else if(kind.equals("native_indexes"))command=Profiles.JSON.createObjectNode().put("listIndexes",target.collection());
         else if(kind.equals("native_keys")){
-            command=Profiles.JSON.createArrayNode().add("SCAN").add(request.path("offset").asText("0")).add("MATCH").add(request.path("pattern").asText("*"));
+            command=scanCommand(request);
         }else throw new IllegalArgumentException("Unsupported native metadata branch");
         ObjectNode rows=NativeReadExecutor.execute(lease,target,command,new NativeReadExecutor.Limits(100,1<<20,job.remainingSeconds()),()->job.cancelled);
+        return projectRows(target,kind,rows,result,nodes);
+    }
+    static ArrayNode scanCommand(JsonNode request){
+        JsonNode pattern=request.get("pattern"),offset=request.get("offset");
+        if(pattern!=null&&(!pattern.isTextual()||pattern.textValue().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>4096))
+            throw new IllegalArgumentException("Redis key pattern must be text of at most 4 KiB UTF-8");
+        if(offset!=null&&(!offset.isTextual()&&!offset.isIntegralNumber()||offset.asText().length()>1024))
+            throw new IllegalArgumentException("Invalid bounded Redis scan cursor; refresh the Keys branch");
+        return Profiles.JSON.createArrayNode().add("SCAN").add(offset==null?"0":offset.asText()).add("MATCH").add(pattern==null?"*":pattern.textValue());
+    }
+    static ObjectNode projectRows(NativeTarget target,String kind,ObjectNode rows,ObjectNode result,ArrayNode nodes){
         List<ObjectNode> found=new ArrayList<>();
+        Set<String> seen=new HashSet<>();
         for(JsonNode row:rows.path("entries")){
             if(kind.equals("native_keys")){
                 ObjectNode key=keyNode(row,target);
                 if(key==null)result.put("truncated",true).put("warning","Some key names exceed the interactive byte allowance; refine the scan pattern.");
-                else found.add(key);
+                else if(seen.add(key.path("key").asText()))found.add(key);
                 continue;
             }
             String name=kind.equals("native_keys")?row.path("text").asText(""):row.path("name").asText("");
@@ -57,6 +69,7 @@ final class NativeMetadataTree {
         found.sort(Comparator.comparing(n->n.path("name").asText(),String.CASE_INSENSITIVE_ORDER));found.forEach(nodes::add);
         if(rows.path("truncated").asBoolean())result.put("truncated",true).put("warning","Metadata exceeded the interactive allowance; use a filtered native metadata command to narrow the inventory.");
         if(rows.has("nextCursor")&&!rows.path("scanComplete").asBoolean())result.put("nextOffset",rows.path("nextCursor").asText());
+        if(kind.equals("native_keys"))result.put("scanComplete",rows.path("scanComplete").asBoolean()).put("inventoryComplete",false).put("requiresRefinement",rows.path("requiresRefinement").asBoolean()||result.path("truncated").asBoolean());
         result.put("coverage","bounded_live_non_snapshot");return result;
     }
     static ObjectNode keyNode(JsonNode row,NativeTarget target){

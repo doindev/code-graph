@@ -1,6 +1,9 @@
 import {lucide} from './tree-icons.js';
 import {bindTreeContextMenu} from './tree-actions.js';
 const MAX_NODES=2000;
+const MAX_DESCRIPTOR_BYTES=2*1024*1024;
+const descriptorBytes=node=>new TextEncoder().encode(JSON.stringify(node)).length;
+const isKeyScan=entry=>entry.descriptor.kind==='native_keys';
 const objectParents=new Set(['schemas','databases','tables','foreign_tables','views','materialized_views','external_tables','indexes','functions','procedures','sequences','types','aggregates','event_triggers','extensions','roles','tablespaces','foreign_servers','relation','domains','triggers','events','queues','packages','synonyms','schema_triggers','table_triggers','database_links','java','jobs','scheduler_jobs','scheduler_programs','scheduler_schedules','scheduler_chains','aliases','stages','file_formats','pipes','tasks','streams','table_columns','table_constraints','table_foreign_keys','table_indexes','table_triggers','table_policies','table_rules','table_partitions']);
 function svg(path){const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');const p=document.createElementNS(icon.namespaceURI,'path');p.setAttribute('d',path);icon.append(p);return icon;}
 
@@ -34,27 +37,78 @@ export class MetadataTreeView {
   count(entry){return(entry.children??[]).reduce((n,c)=>n+1+this.count(c),0);}
   remember(collection,key,value){if(collection instanceof Map)collection.set(key,value);else collection.add(key);while(collection.size>MAX_NODES)collection.delete(collection.keys().next().value);}
   total(){return[...this.roots.values()].reduce((n,root)=>n+this.count(root),0);}
-  invalidate(entry){entry.revision=(entry.revision??0)+1;for(const child of entry.children??[])this.invalidate(child);}
+  cancelLoad(operation){operation.cancelled=true;if(operation.id&&!operation.cancelSent){operation.cancelSent=true;void this.api('/jobs/'+encodeURIComponent(operation.id)+'/cancel','POST',{}).catch(()=>{});}}
+  invalidate(entry){entry.revision=(entry.revision??0)+1;for(const operation of entry.operations??[])this.cancelLoad(operation);for(const child of entry.children??[])this.invalidate(child);}
   async load(profile,container){let root=this.roots.get(profile.id);if(root)this.invalidate(root);root={profile,key:profile.id,descriptor:{kind:'root'},container,children:[],revision:0,root:true};this.roots.set(profile.id,root);await this.reload(root);}
-  async fetch(entry,offset=0){return this.wait(await this.api(entry.profile.transport&&entry.profile.transport!=='jdbc'?'/native/tree':'/metadata/tree','POST',{connectionId:entry.profile.id,...entry.descriptor,offset}));}
+  async fetch(entry,offset=0){
+    const operation={};(entry.operations??=new Set()).add(operation);
+    try{
+      const job=await this.api(entry.profile.transport&&entry.profile.transport!=='jdbc'?'/native/tree':'/metadata/tree','POST',{connectionId:entry.profile.id,...entry.descriptor,offset});
+      operation.id=job.id;if(operation.cancelled)this.cancelLoad(operation);
+      // Even invalidated loads must settle through wait(), which releases their job result.
+      return await this.wait(job);
+    }finally{entry.operations.delete(operation);}
+  }
+  retainedBytes(entry){return(entry.children??[]).reduce((n,c)=>n+descriptorBytes(c.descriptor)+this.retainedBytes(c),0);}
+  checkCapacity(entry,nodes,replacing=false){
+    const count=this.total()-(replacing?this.count(entry):0)+nodes.length;
+    const bytes=[...this.roots.values()].reduce((n,root)=>n+this.retainedBytes(root),0)-(replacing?this.retainedBytes(entry):0)+nodes.reduce((n,node)=>n+descriptorBytes(node),0);
+    if(count>MAX_NODES||bytes>MAX_DESCRIPTOR_BYTES)throw new Error('Metadata tree limit reached (2,000 items / 2 MiB descriptor data). Refine the Redis pattern and refresh, or refresh a parent/remove a connection to release entries. This page was not consumed.');
+  }
+  scanNodes(entry,nodes,replacing=false){
+    if(!isKeyScan(entry))return nodes;
+    const seen=new Set(replacing?[]:entry.children.map(child=>child.descriptor.key));
+    return nodes.filter(node=>{if(seen.has(node.key))return false;seen.add(node.key);return true;});
+  }
+  sortKeys(entry){if(!isKeyScan(entry))return;entry.children.sort((a,b)=>a.descriptor.name.localeCompare(b.descriptor.name,undefined,{sensitivity:'base'})||a.descriptor.key.localeCompare(b.descriptor.key));for(const child of entry.children)entry.container.append(child.wrapper);}
+  scanControls(entry){
+    if(!isKeyScan(entry))return;
+    const form=document.createElement('form');form.className='metadata-scan-controls';
+    const label=document.createElement('label');label.textContent='Key pattern';
+    const input=document.createElement('input');input.type='text';input.maxLength=1024;input.value=entry.descriptor.pattern??'*';input.setAttribute('aria-label','Redis key pattern');input.spellcheck=false;
+    const submit=document.createElement('button');submit.type='submit';submit.textContent='Scan';submit.title='Start a new bounded scan using this Redis glob pattern';
+    label.append(input);form.append(label,submit);form.onsubmit=async event=>{event.preventDefault();if(entry.loading)return;const previous=entry.descriptor.pattern;entry.descriptor.pattern=input.value;submit.disabled=true;try{if(!await this.reload(entry)){if(previous===undefined)delete entry.descriptor.pattern;else entry.descriptor.pattern=previous;}}finally{submit.disabled=false;}};
+    entry.container.prepend(form);
+  }
   message(container,text){const message=document.createElement('p');message.className='metadata-message';message.textContent=text;container.append(message);return message;}
   async reload(entry){
     if(entry.loading)return;entry.loading=true;const revision=++entry.revision;entry.wrapper?.setAttribute('aria-busy','true');
     // Read all previously loaded pages before swapping, so a failed refresh keeps old children.
-    let result,nodes=[],offset=0;const pageCount=this.pages.get(entry.key)??1;
+    // Refresh a live Redis scan from zero; do not replay unbounded empty batches.
+    let result,nodes=[],offset=0;const pageCount=isKeyScan(entry)?1:this.pages.get(entry.key)??1;
     try{
       for(let page=0;page<pageCount;page++){result=await this.fetch(entry,offset);if(entry.revision!==revision||!entry.container.isConnected)return;nodes.push(...result.nodes);offset=result.nextOffset;if(offset===undefined)break;}
-      const available=MAX_NODES-(this.total()-this.count(entry));if(nodes.length>available)throw new Error('Metadata tree limit reached. Collapse and refresh a parent, or remove a connection to release tree entries.');
+      nodes=this.scanNodes(entry,nodes,true);this.checkCapacity(entry,nodes,true);
       const keep=new Set(nodes.map(n=>entry.key+'/'+encodeURIComponent(n.key)));for(const state of [this.expanded,this.pages])for(const key of state.keys()){if(key.startsWith(entry.key+'/')&&![...keep].some(prefix=>key===prefix||key.startsWith(prefix+'/')))state.delete(key);}
       for(const child of entry.children)this.invalidate(child);entry.children=[];entry.container.replaceChildren();entry.loaded=true;
       for(const descriptor of nodes)this.append(entry,descriptor);
-      this.footer(entry,result?.nextOffset);if(result?.warning)this.message(entry.container,result.warning);
+      this.scanControls(entry);this.sortKeys(entry);this.footer(entry,result);if(isKeyScan(entry))this.pages.delete(entry.key);
       await this.restore(entry);return true;
     }catch(error){if(entry.revision!==revision||!entry.container.isConnected)return;entry.container.querySelector(':scope > .metadata-error')?.remove();const message=this.message(entry.container,'Metadata unavailable: '+error.message);message.classList.add('metadata-error');this.notice(error.message);return false;}
     finally{entry.loading=false;entry.wrapper?.removeAttribute('aria-busy');}
   }
   async restore(entry){for(const child of entry.children){if(!entry.container.isConnected)return;if(child.descriptor.branch&&this.expanded.has(child.key))await this.toggle(child,true);}}
-  footer(entry,nextOffset){entry.container.querySelector(':scope > .metadata-more')?.remove();if(!entry.children.length)this.message(entry.container,'No items');if(nextOffset===undefined)return;const more=document.createElement('button');more.type='button';more.className='metadata-more';more.textContent='Load more…';more.title='Load the next 200 items';more.onclick=async()=>{if(entry.loading)return;entry.loading=true;more.disabled=true;const revision=entry.revision;try{const result=await this.fetch(entry,nextOffset);if(entry.revision!==revision||!entry.container.isConnected)return;if(this.total()+result.nodes.length>MAX_NODES)throw new Error('Metadata tree limit reached (2,000 loaded items).');for(const descriptor of result.nodes)this.append(entry,descriptor);this.remember(this.pages,entry.key,(this.pages.get(entry.key)??1)+1);this.footer(entry,result.nextOffset);await this.restore(entry);}catch(error){this.notice(error.message);}finally{entry.loading=false;more.disabled=false;}};entry.container.append(more);}
+  footer(entry,result={}){
+    for(const element of entry.container.querySelectorAll(':scope > .metadata-more,:scope > .metadata-page-status'))element.remove();
+    const nextOffset=result.nextOffset;
+    const status=text=>{const message=this.message(entry.container,text);message.classList.add('metadata-page-status');message.setAttribute('role','status');};
+    if(isKeyScan(entry))status(`${entry.children.length} distinct keys loaded. ${nextOffset!==undefined?'Scan unfinished; empty and duplicate-only batches can occur.':result.scanComplete?'Scan finished.':'Scan incomplete; refine the pattern and refresh.'} Live scan, not a snapshot; keys can change or disappear. Refresh starts a new scan.`);
+    else if(!entry.children.length)status('No items');
+    if(result.warning)status(result.warning);
+    if(nextOffset===undefined)return;
+    const more=document.createElement('button');more.type='button';more.className='metadata-more';more.textContent=isKeyScan(entry)?'Continue scan…':'Load more…';more.title=isKeyScan(entry)?'Read one bounded SCAN batch; it may contain no new keys':'Load the next 200 items';
+    more.onclick=async()=>{
+      if(entry.loading)return;entry.loading=true;more.disabled=true;entry.wrapper?.setAttribute('aria-busy','true');const revision=entry.revision;
+      try{
+        const result=await this.fetch(entry,nextOffset);if(entry.revision!==revision||!entry.container.isConnected)return;
+        const nodes=this.scanNodes(entry,result.nodes);this.checkCapacity(entry,nodes);
+        for(const descriptor of nodes)this.append(entry,descriptor);
+        if(!isKeyScan(entry))this.remember(this.pages,entry.key,(this.pages.get(entry.key)??1)+1);
+        this.sortKeys(entry);this.footer(entry,result);await this.restore(entry);
+      }catch(error){if(entry.revision===revision&&entry.container.isConnected)this.notice(error.message);}
+      finally{entry.loading=false;more.disabled=false;entry.wrapper?.removeAttribute('aria-busy');}
+    };entry.container.append(more);
+  }
   append(parent,descriptor){
     if(parent.descriptor.kind==='tables')descriptor={...descriptor,relationType:'table'};
     const key=parent.key+'/'+encodeURIComponent(descriptor.key),wrapper=document.createElement('section'),head=document.createElement('div'),children=document.createElement('div');wrapper.className='metadata-node';wrapper.dataset.kind=descriptor.kind;wrapper.dataset.name=descriptor.name;wrapper.setAttribute('role','treeitem');wrapper.setAttribute('aria-label',descriptor.name);head.className='metadata-title';children.className='metadata-children';children.setAttribute('role','group');children.hidden=true;

@@ -236,8 +236,11 @@ authentication and operation coverage remains tracked in later phases.
   failover coverage. See [the follow-up](redis-sentinel-auth.md).
 - [ ] Standalone, Sentinel and Cluster connectivity; ACL auth/TLS; isolated
   transactional/blocking/subscription connections and topology refresh.
-- [ ] Incremental keyspace browsing, cluster-wide cursors, bounded duplicate
+- [x] Incremental keyspace browsing, cluster-wide cursors, bounded duplicate
   handling, empty pages and clear non-snapshot semantics; never automatic KEYS *.
+  The [key-browser checkpoint](redis-key-browser.md) verifies MATCH refinement,
+  binary identities, 2,000-node/2 MiB descriptor bounds, refresh restart, late-job
+  cancellation, and Redis 7.4.1 standalone/Cluster/ACL-Sentinel behavior.
 - [ ] Binary-safe key/value previews and editors for strings, hashes, lists,
   sets, sorted sets, streams; TTL, rename, deletion and conditional writes.
 - [ ] Broader bitmap variants and detected JSON,

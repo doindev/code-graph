@@ -7,6 +7,32 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NativeFoundationTest {
+    @Test void redisTreePreservesContinuationWithoutClaimingSnapshotCompleteness() throws Exception {
+        var target=target("redis");
+        var rows=Profiles.JSON.createObjectNode().put("nextCursor","cg1.cursor").put("scanComplete",false);
+        var entries=rows.putArray("entries");
+        var result=Profiles.JSON.createObjectNode();
+        NativeMetadataTree.projectRows(target,"native_keys",rows,result,result.putArray("nodes"));
+        assertEquals("cg1.cursor",result.path("nextOffset").asText());
+        assertTrue(result.path("nodes").isEmpty());assertFalse(result.path("scanComplete").asBoolean());
+        entries.add(NativeResults.binary("key".getBytes(java.nio.charset.StandardCharsets.UTF_8),8192));
+        entries.add(entries.get(0).deepCopy());
+        entries.add(NativeResults.binary(new byte[]{(byte)0xff,0},8192));
+        rows.put("scanComplete",true).put("nextCursor","0");result=Profiles.JSON.createObjectNode();
+        NativeMetadataTree.projectRows(target,"native_keys",rows,result,result.putArray("nodes"));
+        assertEquals(2,result.path("nodes").size());assertFalse(result.has("nextOffset"));
+        assertTrue(result.path("scanComplete").asBoolean());assertFalse(result.path("inventoryComplete").asBoolean());
+        assertEquals("bounded_live_non_snapshot",result.path("coverage").asText());
+        entries.add(NativeResults.binary(new byte[9000],8192));rows.put("truncated",true).put("scanComplete",false).remove("nextCursor");
+        result=Profiles.JSON.createObjectNode();NativeMetadataTree.projectRows(target,"native_keys",rows,result,result.putArray("nodes"));
+        assertTrue(result.path("requiresRefinement").asBoolean());assertTrue(result.path("truncated").asBoolean());assertFalse(result.has("nextOffset"));
+        assertEquals(Profiles.JSON.readTree("[\"SCAN\",\"0\",\"MATCH\",\"*\"]"),NativeMetadataTree.scanCommand(Profiles.JSON.createObjectNode()));
+        var request=Profiles.JSON.createObjectNode().put("pattern","user:*").put("offset","cg1.cursor");
+        assertEquals("user:*",NativeMetadataTree.scanCommand(request).get(3).asText());
+        request.put("pattern",42);assertThrows(IllegalArgumentException.class,()->NativeMetadataTree.scanCommand(request));
+        request.put("pattern","é".repeat(2049));assertThrows(IllegalArgumentException.class,()->NativeMetadataTree.scanCommand(request));
+        request.put("pattern","").put("offset","x".repeat(1025));assertThrows(IllegalArgumentException.class,()->NativeMetadataTree.scanCommand(request));
+    }
     private final String id = UUID.randomUUID().toString();
     private ObjectNode profile(String engine) {
         return Profiles.JSON.createObjectNode().put("id", id).put("name", "Test")

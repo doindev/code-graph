@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 module.exports=async(browser,base)=>{
+  await require('./browser-redis-tree.cjs')(browser,base);
   await require('./browser-redis-string.cjs')(browser,base);
   await require('./browser-redis-hash.cjs')(browser,base);
   await require('./browser-redis-list.cjs')(browser,base);

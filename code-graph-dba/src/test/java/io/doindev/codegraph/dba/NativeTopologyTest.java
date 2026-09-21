@@ -65,6 +65,21 @@ class NativeTopologyTest {
                     if(next.complete())break;cursor=next.cursor();continuation=cursor;
                 }
                 assertEquals(100,keys.size());
+                // Exercise the actual tree adapter across every primary, including empty MATCH batches.
+                try(var jdbc=new Connections(profiles);var jobs=new QueryJobs(jdbc,new DbaConfig(root,128L<<20,2,100,100,5),_->true)){
+                    for(String pattern:List.of("cg:topology:*","cg:absent:*")){
+                        var treeKeys=new HashSet<String>();String treeCursor="0";boolean complete=false;
+                        for(int page=0;page<200;page++){
+                            var request=Profiles.JSON.createObjectNode().put("kind","native_keys").put("pattern",pattern).put("offset",treeCursor);
+                            var tree=NativeMetadataTree.load(lease,target,request,jobs.new Job("human",target.connectionId()));
+                            assertFalse(tree.path("inventoryComplete").asBoolean());
+                            tree.path("nodes").forEach(node->treeKeys.add(node.path("key").asText()));
+                            if(tree.path("scanComplete").asBoolean()){complete=true;break;}
+                            assertTrue(tree.has("nextOffset"),tree.toString());treeCursor=tree.path("nextOffset").asText();
+                        }
+                        assertTrue(complete);assertEquals(pattern.equals("cg:topology:*")?100:0,treeKeys.size());
+                    }
+                }
                 {
                     String token=continuation;assertTrue(token.startsWith("cg1."));
                     assertThrows(IllegalArgumentException.class,()->connection.scan(token+"x",io.lettuce.core.ScanArgs.Builder.limit(4)));

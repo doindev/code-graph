@@ -105,8 +105,11 @@ an exactly matching collection name. The tree starts at the configured database,
 loads collection/view/index or Redis key metadata lazily, and opens a native draft
 on object activation. It does not discover every database automatically.
 Metadata pages and loaded tree nodes are bounded; truncated inventories are not
-evidence that an object is absent. Redis cursor traversal is live, may have
-duplicates, and is not a snapshot.
+evidence that an object is absent. The [Redis key browser](redis-key-browser.md)
+adds explicit MATCH filtering and one-batch continuation, merges repeated complete
+key identities, and keeps empty nonterminal batches navigable. Its 2,000-node /
+2 MiB descriptor bound is shared across tree roots. Refresh starts a new scan;
+live cursor traversal is not a snapshot even when the scan finishes.
 
 Command drafts, exact targets, tab order and the active native tab participate in
 session recovery. Results and jobs are not restored or automatically rerun.

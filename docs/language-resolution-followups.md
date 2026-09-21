@@ -103,3 +103,26 @@ The candidate's five JS/CommonJS questions needed no fallback searches or source
 reads, with all fifteen independently graded runs correct. This is scoped static
 evidence, not a claim of exhaustive references for arbitrary programs.
 See [raw results and tradeoffs](validation/mcp-efficiency/README.md).
+
+## LR-4: language-filtered filename discovery omits indexed files
+
+Status: reproduced through the running MCP on 2026-09-21, generation 7;
+not fixed by the Redis key-browser checkpoint.
+
+`search_symbols` for `native-workspace`, kind `file`, returns the indexed
+`code-graph-dba/src/main/resources/codegraph/dba/native-workspace.js` declaration.
+Searching `native`, kind `file`, with the documented `lang: "js"` instead returns
+zero items. The earlier `javascript` spelling was an invalid client assumption;
+the failure with the documented `js` ID is the actual defect.
+
+Source inspection shows shared parser file nodes carry `attrs.lang`, but
+`Node.lang()` returns a language only for SymbolId. Search uses that accessor,
+so adding a language filter excludes all FileId declarations. Address the
+accessor/query contract with memory/hybrid and cursor regression coverage, not
+an extra server alias or extension guessing.
+
+MCP was reached through the existing repository benchmark client at the user's
+explicit request because this Codex session exposed no code-graph tools. Ledger:
+`target/redis-key-browser/navigation.jsonl`; live catalog:
+`target/redis-key-browser/catalog.json`. The optional skill still advises normal
+local-tool fallback when MCP tools are unavailable. No speedup claim is made.

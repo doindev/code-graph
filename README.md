@@ -44,6 +44,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Redis Sentinel supports separate password-only or ACL discovery credentials,
   stored write-only in the OS vault; data-node credentials remain independent.
   See [Sentinel authentication and validation](docs/redis-sentinel-auth.md).
+  The [incremental Redis key browser](docs/redis-key-browser.md) provides MATCH
+  filtering, bounded binary-key deduplication, explicit empty-page continuation,
+  Cluster-wide cursors and live non-snapshot coverage.
   [Bounded Redis transactions](docs/redis-transactions.md) add reviewed batches and
   optimistic WATCH expectations, including single-slot Cluster execution; Redis
   execution errors do not roll back successful commands.

@@ -248,6 +248,12 @@ profile/database and observed primary/topology and can expire; restart from 0
 after a stale-cursor error rather than substituting a raw cursor. Cluster targets
 require logical database 0. Reads remain live and can repeat keys; changing
 topology does not authorize configuration or failover commands.
+An empty SCAN batch is not completion: continue only with its returned cursor
+when the task needs further results. Deduplicate by complete key bytes, not
+display labels. Keep deduplication bounded; prefer a narrower MATCH pattern over
+building an unbounded inventory. Never substitute KEYS * for incremental scans.
+The browser Keys tree follows these rules, caps loaded descriptors, and starts a
+new scan on Refresh; its alphabetized loaded keys are not a database snapshot.
 
 When Redis streams are advertised, use finite single-stream requests, with an
 explicit bounded COUNT where required. XREAD/XPENDING are reads; XREADGROUP,
