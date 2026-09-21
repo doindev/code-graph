@@ -138,6 +138,8 @@ final class NativeMutations {
             case "LPUSH" -> redis.lpush(key,tail(command,2));
             case "RPUSH" -> redis.rpush(key,tail(command,2));
             case "LSET" -> redis.lset(key,NativeRedisTransactions.listIndex(command.get(2)),bytes(command,3));
+            // LTRIM is admitted only by the guarded single-command transaction validator.
+            case "LTRIM" -> redis.ltrim(key,NativeRedisTransactions.listTrimHead(command)?1:0,NativeRedisTransactions.listTrimHead(command)?-1:-2);
             case "SADD" -> redis.sadd(key,tail(command,2));
             case "SREM" -> redis.srem(key,tail(command,2));
             case "ZREM" -> redis.zrem(key,tail(command,2));

@@ -121,6 +121,13 @@ not stable identities: matching current length/value cannot detect every prior
 reorder or remove/reinsert cycle. Pipeline LINDEX accepts text indexes 0–9999;
 its 8 KiB preview must be complete before using it as an original value.
 Never replace a rejected list expectation with an unguarded retry.
+When advertised, guarded list-end deletion permits only one LTRIM in a managed
+transaction: key 1 -1 for the first item or key 0 -2 for the last, plus one
+same-key length/index/complete-value guard on that end. Raw/pipeline trims,
+mixed batches and interior deletion are unsupported. Removing the last item
+removes its key/TTL. For prepend/append, LPUSH/RPUSH with a current length/value
+guard returns the new length, not an OK string. Reload after positional changes;
+do not reuse an old position or replay an uncertain addition/deletion.
 When advertised, watch.member selects one exact set member (up to 8 KiB) with
 boolean expected membership. The set must exist even for false; do not confuse
 absent membership with an absent key or an empty member. Do not combine member

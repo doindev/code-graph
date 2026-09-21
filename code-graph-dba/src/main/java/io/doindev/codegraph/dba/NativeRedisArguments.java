@@ -11,7 +11,7 @@ final class NativeRedisArguments {
             "HGET","HLEN","HEXISTS","HSCAN","LRANGE","LINDEX","LLEN","SSCAN","SCARD","SISMEMBER",
             "ZRANGE","ZREVRANGE","ZCARD","ZSCORE","ZSCAN","XRANGE","XREVRANGE","XLEN","GETBIT",
             "SET","DEL","UNLINK","RENAME","RENAMENX","EXPIRE","PEXPIRE","PERSIST","HSET","HDEL",
-            "LPUSH","RPUSH","LSET","SADD","SREM","ZADD","ZREM");
+            "LPUSH","RPUSH","LSET","LTRIM","SADD","SREM","ZADD","ZREM");
 
     static void validate(JsonNode command){
         String name=text(command,0).toUpperCase(Locale.ROOT);

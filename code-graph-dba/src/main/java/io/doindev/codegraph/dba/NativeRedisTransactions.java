@@ -17,16 +17,17 @@ final class NativeRedisTransactions {
         fields(command,Set.of("transaction","watch"));
         JsonNode commands=command.path("transaction");
         if(!commands.isArray()||commands.isEmpty()||commands.size()>MAX_COMMANDS)throw new IllegalArgumentException("Redis transaction requires 1..32 supported mutation argument arrays");
-        boolean destructive=false,hashDeletion=false,listEdit=false,setDeletion=false,scoreEdit=false,scoreDeletion=false;
+        boolean destructive=false,hashDeletion=false,listEdit=false,listTrim=false,listExpectation=false,setDeletion=false,scoreEdit=false,scoreDeletion=false;
         List<byte[]> keys=new ArrayList<>();
         for(JsonNode entry:commands){
             if(!entry.isArray())throw new IllegalArgumentException("Nested transactions and non-array commands are not supported");
             if(NativeRedisStreams.handles(entry))throw new IllegalArgumentException("Stream operations require their dedicated finite workflow, not a scalar transaction");
             if(NativeRedisValues.handles(entry))throw new IllegalArgumentException("Bitmap, cardinality and geo commands require their dedicated single-command workflow");
-            NativeMutations.validate(target,entry);
+            String name=NativeRedisArguments.text(entry,0).toUpperCase(Locale.ROOT);
+            if(name.equals("LTRIM"))listTrimHead(entry);else NativeMutations.validate(target,entry);
             var classification=NativeCommand.classify(target,entry);
             if(classification.effect()==NativeCommand.Effect.DESTRUCTIVE)destructive=true;
-            String name=NativeRedisArguments.text(entry,0).toUpperCase(Locale.ROOT);
+            if(name.equals("LTRIM"))listTrim=true;
             if(name.equals("HDEL"))hashDeletion=true;
             if(name.equals("LSET"))listEdit=true;
             if(name.equals("SREM"))setDeletion=true;
@@ -45,6 +46,7 @@ final class NativeRedisTransactions {
                 byte[] key=argument(item.path("key"),8192);
                 if(item.has("field"))argument(item.path("field"),8192);
                 if(item.has("index")||item.has("length")){
+                    listExpectation=true;
                     if(item.has("field")||!item.path("index").isIntegralNumber()||!item.path("index").canConvertToInt()
                             ||!item.path("length").isIntegralNumber()||!item.path("length").canConvertToInt()||item.path("expected").isNull())
                         throw new IllegalArgumentException("List expectations require integer index/length and complete expected bytes; they cannot use field or null");
@@ -65,6 +67,7 @@ final class NativeRedisTransactions {
                 keys.add(key);
             }
         }
+        if(listTrim)validateListTrim(command);
         if(keys.size()>MAX_KEYS)throw new IllegalArgumentException("Redis transaction exceeds the 100-key reference allowance");
         if(target.topology().equals("cluster")){
             int slot=SlotHash.getSlot(keys.getFirst());
@@ -73,6 +76,8 @@ final class NativeRedisTransactions {
         return new NativeCommand.Classification("redis.transaction",destructive?NativeCommand.Effect.DESTRUCTIVE:NativeCommand.Effect.WRITE,false,
                 NOTICE+(hashDeletion?" HDEL permanently deletes the selected fields; deleting the last field also removes the hash key and its TTL.":"")
                 +(listEdit?" LSET replaces an existing zero-based position and preserves key TTL. Positions are not stable identities; expectations compare current length/value, not change history.":"")
+                +(listTrim?" Guarded LTRIM deletes exactly one first/last item from an existing list of at most 10000 items. Deleting the last item removes its key and TTL. Positions are not stable identities; current length/value is rechecked, not change history.":"")
+                +(listExpectation&&!listEdit&&!listTrim?" List positions are not stable identities: expectations compare current length/value, not change history. Adding/removing items changes positions; reload before editing again.":"")
                 +(setDeletion?" SREM permanently removes the selected members; removing the last member deletes the set key and its TTL.":"")
                 +(scoreDeletion?" ZREM permanently removes the selected members; removing the last member deletes the sorted-set key and its TTL.":"")
                 +(scoreEdit?" Score expectations compare Redis binary64 values or explicit member absence within an existing sorted set, not change history. Missing keys are never created by this guard. Updating a score can change member rank. GEO indexes also use zset storage; TYPE alone does not prove score semantics.":""));
@@ -123,8 +128,27 @@ final class NativeRedisTransactions {
         } // Closing the operation-owned socket abandons queued work/WATCH without returning it to another caller.
     }
 
-    /** Command indexes are text; watch indexes are typed JSON integers. Do not coerce either. */
+    /** Only single-end deletion syntax; the matching guarded target is validated separately. */
+    static boolean listTrimHead(JsonNode command){
+        if(command.size()!=4)throw new IllegalArgumentException("Managed LTRIM requires key, start and stop");
+        String start=NativeRedisArguments.text(command,2),stop=NativeRedisArguments.text(command,3);
+        if(start.equals("1")&&stop.equals("-1"))return true;
+        if(start.equals("0")&&stop.equals("-2"))return false;
+        throw new IllegalArgumentException("Only guarded single-end deletion is supported: LTRIM key 1 -1 or LTRIM key 0 -2");
+    }
+    private static void validateListTrim(JsonNode command){
+        if(command.path("transaction").size()!=1||command.path("watch").size()!=1)
+            throw new IllegalArgumentException("LTRIM requires one command and one exact list-position WATCH expectation; no mixed batch");
+        JsonNode entry=command.path("transaction").get(0),watch=command.path("watch").get(0);
+        if(!watch.has("index")||!Arrays.equals(NativeRedisArguments.bytes(entry,1),argument(watch.path("key"),8192)))
+            throw new IllegalArgumentException("LTRIM requires an exact length/value guard on the same list key");
+        int expectedIndex=listTrimHead(entry)?0:watch.path("length").asInt()-1;
+        if(watch.path("index").asInt()!=expectedIndex)
+            throw new IllegalArgumentException("LTRIM must watch the first/last item being deleted; interior deletion is unsupported");
+    }
+
     static int listIndex(JsonNode value){
+        // Command indexes are text; watch indexes are typed JSON integers. Do not coerce either.
         if(!value.isTextual()||!value.asText().matches("[0-9]{1,4}"))throw new IllegalArgumentException("LSET/pipeline LINDEX requires a zero-based text index 0..9999");
         return Integer.parseInt(value.asText());
     }

@@ -57,8 +57,10 @@ removes the key and TTL.
 
 The [list-item editor](redis-list-editor.md) updates one existing position using
 reviewed LSET and current length/value WATCH expectations. It preserves key TTL,
-caps values at 8 KiB and list length at 10,000, and does not insert/delete/reorder
-items. Positional expectations do not prove historical record identity.
+caps values at 8 KiB and list length at 10,000, and stages prepend/append or
+first/last-item deletion. Interior deletion/reordering and key creation are
+unavailable. Positional expectations do not prove historical record identity;
+deleting the last item removes the key/TTL.
 
 Redis workspaces include a [bounded string value editor](redis-string-editor.md):
 text/base64 drafts, exact-byte optimistic checks, reviewed TTL-preserving Save,

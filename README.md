@@ -54,7 +54,9 @@ large text codebases into a queryable **code property graph** so AI agents can a
   Expiring fields remain unsupported and last-field deletion removes its hash key.
   The [list-item editor](docs/redis-list-editor.md) adds bounded text/base64 editing
   at an existing zero-based position, with reviewed exact length/value checks
-  and TTL preservation. A position is not a stable record identity.
+  and TTL preservation. It also stages prepend/append and guarded first/last-item
+  deletion without loading the list. A position is not a stable record identity;
+  deleting the last item removes its key and TTL.
   A [set-member editor](docs/redis-set-editor.md) checks one exact member and
   stages reviewed insertion/deletion with membership conflict checks.
   The [sorted-set member editor](docs/redis-sorted-set-editor.md) stages finite

@@ -20,6 +20,35 @@ class NativeRedisListTest {
         return input;
     }
     private static NativeTarget target(){return new NativeTarget(DatabaseTransport.REDIS,UUID.randomUUID().toString(),"Fixture","0","","standalone");}
+    private static ObjectNode trim(String key,int index,int length,JsonNode expected,boolean head){
+        var input=Profiles.JSON.createObjectNode();input.putArray("transaction").addArray().add("LTRIM").add(key).add(head?"1":"0").add(head?"-1":"-2");
+        input.putArray("watch").addObject().put("key",key).put("index",index).put("length",length).set("expected",expected);return input;
+    }
+    @Test void endDeletionRequiresASingleExactBoundedEndGuard()throws Exception{
+        var target=target();var value=Profiles.JSON.getNodeFactory().textNode("old");
+        for(boolean head:List.of(true,false)){
+            var valid=trim("list",head?0:2,3,value,head);NativeMutations.validate(target,valid);
+            assertEquals(NativeCommand.Effect.DESTRUCTIVE,NativeCommand.classify(target,valid).effect());
+            assertTrue(NativeCommand.classify(target,valid).reason().contains("last item"));
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,valid.path("transaction").get(0)),"Raw trim is not admitted");
+            var pipeline=Profiles.JSON.createObjectNode();pipeline.set("pipeline",valid.path("transaction").deepCopy());
+            assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,pipeline));
+            var noGuard=valid.deepCopy();noGuard.remove("watch");assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,noGuard));
+            var mixed=valid.deepCopy();mixed.withArray("transaction").addArray().add("LPUSH").add("list").add("changed");assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,mixed));
+            for(String change:List.of("interior","key","length","expected","kind")){
+                var bad=valid.deepCopy();var guard=bad.withArray("watch").get(0).withObject("");
+                switch(change){case "interior"->guard.put("index",1);case "key"->guard.put("key","another");case "length"->guard.put("length",10001);case "expected"->guard.putNull("expected");case "kind"->guard.remove(List.of("index","length"));}
+                assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,bad),change);
+            }
+            for(String start:List.of("-1","00","10","10000","0.0")){
+                var bad=valid.deepCopy();((com.fasterxml.jackson.databind.node.ArrayNode)bad.path("transaction").get(0)).set(2,Profiles.JSON.getNodeFactory().textNode(start));assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,bad));
+            }
+            NativeMutations.validate(target,trim("list",0,1,value,head));
+        }
+        var binary=trim("list",0,1,value,true);((com.fasterxml.jackson.databind.node.ArrayNode)binary.path("transaction").get(0)).set(1,Profiles.JSON.createObjectNode().put("base64","bGlzdA=="));NativeMutations.validate(target,binary);
+        for(String name:List.of("LPUSH","RPUSH")){var addition=edit("list","old","new");addition.putArray("transaction").addArray().add(name).add("list").add("new");assertTrue(NativeCommand.classify(target,addition).reason().contains("not stable identities"));}
+        ((com.fasterxml.jackson.databind.node.ArrayNode)binary.path("transaction").get(0)).set(2,Profiles.JSON.getNodeFactory().numberNode(1));assertThrows(IllegalArgumentException.class,()->NativeMutations.validate(target,binary));
+    }
     @Test void typedPositionsAndCompleteExpectationsAreRequired()throws Exception{
         var target=target();var valid=edit("list","old","new");NativeMutations.validate(target,valid);
         assertEquals(NativeCommand.Effect.WRITE,NativeCommand.classify(target,valid).effect());
@@ -66,6 +95,12 @@ class NativeRedisListTest {
             input.put("expectedTargetRevision","stale");assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));input.remove("expectedTargetRevision");
             input.set("command",edit("key","changed","new"));assertThrows(IllegalArgumentException.class,()->ops.validate(review,input));
             ops.discardBrowser("owner",review.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
+            input.set("command",trim("key",0,1,Profiles.JSON.getNodeFactory().textNode("old"),true));var deletion=ops.prepareBrowser("owner",input);
+            assertTrue(deletion.path("destructive").asBoolean());assertFalse(deletion.path("eligiblePersistentRead").asBoolean());
+            assertEquals(input.path("command"),deletion.path("after").path("nativeCommand"));
+            assertThrows(SecurityException.class,()->ops.applyBrowser("other",deletion.path("id").asText()));
+            var tampered=input.deepCopy();tampered.withObject("/command").withArray("watch").get(0).withObject("").put("expected","changed");assertThrows(IllegalArgumentException.class,()->ops.validate(deletion,tampered));
+            ops.discardBrowser("owner",deletion.path("id").asText());assertEquals(0,jobs.telemetry().path("reservedBytes").asLong());
             profiles.put(profile.path("id").asText(),Profiles.JSON.createObjectNode().put("readOnly",true));
             assertThrows(IllegalArgumentException.class,()->ops.prepareBrowser("owner",input));
         }
@@ -121,8 +156,40 @@ class NativeRedisListTest {
                     var pipeline=Profiles.JSON.createObjectNode();pipeline.putArray("pipeline").addArray().add("LSET").add(name).add("1").add("pipeline");
                     assertEquals("OK",NativeRedisPipelines.execute(lease,target,pipeline,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asText());
                     assertArrayEquals(bytes("pipeline"),redis.lindex(key,1));
-                    redis.pexpire(key,1);while(redis.exists(key)>0)Thread.sleep(2);
-                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
+                   redis.pexpire(key,1);while(redis.exists(key)>0)Thread.sleep(2);
+                   assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,edit,jobs.new Job("human",target.connectionId()),()->{}));
+                    // One guarded prepend/append; never load or rewrite the complete list.
+                    redis.rpush(key,bytes("same"),bytes("middle"),bytes("same"));redis.pexpire(key,120000);
+                    for(String operation:List.of("LPUSH","RPUSH")){
+                        int length=redis.llen(key).intValue();var addition=Profiles.JSON.createObjectNode();
+                        addition.putArray("transaction").addArray().add(operation).add(name).add(Profiles.JSON.createObjectNode().put("base64","AP8="));
+                        addition.putArray("watch").addObject().put("key",name).put("index",0).put("length",length).putObject("expected").put("base64",Base64.getEncoder().encodeToString(redis.lindex(key,0)));
+                        ttl=redis.pttl(key);assertEquals(length+1,NativeMutations.execute(lease,target,addition,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asInt());
+                        assertArrayEquals(new byte[]{0,(byte)255},redis.lindex(key,operation.equals("LPUSH")?0:-1));assertTrue(redis.pttl(key)>0&&redis.pttl(key)<=ttl);
+                        assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,addition,jobs.new Job("human",target.connectionId()),()->{}),"Old length must not permit a repeated addition");
+                    }
+                    for(boolean head:List.of(true,false)){
+                        int length=redis.llen(key).intValue();var removal=trim(name,head?0:length-1,length,Profiles.JSON.createObjectNode().put("base64","AP8="),head);
+                        checks.set(0);var cancelledEnd=jobs.new Job("human",target.connectionId());
+                        assertThrows(java.util.concurrent.CancellationException.class,()->NativeMutations.execute(lease,target,removal,cancelledEnd,()->{if(checks.incrementAndGet()==2)cancelledEnd.cancelled=true;}));assertEquals(length,redis.llen(key));
+                        checks.set(0);assertThrows(SecurityException.class,()->NativeMutations.execute(lease,target,removal,jobs.new Job("human",target.connectionId()),()->{if(checks.incrementAndGet()==2)throw new SecurityException("revoked");}));assertEquals(length,redis.llen(key));
+                        checks.set(0);var racedEnd=jobs.new Job("human",target.connectionId());
+                        assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,removal,racedEnd,()->{if(checks.incrementAndGet()==2)redis.pexpire(key,110000);}));assertEquals("watched_key_changed",racedEnd.result.path("reason").asText());assertEquals(length,redis.llen(key));
+                        ttl=redis.pttl(key);assertEquals("OK",NativeMutations.execute(lease,target,removal,jobs.new Job("human",target.connectionId()),()->{}).path("entries").get(0).path("value").asText());
+                        assertEquals(length-1,redis.llen(key));assertTrue(redis.pttl(key)>0&&redis.pttl(key)<=ttl);
+                        assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,removal,jobs.new Job("human",target.connectionId()),()->{}));
+                    }
+                    assertEquals(3,redis.llen(key));assertArrayEquals(bytes("same"),redis.lindex(key,0));assertArrayEquals(bytes("middle"),redis.lindex(key,1));assertArrayEquals(bytes("same"),redis.lindex(key,2));
+                    var first=trim(name,0,3,Profiles.JSON.getNodeFactory().textNode("same"),true);
+                    redis.lset(key,0,bytes("changed"));assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,first,jobs.new Job("human",target.connectionId()),()->{}));redis.lset(key,0,bytes("same"));
+                    NativeMutations.execute(lease,target,first,jobs.new Job("human",target.connectionId()),()->{});assertArrayEquals(bytes("same"),redis.lindex(key,-1));
+                    NativeMutations.execute(lease,target,trim(name,1,2,Profiles.JSON.getNodeFactory().textNode("same"),false),jobs.new Job("human",target.connectionId()),()->{});assertArrayEquals(bytes("middle"),redis.lindex(key,0));
+                    var last=trim(name,0,1,Profiles.JSON.getNodeFactory().textNode("middle"),false);
+                    NativeMutations.execute(lease,target,last,jobs.new Job("human",target.connectionId()),()->{});assertEquals(0,redis.exists(key));assertEquals(-2,redis.pttl(key));
+                    assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,last,jobs.new Job("human",target.connectionId()),()->{}));
+                    redis.rpush(key,new byte[0]);var empty=trim(name,0,1,Profiles.JSON.getNodeFactory().textNode(""),true);NativeMutations.execute(lease,target,empty,jobs.new Job("human",target.connectionId()),()->{});assertEquals(0,redis.exists(key));
+                    redis.rpush(key,new byte[0]);redis.pexpire(key,1);while(redis.exists(key)>0)Thread.sleep(2);assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,empty,jobs.new Job("human",target.connectionId()),()->{}));
+                    redis.set(key,bytes("wrong type"));assertThrows(IllegalArgumentException.class,()->NativeMutations.execute(lease,target,empty,jobs.new Job("human",target.connectionId()),()->{}));assertArrayEquals(bytes("wrong type"),redis.get(key));
                 }finally{redis.del(key);}
             }
             assertEquals(0,clients.telemetry().path("activeLeases").asInt());

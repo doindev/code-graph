@@ -26,6 +26,11 @@ Alternatively, integer index and length select a list-position expectation
 (0 <= index < length <= 10000), with non-null complete expected bytes and no field.
 This checks current position/length, not change history; see the
 [list-item editor](redis-list-editor.md).
+When advertised, end deletion uses exactly one LTRIM key 1 -1 (first) or
+LTRIM key 0 -2 (last), with one same-key index/length/complete-value guard for
+the deleted end. Raw/pipeline LTRIM, interior deletion, arbitrary ranges and
+mixed transaction batches remain rejected. Deleting the last item removes
+its key/TTL. The guard limits the existing list to 10,000 items before execution.
 Optional member selects a set-membership expectation instead, with boolean
 expected and an existing set key (including for false). It cannot combine with
 field/index/length. The member is capped at 8 KiB. See [set editing](redis-set-editor.md).

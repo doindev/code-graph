@@ -1,7 +1,8 @@
 # Bounded Redis list-item editor
 
 The native Redis workspace has **Edit Redis list item** beside the string and
-hash-field editors. It updates one existing, zero-based position in a list.
+hash-field editors. It updates one existing, zero-based position in a list and
+stages prepend/append or deletion of the loaded first/last item.
 Values and nonempty keys use text or canonical base64, with an **8 KiB** editor limit.
 Lists must contain at most **10,000 items**; supported positions are **0–9999**.
 
@@ -31,7 +32,8 @@ After WATCH, the server verifies list type, exact length and complete original
 value at the selected position. Redis rejects changes after WATCH before EXEC.
 Conflicts execute no batch commands. No connection remains open while editing
 or reviewing. LSET preserves key TTL and neighboring positions; the operation
-does not insert, remove, reorder or recreate list items.
+does not reorder or recreate list items. Prepend/append use guarded LPUSH/RPUSH
+and deletion uses a single guarded end trim; these workflows are detailed below.
 
 **Positions are not stable record identities.** These checks compare current
 state, not change history. A prior same-length reorder or remove/reinsert cycle
@@ -83,7 +85,7 @@ labelled containers/volumes and newly introduced unused images. Keep pre-existin
 images and databases. Native UI service fixtures and live adapter tests are
 separate layers, not a claimed end-to-end production database test.
 
-## Acceptance checkpoint
+## Initial position-update acceptance checkpoint
 
 Validated on Windows with JDK 25, Maven 3.9.11, Node 22.22.3 and Chromium on
 2026-09-20. The source checkpoint started at ee1b403; this increment is local,
@@ -137,6 +139,90 @@ used focused source reads and makes no claim of indexed navigation savings.
 Do not diagnose that client availability limitation as a server registration bug
 without a fresh client/session comparison.
 
-The wider native roadmap remains incomplete: general list lifecycle editing,
-set/zset/stream editors, native administration and the other vendor gates are
-not enabled by this increment.
+At this original position-editor checkpoint, general list lifecycle editing,
+set/zset/stream editors and native administration were not enabled. The list-end
+follow-up below and the separate set/sorted-set reports record later increments;
+the wider native roadmap and other vendor gates remain incomplete.
+
+## List-end lifecycle follow-up
+
+After loading a complete position, use **Stage prepend item** or **Stage append
+item** to prepare a new value. Empty/binary values are supported; staging does
+not write. The editor refuses additions at 10,000 items. Replacing another dirty
+draft requires confirmation; Revert restores the loaded value and edit mode.
+**Choose another position** clears the baseline after dirty-draft confirmation,
+unlocks the index, and never discards an uncertain save without reconciliation.
+
+**Mark list end item for deletion** is enabled only for a loaded first/last
+position. Interior deletion and reordering remain unavailable. Save opens exact
+destructive review and only then runs one LTRIM with the original end value and
+list length guarded by WATCH. The server accepts only LTRIM key 1 -1 or
+LTRIM key 0 -2, as a single-command transaction with one same-key end guard.
+No raw/pipeline trim, arbitrary range, mixed batch or missing-key recreation is
+admitted. Removing the sole item removes the list key and TTL; otherwise TTL
+is retained. Duplicate-valued neighbors are never removed by value matching.
+See [LTRIM](https://redis.io/docs/latest/commands/ltrim/).
+
+Every prepend/append rechecks the loaded length/value and expects the exact new
+length in its receipt. End deletion expects OK only after its guarded transaction
+is acknowledged. Unexpected receipts, lost replies or cancellation after EXEC
+retain the draft and block another save until reload/reconciliation. A confirmed
+positional change clears the baseline and suggests the next index; explicit
+reload is required before another edit. No full list or idle socket is retained.
+
+These are current-state checks, not historical identity or rollback guarantees.
+Other clients may change positions again immediately after a successful save.
+The graphical editor uses the existing 256 KiB reservation, 8 KiB values and
+shared job/ownership/revision/audit/deadline controls. No new REST endpoint, MCP
+tool, persistent approval policy or browser storage is introduced.
+
+Validated on Windows/JDK 25, Maven 3.9.11, Node 22.22.3 and Chromium:
+
+- Focused Java/security/schema suite: 56 tests, 51 passed, five opt-in live
+  skips. Live fixtures subsequently exercised the list suite in each topology.
+- Redis standalone: 38 passed, four Mongo-only skips. Three-primary Cluster
+  and ACL-authenticated Sentinel: 35 passed each, zero skips/failures. These
+  overlapping runs are separate gates, not additional unique reactor tests.
+  All four list tests passed per topology. Fixtures covered binary/empty
+  additions, new-length receipts, duplicate-valued neighbors, first/last
+  deletion, sole-item key/TTL removal, current-value/length/WATCH conflicts,
+  missing/expired/wrong-type keys, cancellation and revocation before EXEC.
+- Browser native editor gate passed; all 25 JavaScript modules passed syntax
+  checks. The narrow 420 px screenshot was inspected. UI fixtures and live
+  Redis adapter tests are separate layers, not a claim that mocked UI writes
+  ran against a live user database.
+- Skill frontmatter validation and 12 optional skill/bootstrap helper tests
+  passed. Windows bootstrap, 39 launcher, 149 MCP installer, 50 skill installer
+  and two uninstaller tests passed without changing real client configuration.
+- All 19 browser suites passed, including native editors, grid/table designers,
+  query builder, approvals, editor pairing and session recovery. The final
+  packaged native browser recheck passed after the shared command-builder
+  refactor; string/hash/list/set/sorted-set modes were exercised.
+- Full 35-module Maven package passed: 182 suites, 901 tests, 838 passed,
+  63 opt-in/environment skips, zero failures/errors, 3 minutes 57 seconds.
+  Skipped live/platform/performance gates are not counted as passes.
+
+The pinned Redis 7.4.1 digest and Lettuce 7.7.0.RELEASE match the prior gate.
+Live fixtures ran sequentially with 256 MiB JVM heap and 64 MiB direct-memory
+limits. Owned containers were removed and the already-present image preserved.
+Final cleanup found no native ownership-labelled or Testcontainers fixtures.
+The 55-image inventory exactly matched the pre-test baseline, with no new
+images left behind and no existing images removed.
+Raw logs, the isolated build, per-topology XML and screenshots are under
+`target/mcp-efficiency-coverage/redis-list-ends-5ed5ef48c77e4dcb8072114621ce8ad0/`.
+Key logs are focused.log, redis-standalone.log, redis-cluster.log,
+redis-sentinel.log, browser-all.log, browser-native-packaged.log and reactor.log.
+Per-topology XML is retained in live-reports/{standalone,cluster,sentinel};
+reactor XML is in source/*/target/surefire-reports. Installer and skill checks
+have separate installer-*.log and skill-tests.log evidence.
+
+The prior sorted-set member increment was pushed as `6cd6c90` and restarted on
+MCP 3000/admin UI 8137, DBA/desktop approvals, hybrid storage, 1536 MiB graph/cache
+allowance and no automatic project. Both UI pages and MCP initialization returned
+HTTP 200. This new list-end follow-up remains local, uncommitted and undeployed.
+The client's code-graph tools remained unavailable; focused source reads were
+used without an indexed-navigation speedup claim. The optional maintained skill
+was updated using skill-creator guidance; no customized installed skill was
+overwritten. Native macOS/Linux UI and a new three-run performance benchmark
+remain unverified. Wider native administration, key lifecycle, stream editing
+and interior list operations are not completed by this increment.

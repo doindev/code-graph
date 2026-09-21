@@ -165,6 +165,8 @@ The frozen source ZIP SHA-256 is
   The [list-item editor follow-up](redis-list-editor.md) adds bounded replacement
   of one current position with length/value checks, not a general list lifecycle
   or historical identity guarantee.
+  Its list-end follow-up adds staged prepend/append and guard-required deletion
+  of a first/last item, not interior deletion/reordering or implicit key creation.
   The [set-member follow-up](redis-set-editor.md) adds explicit staged membership
   changes in existing sets. It does not close general set lifecycle, sorted-set
   editing or infrastructure administration gaps.
