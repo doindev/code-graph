@@ -32,8 +32,13 @@ export function openGridSettings(view,{gridDialog,action}){
         let reason='';const cap=view.result.grid?.capabilities??{};
         if(scope==='result'&&field.capability&&!cap[field.capability])reason=cap[field.capability+'Reason']||cap.reason||'Unavailable for this result.';
         if(scope==='result'&&field.key==='valuesServer'&&!view.result.grid)reason='This result has no retained server source.';
-        input.disabled=!!reason;const info=document.createElement('small');info.textContent=(override?'Override in '+(scope==='result'?'this result':scope):'Inherited from '+(scope==='global'?'built-in defaults':scope==='connection'?(Object.hasOwn(catalog.global,field.key)?'global settings':'built-in defaults'):(Object.hasOwn(original.connection,field.key)?'connection settings':Object.hasOwn(original.global,field.key)?'global settings':'built-in defaults')))+(reason?' · '+reason:field.help?' · '+field.help:'');
-        input.oninput=input.onchange=()=>{drafts[fieldScope][field.key]=field.type==='boolean'?input.checked:field.type==='integer'?Number(input.value):input.value;info.textContent='Override in '+fieldScope+(field.help?' · '+field.help:'');reset.disabled=false;};
+        input.disabled=!!reason;const info=document.createElement('small');
+        const source=scope==='global'?'built-in defaults':scope==='connection'?(Object.hasOwn(catalog.global,field.key)?'global settings':'built-in defaults'):(Object.hasOwn(original.connection,field.key)?'connection settings':Object.hasOwn(original.global,field.key)?'global settings':'built-in defaults');
+        const text=value=>field.type==='boolean'?(value?'On':'Off'):field.type==='enum'?field.options[value]:value===''?'(blank)':String(value);
+        const higher=scope!=='result'&&Object.hasOwn(original.local,field.key)?['current-result',original.local[field.key]]:scope==='global'&&Object.hasOwn(original.connection,field.key)?['connection',original.connection[field.key]]:null;
+        const explain=override=>(override?'Override in '+(scope==='result'?'this result':scope)+' · ':'')+'Inherited: '+text(base[field.key])+' from '+source+(higher?' · This result uses '+text(higher[1])+' from its '+higher[0]+' override.':'')+(reason?' · '+reason:field.help?' · '+field.help:'');
+        info.textContent=explain(override);
+        input.oninput=input.onchange=()=>{drafts[fieldScope][field.key]=field.type==='boolean'?input.checked:field.type==='integer'?Number(input.value):input.value;info.textContent=explain(true);reset.disabled=false;};
         label.append(input);row.append(label,info);const reset=action(row,'Use inherited value',()=>{delete drafts[scope][field.key];paint();});reset.disabled=!override;reset.setAttribute('aria-label','Reset '+field.label);panel.append(row);
       }
     };
@@ -47,12 +52,12 @@ export function openGridSettings(view,{gridDialog,action}){
         validatePreferences(drafts[scope],catalog.rowCeiling);
         const next=scope==='result'?{...inherited(),...drafts.result}:scope==='connection'?{...defaults,...catalog.global,...drafts.connection,...original.local}:{...defaults,...drafts.global,...original.connection,...original.local};
         if(next.readOnly&&!preferences(view.result).readOnly&&view.state.draft.dirty&&!await view.constructor.guard(view.result,()=>view.saveRows()))return;
-        saving=true;for(const button of footer.querySelectorAll('button'))button.disabled=true;
+        saving=true;scopes.disabled=true;panel.inert=true;dialog.querySelector('.dialog-x').disabled=true;for(const button of [...footer.querySelectorAll('button'),...tabs.children])button.disabled=true;
         catalog=await savePreferences(view.result,scope,drafts[scope],catalog.revision);if(closed||view.disposed)return;
         view.state.order=[...order];view.state.hidden=new Set(hidden);
         if(resetWidths){view.state.initialWidths=false;view.state.rowNumberResized=false;view.state.rowNumberDigits=null;resetWidths=false;}
         view.applyPreferences();status.textContent='Settings applied. Page size takes effect on the next fetch.';paint();if(close)dialog.close();
-      }catch(error){status.textContent=error.message;if(scope!=='result')reload.hidden=false;}finally{saving=false;for(const button of footer.querySelectorAll('button'))button.disabled=false;}
+      }catch(error){status.textContent=error.message;if(scope!=='result')reload.hidden=false;}finally{saving=false;scopes.disabled=false;panel.inert=false;dialog.querySelector('.dialog-x').disabled=false;for(const button of [...footer.querySelectorAll('button'),...tabs.children])button.disabled=false;}
     };
     action(footer,'Apply',()=>void apply(false));action(footer,'Apply and Close',()=>void apply(true));
     const reload=action(footer,'Reload saved settings',async()=>{try{catalog=await reloadPreferences();drafts.global={...catalog.global};drafts.connection={...catalog.connections[original.connectionId]};status.textContent=catalog.warning||'Saved defaults reloaded; current-result draft retained.';paint();}catch(error){status.textContent=error.message;}});
