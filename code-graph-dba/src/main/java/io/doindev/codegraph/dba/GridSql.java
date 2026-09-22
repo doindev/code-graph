@@ -31,11 +31,16 @@ final class GridSql {
         if(Set.of("clear_all","clear_filters","expression").contains(action))filters.removeAll();
         if(action.equals("filter_values")){
             String id=Profiles.text(input,"columnId",256);HumanSql.checkParameters(input.path("values"));
-            if(input.path("values").isEmpty())throw invalid("Select at least one value");
-            for(int i=filters.size()-1;i>=0;i--)if(filters.get(i).path("columnId").asText().equals(id))filters.remove(i);
-            ObjectNode filter=Profiles.JSON.createObjectNode();
-            for(String field:List.of("columnId","columnIndex","columnLabel","jdbcType","values"))if(input.has(field))filter.set(field,input.get(field));
-            filters.add(filter);request.put("action","refresh");
+            boolean removed=false;
+            for(int i=filters.size()-1;i>=0;i--)if(filters.get(i).path("columnId").asText().equals(id)){filters.remove(i);removed=true;}
+            if(input.path("values").isEmpty()){
+                if(!removed)throw invalid("Select at least one value or clear an existing value filter");
+            }else{
+                ObjectNode filter=Profiles.JSON.createObjectNode();
+                for(String field:List.of("columnId","columnIndex","columnLabel","jdbcType","values"))if(input.has(field))filter.set(field,input.get(field));
+                filters.add(filter);
+            }
+            request.put("action","refresh");
         }
         ObjectNode base=prepareCore(request),result=base.deepCopy();
         for(JsonNode filter:filters){

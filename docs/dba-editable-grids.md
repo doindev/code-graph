@@ -310,7 +310,9 @@ row heights adjust to keep the full value visible.
 
 No choices are checked initially. Selections survive searches and paging;
 reopening restores the last successfully applied selection. **Clear All** clears
-all checks, including hidden choices. **Apply** requires at least one choice;
+all checks, including hidden choices. **Apply** is enabled when choices are checked
+or this column already has an applied value filter. Uncheck every choice and
+apply to remove that column's value filter while preserving other filters;
 **Cancel**, Escape and close leave the applied filter unchanged. The existing
 filter-removal actions clear applied picker filters.
 

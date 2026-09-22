@@ -95,6 +95,22 @@ class GridValuesTest {
         ObjectNode input=Profiles.JSON.createObjectNode().put("sql",sql).put("action","filter_values").put("columnId","c"+(index+1)).put("columnIndex",index).put("columnLabel",column).put("jdbcType",type);
         input.putArray("parameters");var picked=input.putArray("values");for(String value:values)if(value==null)picked.addNull();else picked.add(value);return input;
     }
+    @Test void clearingSelectionsRemovesOnlyTheRequestedPickerPredicate(){
+        ObjectNode input=filter("SELECT ID,NAME FROM ITEMS WHERE NAME <> ? ORDER BY ID DESC LIMIT 17",0,"ID",Types.INTEGER,"1",null);
+        input.putArray("parameters").add("authored");
+        ObjectNode first=GridSql.prepare(input),other=first.deepCopy();
+        other.setAll(filter(first.path("sql").asText(),1,"NAME",Types.VARCHAR,"shown",""));other.set("parameters",first.path("parameters"));
+        ObjectNode both=GridSql.prepare(other),clearName=both.deepCopy().put("action","filter_values").put("columnId","c2");clearName.putArray("values");
+        ObjectNode remaining=GridSql.prepare(clearName);
+        assertEquals(first.path("sql"),remaining.path("sql"));assertEquals(first.path("parameters"),remaining.path("parameters"));
+        assertEquals(1,remaining.path("valueFilters").size());assertEquals("c1",remaining.path("valueFilters").get(0).path("columnId").asText());
+        ObjectNode clearId=remaining.deepCopy().put("action","filter_values").put("columnId","c1");clearId.putArray("values");
+        ObjectNode cleared=GridSql.prepare(clearId);
+        assertEquals(input.path("sql"),cleared.path("sql"));assertEquals(input.path("parameters"),cleared.path("parameters"));assertTrue(cleared.path("valueFilters").isEmpty());
+        ObjectNode again=cleared.deepCopy().put("action","filter_values").put("columnId","c1");again.putArray("values");assertThrows(IllegalArgumentException.class,()->GridSql.prepare(again));
+        ObjectNode missing=both.deepCopy().put("action","filter_values").put("columnId","c3");missing.putArray("values");assertThrows(IllegalArgumentException.class,()->GridSql.prepare(missing));
+        assertEquals(2,both.path("valueFilters").size());assertEquals(4,both.path("parameters").size());
+    }
     @Test void pickerReplacesOnlyItsOwnPredicatesAndPreservesTypedBindings()throws Exception{
         ObjectNode input=filter("SELECT ID,NAME FROM ITEMS WHERE ID > ? ORDER BY NAME",0,"ID",Types.BIGINT,"9007199254740993",null);
         input.putArray("parameters").add(1);

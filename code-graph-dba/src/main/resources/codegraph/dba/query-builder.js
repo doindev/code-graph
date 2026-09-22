@@ -131,21 +131,22 @@ export class VisualQueryBuilder {
  async gridAction(change){if(this.controller.busy)return;if(change.action==='filter_values')return this.applyGridValues(change);if(['save_rows','review_rows','page','export','reconcile'].includes(change.action))return this.controller.execute(change);if(!await this.guardRows())return;this.edit(()=>{const a=active(this.model);if(['clear_all','clear_filters'].includes(change.action)){this.model.where=null;this.model.summary.having=null;DataGridView.setValueFilters(this.result);this.valuePredicates=new Map();}if(['clear_all','clear_order'].includes(change.action))a.order=[];if(change.action==='order'){const expression=this.gridOutput(change.columnIndex);const existing=a.order.find(s=>same(s.expression,expression));if(existing)existing.direction=change.direction;else a.order.push({expression,direction:change.direction});}if(change.action==='filter'){const expression=this.gridOutput(change.columnIndex),out=a.outputs.find(o=>o.id===expression.output);let predicate;if(change.operator.includes('NULL'))predicate={kind:'null',arg:expression,not:change.operator.includes('NOT')};else{const numeric=[-6,5,4,-5,2,3,6,7,8].includes(change.jdbcType),bool=[-7,16].includes(change.jdbcType),value=change.value===null?null:numeric?Number(change.value):bool?change.value===true||change.value==='true':change.value;predicate={kind:'binary',op:change.operator,left:expression,right:{kind:'literal',type:numeric?'number':bool?'boolean':'text',value}};}const key=out&&aggregate(out.expression)?'having':'where',target=key==='having'?this.model.summary:this.model,previous=target[key];target[key]=previous?{kind:'logical',op:'AND',args:[previous,predicate]}:predicate;}});await this.run('data',false);}
  async applyGridValues(change){
   if(!await this.guardRows())return false;
-  if(!change.values?.length||change.values.length>128)throw Error('Select between 1 and 128 values.');
+  if(!Array.isArray(change.values)||change.values.length>128)throw Error('Select at most 128 values.');
   const expression=this.gridOutput(change.columnIndex),output=active(this.model).outputs.find(o=>o.id===expression.output),key=output&&aggregate(output.expression)?'having':'where';
   const previousWhere=this.model.where,previousHaving=this.model.summary.having,previousModel=copy(this.model),previousHistory=[...this.history],previousFuture=[...this.future],previousPredicates=new Map(this.valuePredicates??[]),target=key==='having'?this.model.summary:this.model;
   const remove=(node,predicate)=>{if(!node)return null;if(node===predicate)return null;if(node.kind==='logical'&&node.op==='AND'){const args=node.args.map(child=>remove(child,predicate)).filter(Boolean);return args.length>1?{...node,args}:args[0]??null;}return node;};
   const previous=previousPredicates.get(expression.output);let where=target[key];
+  if(!change.values.length&&!previous)throw Error('There is no value filter to clear for this column.');
   if(previous&&previous.key===key)where=remove(where,previous.predicate);
   const type=[-6,5,4,-5].includes(change.jdbcType)?'integer':[2,3,6,7,8].includes(change.jdbcType)?'number':[-7,16].includes(change.jdbcType)?'boolean':({91:'date',92:'time',93:'timestamp'}[change.jdbcType]??'text');
   const args=change.values.filter(value=>value!==null).map(value=>({kind:'literal',type,value:type==='boolean'?['true','1'].includes(String(value).toLowerCase()):String(value)}));
   let predicate=args.length?{kind:'in',arg:expression,args,not:false}:null;
   if(change.values.includes(null)){const nil={kind:'null',arg:expression,not:false};predicate=predicate?{kind:'logical',op:'OR',args:[predicate,nil]}:nil;}
   try{
-   this.edit(()=>{target[key]=where?{kind:'logical',op:'AND',args:[where,predicate]}:predicate;});
+   this.edit(()=>{target[key]=predicate?(where?{kind:'logical',op:'AND',args:[where,predicate]}:predicate):where;});
    this.operation='data';this.selectTab('data');await this.controller.execute({action:'builder',prompt:false});
    if(this.resultRevision!==this.revision)throw Error('The filter was not applied. Previous results are retained.');
-   this.valuePredicates=new Map(previousPredicates);this.valuePredicates.set(expression.output,{key,predicate});return true;
+   this.valuePredicates=new Map(previousPredicates);if(predicate)this.valuePredicates.set(expression.output,{key,predicate});else this.valuePredicates.delete(expression.output);return true;
   }catch(error){
    this.model=previousModel;this.model.where=previousWhere;this.model.summary.having=previousHaving;this.history=previousHistory;this.future=previousFuture;this.valuePredicates=previousPredicates;this.revision++;this.refreshCanvas();this.scheduleCompile();this.changed(this);throw error;
   }

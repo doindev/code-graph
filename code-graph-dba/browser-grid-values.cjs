@@ -71,17 +71,31 @@ module.exports=async function(browser,base,jar){
     await open(page.locator('#grid'),2);await choose('9007199254740993.125');await apply.click();await picker.waitFor({state:'detached'});
     assert.equal(await page.locator('#grid .grid-body .grid-row').count(),1,'Exact decimals survive filtering through the browser');
     assert.match(await page.locator('#grid .grid-body').innerText(),/9007199254740993.125/);
+    // Clearing an applied picker filter preserves other column filters and rolls back on failure.
+    await open();await picker.getByRole('checkbox',{name:'Select value-003',exact:true}).uncheck();assert.equal(await apply.isEnabled(),true,'The last unchecked value can remove an applied filter');
+    const beforeClear=await page.locator('.grid-source-preview').inputValue();
+    await page.route('**/api/dba/query/grid-edit',route=>route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Fixture clear failure'})}),{times:1});
+    await apply.click();await picker.getByRole('alert').filter({hasText:'Fixture clear failure'}).waitFor();assert.equal(await page.locator('.grid-source-preview').inputValue(),beforeClear);assert.match(await picker.locator('.grid-values-summary').innerText(),/0 selected/);
+    await picker.getByRole('button',{name:'Cancel',exact:true}).click();await open();assert.equal(await picker.getByRole('checkbox',{name:'Select value-003',exact:true}).isChecked(),true,'Failed clearing retains applied selections');
+    await picker.getByRole('checkbox',{name:'Select value-003',exact:true}).uncheck();await apply.click();await picker.waitFor({state:'detached'});
+    assert.equal(await page.locator('#grid .grid-body .grid-row').count(),3);assert.doesNotMatch(await page.locator('.grid-filter-input').inputValue(),/NAME IN/i);assert.match(await page.locator('.grid-filter-input').inputValue(),/AMOUNT IN/i);assert.match(await page.locator('.grid-source-preview').inputValue(),/ID < 4/i);
+    await open();assert.match(await picker.locator('.grid-values-summary').innerText(),/0 selected/);assert.equal(await apply.isDisabled(),true,'A cleared filter no longer enables empty Apply');await picker.getByRole('button',{name:'Cancel',exact:true}).click();
     // Actual Table Data and query-builder hosts use the same picker.
     await page.getByRole('button',{name:'Expand Value picker fixture',exact:true}).click();
     await page.getByRole('button',{name:'Expand Schemas',exact:true}).click();await page.getByRole('button',{name:'Expand PUBLIC',exact:true}).click();await page.getByRole('button',{name:'Expand Tables',exact:true}).click();
     await page.locator('.metadata-node[data-name="PICKER_ITEMS"] > .metadata-title > .metadata-name').dblclick();
     const tableGrid=page.locator('#table-document .data-grid-host');await tableGrid.locator('.grid-column-toggle').nth(1).waitFor();await page.waitForFunction(()=>document.querySelector('#table-document .data-grid-host')?.getAttribute('aria-busy')==='false');
     await open(tableGrid);await choose('value-001');await apply.click();await picker.waitFor({state:'detached'});assert.equal(await tableGrid.locator('.grid-body .grid-row').count(),2);
+    await open(tableGrid);await picker.getByRole('button',{name:'Clear All',exact:true}).click();assert.equal(await apply.isEnabled(),true);await apply.click();await picker.waitFor({state:'detached'});
+    assert.ok(await tableGrid.locator('.grid-body .grid-row').count()>2,'Table picker can clear its filter');assert.equal(await tableGrid.locator('.grid-filter-input').inputValue(),'');
     await page.getByRole('tab',{name:'Diagram',exact:true}).click();await page.getByRole('button',{name:'New query from source',exact:true}).waitFor();await page.getByRole('button',{name:'New query from source',exact:true}).click();
     const builder=page.locator('.query-builder');await page.waitForFunction(()=>document.querySelector('.qb-toolbar [aria-label="Run query (Ctrl+Enter)"]')?.disabled===false);
     await builder.getByRole('button',{name:'Run query (Ctrl+Enter)',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.qb-results .grid-body .grid-row').length>0&&!document.querySelector('.grid-query-overlay'));
     await open(builder);await choose('value-002');await apply.click();await picker.waitFor({state:'detached'});assert.equal(await builder.locator('.grid-body .grid-row').count(),1);
     await open(builder);await picker.getByRole('button',{name:'Clear All',exact:true}).click();await choose('value-003');await apply.click();await picker.waitFor({state:'detached'});assert.equal(await builder.locator('.grid-body .grid-row').count(),1);assert.match(await builder.locator('.grid-body').innerText(),/value-003/);
+    await open(builder);await search.fill('value-451');await ready();await picker.getByRole('button',{name:'Clear All',exact:true}).click();assert.equal(await apply.isEnabled(),true,'Clear All can remove hidden applied selections');await apply.click();await picker.waitFor({state:'detached'});
+    assert.ok(await builder.locator('.grid-body .grid-row').count()>1,'Builder picker can clear its filter');
+    await open(builder);assert.match(await picker.locator('.grid-values-summary').innerText(),/0 selected/);assert.equal(await apply.isDisabled(),true);await picker.getByRole('button',{name:'Cancel',exact:true}).click();
     await open(builder);await page.setViewportSize({width:390,height:550});const bounds=await picker.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=390&&bounds.y>=0&&bounds.y+bounds.height<=550);await page.keyboard.press('Escape');
     // Cached numeric comparisons never round through JavaScript Number.
     const exact=await page.evaluate(async()=>{const {retainedValues,decimalKey}=await import('/dba/grid-values.js');return {key:decimalKey('9007199254740993.125'),values:retainedValues({rows:[['9007199254740994.126'],['9007199254740993.125'],['1.0'],['1.00'],[null]]},{source:0,jdbcType:3})};});
@@ -93,6 +107,8 @@ module.exports=async function(browser,base,jar){
       await builder.applyGridValues({columnIndex:0,jdbcType:12,values:['first']});
       await builder.applyGridValues({columnIndex:0,jdbcType:12,values:['second']});
       if(builder.model.where.args[0]!==authored||builder.model.where.args[1].args[0].value!=='second')throw Error('Picker removed an identical authored predicate');
+      await builder.applyGridValues({columnIndex:0,jdbcType:12,values:[]});
+      if(builder.model.where!==authored||builder.valuePredicates.has('name'))throw Error('Clearing picker values must preserve the authored predicate and remove picker state');
     });
     const race=await context.newPage();race.on('pageerror',error=>errors.push(error.message));
     await race.route('**/dba/app.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));await race.goto(base+'/dba');

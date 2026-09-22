@@ -67,6 +67,7 @@ export class GridValuePicker{
   constructor(view,column){
     this.view=view;this.column=column;this.context=view.result.grid;this.revision=this.context?.revision;this.closed=false;this.rowHeight=34;this.entries=[];this.selected=new Map();
     for(const value of view.state.valueSelections?.get(column.id)??[])this.selected.set(valueKey(value,column.jdbcType),value);
+    this.hadAppliedValues=this.selected.size>0;
     this.preferences=(view.state.valuePreferences??=new Map()).get(column.id)??{server:true,rows:false,counts:false};
     view.state.valuePreferences.set(column.id,this.preferences);
     this.requests=new ValueRequests(view.controller?.api);this.anchor=view.host.querySelector('[data-column-id="'+CSS.escape(column.id)+'"] .grid-column-toggle');
@@ -150,7 +151,7 @@ export class GridValuePicker{
   }
   sync(){
     if(this.closed)return;
-    this.applyButton.disabled=!this.selected.size||this.loading||this.applying||!this.view.transform||!this.view.sourceSql;
+    this.applyButton.disabled=(!this.selected.size&&!this.hadAppliedValues)||this.loading||this.applying||!this.view.transform||!this.view.sourceSql;
     this.search.disabled=!!this.applying;for(const input of this.optionInputs)input.disabled=!!this.applying;
     this.list.inert=!!this.applying;this.clearButton.disabled=!!this.applying;
     const messages=[];
@@ -166,7 +167,7 @@ export class GridValuePicker{
       await this.requests.stop();if(!this.valid())throw Error('The result changed. Reopen the value filter.');
       const values=[...this.selected.values()];
       const applied=await this.view.transform({action:'filter_values',columnId:this.column.id,columnIndex:this.column.source,columnLabel:this.column.rawLabel,jdbcType:this.column.jdbcType,columns:this.view.result.columns,values});
-      if(applied===true){(this.view.state.valueSelections??=new Map()).set(this.column.id,values);this.applying=false;this.close();}
+      if(applied===true){const selections=this.view.state.valueSelections??=new Map();if(values.length)selections.set(this.column.id,values);else selections.delete(this.column.id);this.applying=false;this.close();}
     }catch(error){if(!this.closed)this.status.textContent=error.message;}
     finally{this.applying=false;if(this.closeRequested)this.close();else this.sync();}
   }
