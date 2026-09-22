@@ -30,6 +30,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     }finally{await close(...options);}
   };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='grid-settings'){await require('./browser-grid-settings.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='driver-downloads'){await require('./browser-driver-downloads.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-values'){await require('./browser-grid-values.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-cell'){await require('./browser-grid-cell.cjs')(browser,base);return;}

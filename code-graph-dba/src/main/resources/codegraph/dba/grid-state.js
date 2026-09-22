@@ -6,9 +6,9 @@ export class GridDraft {
     this.selection=new Set();this.active=null;this.anchor=null;this.activeColumn=null;
     this.changes=new Map();this.added=[];this.sequence=0;
   }
-  get length(){return (this.result.rows?.length??0)+this.added.length;}
+  get length(){return this.preview?.length??((this.result.rows?.length??0)+this.added.length);}
   get dirty(){return this.changes.size>0||this.added.length>0;}
-  get capabilities(){return this.result.grid?.capabilities??{};}
+  get capabilities(){const cap=this.result.grid?.capabilities??{};return this.readOnly?.()||this.result.grid?.refreshRequired?{...cap,edit:false,insert:false,delete:false,reason:this.result.grid?.refreshRequired?'Saved—refresh required before editing again.':'This grid is read-only.'}:cap;}
   id(index){return index<(this.result.rows?.length??0)?this.result.grid?.rowIds?.[index]??'read:'+index:this.added[index-this.result.rows.length]?.id;}
   select(index,{shiftKey=false,ctrlKey=false,metaKey=false}={}) {
     if(index<0||index>=this.length)return;
@@ -20,6 +20,7 @@ export class GridDraft {
   clearSelection(){this.selection.clear();this.active=this.anchor=null;}
   column(id){return this.result.grid?.columns?.find(c=>c.id===id);}
   cell(index,column){
+    if(this.preview)return this.preview[index]?.[column.source]??{kind:"null"};
     const added=this.added[index-(this.result.rows?.length??0)];
     const changed=(added?.values??this.changes.get(this.id(index))?.values)?.[column.id];
     return changed??{kind:this.result.rows?.[index]?.[column.source]===null?'null':'value',value:this.result.rows?.[index]?.[column.source]};
@@ -63,7 +64,7 @@ export class GridDraft {
   add(){
     if(!this.capabilities.insert)throw Error(this.capabilities.reason||'Adding rows is unavailable for this result.');
     const values={};for(const c of this.result.grid.columns)if(c.editable)values[c.id]=c.hasDefault?{kind:'default'}:c.nullable?{kind:'null'}:{kind:'value',value:''};
-    const row={id:'new:'+ ++this.sequence,operation:'insert',values},added=[...this.added,row];this.checkSize(this.changes,added);this.added=added;this.select(this.length-1);return this.length-1;
+    const row={id:'new:'+ ++this.sequence,operation:'insert',values},added=[...this.added,row];this.checkSize(this.changes,added);this.added=added;this.placements??=new Map();if(this.afterActive?.()&&this.active!==null)this.placements.set(row.id,this.id(this.active));this.select(this.length-1);return this.length-1;
   }
   deleteSelected(){
     if(!this.capabilities.delete)throw Error(this.capabilities.reason||'Deleting rows is unavailable for this result.');
@@ -72,7 +73,7 @@ export class GridDraft {
     const added=this.added.filter(row=>!removed.has(row.id));this.checkSize(changes,added);this.changes=changes;this.added=added;this.clearSelection();
   }
   payload(){const changes=[...this.changes.values(),...this.added.map(({id,...row})=>({...row,rowId:id}))];for(const row of changes)for(const [id,value]of Object.entries(row.values))validateCell(this.column(id),value);return{revision:this.result.grid?.revision,changes};}
-  cancel(){this.changes.clear();this.added=[];this.clearSelection();this.reservedBytes=0;if(this.budgetRef)draftReservations.delete(this.budgetRef);}
+  cancel(){this.changes.clear();this.added=[];this.placements?.clear();this.clearSelection();this.reservedBytes=0;if(this.budgetRef)draftReservations.delete(this.budgetRef);}
 }
 
 export function validateCell(column,value){

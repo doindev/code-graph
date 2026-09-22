@@ -26,10 +26,11 @@ final class GridResults implements AutoCloseable {
         final QueryJobs.RetainedReservation reservation;
         ObjectNode result;
         GridRelation relation;
-        String reason="",orderedSql;
+        String reason="",orderedSql,countSql,countReason="Exact counts are unavailable for this result.";
         List<String> rowIds=new ArrayList<>();
         long revision=1,offset,capturedAt=System.currentTimeMillis();
-        boolean cacheHit;
+        boolean cacheHit,refreshRequired;
+        Long total; long totalAt;
         int limit;
         boolean ready,busy,disposed,uncertain,hasMore,fullExport,canLimitRows;
         QueryJobs.Job activeJob;
@@ -63,6 +64,7 @@ final class GridResults implements AutoCloseable {
                 context.result=row.deepCopy();context.limit=job.rowLimit;context.hasMore=row.path("truncated").asBoolean();
                 try{validateReload(context);context.canLimitRows=true;}catch(IllegalArgumentException unsupported){context.canLimitRows=false;}
                 try{SqlReadGuard.validate(sql);context.fullExport=output.path("statements").size()==1&&GridRelation.ENGINES.contains(GridRelation.engine(c.getMetaData().getDatabaseProductName()));}catch(Exception unsupported){context.fullExport=false;}
+                try{context.countSql=GridCounts.sql(context,c);}catch(Exception unsupported){context.countReason=unsupported.getMessage();}
                 Savepoint observation=null;
                 try{
                     // Connector/J rejects SAVEPOINT through a read-only connection.
@@ -91,11 +93,13 @@ final class GridResults implements AutoCloseable {
     }
     synchronized void finished(QueryJobs.Job job){for(Context c:new ArrayList<>(contexts.values()))if(c.originJob.equals(job.id)){if(job.state.equals("complete")){c.ready=true;pages.put(c);}else dispose(c);}}
     synchronized ObjectNode descriptor(Context c){
-        ObjectNode out=Profiles.JSON.createObjectNode().put("id",c.id).put("revision",c.revision).put("rowCeiling",config.get().uiRows()).put("connectionId",c.connection).put("connectionName",connections.profile(c.connection).path("name").asText()).put("database",c.database).put("schema",c.schema).put("uncertain",c.uncertain).put("busy",c.busy);
+        ObjectNode out=Profiles.JSON.createObjectNode().put("id",c.id).put("revision",c.revision).put("rowCeiling",config.get().uiRows()).put("connectionId",c.connection).put("connectionName",connections.profile(c.connection).path("name").asText()).put("database",c.database).put("schema",c.schema).put("uncertain",c.uncertain).put("refreshRequired",c.refreshRequired).put("busy",c.busy);
         out.putArray("rowIds").addAll(c.rowIds.stream().map(TextNode::valueOf).toList());
         out.putObject("page").put("offset",c.offset).put("limit",c.limit).put("hasMore",c.hasMore).put("capturedAt",c.capturedAt).put("cached",c.cacheHit);
+        if(c.total!=null)((ObjectNode)out.path("page")).put("total",c.total).put("totalCapturedAt",c.totalAt);
         // A bounded replay of one SELECT does not require a unique key or verified paging.
-        out.putObject("capabilities").put("edit",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("delete",c.relation!=null&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("insert",c.relation!=null&&c.relation.insert&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("page",c.orderedSql!=null).put("fullExport",c.fullExport).put("sqlExport",sqlExport(c)).put("reason",c.result.path("cellsTruncated").asBoolean()?"Truncated values make this page read-only.":c.reason).put("sqlExportReason",sqlExport(c)?"":"SQL export needs a verified target without generated/identity columns or truncated values.").put("pageReason",c.orderedSql==null?c.reason:"");
+        out.putObject("capabilities").put("edit",c.relation!=null&&!c.refreshRequired&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("delete",c.relation!=null&&!c.refreshRequired&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("insert",c.relation!=null&&c.relation.insert&&!c.refreshRequired&&!c.uncertain&&!c.result.path("cellsTruncated").asBoolean()).put("page",c.orderedSql!=null).put("fullExport",c.fullExport).put("sqlExport",sqlExport(c)).put("reason",c.result.path("cellsTruncated").asBoolean()?"Truncated values make this page read-only.":c.reason).put("sqlExportReason",sqlExport(c)?"":"SQL export needs a verified target without generated/identity columns or truncated values.").put("pageReason",c.orderedSql==null?c.reason:"");
+        ((ObjectNode)out.path("capabilities")).put("count",c.countSql!=null).put("countReason",c.countSql==null?c.countReason:"");
         ((ObjectNode)out.path("capabilities")).put("rowLimit",c.orderedSql!=null||c.canLimitRows).put("rowLimitReason",c.canLimitRows||c.orderedSql!=null?"":"This result cannot safely replay one SELECT; rerun it from the SQL editor.");
         if(c.relation!=null){out.set("columns",c.relation.descriptor().path("columns"));out.put("table",c.relation.table);}else out.putArray("columns");
         return out;
@@ -108,6 +112,7 @@ final class GridResults implements AutoCloseable {
     void check(Context c,QueryJobs.Job job){if(job.cancelled||c.disposed||!alive.test(c.owner))throw new CancellationException();require(c.owner,c.id);}
     synchronized ObjectNode operation(String owner,String id,String action,JsonNode input){
         Context c=require(owner,id);if(c.busy)throw new IllegalArgumentException("This grid already has an active operation.");
+        if(c.refreshRequired&&Set.of("prepare","apply").contains(action))throw new IllegalArgumentException("Changes were saved. Refresh this grid before editing again.");
         if(c.uncertain&&!action.equals("reconcile"))throw new IllegalArgumentException("Save outcome is unknown. Reconcile with the database before retrying.");
         if(input.path("revision").asLong(-1)!=c.revision)throw new IllegalArgumentException("Stale grid revision; refresh before retrying.");
         pages.reap();
@@ -125,11 +130,11 @@ final class GridResults implements AutoCloseable {
             // Target discovery can already have started a driver transaction. End that read
             // before choosing isolation; PostgreSQL rejects isolation changes mid-transaction.
             if(!connection.getAutoCommit())connection.rollback();
-            connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);connection.setReadOnly(action.equals("values"));
+            connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);connection.setReadOnly(action.equals("values")||action.equals("count"));
             if(action.equals("page")||action.equals("reconcile"))connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             connection.setAutoCommit(false);
-            try{check(c,job);return switch(action){case "values"->GridValues.read(this,c,job,connection,request);case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->window?GridPaging.window(this,c,job,connection,request):action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
-            catch(Exception error){if(!c.uncertain)try{connection.rollback();}catch(SQLException rollback){if(!action.equals("values"))c.uncertain=true;}if(c.uncertain)job.outcome="unknown";else if(action.equals("apply"))job.outcome="rolled_back";if(error instanceof SQLException)throw new IllegalArgumentException(connections.humanError(c.connection,error),error);throw error;}
+            try{check(c,job);return switch(action){case "count"->GridCounts.count(this,c,job,connection);case "values"->GridValues.read(this,c,job,connection,request);case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->window?GridPaging.window(this,c,job,connection,request):action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
+            catch(Exception error){if(!c.uncertain)try{connection.rollback();}catch(SQLException rollback){if(!Set.of("values","count").contains(action))c.uncertain=true;}if(c.uncertain)job.outcome="unknown";else if(action.equals("apply"))job.outcome="rolled_back";if(error instanceof SQLException)throw new IllegalArgumentException(connections.humanError(c.connection,error),error);throw error;}
             finally{if(action.equals("apply"))pages.close();job.statement=null;try{connection.rollback();}catch(SQLException ignored){}}
         }},()->{synchronized(this){if(c.activeJob!=null&&c.activeJob.cancelled)exports.cancelled(c.activeJob.id);c.activeJob=null;c.busy=false;if(c.disposed)c.reservation.close();}});
     }
@@ -184,8 +189,8 @@ final class GridResults implements AutoCloseable {
         c.plan=null;boolean committing=false;try{
             audit(c,plan);for(Command command:plan.commands){check(c,job);if(!command.operation.equals("insert"))lockOriginal(c,job,connection,command.rowId);
                 try(PreparedStatement statement=connection.prepareStatement(command.sql)){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());int at=1;for(Binding b:command.values)GridRelation.bind(statement,at++,b.value,b.type);if(statement.executeLargeUpdate()!=1)throw new IllegalArgumentException("Row conflict: exactly one row must match each change. All changes were rolled back.");}}
-            check(c,job);committing=true;connection.commit();job.outcome="commit_acknowledged";c.revision++;
-            return Profiles.JSON.createObjectNode().put("saved",true).put("revision",c.revision).put("outcome","commit_acknowledged").put("message","Changes saved. Refresh to read authoritative values.");
+            check(c,job);committing=true;connection.commit();job.outcome="commit_acknowledged";c.revision++;c.refreshRequired=true;c.total=null;c.totalAt=0;
+            return Profiles.JSON.createObjectNode().put("saved",true).put("refreshRequired",true).put("revision",c.revision).put("outcome","commit_acknowledged").put("message","Changes saved. Refresh to read authoritative values.");
         }catch(Exception error){if(committing){c.uncertain=true;job.outcome="unknown";throw new IllegalArgumentException("Commit outcome is unknown. Reconcile this grid with the database before any retry.",error);}else{try{connection.rollback();job.outcome="rolled_back";}catch(SQLException failed){c.uncertain=true;job.outcome="unknown";}}throw error;}
     }
     private void lockTarget(Context c,QueryJobs.Job job,Connection connection)throws Exception{

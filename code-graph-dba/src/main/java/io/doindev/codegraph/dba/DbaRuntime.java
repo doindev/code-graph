@@ -19,6 +19,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final Connections connections;
     private final QueryJobs jobs;
     private final GridResults grids;
+    private final GridSettings gridSettings;
     private final ConnectionSetup setup;
     private final NativeOperations nativeOperations;
     private final ProjectContexts contexts;
@@ -47,6 +48,7 @@ public final class DbaRuntime implements AutoCloseable {
         try{agents=new AgentAccess(profiles.directory(),authorization);agents.bindLegacyNames(profiles);auth=ui?new BrowserAuth(profiles.directory()):null;}catch(IOException e){profiles.close();throw e;}
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
+        gridSettings=new GridSettings(profiles.directory());
         setup=new ConnectionSetup(profiles,jobs,config.driverDownloads());
         contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
@@ -221,6 +223,12 @@ public final class DbaRuntime implements AutoCloseable {
                     for(JsonNode event:events)writer.write("id: "+event.path("eventId").asLong()+"\nevent: editor\ndata: "+event+"\n\n");
                 }return;
             }
+            if(path.equals("/api/dba/grid-settings")){
+                if(method.equals("GET"))json(x,200,gridSettings.json(config.uiRows()));
+                else if(method.equals("PUT"))json(x,200,gridSettings.save(body(x,65536),profiles,config.uiRows()));
+                else throw new IllegalArgumentException("Unsupported grid settings method");
+                return;
+            }
             if(path.equals("/api/dba/settings")){
                 if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo());jobs.configure(next);config=next;}
                 else if(!method.equals("GET"))throw new IllegalArgumentException("Unsupported settings method");
@@ -255,7 +263,7 @@ public final class DbaRuntime implements AutoCloseable {
                 }
                 UUID.fromString(id);
                 if(jobs.activeConnection(id)&&!method.equals("GET"))throw new IllegalArgumentException("Connection has active jobs; cancel them before editing/removing");
-                if(method.equals("DELETE")){connections.remove(id);contexts.removeConnection(id);agents.removeConnection(id);profiles.remove(id);json(x,200,Map.of("removed",true));}
+                if(method.equals("DELETE")){connections.remove(id);contexts.removeConnection(id);agents.removeConnection(id);gridSettings.removeConnection(id);profiles.remove(id);json(x,200,Map.of("removed",true));}
                 else if(method.equals("PUT")){ObjectNode result=setup.save(session.id(),id,body(x));connections.remove(id);json(x,200,result);}
                 else if(method.equals("GET"))json(x,200,Profiles.publicProfile(profiles.get(id)));
                 else throw new IllegalArgumentException("Unsupported connection method");return;
@@ -628,10 +636,10 @@ public final class DbaRuntime implements AutoCloseable {
         }catch(SecurityException|IllegalArgumentException e){return false;}
     }
     static void asset(HttpExchange x,String path)throws IOException {
-        if(Set.of("/dba/grid-values.js","/dba/editor-client.js","/dba/grid-cell-editor.js","/dba/grid-state.js","/dba/grid-window.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
+        if(Set.of("/dba/grid-preferences.js","/dba/grid-settings-dialog.js","/dba/grid-settings-schema.json","/dba/grid-values.js","/dba/editor-client.js","/dba/grid-cell-editor.js","/dba/grid-state.js","/dba/grid-window.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
                 "/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
             String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
-                if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
+                if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".json")?"application/json; charset=utf-8":name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
             }
         }
         String file=switch(path){case "/dba/review"->"approval-review.html";case "/dba/approval-review.js"->"approval-review.js";case "/dba/approval-client.js"->"approval-client.js";case "/dba/approval-ui.js"->"approval-ui.js";case "/dba/project-context.js"->"project-context.js";case "/dba/catalog-ui.js"->"catalog-ui.js";case "/dba/object-properties.js"->"object-properties.js";case "/dba/object-creation.js"->"object-creation.js";case "/dba","/dba/"->"index.html";case "/dba/table-properties.js"->"table-properties.js";case "/dba/query-builder.css"->"query-builder.css";case "/dba/visual-model.js"->"visual-model.js";case "/dba/visual-expressions.js"->"visual-expressions.js";case "/dba/query-builder.js"->"query-builder.js";case "/dba/app.js"->"app.js";case "/dba/connection-editor.js"->"connection-editor.js";case "/dba/native-connection-editor.js"->"native-connection-editor.js";case "/dba/native-workspace.js"->"native-workspace.js";case "/dba/mongo-document-editor.js"->"mongo-document-editor.js";case "/dba/redis-stream-editor.js"->"redis-stream-editor.js";case "/dba/redis-set-editor.js"->"redis-set-editor.js";case "/dba/redis-string-editor.js"->"redis-string-editor.js";case "/dba/data-grid.js"->"data-grid.js";case "/dba/connection-tree.js"->"connection-tree.js";case "/dba/metadata-tree.js"->"metadata-tree.js";case "/dba/tree-icons.js"->"tree-icons.js";case "/dba/tree-actions.js"->"tree-actions.js";case "/dba/database.svg"->"database.svg";case "/dba/style.css"->"style.css";case "/dba/workspace-theme.css"->"workspace-theme.css";default->null;};

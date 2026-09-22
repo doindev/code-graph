@@ -1,5 +1,6 @@
+import {preferences,preferenceState} from './grid-preferences.js';
 // Distinct-value picker shared by every Data Grid host. Values never become SQL text here.
-const numeric=new Set([-6,5,4,-5,2,3]),boolean=new Set([-7,16]);
+const numeric=new Set([-6,5,4,-5,2,3,6,7,8]),boolean=new Set([-7,16]);
 export function decimalKey(value){
   const match=String(value).trim().match(/^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i);
   if(!match||!(match[2]+(match[3]??'')))return String(value);
@@ -13,16 +14,36 @@ export function decimalKey(value){
   return(match[1]==='-'?'-':'')+text;
 }
 export function valueKey(value,type){return value===null?'null':JSON.stringify(numeric.has(type)?decimalKey(value):boolean.has(type)?['true','1'].includes(String(value).toLowerCase())?true:false:String(value));}
-function compare(a,b,type){
+// Keep temporal fractions exact; Date is used only for whole UTC seconds.
+function temporalKey(value,type){
+  const text=String(value),m=text.match(/^(?:(\d{4}-\d{2}-\d{2})[T ])?(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}(?::?\d{2})?)?$/);
+  if(!m)return null;
+  const fraction=BigInt((m[5]??'').padEnd(9,'0'));
+  if(type===92||type===2013){
+    let seconds=Number(m[2])*3600+Number(m[3])*60+Number(m[4]??0);
+    if(m[6]&&m[6]!=='Z'){const offset=m[6].replace(':','');seconds-=(offset[0]==='-'?-1:1)*(Number(offset.slice(1,3))*3600+Number(offset.slice(3)||0)*60);}
+    return BigInt(seconds)*1000000000n+fraction;
+  }
+  if(!m[1])return null;
+  let zone=m[6]??'Z';if(/^[+-]\d{2}$/.test(zone))zone+=':00';
+  const epoch=Date.parse(m[1]+'T'+m[2]+':'+m[3]+':'+(m[4]??'00')+zone);
+  return Number.isFinite(epoch)?BigInt(epoch)*1000000n+fraction:null;
+}
+export function compareValues(a,b,type){
   if(a===null||b===null)return a===b?0:a===null?-1:1;
   if(numeric.has(type)){
-    let x=decimalKey(a),y=decimalKey(b),negative=x.startsWith('-'),other=y.startsWith('-');
+    let x=decimalKey(a),y=decimalKey(b);
+    const rank=v=>/^-Infinity$/i.test(v)?-1:/^\+?Infinity$/i.test(v)?1:/^NaN$/i.test(v)?2:0;
+    if(rank(x)||rank(y))return rank(x)-rank(y);
+    if(!/^-?\d+(?:\.\d+)?$/.test(x)||!/^[-]?\d+(?:\.\d+)?$/.test(y))return x.localeCompare(y);
+    let negative=x.startsWith('-'),other=y.startsWith('-');
     if(negative!==other)return negative?-1:1;if(negative){x=x.slice(1);y=y.slice(1);}
     const [xi,xf='']=x.split('.'),[yi,yf='']=y.split('.'),width=Math.max(xf.length,yf.length);
     const order=xi.length-yi.length||(xi<yi?-1:xi>yi?1:0)||(xf.padEnd(width,'0')<yf.padEnd(width,'0')?-1:xf.padEnd(width,'0')>yf.padEnd(width,'0')?1:0);
     return negative?-order:order;
   }
   if(boolean.has(type))return Number(['true','1'].includes(String(a).toLowerCase()))-Number(['true','1'].includes(String(b).toLowerCase()));
+  if([92,93,2013,2014].includes(type)){const x=temporalKey(a,type),y=temporalKey(b,type);if(x!==null&&y!==null)return x<y?-1:x>y?1:0;}
   return String(a).localeCompare(String(b));
 }
 function display(value){return value===null?'NULL':value===''?'(empty string)':value==='NULL'?'"NULL"':String(value);}
@@ -30,12 +51,12 @@ export function retainedValues(result,column){
   if(result.cellsTruncated)throw Error('The retained result contains truncated previews. Read complete values from the server.');
   const values=new Map();
   for(const row of result.rows??[]){const value=row[column.source]??null,key=valueKey(value,column.jdbcType),item=values.get(key);if(item)item.count++;else values.set(key,{value,count:1});}
-  return [...values.values()].sort((a,b)=>compare(a.value,b.value,column.jdbcType));
+  return [...values.values()].sort((a,b)=>compareValues(a.value,b.value,column.jdbcType));
 }
 
 // Serialize lookup jobs so cancellation is acknowledged before a replacement uses the same grid.
 class ValueRequests{
-  constructor(api){this.api=api;this.generation=0;this.tail=Promise.resolve();}
+  constructor(api,timeout=30000){this.api=api;this.timeout=timeout;this.generation=0;this.tail=Promise.resolve();}
   invalidate(){this.generation++;if(this.job)void this.api('/jobs/'+this.job+'/cancel','POST',{}).catch(()=>{});return this.generation;}
   run(path,body,generation){
     const work=async()=>{
@@ -45,7 +66,7 @@ class ValueRequests{
         let current=job;
         while(!current.finished){
           if(generation!==this.generation&&!cancelled){cancelled=true;cancelledAt=Date.now();await this.api('/jobs/'+job.id+'/cancel','POST',{});}
-          if(Date.now()-started>330000||cancelledAt&&Date.now()-cancelledAt>30000)throw Error('Value lookup completion could not be confirmed. Wait for the connection before retrying.');
+          if(Date.now()-started>330000||cancelledAt&&Date.now()-cancelledAt>this.timeout)throw Error('Value lookup completion could not be confirmed. Wait for the connection before retrying.');
           await new Promise(resolve=>setTimeout(resolve,150));current=await this.api('/jobs/'+job.id);
         }
         terminal=true;
@@ -68,9 +89,9 @@ export class GridValuePicker{
     this.view=view;this.column=column;this.context=view.result.grid;this.revision=this.context?.revision;this.closed=false;this.rowHeight=34;this.entries=[];this.selected=new Map();
     for(const value of view.state.valueSelections?.get(column.id)??[])this.selected.set(valueKey(value,column.jdbcType),value);
     this.hadAppliedValues=this.selected.size>0;
-    this.preferences=(view.state.valuePreferences??=new Map()).get(column.id)??{server:true,rows:false,counts:false};
+    this.preferences=(view.state.valuePreferences??=new Map()).get(column.id)??{server:preferences(view.result).valuesServer,rows:preferences(view.result).valuesTotal,counts:preferences(view.result).valuesCounts};
     view.state.valuePreferences.set(column.id,this.preferences);
-    this.requests=new ValueRequests(view.controller?.api);this.anchor=view.host.querySelector('[data-column-id="'+CSS.escape(column.id)+'"] .grid-column-toggle');
+    this.requests=new ValueRequests(view.controller?.api,preferences(view.result).cancelTimeout);this.anchor=view.host.querySelector('[data-column-id="'+CSS.escape(column.id)+'"] .grid-column-toggle');
     this.render();void this.reload();
   }
   render(){
@@ -88,7 +109,7 @@ export class GridValuePicker{
     const apply=document.createElement('button');apply.type='button';apply.textContent='Apply';apply.onclick=()=>void this.apply();this.applyButton=apply;right.append(cancel,apply);actions.append(clear,right);
     const options=document.createElement('div');options.className='grid-values-options';this.optionInputs=[];
     for(const [key,text] of [['server','Read from server'],['rows','Show row count'],['counts','Show distinct values count']]){
-      const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=this.preferences[key];check.onchange=()=>{this.preferences[key]=check.checked;clearTimeout(this.timer);void this.reload();};label.append(check,document.createTextNode(text));options.append(label);this.optionInputs.push(check);
+      const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=this.preferences[key];check.onchange=()=>{this.preferences[key]=check.checked;preferenceState(this.view.result).local[{server:'valuesServer',rows:'valuesTotal',counts:'valuesCounts'}[key]]=check.checked;clearTimeout(this.timer);void this.reload();};label.append(check,document.createTextNode(text));options.append(label);this.optionInputs.push(check);
     }
     dialog.append(heading,search,header,list,summary,status,actions,options);dialog.addEventListener('cancel',event=>{event.preventDefault();this.close();});
     dialog.addEventListener('close',()=>this.dispose());document.body.append(dialog);dialog.showModal();search.focus();this.sync();
@@ -156,7 +177,7 @@ export class GridValuePicker{
     this.list.inert=!!this.applying;this.clearButton.disabled=!!this.applying;
     const messages=[];
     if(this.preferences.rows&&this.total!==null)messages.push(this.total+' distinct values'+(this.search.value?' · '+this.matching+' matching':''));
-    if(!this.preferences.server)messages.push('Retained grid rows only; unloaded rows and staged edits are excluded.');
+    if(!this.preferences.server)messages.push('Retained grid rows only; unloaded rows and staged edits are excluded.'+(this.view.result.grid?.refreshRequired?' Last fetched rows before save; the saved preview is excluded.':''));
     if(this.applying)messages.push('Applying filter…');else if(this.loading)messages.push('Loading values…');else if(!this.entries.length&&!this.status.textContent)messages.push('No values found.');
     if(this.more)messages.push('Scroll for more values.');messages.push(this.selected.size+' selected');
     this.summary.textContent=messages.join(' · ');

@@ -82,6 +82,7 @@ const shapes={
   "ellipsis-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1\" />\n  <circle cx=\"12\" cy=\"5\" r=\"1\" />\n  <circle cx=\"12\" cy=\"19\" r=\"1\" />",
   "database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" />\n  <path d=\"M3 5V19A9 3 0 0 0 21 19V5\" />\n  <path d=\"M3 12A9 3 0 0 0 21 12\" />"
 };
+shapes.hash='<path d="M4 9h16M3 15h16M10 3 6 21M18 3l-4 18"/>';
 shapes.info='<circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>';
 shapes.filter='<path d="M4 3h16l-6 8v7l-4 3V11z"/>';
 shapes.replace='<path d="M14 4a2 2 0 0 1 2 2v1M4 7V4m0 3h3"/><path d="M4 7a4 4 0 0 1 4-4h2"/><rect x="3" y="12" width="7" height="7" rx="1"/><path d="m16 13 4 4-4 4M13 17h7"/>';

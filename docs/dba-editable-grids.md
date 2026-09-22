@@ -34,12 +34,76 @@ Refresh, paging, sorting/filtering, export, and closure require
 Save/Discard/Stay when there are edits. Switching tabs preserves drafts.
 Editing stops scheduled refresh. Page unload warns about pending edits.
 
-Grid settings control column order, visibility, width reset, NULL display and
-date/time presentation. Settings do not change database values and survive only
-for the result lifetime. Row data and drafts are not restored after a page reload.
-Resized widths use one shared layout for the header and virtualized rows,
-including newly fetched windows. Widths remain in the grid's in-process state
-only—not files, localStorage, or sessionStorage—and are discarded with the result.
+## Grid settings
+
+The bottom toolbar's settings button opens Data loading, Editing, Appearance,
+and Columns tabs. Current-result overrides last for that result. Global defaults
+and connection overrides persist in the private DBA grid-settings.json file.
+Precedence is built-in defaults, global, connection, then current result. Each
+control identifies its inherited value and offers a reset. Connection overrides
+follow the stable connection ID, including renames.
+
+Apply updates the current result and defaults used by future results. Other open
+results keep their settings snapshots. Higher-priority overrides remain effective.
+Each scope has its own unapplied draft. Cancel, Escape, or closing the modal
+discards unapplied changes. Apply and Close saves and closes; Apply stays open.
+Restore Defaults removes overrides at the selected scope. Column visibility,
+order, and dragged widths remain result-only; keep at least one column visible.
+
+Data loading defaults to 200 rows per page (or the lower server ceiling),
+automatic adjacent-page fetching on, database sorting, and automatic exact counts
+off. A changed page size takes effect on the next refresh or navigation. Authored
+SQL limits remain authoritative. Calculate count explicitly counts the current
+filtered query, including its SQL limit; Last navigation also needs an exact
+count. Exact counts can scan the entire query and can be expensive. Totals show
+their capture time, survive adjacent-page movement, and are invalidated by a
+refresh, changed query, or save. Unsupported counts explain why they are unavailable.
+
+Loaded-row sorting changes only a stable display projection over retained rows.
+It does not rewrite SQL, fetch more rows, or change row identities. The toolbar
+labels its coverage. Automatic fetching pauses; manual navigation loads a new
+page and sorts that page. Neither sorting mode changes the query's initial order.
+
+Read-only is an additional UI restriction, never a grant of database permissions.
+It applies to keyboard editing, replacement, insertion, deletion, and saving.
+Enabling it with a dirty draft invokes Save/Discard/Stay. Optional save confirmation
+defaults off; deletion confirmation remains required and uses the same review.
+
+Refresh after saving defaults on. When disabled, an acknowledged commit clears
+the draft once and retains a **Saved—refresh required** display preview. The
+original fetched rows remain separate for cached discovery. Further writes and
+page exports are unavailable until an authoritative refresh succeeds. The same
+restriction applies if automatic reload fails; do not repeat the save. Unknown
+transaction outcomes still require reconciliation. New rows appear at the bottom
+by default; choosing after-active-row changes placement only.
+
+Appearance defaults to 12 px text, 28 px rows, stripes and both grid lines on,
+labels/aliases as headings, NULL, blank empty strings, and unchanged database
+number/date text. Row height is at least font size plus 10 px. Optional grouping
+preserves decimal precision and trailing zeros. ISO date display changes the
+separator only. Structured date/time editing defaults off and falls back to text
+for zoned or submillisecond values. Formatting never changes raw values used for
+filtering, copying, exports, or cached discovery. Matching-value highlighting is
+off initially and distinguishes typed values, NULL, empty strings, and literal text.
+
+Value-picker defaults are server discovery on, distinct-choice totals off, and
+occurrence counts off. Picker changes remain result overrides; selected values
+are never persisted in settings. Errors default inline; foreground operations
+can also use a dialog. Background errors never steal focus. The cancellation
+acknowledgment timeout defaults to 30 seconds; it does not change JDBC deadlines
+or imply that a cancellation succeeded.
+
+Rows, drafts, column layouts, and selected filter values are never written to
+the preference file. Browser preferences do not change connection authorization
+revisions, application resource limits, or database schemas.
+
+Browser interfaces: authenticated GET/PUT /api/dba/grid-settings use an optimistic
+settings revision; writes require CSRF. POST /api/dba/grids/{id}/count accepts a
+grid revision and returns an ordinary asynchronous job. It does not replace rows
+or advance their revision. Paging accepts countPolicy (none, auto, or the
+legacy default when omitted). Grid descriptors expose refreshRequired separately
+from an uncertain commit. Existing deadlines, cancellation, release, ownership,
+and retained-resource limits apply. No MCP tool was added.
 
 ## Find and Replace
 
@@ -180,8 +244,9 @@ Cancel indicator. It pauses while cell edits, unsaved drafts, Find/Replace, or a
 modal are open. Switching tabs does not dispose the context; closing it does.
 First/Previous/Next/Last controls retain their explicit navigation behavior.
 
-Adjacent reads do not count the full query. Explicit navigation count/page reads
-share a short serializable transaction; no connection or open JDBC cursor is
+Adjacent reads do not count the full query. Explicit navigation counts only when
+automatic counting is enabled or Last is requested; count/page reads then share a
+short serializable transaction; no connection or open JDBC cursor is
 retained while browsing. A backend LRU cache holds at most three recently visited
 windows per context for 60 seconds, with a shared ceiling of the smaller of
 16 MiB or one eighth of the DBA allowance. Cached windows are accounted within

@@ -1,5 +1,6 @@
+import {preferences,rowHeight,pagePreference} from './grid-preferences.js';
 // A rolling, overlapping page, not an ever-growing browser-side result inventory.
-const ROW_HEIGHT=28;
+
 export function replaceGridPage(result,next,state,window=false){
   if(result===next)return;
   const previous=result.grid?.page?.offset??0,offset=next.grid?.page?.offset??0;
@@ -9,13 +10,13 @@ export function replaceGridPage(result,next,state,window=false){
   const identity=(rows,index)=>index===null||index===undefined||!rows?.[index]||!keys.length?null:JSON.stringify(keys.map(key=>rows[index][key]));
   const selectedKeys=window?new Set([...state.draft.selection].map(index=>identity(result.rows,index)).filter(key=>key!==null)):null;
   const activeKey=identity(result.rows,state.draft.active),anchorKey=identity(result.rows,state.draft.anchor),selectedKey=identity(result.rows,state.selectedRow);
-  Object.assign(result,next);
+  Object.assign(result,next);state.draft.preview=null;
   if(!window){state.selectedRow=null;state.draft.clearSelection();return;}
   const positions=new Map((result.rows??[]).map((_,index)=>[identity(result.rows,index),index]));
   const locate=key=>key===null?null:positions.get(key)??null;
   state.draft.selection=new Set([...selectedKeys].map(locate).filter(index=>index!==null));
   state.draft.active=locate(activeKey);state.draft.anchor=locate(anchorKey);state.selectedRow=locate(selectedKey);
-  if(position)state.scroll={left:position.left,top:Math.max(0,position.top+(previous-offset)*ROW_HEIGHT)};
+  if(position)state.scroll={left:position.left,top:Math.max(0,position.top+(previous-offset)*rowHeight(result))};
   state.windowScroll=true;
 }
 
@@ -33,15 +34,16 @@ export class GridScrollWindow {
     if(direction)this.request(direction);
   }
   request(direction){
-    const v=this.view,page=v.result.grid?.page,n=v.result.rows?.length??0;
-    if(!direction||this.pending||v.disposed||!v.host.isConnected||!v.host.getClientRects().length||!v.transform||!v.result.grid?.capabilities.page||v.controller?.busy||v.result.grid.uncertain||v.state.draft.dirty||v.finishCell||v.find?.state.open||document.querySelector('dialog[open]')||!n)return;
+    const v=this.view,ROW_HEIGHT=rowHeight(v.result),page=v.result.grid?.page,n=v.result.rows?.length??0;
+    if(!preferences(v.result).autoFetch||v.state.localSort||v.result.grid?.refreshRequired||!direction||this.pending||v.disposed||!v.host.isConnected||!v.host.getClientRects().length||!v.transform||!v.result.grid?.capabilities.page||v.controller?.busy||v.result.grid.uncertain||v.state.draft.dirty||v.finishCell||v.find?.state.open||document.querySelector('dialog[open]')||!n)return;
     const threshold=Math.max(3*ROW_HEIGHT,Math.min(v.scroll.clientHeight,10*ROW_HEIGHT));
     const near=direction>0?v.scroll.scrollHeight-v.scroll.clientHeight-v.scroll.scrollTop<=threshold:v.scroll.scrollTop<=threshold;
     if(!near||(direction>0?!page.hasMore:!page.offset))return;
     const visible=Math.ceil(v.scroll.clientHeight/ROW_HEIGHT),step=Math.max(1,Math.min(Math.floor(n/2),n-visible-2));
     const offset=Math.max(0,page.offset+direction*step);if(offset===page.offset)return;
     this.pending=true;
-    void v.transform({action:'page',direction:'window',offset,limit:page.limit,automatic:true})
+    const requested=pagePreference(v.result);
+    void v.transform({action:'page',direction:requested===page.limit?'window':'refresh',offset,limit:requested,automatic:true})
       .catch(error=>{if(!v.disposed){v.queryError.hidden=false;v.queryError.textContent=error.message;}})
       .finally(()=>{this.pending=false;this.reset();});
   }

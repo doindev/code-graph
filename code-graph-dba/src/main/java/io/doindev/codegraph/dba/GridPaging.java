@@ -11,6 +11,7 @@ import java.util.*;
 /** Bounded page queries; never retains an open cursor between browser actions. */
 final class GridPaging {
     static long windowOffset(GridResults service,GridResults.Context context,JsonNode request){
+        if(context.refreshRequired)throw new IllegalArgumentException("Refresh saved data before automatically loading adjacent pages.");
         if(context.orderedSql==null)throw new IllegalArgumentException("Automatic scrolling requires verified server paging.");
         int limit=requestedLimit(service,context,request);JsonNode offset=request.path("offset");
         if(limit!=context.limit||!offset.isIntegralNumber()||!offset.canConvertToLong())throw new IllegalArgumentException("Scroll window must use the current page size and an integer offset.");
@@ -78,7 +79,7 @@ final class GridPaging {
         String direction=request.path("direction").asText("refresh");if(!Set.of("first","refresh").contains(direction))throw new IllegalArgumentException("This query supports a bounded first-page reload, not server paging.");
         ObjectNode next=read(context,job,c,0,limit);next.set("columns",context.result.path("columns").deepCopy());service.check(context,job);c.rollback();
         context.reservation.resize(Math.max(4096,Profiles.JSON.writeValueAsBytes(next).length*3L+context.baseBytes));
-        synchronized(service){service.check(context,job);context.result=next;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.limit=limit;context.uncertain=false;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
+        synchronized(service){service.check(context,job);context.result=next;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:next.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=0;context.limit=limit;context.uncertain=false;context.refreshRequired=false;context.total=null;context.totalAt=0;context.hasMore=next.path("truncated").asBoolean();context.revision++;context.plan=null;
             ObjectNode out=next.deepCopy();out.set("grid",service.descriptor(context));return out;}
     }
     static ObjectNode page(GridResults service,GridResults.Context context,QueryJobs.Job job,Connection c,JsonNode request,boolean reconcile)throws Exception{
@@ -87,11 +88,12 @@ final class GridPaging {
         String direction=request.path("direction").asText("refresh");if(!Set.of("first","last","next","previous","refresh").contains(direction))throw new IllegalArgumentException("Invalid page direction.");
         ObjectNode metadata=Profiles.JSON.createObjectNode();metadata.set("columns",context.result.path("columns"));
         if(!GridRelation.inspect(c,context.sql,metadata).fingerprint.equals(context.relation.fingerprint))throw new IllegalArgumentException("Table definition changed. Rerun the query.");
-        // One short serializable read transaction gives count and page a consistent boundary.
-        long total;try(var count=c.prepareStatement("SELECT COUNT(*) FROM ("+scope(context.relation)+") cg")){
-            job.statement=count;count.setQueryTimeout(job.remainingSeconds());bind(count,context.parameters);try(var rs=count.executeQuery()){if(!rs.next())throw new SQLException("Count returned no row");total=rs.getLong(1);}
-        }
-        long offset=switch(direction){case "first"->0;case "last"->Math.max(0,total-limit);case "next"->Math.min(total,context.offset+context.result.path("rows").size());case "previous"->Math.max(0,context.offset-limit);default->Math.min(context.offset,Math.max(0,total-limit));};
+        String policy=request.path("countPolicy").asText("legacy");
+        if(!Set.of("legacy","auto","none").contains(policy))throw new IllegalArgumentException("Invalid count policy.");
+        Long total=context.total;boolean counted=false;
+        if(Set.of("first","refresh").contains(direction)||reconcile)total=null;
+        if(policy.equals("legacy")||direction.equals("last")||policy.equals("auto")&&total==null){total=GridCounts.read(context,job,c);counted=true;}
+        long offset=switch(direction){case "first"->0;case "last"->Math.max(0,total-limit);case "next"->context.offset+context.result.path("rows").size();case "previous"->Math.max(0,context.offset-limit);default->!counted?context.offset:Math.min(context.offset,Math.max(0,total-limit));};
         service.check(context,job);ObjectNode result=read(context,job,c,offset,limit);
         result.set("columns",context.result.path("columns").deepCopy());
         long boundary=direction.equals("last")?total:direction.equals("previous")?context.offset:-1;
@@ -100,7 +102,7 @@ final class GridPaging {
             offset=boundary-actual;result=read(context,job,c,offset,actual);result.set("columns",context.result.path("columns").deepCopy());
         }
         service.check(context,job);c.rollback();context.reservation.resize(Math.max(4096,Profiles.JSON.writeValueAsBytes(result).length*3L+context.baseBytes));
-        synchronized(service){service.check(context,job);context.result=result;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:result.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=offset;context.limit=limit;context.hasMore=offset+result.path("rows").size()<total;context.revision++;context.plan=null;if(reconcile)context.uncertain=false;service.pages.put(context);
-            ObjectNode descriptor=service.descriptor(context);((ObjectNode)descriptor.path("page")).put("total",total);result=result.deepCopy();result.set("grid",descriptor);result.put("sourceSql",context.orderedSql);return result;}
+        synchronized(service){service.check(context,job);context.result=result;context.capturedAt=System.currentTimeMillis();context.cacheHit=false;context.rowIds=new ArrayList<>();for(JsonNode ignored:result.path("rows"))context.rowIds.add(UUID.randomUUID().toString());context.offset=offset;context.limit=limit;context.hasMore=result.path("truncated").asBoolean();context.refreshRequired=false;context.total=total;if(total==null)context.totalAt=0;else if(counted)context.totalAt=System.currentTimeMillis();context.revision++;context.plan=null;if(reconcile)context.uncertain=false;service.pages.put(context);
+            ObjectNode descriptor=service.descriptor(context);result=result.deepCopy();result.set("grid",descriptor);result.put("sourceSql",context.orderedSql);return result;}
     }
 }
