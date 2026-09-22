@@ -83,6 +83,13 @@ class GridHttpTest {
             assertEquals(200,DbaTest.request(client,base,endpoint,"GET",null,cookie,null).statusCode());
             assertEquals(403,DbaTest.request(client,base,endpoint,"GET",null,otherCookie,null).statusCode());
             assertEquals(403,DbaTest.request(client,base,endpoint,"DELETE",null,cookie,null).statusCode());
+            var valuesRequest=Profiles.JSON.createObjectNode().put("revision",1).put("columnId","c2").put("showRowCount",true);
+            assertEquals(403,DbaTest.request(client,base,endpoint+"/values","POST",valuesRequest,cookie,null).statusCode());
+            assertEquals(403,DbaTest.request(client,base,endpoint+"/values","POST",valuesRequest,otherCookie,otherCsrf).statusCode());
+            JsonNode choices=finish(client,base,cookie,csrf,DbaTest.request(client,base,endpoint+"/values","POST",valuesRequest,cookie,csrf));
+            assertEquals(2,choices.path("result").path("values").size());
+            assertEquals(2,choices.path("result").path("totalDistinct").asInt());
+            assertEquals(1,Profiles.JSON.readTree(DbaTest.request(client,base,endpoint,"GET",null,cookie,null).body()).path("revision").asInt());
             var draft=Profiles.JSON.createObjectNode().put("revision",1);draft.putArray("changes").addObject().put("rowId",descriptor.path("rowIds").get(0).asText()).put("operation","delete").putObject("values");
             assertEquals(403,DbaTest.request(client,base,endpoint+"/prepare","POST",draft,cookie,null).statusCode());
             assertEquals(403,DbaTest.request(client,base,endpoint+"/prepare","POST",draft,otherCookie,otherCsrf).statusCode());

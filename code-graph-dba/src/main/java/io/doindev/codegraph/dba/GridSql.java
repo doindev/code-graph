@@ -15,6 +15,37 @@ final class GridSql {
     record Edit(String sql,ArrayNode parameters) {}
     /** Separates original predicates from grid-added predicates; only the latter populate the editor. */
     static ObjectNode prepare(JsonNode input){
+        if(input.path("action").asText().equals("filter_values")||input.has("valueFilters"))return prepareValues(input);
+        return prepareCore(input);
+    }
+    private static ObjectNode prepareValues(JsonNode input){
+        String action=input.path("action").asText();
+        ObjectNode request=input.deepCopy();request.remove(List.of("pickerBase","valueFilters"));
+        if(input.has("valueFilters")&&!input.path("valueFilters").isArray())throw invalid("Invalid column value filters");
+        ArrayNode filters=input.has("valueFilters")?(ArrayNode)input.path("valueFilters").deepCopy():Profiles.JSON.createArrayNode();
+        if(filters.size()>256)throw invalid("Too many column filters");
+        if(input.path("pickerBase").isObject()&&!action.equals("expression")){
+            for(String field:List.of("sql","parameters","baseSql","baseParameters","filterExpression"))
+                if(input.path("pickerBase").has(field))request.set(field,input.path("pickerBase").get(field));
+        }
+        if(Set.of("clear_all","clear_filters","expression").contains(action))filters.removeAll();
+        if(action.equals("filter_values")){
+            String id=Profiles.text(input,"columnId",256);HumanSql.checkParameters(input.path("values"));
+            if(input.path("values").isEmpty())throw invalid("Select at least one value");
+            for(int i=filters.size()-1;i>=0;i--)if(filters.get(i).path("columnId").asText().equals(id))filters.remove(i);
+            ObjectNode filter=Profiles.JSON.createObjectNode();
+            for(String field:List.of("columnId","columnIndex","columnLabel","jdbcType","values"))if(input.has(field))filter.set(field,input.get(field));
+            filters.add(filter);request.put("action","refresh");
+        }
+        ObjectNode base=prepareCore(request),result=base.deepCopy();
+        for(JsonNode filter:filters){
+            if(!filter.isObject())throw invalid("Invalid column value filter");
+            ObjectNode next=result.deepCopy();next.setAll((ObjectNode)filter);next.put("action","filter_values");next.set("columns",input.path("columns"));
+            result=prepareCore(next);
+        }
+        result.set("pickerBase",base);result.set("valueFilters",filters);return result;
+    }
+    private static ObjectNode prepareCore(JsonNode input){
         try{
             String baseSql=input.path("baseSql").asText(input.path("sql").asText());JsonNode baseParameters=input.has("baseParameters")?input.get("baseParameters"):input.path("parameters");
             ObjectNode request=input.deepCopy();boolean expression=input.path("action").asText().equals("expression");
@@ -40,14 +71,19 @@ final class GridSql {
         return SqlScript.displayIndexed(statement.toString(),edit.parameters());
     }
     private record TypedValue(JsonNode value,String cast){}
+    private static java.math.BigDecimal boundedNumber(String text){
+        java.math.BigDecimal number=new java.math.BigDecimal(text);
+        if(number.precision()>8192||Math.abs((long)number.scale())>8192)throw invalid("Numeric value exceeds the value allowance");
+        return number;
+    }
     private static TypedValue typedValue(JsonNode value,int type){
         String text=value.asText(),trimmed=text.trim();
         try{
             return switch(type){
                 case java.sql.Types.TINYINT,java.sql.Types.SMALLINT,java.sql.Types.INTEGER,java.sql.Types.BIGINT -> {
-                    java.math.BigDecimal number=new java.math.BigDecimal(trimmed);number.toBigIntegerExact();yield new TypedValue(DecimalNode.valueOf(number),null);
+                    java.math.BigDecimal number=boundedNumber(trimmed);number.toBigIntegerExact();yield new TypedValue(DecimalNode.valueOf(number),null);
                 }
-                case java.sql.Types.NUMERIC,java.sql.Types.DECIMAL,java.sql.Types.FLOAT,java.sql.Types.REAL,java.sql.Types.DOUBLE -> new TypedValue(DecimalNode.valueOf(new java.math.BigDecimal(trimmed)),null);
+                case java.sql.Types.NUMERIC,java.sql.Types.DECIMAL,java.sql.Types.FLOAT,java.sql.Types.REAL,java.sql.Types.DOUBLE -> new TypedValue(DecimalNode.valueOf(boundedNumber(trimmed)),null);
                 case java.sql.Types.BOOLEAN,java.sql.Types.BIT -> {
                     if(!Set.of("true","false","1","0").contains(trimmed.toLowerCase(Locale.ROOT)))throw invalid("Enter true, false, 1 or 0 for a Boolean column");
                     boolean bool=trimmed.equalsIgnoreCase("true")||trimmed.equals("1");
@@ -119,6 +155,9 @@ final class GridSql {
                     List<OrderByElement> order=select.getOrderByElements();if(order==null){order=new ArrayList<>();select.setOrderByElements(order);}boolean found=false;
                     for(var item:order){Expression e=item.getExpression();if(same(e,column,single)||e instanceof LongValue n&&n.getValue()==index+1||alias!=null&&e instanceof Column c&&key(c.getColumnName()).equals(key(alias))){item.setAsc(direction.equals("ASC"));item.setAscDescPresent(true);found=true;}}
                     if(!found){var item=new OrderByElement();item.setExpression(column);item.setAsc(direction.equals("ASC"));item.setAscDescPresent(true);order.add(item);}
+                }else if(action.equals("filter_values")){
+                    Expression predicate=valuePredicate(column,input,values);
+                    select.setWhere(select.getWhere()==null?predicate:new AndExpression(new ParenthesedExpressionList<>(select.getWhere()),new ParenthesedExpressionList<>(predicate)));
                 }else if(action.equals("filter")){
                     String operator=Profiles.text(input,"operator",12);Expression replacement;
                     if(operator.equals("IS NULL")||operator.equals("IS NOT NULL")){var condition=new IsNullExpression();condition.setLeftExpression(column);condition.setNot(operator.equals("IS NOT NULL"));replacement=condition;}
@@ -142,7 +181,30 @@ final class GridSql {
             if(normalized.sql().length()>16384)throw invalid("Updated SQL exceeds the statement-size limit");return normalized;
         }catch(IllegalArgumentException e){throw e;}catch(Exception e){throw invalid("This SQL syntax cannot be safely edited automatically; use the SQL editor");}
     }
-    private static Column resolve(PlainSelect select,int index,String label,JsonNode columns){
+    private static Expression valuePredicate(Column column,JsonNode input,ArrayNode parameters){
+        JsonNode chosen=input.path("values");HumanSql.checkParameters(chosen);if(chosen.isEmpty())throw invalid("Select at least one value");
+        List<Expression> entries=new ArrayList<>();boolean hasNull=false;Set<JsonNode> seen=new HashSet<>();
+        for(JsonNode value:chosen){
+            if(value.isNull()){hasNull=true;continue;}
+            TypedValue typed=typedValue(value,input.path("jdbcType").asInt(java.sql.Types.VARCHAR));if(!seen.add(typed.value()))continue;
+            // JSON numbers would round in the browser before query execution. Bind exact
+            // numeric text with an explicit lossless decimal shape instead.
+            String cast=typed.cast();JsonNode bound=typed.value();
+            if(bound.isNumber()&&cast==null){
+                java.math.BigDecimal number=bound.decimalValue().stripTrailingZeros();
+                int scale=Math.max(0,number.scale()),precision=Math.max(1,Math.max(scale,number.precision()-number.scale()+scale));
+                if(precision>8192)throw invalid("Numeric value exceeds the value allowance");
+                bound=TextNode.valueOf(number.toPlainString());cast="DECIMAL("+precision+","+scale+")";
+            }
+            parameters.add(bound);Expression parameter=new JdbcParameter().withIndex(parameters.size()).withUseFixedIndex(true);
+            if(cast!=null)parameter=new CastExpression().withLeftExpression(parameter).withType(new net.sf.jsqlparser.statement.create.table.ColDataType().withDataType(cast)).withUseCastKeyword(true);
+            entries.add(parameter);
+        }
+        Expression predicate=entries.isEmpty()?null:new InExpression(column,new ParenthesedExpressionList<>(entries));
+        if(hasNull){IsNullExpression nil=new IsNullExpression();nil.setLeftExpression(column);predicate=predicate==null?nil:new OrExpression(predicate,nil);}
+        return predicate;
+    }
+    static Column resolve(PlainSelect select,int index,String label,JsonNode columns){
         if(index<0||index>=256)throw invalid("Invalid result column");var items=select.getSelectItems();
         var sources=new ArrayList<FromItem>();if(select.getFromItem()!=null)sources.add(select.getFromItem());if(select.getJoins()!=null)for(var join:select.getJoins())sources.add(join.getRightItem());
         long stars=items.stream().filter(i->i.getExpression() instanceof AllColumns).count();

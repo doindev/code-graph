@@ -31,6 +31,7 @@ const [base,jar,schema='']=process.argv.slice(2);
   };return context;};
   try {
     if(process.env.DBA_BROWSER_SUITE==='driver-downloads'){await require('./browser-driver-downloads.cjs')(browser,base);return;}
+    if(process.env.DBA_BROWSER_SUITE==='grid-values'){await require('./browser-grid-values.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-cell'){await require('./browser-grid-cell.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-search'){await require('./browser-grid-search.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='editable-grid'){await require('./browser-editable-grid.cjs')(browser,base,jar);return;}
@@ -56,6 +57,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     await require('./browser-tree-context.cjs')(browser,base);
     await require('./browser-workspace-toolbar.cjs')(browser,base);
     await require('./browser-script-selection.cjs')(browser,base,jar);
+    await require('./browser-grid-values.cjs')(browser,base,jar);
     await require('./browser-grid-column-menu.cjs')(browser,base);
     await require('./browser-grid-refresh.cjs')(browser,base);
     await require('./browser-grid-controller.cjs')(browser,base);

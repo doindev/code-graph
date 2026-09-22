@@ -337,9 +337,9 @@ async function transformGrid(tab,result,change,execution){
   if(refreshOnly&&(result.grid?.capabilities.rowLimit??result.grid?.capabilities.page)){await runOwnedGrid(result,{action:'page',direction:'refresh',limit:result.grid.page.limit},execution,ownedOptions);return;}
   try{
     const {displaySql,previewSql,...requestContext}=context;
-    const edited=await api('/query/grid-edit','POST',{...requestContext,...change,...(refreshOnly?{action:'refresh'}:{})});execution.check();if(!retained())return;
+    const edited=await api('/query/grid-edit','POST',{...requestContext,columns:result.columns,...change,...(refreshOnly?{action:'refresh'}:{})});execution.check();if(!retained())return;
     if(refreshOnly)edited.displaySql=context.displaySql??context.sql;
-    gridContexts.set(result,{...context,previewSql:edited.displaySql??edited.sql});if(!refreshOnly)DataGridView.setFilter(result,edited.filterExpression??'');updateView();execution.check();
+    if(change.action!=='filter_values'){gridContexts.set(result,{...context,previewSql:edited.displaySql??edited.sql});if(!refreshOnly)DataGridView.setFilter(result,edited.filterExpression??'');updateView();}execution.check();
     const response=await execution.submit({connectionId:context.connectionId,sql:edited.sql,parameters:edited.parameters,autoCommit:false,rowLimit:result.grid?.page?.limit,...(context.database!==undefined?{database:context.database}:{})});
     if(!retained())return;
     const rows=response.results?.filter(r=>r.kind==='rows')??[];if(rows.length!==1)throw new Error('The edited SELECT did not return exactly one result; the old grid was retained.');
@@ -352,7 +352,7 @@ async function transformGrid(tab,result,change,execution){
     await releaseGrid(api,result);Object.assign(result,replacement);DataGridView.clearSelection(result);gridContexts.set(result,{...context,...edited,displaySql:replacement.sourceSql??edited.displaySql??edited.sql});
     container.rowCount=(container.results??[result]).filter(r=>r.kind==='rows').reduce((n,r)=>n+r.rowCount,0);container.truncated=(container.results??[result]).some(r=>r.truncated);
     if(container.results){const first=container.results.find(r=>r.kind==='rows');container.rows=first?.rows??[];container.columns=first?.columns??[];}
-    tab.bytes=new TextEncoder().encode(JSON.stringify(container)).length*3;updateView();
+    tab.bytes=new TextEncoder().encode(JSON.stringify(container)).length*3;DataGridView.setValueFilters(result,edited.valueFilters??[]);if(!refreshOnly)DataGridView.setFilter(result,edited.filterExpression??'');updateView();return true;
   }catch(error){if(retained()){gridContexts.set(result,context);updateView();}throw error;}
 }
 $('new-tab').onclick=safe(()=>openTab(lastSelected));

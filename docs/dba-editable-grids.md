@@ -295,3 +295,55 @@ queued work, stable viewport positioning, virtualized DOM size, one-row pages,
 and pauses for drafts and Find/Replace. Other vendors retain the verified paging
 adapter boundaries above; this scroll-specific test does not claim a new live
 validation run for every vendor.
+
+## Filter by value
+
+The column triangle menu opens a distinct-value picker. Search the full source
+in **Read from server** mode (the default), or uncheck it to use this result's
+retained, saved rows only. Cached mode excludes unloaded pages and staged edits;
+it does not contact the database for searches or counts. Server choices come
+from the entire verified source table/view, independently of grid predicates.
+
+Drag the dialog's bottom-right resize handle horizontally to give the Value
+column more room. Values shorter than 30 characters wrap instead of truncating;
+row heights adjust to keep the full value visible.
+
+No choices are checked initially. Selections survive searches and paging;
+reopening restores the last successfully applied selection. **Clear All** clears
+all checks, including hidden choices. **Apply** requires at least one choice;
+**Cancel**, Escape and close leave the applied filter unchanged. The existing
+filter-removal actions clear applied picker filters.
+
+**Show row count** displays the distinct-choice total (including SQL NULL) and
+matching count when searching. **Show distinct values count** fills each row's
+Count with its occurrence count. Both default to off. SQL NULL, empty strings,
+and the literal text `NULL` are displayed separately.
+
+Applying uses typed IN/IS NULL predicates, preserves other filters and ordering,
+and follows the usual unsaved-row guard. Reapplying replaces that column's picker
+predicate. Decimal and integer choices keep their exact values across browser
+requests. Existing limits still apply: at most 128 selected values, 128 total
+query parameters, 8192 characters per complete value, and 16384 SQL characters.
+The dialog keeps errors and choices available if application fails.
+
+Server lookup uses the browser-owned `POST /api/dba/grids/{id}/values` job operation
+with `revision`, `columnId`, optional `search` and `offset`, and Boolean
+`showRowCount`/`showDistinctValuesCount` options. Results contain `values` entries
+with scalar `value` and optional decimal-string `count`, `jdbcType`, `hasMore`,
+`nextOffset`, and optional decimal-string `totalDistinct`/`matchingDistinct`.
+It reads at most 200 choices per page (or the lower UI ceiling), uses the existing
+job deadlines and byte limits, and never changes the grid revision or rows.
+The browser virtualizes the list and caps retained choices at 4 MiB of estimated
+memory; refine the search to reach other values when this allowance is reached.
+
+Lookup supports the existing PostgreSQL, MySQL, MariaDB, H2 and SQL Server scalar
+adapters without requiring row-editability or a primary key. Unsupported types,
+computed/ambiguous origins, CTE sources and unavailable metadata show an explicit
+reason. Cached counts follow local typed equality; database collation may group
+text differently. Neither source provides a snapshot across separate page loads.
+Preferences and selections last only for the result lifetime.
+
+Focused validation: run the `GridValuesTest` and `GridHttpTest` Java tests, then
+set `DBA_BROWSER_SUITE=grid-values` for the existing browser harness. The browser
+suite exercises Script, Table and query-builder hosts, cancellation races,
+server/cached sources, counts, precision and responsive layout.
