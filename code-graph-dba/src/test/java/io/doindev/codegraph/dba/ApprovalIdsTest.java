@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ApprovalIdsTest {
     @Test void acceptsCanonicalLegacyAndMatchingAliases() {
         String id=UUID.randomUUID().toString();
+        assertEquals(id,ApprovalIds.resolve(Profiles.JSON.createObjectNode().put("operationId",id)));
         assertEquals(id,ApprovalIds.resolve(Profiles.JSON.createObjectNode().put("approvalId",id)));
         assertEquals(id,ApprovalIds.resolve(Profiles.JSON.createObjectNode().put("requestId",id)));
         assertEquals(id,ApprovalIds.resolve(Profiles.JSON.createObjectNode().put("approvalId",id).put("requestId",id)));

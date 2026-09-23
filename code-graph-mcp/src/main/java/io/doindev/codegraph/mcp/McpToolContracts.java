@@ -38,7 +38,7 @@ final class McpToolContracts {
                    "contractVersion":{"type":"integer","const":1},
                    "tool":{"type":"string"},
                    "invocationState":{"type":"string","enum":["returned","error"],
-                     "description":"Invocation only, not asynchronous job completion or authorization; inspect data.state and authorization fields."},
+                     "description":"Invocation only, not asynchronous operation completion; inspect data.state. Queued operations are nonterminal."},
                    "operationState":{"type":"string"},
                    "target":{"type":"object"},
                    "generation":{"type":["integer","string"]},

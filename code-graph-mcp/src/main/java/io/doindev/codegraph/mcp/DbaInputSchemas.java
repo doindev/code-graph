@@ -9,13 +9,15 @@ final class DbaInputSchemas {
     static void enrich(String operation, ObjectNode schema) {
         ObjectNode props = schema.withObject("properties");
         if(Set.of("dba_request_status","dba_cancel_request").contains(operation)) {
-            props.putObject("approvalId").put("type","string").put("description","Server-returned approvalId (also exposed as legacy id); not the submission's idempotency requestId.");
-            props.withObject("requestId").put("deprecated",true).put("description","Deprecated polling alias for approvalId. If both are supplied they must match.");
+            props.putObject("operationId").put("type","string").put("description","Server-returned operationId; not the submission idempotency requestId.");
+            props.putObject("approvalId").put("type","string").put("description","Legacy alias for operationId.");
+            props.withObject("requestId").put("deprecated",true).put("description","Deprecated polling alias for operationId. If multiple aliases are supplied they must match.");
             schema.putArray("required");
             var alternatives=schema.putArray("anyOf");
+            alternatives.addObject().putArray("required").add("operationId");
             alternatives.addObject().putArray("required").add("approvalId");
             alternatives.addObject().putArray("required").add("requestId");
-        } else if(props.has("requestId")) props.withObject("requestId").put("description","Caller-generated idempotency key for this exact submission; use the returned approvalId for polling or cancellation.");
+        } else if(props.has("requestId")) props.withObject("requestId").put("description","Caller-generated idempotency key for this exact submission; use the returned operationId for polling or cancellation.");
         if(operation.equals("dba_request_native_command")){
             ObjectNode command=props.putObject("command").put("description","Bounded BSON Extended JSON command document or Redis argument vector. Mongo renameCollection requires the exact selected database.collection source and a same-database to namespace; dropTarget must be false or omitted. No system/view/time-series renames or destination replacement. Reviewed collMod supports existing TTL index changes, time-series retention/granularity and capped limits, one settings family per command; retention/capped changes may permanently delete data. Redis keys/values may be {base64: canonical-padded-base64}; command names, flags, cursors, patterns and numbers must be strings. Redis bitmap/bitfield writes address at most 64 KiB, bitfields contain at most 32 operations, and GEOSEARCH/GEOSEARCHSTORE require COUNT 1..100. PFCOUNT is a reviewed write because it may change cached cardinality. These operations are not accepted inside pipelines/transactions. 128 KiB aggregate input limit; binary values at most 64 KiB, keys/fields 8 KiB.");
             var alternatives=command.putArray("oneOf");
@@ -132,7 +134,7 @@ final class DbaInputSchemas {
             ObjectNode value = (ObjectNode) entry.getValue();
             if (value.path("type").asText().equals("string")) value.put("maxLength", 256);
         });
-        for (String key : List.of("connectionId", "bindingId", "jobId", "approvalId", "leftSnapshotId", "rightSnapshotId", "snapshotId", "planId", "leftPlanId", "rightPlanId", "projectId"))
+        for (String key : List.of("connectionId", "bindingId", "jobId", "operationId", "approvalId", "leftSnapshotId", "rightSnapshotId", "snapshotId", "planId", "leftPlanId", "rightPlanId", "projectId"))
             if (props.has(key)) props.withObject(key).put("format", "uuid").put("minLength", 1).put("maxLength", 36);
         if (props.has("requestId")) props.withObject("requestId").put("minLength", 1).put("maxLength",
                 Set.of("dba_request_status", "dba_cancel_request").contains(operation) ? 36 : 100);

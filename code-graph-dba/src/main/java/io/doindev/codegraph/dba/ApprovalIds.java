@@ -7,12 +7,13 @@ final class ApprovalIds {
     private ApprovalIds() {}
 
     static String resolve(JsonNode input) {
-        String canonical=input.has("approvalId")?Profiles.text(input,"approvalId",36):null;
-        String legacy=input.has("requestId")?Profiles.text(input,"requestId",36):null;
-        if(canonical==null&&legacy==null)
-            throw new IllegalArgumentException("approvalId is required; use the server-returned approvalId, not your submission requestId");
-        if(canonical!=null&&legacy!=null&&!canonical.equals(legacy))
-            throw new IllegalArgumentException("Conflicting approvalId and deprecated requestId alias");
-        return canonical==null?legacy:canonical;
+        String id=null;
+        for(String key:java.util.List.of("operationId","approvalId","requestId"))if(input.has(key)){
+            String candidate=Profiles.text(input,key,36);
+            if(id!=null&&!id.equals(candidate))throw new IllegalArgumentException("Conflicting operationId and legacy request aliases");
+            id=candidate;
+        }
+        if(id==null)throw new IllegalArgumentException("operationId is required; use the server-returned operationId, not your submission requestId");
+        return id;
     }
 }

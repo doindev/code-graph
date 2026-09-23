@@ -30,6 +30,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     }finally{await close(...options);}
   };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='approval-settings'){await require('./browser-approval-settings.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='scheduled-jobs'){await require('./browser-scheduled-jobs.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='grid-settings'){await require('./browser-grid-settings.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='driver-downloads'){await require('./browser-driver-downloads.cjs')(browser,base);return;}
@@ -314,13 +315,15 @@ const [base,jar,schema='']=process.argv.slice(2);
     await page.locator('#workspace-settings').click();await page.locator('#agents').click();await page.getByRole('button',{name:'Revoke',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#agent-list').children.length===0);await page.locator('[data-close=agents-dialog]').click();
     await page.locator('#divider').focus();const before=await page.locator('#divider').boundingBox();await page.keyboard.press('ArrowRight');const after=await page.locator('#divider').boundingBox();assert.ok(after.x>before.x);
     await page.locator('#workspace-settings').click();await page.locator('#settings').click();
+    assert.equal(await page.locator('[name=approvalTimeoutSeconds]').inputValue(),'300');
+    await page.locator('[name=approvalTimeoutSeconds]').fill('45');
     await page.locator('[name=memory]').fill('32m');
     await page.locator('[name=agentRows]').fill('7');
     await page.locator('#settings-form button[type=submit]').click();
     await page.locator('#settings-dialog').waitFor({state:'hidden'});
     await page.screenshot({path:'code-graph-dba/target/browser-smoke.png'});
     assert.deepEqual(errors,[]);
-    await page.locator('#workspace-settings').click();await page.locator('#settings').click();assert.equal(await page.locator('[name=agentRows]').inputValue(),'7');await page.locator('[data-close=settings-dialog]').click();
+    await page.locator('#workspace-settings').click();await page.locator('#settings').click();assert.equal(await page.locator('[name=agentRows]').inputValue(),'7');assert.equal(await page.locator('[name=approvalTimeoutSeconds]').inputValue(),'45');await page.locator('[data-close=settings-dialog]').click();
     assert.equal(await page.locator('#logout').count(),0);await page.evaluate(async()=>{const session=await(await fetch('/api/dba/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();await fetch('/api/dba/logout',{method:'POST',headers:{'X-Dba-CSRF':session.csrf}});});await page.reload();await page.locator('#welcome').waitFor({state:'visible'});assert.equal(await page.locator('#tabs .tab').count(),0,'Ending a session clears its recoverable Script workspace');
     console.log('Browser checks passed: session-scoped Script recovery, compact toolbars, reusable statement-aware Data Grid, SQL viewer resizing/dismissal, filter command strip, direct and modal column reordering, stable widths, sticky headers/row numbers, virtualization, tab connection selectors, file actions, direct access, connection tests, query, grants, keyboard operation, responsive layout, settings menu, session expiry/logout API'+(schema?', PostgreSQL plans/truncation':'')+'; no page errors.');
     const navHandle=await page.locator('#divider').boundingBox();await page.mouse.move(navHandle.x+2,navHandle.y+30);await page.mouse.down();await page.mouse.move(340,navHandle.y+30);await page.mouse.up();assert.equal(await page.evaluate(()=>sessionStorage.getItem('codegraph.dba.sidebar-width')),'340');

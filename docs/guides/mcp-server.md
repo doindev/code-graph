@@ -11,7 +11,7 @@ for separate identities. See [DBA access](../dba.md).
 The explicit startup-only [`--yolo` mode](../yolo.md) automatically authorizes local
 MCP DBA operations, including writes and administration, without creating policies.
 It still requires live sessions and exact targets, preserves restricted read-tool
-semantics and limits, and returns automatic-authorization metadata. Connection
+semantics and limits, and keeps authorization details in the application audit/reviewer interface. Connection
 setup must explicitly choose `testBeforeSave` or `saveUntested`; driver installation
 must be explicitly requested with a pinned version. Do not infer permission for
 an agent task merely from the server running in this mode.
@@ -55,8 +55,9 @@ bind subsequent navigation to the observed publication.
 
 DBA job status supports `afterRevision` and `waitMillis` up to 5,000 ms, bounded
 to four waiters and rechecking ownership. Accepted cancellation is not completion.
-For approvals, use the returned `approvalId` to poll/cancel; the caller's
-idempotency `requestId` is not the execution `jobId`. Compatibility aliases remain.
+Use the returned `operationId` to poll/cancel queued work; the caller's
+idempotency `requestId` is not the execution `jobId`. Queued work requires no
+agent-side intervention. See [session recovery and approval delivery](../mcp-session-approvals.md). Compatibility aliases remain.
 
 Tool definitions vary by runtime mode: no DBA means no DBA definitions; reduced
 headless mode advertises only its existing safe subset. Enabling a capability or
@@ -196,7 +197,7 @@ With DBA enabled:
 | `dba_request_apply_migration` | Exact one-time human review and asynchronous execution of a retained migration or rehearsal; reusable SQL grants never authorize the plan |
 | `validate_database_contracts` | Compare bounded static SQL/JPA/MyBatis/Prisma/TypeORM evidence with one authorized retained schema snapshot |
 | `compare_query_plans` | Compare structural evidence from two retained estimated-plan jobs; preserves raw plans and never compares cross-vendor cost units |
-| `dba_request_editor_access` | Ask the user to select an existing DBA tab or open a new workspace through native consent; poll `dba_request_status` with `approvalId` in the same MCP session until `paired` |
+| `dba_request_editor_access` | Connect to a DBA browser workspace; poll `dba_request_status` with `operationId` in the same MCP session until `paired` |
 | `dba_pair_editor` and editor document tools | Legacy user-code pairing, revision-checked Script drafts/edits, bounded events, and explicit revocation; never executes SQL, saves files, or grants database permission. See [editor collaboration](../editor-collaboration.md) |
 
 Capability discovery does not pretend a template proves the actual vendor or
@@ -280,10 +281,10 @@ graph. Test-path conventions remain heuristic and do not establish complete cove
 
 Compatibility aliases remain supported: `dba_live_request_status` →
 `dba_request_status`, and `dba_cancel_live_request` → `dba_cancel_request`.
-Canonical operations and aliases accept the server-returned `approvalId`.
-Canonical operations temporarily also accept `requestId` as a deprecated polling
-alias for that same approval ID, not the caller's submission idempotency key.
-If both fields are supplied, they must match.
+Canonical operations accept the server-returned `operationId`. The old `approvalId`
+and polling-only `requestId` fields remain compatibility aliases; all supplied
+identifiers must match. Submission `requestId` remains an independent idempotency key.
+The two legacy tool names still use their `approvalId` input to carry the operation ID.
 
 ### Onboarding projects through MCP
 

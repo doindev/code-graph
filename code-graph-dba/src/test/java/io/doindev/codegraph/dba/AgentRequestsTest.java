@@ -22,6 +22,17 @@ class AgentRequestsTest {
         jobs=new QueryJobs(connections,new DbaConfig(directory,64L<<20,2,100,100,5),agents::alive);setup=new ConnectionSetup(profiles,jobs);requests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);
     }
     @AfterEach void stop()throws Exception{requests.close();contexts.close();jobs.close();if(nativeOperations!=null)nativeOperations.close();connections.close();profiles.close();}
+    @Test void configurableAdministrationWaitExpiresWithoutChangingProfile()throws Exception {
+        var clock=new java.util.concurrent.atomic.AtomicLong(1000);
+        try(var pending=new AgentRequests(profiles,connections,setup,contexts,agents,jobs,clock::get)){
+            pending.approvalTimeout(()->10);
+            var input=request("expire-profile","Test expiry").put("connectionId",connection).put("connectionName","Development");
+            String id=pending.request(principal,"connection_delete",input).path("id").asText();
+            clock.addAndGet(10_001);assertEquals("approval_timeout",AgentOperationView.of(pending.get(principal,id)).path("error").path("code").asText());
+            assertThrows(IllegalArgumentException.class,()->pending.decide("human",id,"approve_once",true,Profiles.JSON.createObjectNode()));
+            assertEquals("Development",profiles.get(connection).path("name").asText());
+        }
+    }
     @Test void nativeReadsRequireExactReviewAndRejectStaleTargetsOrForgedPersistentChoices()throws Exception{
         nativeOperations=new NativeOperations(profiles,jobs);requests.nativeOperations(nativeOperations);
         ObjectNode nativeProfile=Profiles.JSON.createObjectNode().put("name","Native local").put("templateId","redis-native").put("url","redis://127.0.0.1:1");

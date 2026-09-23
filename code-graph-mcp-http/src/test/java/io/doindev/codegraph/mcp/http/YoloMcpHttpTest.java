@@ -28,7 +28,7 @@ class YoloMcpHttpTest extends DbaMcpHttpTest {
                 connection=created.path("job").path("result").path("id").asText();assertFalse(connection.isBlank());
                 ObjectNode sql=JSON.createObjectNode().put("connectionId",connection).put("connectionName","YOLO HTTP").put("database","YOLO_HTTP").put("schema","PUBLIC").put("requestId",UUID.randomUUID().toString()).put("purpose","Isolated mutation").put("sql","CREATE TABLE PUBLIC.HTTP_ITEMS(ID INT)");
                 JsonNode done=finish(client,endpoint,old,ReusableMcpHttpTest.call(client,endpoint,old,"dba_request_live_sql",sql));
-                assertEquals("automatic",done.path("approvalChannel").asText());
+                assertFalse(done.has("approvalChannel"));
                 var permissions=ReusableMcpHttpTest.call(client,endpoint,old,"dba_get_my_permissions",JSON.createObjectNode());assertTrue(permissions.path("reusablePolicies").isEmpty());
             }
             try(var server=start(-1)){
@@ -67,7 +67,7 @@ class YoloMcpHttpTest extends DbaMcpHttpTest {
             JsonNode created=stdioFinish(reader,writer,executor,stdioCall(reader,writer,executor,"dba_request_connection_create",input));
             String connection=created.path("job").path("result").path("id").asText();assertFalse(connection.isBlank());
             ObjectNode sql=JSON.createObjectNode().put("connectionId",connection).put("connectionName","YOLO stdio").put("database","YOLO_STDIO").put("schema","PUBLIC").put("requestId",UUID.randomUUID().toString()).put("purpose","Stdio mutation").put("sql","CREATE TABLE PUBLIC.STDIO_ITEMS(ID INT); INSERT INTO PUBLIC.STDIO_ITEMS VALUES(1); SELECT * FROM PUBLIC.STDIO_ITEMS; DROP TABLE PUBLIC.STDIO_ITEMS");
-            JsonNode result=stdioFinish(reader,writer,executor,stdioCall(reader,writer,executor,"dba_request_live_sql",sql));assertEquals("automatic",result.path("approvalChannel").asText());
+            JsonNode result=stdioFinish(reader,writer,executor,stdioCall(reader,writer,executor,"dba_request_live_sql",sql));assertFalse(result.has("approvalChannel"));
             writer.close();assertTrue(child.waitFor(15,java.util.concurrent.TimeUnit.SECONDS),"stdio EOF must close the runtime");
         }finally{child.destroy();if(!child.waitFor(10,java.util.concurrent.TimeUnit.SECONDS))child.destroyForcibly();executor.shutdownNow();}
     }
@@ -83,12 +83,12 @@ class YoloMcpHttpTest extends DbaMcpHttpTest {
     static JsonNode stdioFinish(java.io.BufferedReader reader,java.io.PrintWriter writer,java.util.concurrent.ExecutorService executor,JsonNode initial)throws Exception{
         JsonNode result=initial;long until=System.nanoTime()+20_000_000_000L;
         while(!Set.of("complete","failed","cancelled").contains(result.path("state").asText())&&System.nanoTime()<until){Thread.sleep(20);result=stdioCall(reader,writer,executor,"dba_request_status",JSON.createObjectNode().put("requestId",initial.path("id").asText()));}
-        assertEquals("complete",result.path("state").asText(),result.toPrettyString());assertEquals("startup_yolo",result.path("authorizationReason").asText());return result;
+        assertEquals("complete",result.path("state").asText(),result.toPrettyString());assertFalse(result.has("authorizationReason"));return result;
     }
 
     static JsonNode finish(HttpClient client,String endpoint,String session,JsonNode initial)throws Exception{
         long deadline=System.nanoTime()+20_000_000_000L;JsonNode result=initial;
         while(!Set.of("complete","failed","cancelled").contains(result.path("state").asText())&&System.nanoTime()<deadline){Thread.sleep(20);result=ReusableMcpHttpTest.call(client,endpoint,session,"dba_request_status",JSON.createObjectNode().put("requestId",initial.path("id").asText()));}
-        assertEquals("complete",result.path("state").asText(),result.toPrettyString());assertEquals("startup_yolo",result.path("authorizationReason").asText());return result;
+        assertEquals("complete",result.path("state").asText(),result.toPrettyString());assertFalse(result.has("authorizationReason"));return result;
     }
 }

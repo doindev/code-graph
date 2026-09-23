@@ -73,10 +73,10 @@ binding; do not replay profile creation.
 
 ## Status, audit and recovery
 
-Requests return `submitted` or `complete`, never `awaiting_approval`, and expose
-`authorizationOutcome: auto_approved`, `authorizationReason: startup_yolo` and
-`approvalChannel: automatic`. Submission is not completion. Use returned request
-IDs for status/cancellation, and release completed job results when no longer needed.
+MCP returns ordinary queued/running/terminal operation states. Automatic-authorization
+metadata remains in the browser/reviewer records and audit; it is omitted from MCP
+operation responses. Submission is not completion. Use returned `operationId`
+for status/cancellation, and release completed job results when no longer needed.
 Cancellation acceptance does not guarantee rollback.
 
 Automatic authorization is audited before execution without credentials or full

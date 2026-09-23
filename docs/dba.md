@@ -17,6 +17,8 @@ only for verified new-object creation; destructive/unknown SQL stays one-time. P
 JDBC DDL/DML and statement-aware scripts with savepoint-backed error decisions, commit-on-success,
 or explicit auto-commit; see [execution behavior and limitations](dba-connections.md#script-files-and-execution-targets).
 
+See [MCP session activity, private approval delivery, and the persisted approval timeout](mcp-session-approvals.md).
+
 ## Available now
 
 Native MongoDB/Redis transport coverage and SQL Server additions are documented

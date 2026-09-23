@@ -22,7 +22,7 @@ class NativeMcpHttpTest {
             var profile=JSON.createObjectNode().put("name","Stream fixture").put("templateId","mongodb-native").put("url","mongodb://127.0.0.1:1").put("saveUntested",true);profile.putObject("nativeOptions").put("database","app").put("topology","replica_set").put("replicaSet","fixture");
             var saved=rest(client,base,"/connections","POST",profile,cookie,csrf);assertEquals(201,saved.statusCode());String id=JSON.readTree(saved.body()).path("id").asText(),session=initialize(client,endpoint,null);
             var input=JSON.createObjectNode().put("connectionId",id).put("connectionName","Stream fixture").put("database","app").put("collection","items").put("requestId",UUID.randomUUID().toString()).put("purpose","Read-only change-stream review");input.putObject("command").put("watch","items").put("waitMillis",0);
-            var pending=call(client,endpoint,session,"dba_request_native_command",input);assertEquals("awaiting_approval",pending.path("state").asText());assertFalse(pending.has("jobId"));assertFalse(pending.path("mutation").asBoolean());
+            var pending=call(client,endpoint,session,"dba_request_native_command",input);assertEquals("queued",pending.path("state").asText());assertFalse(pending.has("jobId"));assertFalse(pending.path("mutation").asBoolean());
             assertEquals(403,rest(client,base,"/native/execute","POST",input,cookie,null).statusCode());
             assertEquals("cancelled",call(client,endpoint,session,"dba_cancel_request",JSON.createObjectNode().put("approvalId",pending.path("id").asText())).path("state").asText());
             var settings=JSON.readTree(rest(client,base,"/settings","GET",null,cookie,null).body());assertEquals(0,settings.path("nativeClients").path("clients").asInt());assertEquals(0,settings.path("nativeClients").path("activeChangeStreamCursors").asInt());
@@ -62,7 +62,10 @@ class NativeMcpHttpTest {
             else if(scenario.equals("redis-stream"))input.putArray("command").add("XREADGROUP").add("GROUP").add("workers").add("consumer").add("COUNT").add("2").add("STREAMS").add("reviewed-stream").add(">");
             else input.putArray("command").add("SET").add("reviewed-key").add("never-executed");
             JsonNode pending=call(client,endpoint,session,"dba_request_native_command",input);
-            assertEquals("awaiting_approval",pending.path("state").asText());assertFalse(pending.has("jobId"));
+            assertEquals("queued",pending.path("state").asText());assertFalse(pending.has("jobId"));
+            assertFalse(pending.has("approvalChoices"));assertFalse(pending.has("approvalChannel"));
+            String operationId=pending.path("operationId").asText();
+            for(JsonNode record:JSON.readTree(rest(client,base,"/approvals","GET",null,cookie,csrf).body()))if(record.path("id").asText().equals(operationId))pending=record;
             assertEquals(database,pending.path("target").path("database").asText());
             if(scenario.equals("redis-stream")){assertTrue(pending.path("mutation").asBoolean());assertFalse(pending.path("eligiblePersistentRead").asBoolean());assertTrue(pending.path("transactionNotice").asText().contains("pending/delivery"));}
             if(scenario.equals("redis-transaction"))assertTrue(pending.path("transactionNotice").asText().contains("does not roll back"));

@@ -34,6 +34,19 @@ class StandaloneSqlApprovalTest {
     long count()throws Exception {try(Connection c=connections.open(connection);Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT COUNT(*) FROM PUBLIC.ITEMS")){r.next();return r.getLong(1);}}
     JsonNode await(String id)throws Exception {long until=System.nanoTime()+10_000_000_000L;JsonNode result;do{result=approvals.get(principal,id);if(Set.of("complete","failed","cancelled").contains(result.path("state").asText()))return result;Thread.sleep(10);}while(System.nanoTime()<until);fail(result.toString());return result;}
 
+    @Test void configurableDeadlineIsCapturedAndDenialTimeoutCancellationNeverExecute()throws Exception {
+        var seconds=new java.util.concurrent.atomic.AtomicInteger(10);approvals.approvalTimeout(seconds::get);
+        var first=request("DELETE FROM PUBLIC.ITEMS");String id=approvals.request(principal,first).path("id").asText();seconds.set(60);
+        String later=approvals.request(principal,request("DELETE FROM PUBLIC.ITEMS")).path("id").asText();
+        clock.addAndGet(10_001);
+        var expired=AgentOperationView.of(approvals.get(principal,id));assertEquals("approval_timeout",expired.path("error").path("code").asText());
+        assertEquals("failed",expired.path("state").asText());assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,"approve_once",true));
+        assertEquals("expired",approvals.request(principal,first).path("state").asText(),"A duplicate must not restart its deadline or execute");
+        assertEquals("queued",AgentOperationView.of(approvals.get(principal,later)).path("state").asText());
+        assertEquals("approval_denied",AgentOperationView.of(approvals.decide("human",later,"reject",true)).path("error").path("code").asText());
+        String cancelled=approvals.request(principal,request("DELETE FROM PUBLIC.ITEMS")).path("id").asText();approvals.cancel(principal,cancelled);
+        assertThrows(IllegalArgumentException.class,()->approvals.decide("human",cancelled,"approve_once",true));assertEquals(1,count());
+    }
     @Test void writesRequireExactOneTimeApprovalWithoutAnyProject()throws Exception {
         JsonNode r=approvals.request(principal,request("INSERT INTO PUBLIC.ITEMS VALUES(2,'private_literal')"));String id=r.path("id").asText();
         assertEquals(id,r.path("approvalId").asText());

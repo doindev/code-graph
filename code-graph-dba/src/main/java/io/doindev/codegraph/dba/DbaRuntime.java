@@ -20,6 +20,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final QueryJobs jobs;
     private final GridResults grids;
     private final GridSettings gridSettings;
+    private final ApprovalSettings approvalSettings;
     private final ConnectionSetup setup;
     private final NativeOperations nativeOperations;
     private final ProjectContexts contexts;
@@ -49,9 +50,11 @@ public final class DbaRuntime implements AutoCloseable {
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         gridSettings=new GridSettings(profiles.directory());
+        approvalSettings=new ApprovalSettings(profiles.directory());
         setup=new ConnectionSetup(profiles,jobs,config.driverDownloads());
         contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
+        approvals.approvalTimeout(approvalSettings::timeoutSeconds);agentRequests.approvalTimeout(approvalSettings::timeoutSeconds);
         authorization.sessions(approvals.reusable.sessions);
         agentRequests.sessions(approvals.reusable.sessions);
         agentRequests.nativeOperations(nativeOperations);
@@ -61,7 +64,7 @@ public final class DbaRuntime implements AutoCloseable {
             public JsonNode list(){return approvalList();}
             public JsonNode decide(String reviewer,String id,String action,boolean acknowledged,JsonNode options){return editorRequests!=null&&editorRequests.has(id)?editorRequests.decide(id,action):agentRequests.has(id)?agentRequests.decide(reviewer,id,action,acknowledged,options):approvals.decide(reviewer,id,action,acknowledged);}
         },desktop,this::ownerAlive);
-        if(editorRequests!=null)editorRequests.configure(approvalCapacity,broker::wake);
+        if(editorRequests!=null){editorRequests.configure(approvalCapacity,broker::wake);editorRequests.approvalTimeout(approvalSettings::timeoutSeconds);}
         reviewServer=new ApprovalReviewServer(this,broker,config.directory());
         broker.detailed(id->{if(uiEnabled&&browserAddress!=null)return new ApprovalBroker.Handoff(browserAddress.resolve("/dba#approval="+id),"");return reviewServer.open(id);});
         approvals.onPending(broker::published);agentRequests.onPending(broker::published);
@@ -230,7 +233,7 @@ public final class DbaRuntime implements AutoCloseable {
                 return;
             }
             if(path.equals("/api/dba/settings")){
-                if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo());jobs.configure(next);config=next;}
+                if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo(),config.driverDownloads());if(b.has("approvalTimeoutSeconds"))approvalSettings.save(b.get("approvalTimeoutSeconds"));jobs.configure(next);config=next;}
                 else if(!method.equals("GET"))throw new IllegalArgumentException("Unsupported settings method");
                 json(x,200,settings());return;
             }
@@ -308,7 +311,7 @@ public final class DbaRuntime implements AutoCloseable {
         finally{x.close();}
     }
     private static String optional(JsonNode n,String key){return n.hasNonNull(key)?n.get(key).asText():null;}
-    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("grids",grids.telemetry());n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
+    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("approvalTimeoutSeconds",approvalSettings.timeoutSeconds()).put("approvalSettingsWarning",approvalSettings.warning()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("grids",grids.telemetry());n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
     public String authenticateAgent(String token){return agents.authenticate(token);}
     /** Only loopback-validated HTTP and local stdio transports may establish this identity. */
     public String trustedLocalAgent(){return agents.trustedLocal();}
@@ -331,11 +334,16 @@ public final class DbaRuntime implements AutoCloseable {
         if(args==null||!args.isObject()||args.toString().length()>65_536)throw new IllegalArgumentException("Bounded JSON object required");
         authorization.requireSession(principal,mcpSession);
         boolean editorOperation=Set.of("dba_request_editor_access","dba_pair_editor","dba_list_editor_documents","dba_get_editor_document","dba_create_editor_draft","dba_apply_editor_edit").contains(operation)
-            ||Set.of("dba_request_status","dba_cancel_request").contains(operation)&&editorRequests!=null&&editorRequests.has(args.path("approvalId").asText(args.path("requestId").asText()));
+            ||Set.of("dba_request_status","dba_cancel_request").contains(operation)&&editorRequests!=null&&editorRequests.has(args.path("operationId").asText(args.path("approvalId").asText(args.path("requestId").asText())));
         if(!editorOperation)authorization.audit(principal,mcpSession,operation,args);
         JsonNode result=agentCallInternal(principal,mcpSession,operation,args);
         if(authorization.automatic&&!editorOperation&&result instanceof ObjectNode out){AgentAuthorization.approved(out);authorization.describe(out);}
         return result;
+    }
+    /** Public transport view. Approval delivery and choices are private to the reviewer UI. */
+    public JsonNode agentToolCall(String principal,String mcpSession,String operation,JsonNode args){
+        if(mcpSession!=null&&!approvals.reusable.sessions.alive(mcpSession,principal))throw new SecurityException("MCP session expired");
+        return AgentOperationView.of(agentCall(principal,mcpSession,operation,args));
     }
     private JsonNode agentCallInternal(String principal,String mcpSession,String operation,JsonNode args){
         if(!agentAlive(principal))throw new SecurityException("DBA agent authentication required");

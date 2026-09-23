@@ -11,14 +11,15 @@ import java.util.function.*;
 
 /** Bounded, single-use collaboration consent. Never grants database or file permissions. */
 final class EditorRequests implements AutoCloseable {
+    private java.util.function.IntSupplier approvalTimeout=()->ApprovalSettings.DEFAULT_SECONDS;
+    synchronized void approvalTimeout(java.util.function.IntSupplier seconds){approvalTimeout=seconds;}
     private static final Set<String> PENDING=Set.of("awaiting_approval","awaiting_browser");
-    private static final long TTL=300_000;
     private static final class Request {
         final String id=UUID.randomUUID().toString(),principal,session,clientId,purpose;
         final long created,expires;
         String state="awaiting_approval",single="",ticket="",detail="",pairId="";
         boolean browserConsent;
-        Request(String p,String s,String client,String purpose,long now){principal=p;session=s;clientId=client;this.purpose=purpose;created=now;expires=now+TTL;}
+        Request(String p,String s,String client,String purpose,long now,int timeoutSeconds){principal=p;session=s;clientId=client;this.purpose=purpose;created=now;expires=now+timeoutSeconds*1000L;}
     }
     private final BrowserAuth auth;
     private final EditorPairings pairings;
@@ -50,7 +51,7 @@ final class EditorRequests implements AutoCloseable {
         if(pairings.sessionPaired(session))throw new IllegalArgumentException("This MCP session is already paired; use its editor tools or ask the user to disconnect");
         if(requests.values().stream().anyMatch(r->r.session.equals(session)&&PENDING.contains(r.state)))throw new IllegalArgumentException("An editor access request is already pending for this MCP session");
         if(requests.size()>=64||!capacity.tryAcquire())throw new IllegalArgumentException("Approval queue is full; wait for an existing request");
-        Request r=new Request(principal,session,client,purpose,clock.getAsLong());r.detail=auth.responsiveTabs().size()+" responsive DBA tab(s) detected. Existing tabs are selected by you; opening a new workspace does not close existing work.";
+        Request r=new Request(principal,session,client,purpose,clock.getAsLong(),approvalTimeout.getAsInt());r.detail=auth.responsiveTabs().size()+" responsive DBA tab(s) detected. Existing tabs are selected by you; opening a new workspace does not close existing work.";
         r.browserConsent=!desktopAvailable.getAsBoolean();requests.put(r.id,r);changed.run();return view(r);
     }
     synchronized ObjectNode status(String principal,String session,String id){reap();Request r=owned(principal,session,id);return view(r);}

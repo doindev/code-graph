@@ -1,5 +1,6 @@
 package io.doindev.codegraph.mcp.http;
 
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
@@ -123,6 +124,61 @@ class DbaHttpAccessTest {
         }
     }
 
+    @Test void activitySlidesExpiryForMoreThanAnHour()throws Exception {
+        var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"active");
+        for(int i=0;i<8;i++){clock.addAndGet(30*60_000);var request=new Exchange("POST","active");request.send(filter);assertEquals(200,request.status);}
+        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var idle=new Exchange("POST","active");idle.send(filter);assertEquals(404,idle.status);
+    }
+    @Test void synchronousWorkAndOverlappingAsyncPostsDoNotExpireOrShortenEachOthersLeases()throws Exception {
+        var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"active");
+        var sync=new Exchange("POST","active");
+        filter.doFilter(sync.request,sync.response,(request,response)->{
+            clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);
+            var parallel=new Exchange("POST","active");filter.doFilter(parallel.request,parallel.response,(q,r)->{});assertEquals(200,parallel.status);
+        });
+        var first=new Exchange("POST","active");first.async=true;
+        filter.doFilter(first.request,first.response,(request,response)->request.startAsync());
+        var second=new Exchange("POST","active");second.async=true;
+        filter.doFilter(second.request,second.response,(request,response)->request.startAsync());
+        clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);first.listener.onComplete(new AsyncEvent(first.context));
+        clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);var parallel=new Exchange("POST","active");parallel.send(filter);assertEquals(200,parallel.status);
+        second.listener.onError(new AsyncEvent(second.context));second.listener.onComplete(new AsyncEvent(second.context));
+        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var idle=new Exchange("GET","active");idle.send(filter);assertEquals(404,idle.status);
+    }
+    @Test void idleEventStreamDoesNotPinAndLateCompletionCannotResurrectDeletedSession()throws Exception {
+        var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"stream");
+        var stream=new Exchange("GET","stream");stream.async=true;filter.doFilter(stream.request,stream.response,(q,r)->q.startAsync());
+        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var expired=new Exchange("POST","stream");expired.send(filter);assertEquals(404,expired.status);
+        stream.listener.onComplete(new AsyncEvent(stream.context));expired.send(filter);assertEquals(404,expired.status);
+        initialize(filter,"deleted");var post=new Exchange("POST","deleted");post.async=true;filter.doFilter(post.request,post.response,(q,r)->q.startAsync());
+        new Exchange("DELETE","deleted").send(filter);post.listener.onComplete(new AsyncEvent(post.context));
+        var stale=new Exchange("POST","deleted");stale.send(filter);assertEquals(404,stale.status);
+    }
+    @Test void failedRequestsAndAsyncTimeoutReleaseTheirLeasesAndInvalidOriginsDoNotRenew()throws Exception {
+        var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"failure");
+        var post=new Exchange("POST","failure");assertThrows(ServletException.class,()->filter.doFilter(post.request,post.response,(q,r)->{throw new ServletException("fixture");}));
+        var async=new Exchange("POST","failure");async.async=true;filter.doFilter(async.request,async.response,(q,r)->q.startAsync());async.listener.onTimeout(new AsyncEvent(async.context));
+        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS-1);var denied=new Exchange("POST","failure");denied.requestHeaders.put("Origin","https://evil.example");denied.send(filter);assertEquals(403,denied.status);
+        clock.addAndGet(2);post.send(filter);assertEquals(404,post.status);
+    }
+
+    @Test void dbaRegistryFollowsTransportActivityAndTermination(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory)throws Exception {
+        var vault=new io.doindev.codegraph.dba.Vault(){
+            public void put(String id,byte[] value){throw new UnsupportedOperationException();}
+            public byte[] get(String id){throw new UnsupportedOperationException();}
+            public void remove(String id){}
+        };
+        var config=new io.doindev.codegraph.dba.DbaConfig(directory,64L<<20,2,100,100,5,60,"none");
+        try(var runtime=new io.doindev.codegraph.dba.DbaRuntime(config,vault,false)){
+            var clock=new AtomicLong(System.currentTimeMillis());var filter=new DbaHttpAccess(runtime,clock::get);initialize(filter,"runtime");
+            String principal=runtime.trustedLocalAgent();var args=new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();
+            for(int i=0;i<5;i++){clock.addAndGet(30*60_000);new Exchange("POST","runtime").send(filter);assertDoesNotThrow(()->runtime.agentToolCall(principal,"runtime","dba_get_my_permissions",args));}
+            clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var expired=new Exchange("POST","runtime");expired.send(filter);assertEquals(404,expired.status);
+            assertThrows(SecurityException.class,()->runtime.agentToolCall(principal,"runtime","dba_get_my_permissions",args));
+            initialize(filter,"replacement");assertDoesNotThrow(()->runtime.agentToolCall(principal,"replacement","dba_get_my_permissions",args));filter.destroy();
+        }
+    }
+
     private static void initialize(DbaHttpAccess filter, String session) throws Exception {
         var exchange = new Exchange("POST", null);
         filter.doFilter(exchange.request, exchange.response, (request, response) ->
@@ -134,7 +190,13 @@ class DbaHttpAccessTest {
     /** Minimal servlet doubles; real HTTP authentication/restart coverage lives in DbaMcpHttpTest. */
     private static final class Exchange {
         int status = 200;
-        boolean forwarded;
+        boolean forwarded,async;
+        AsyncListener listener;
+        final AsyncContext context=(AsyncContext)Proxy.newProxyInstance(getClass().getClassLoader(),new Class<?>[]{AsyncContext.class},(proxy,method,args)->{
+            if(method.getName().equals("addListener")){listener=(AsyncListener)args[0];return null;}
+            if(method.getName().equals("getRequest")||method.getName().equals("getResponse"))return null;
+            throw new AssertionError(method.getName());
+        });
         String remote = "127.0.0.1";
         final Map<String, String> requestHeaders = new HashMap<>();
         final Map<String, String> headers = new HashMap<>();
@@ -150,6 +212,8 @@ class DbaHttpAccessTest {
                         case "getRemoteAddr" -> remote;
                         case "getMethod" -> method;
                         case "setAttribute" -> null;
+                        case "isAsyncStarted" -> async;
+                        case "startAsync", "getAsyncContext" -> context;
                         default -> throw new AssertionError("Unexpected request method: " + called.getName());
                     });
             response = (HttpServletResponse) Proxy.newProxyInstance(getClass().getClassLoader(),

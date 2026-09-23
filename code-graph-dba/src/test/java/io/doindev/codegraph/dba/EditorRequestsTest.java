@@ -24,6 +24,12 @@ class EditorRequestsTest {
     @AfterEach void close(){requests.close();pairs.close();auth.close();}
     String tab(){return auth.registerTab(browser,UUID.randomUUID().toString(),UUID.randomUUID().toString());}
     ObjectNode submit(String session){return requests.request("agent",session,Profiles.JSON.createObjectNode().put("requestId","request-"+session).put("purpose","Review this Script together"));}
+    @Test void configuredWaitCoversWorkspaceSelectionAndCannotAuthorizeLatePairing(){
+        requests.approvalTimeout(()->10);String workspace=tab(),id=submit("mcp").path("id").asText();
+        requests.decide(id,"editor_existing");requests.approvalTimeout(()->60);clock.addAndGet(10_001);
+        var view=AgentOperationView.of(requests.status("agent","mcp",id));assertEquals("approval_timeout",view.path("error").path("code").asText());
+        assertThrows(IllegalArgumentException.class,()->requests.accept(workspace,id,""));assertFalse(pairs.sessionPaired("mcp"));
+    }
     @Test void singleTabRequiresNativeConsentAndDoesNotGrantDatabaseAccess(){
         String tab=tab(),id=submit("mcp").path("id").asText();assertTrue(requests.offers(tab).path("requests").isEmpty());
         assertThrows(SecurityException.class,()->requests.accept(tab,id,""));

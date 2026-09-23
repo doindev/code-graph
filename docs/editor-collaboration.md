@@ -33,11 +33,13 @@ This is application consent, not a protected OS security prompt.
 
 ## Agent lifecycle and scope
 
-Poll `dba_request_status` with returned `approvalId` in the **same logical MCP
-session**. `awaiting_approval` and `awaiting_browser` do not permit editing.
+Poll `dba_request_status` with returned `operationId` in the **same logical MCP
+session**. `queued` does not permit editing. Approval and workspace-selection
+details remain in the native/browser interface.
 Only `paired` permits the existing document tools. Denial, cancellation and expiry
 are terminal; do not repeatedly prompt. `dba_cancel_request` cancels pending consent.
-Requests expire after five minutes, share the existing 32-pending-request bound,
+Requests use the persisted [approval timeout](mcp-session-approvals.md), defaulting
+to five minutes, share the existing 32-pending-request bound,
 and retain bounded terminal receipts for up to an hour after request expiration.
 
 One MCP session pairs with one tab; an occupied tab cannot be silently replaced.

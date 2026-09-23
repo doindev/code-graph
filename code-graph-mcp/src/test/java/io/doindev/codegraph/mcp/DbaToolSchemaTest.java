@@ -11,7 +11,8 @@ class DbaToolSchemaTest {
         assertEquals(500,schema.path("properties").path("purpose").path("maxLength").asInt());
         assertFalse(schema.path("additionalProperties").asBoolean(true));
         assertTrue(schema.path("required").toString().contains("purpose"));
-        assertTrue(tool.spec().description().contains("YOLO"));
+        assertTrue(tool.spec().description().contains("operationId"));
+        assertFalse(tool.spec().description().contains("prompt"));
         assertTrue(DbaMcpTools.tools(null,()->null).stream().noneMatch(t->t.spec().name().equals("dba_request_editor_access")),"No editor tools without a UI workspace service");
     }
     @Test void listExpectationsExposeTypedBoundsWithoutGrantingAuthority()throws Exception{
@@ -38,8 +39,9 @@ class DbaToolSchemaTest {
                 var schema=mapper.readTree(tool.spec().inputSchemaJson());
                 assertEquals("uuid",schema.path("properties").path("approvalId").path("format").asText(),name);
                 assertTrue(schema.path("properties").path("requestId").path("deprecated").asBoolean(),name);
-                assertEquals(2,schema.path("anyOf").size(),name);
-                assertTrue(tool.spec().description().contains("approvalId"),name);
+                assertEquals(3,schema.path("anyOf").size(),name);
+                assertEquals("uuid",schema.path("properties").path("operationId").path("format").asText(),name);
+                assertTrue(tool.spec().description().contains("operationId"),name);
             }
             if(Set.of("dba_list_templates","dba_job_status","dba_list_connections").contains(name))
                 assertFalse(tool.spec().description().contains("Standalone execution then requires"),name);

@@ -8,8 +8,8 @@ public final class ToolReference {
     private ToolReference() {}
     public static String markdown() {
         var out=new StringBuilder("# Generated MCP tool reference\n\nGenerated from tool definitions; do not edit tool entries manually.\n\n")
-                .append("Availability depends on DBA, approval and browser-editor configuration. Definitions never authorize execution.\n\n")
-                .append("Use `requestId` when submitting an idempotent proposal, returned `approvalId` to poll/cancel it, and `jobId` for execution. Legacy aliases remain supported.\n\n");
+                .append("Availability depends on DBA and browser-editor configuration. Definitions never authorize execution.\n\n")
+                .append("Use `requestId` when submitting an idempotent proposal, returned `operationId` to poll/cancel it, and `jobId` for execution. Queued operations need no agent-side intervention. Continue polling until terminal; do not resubmit pending work. Legacy aliases remain supported.\n\n");
         try(var workspace=CodeGraphTools.workspace(List.of(),ignored->{})) {
             var tools=new TreeMap<String,GraphTool>();
             workspace.tools(path->{throw new UnsupportedOperationException("Reference generation cannot onboard projects");})
