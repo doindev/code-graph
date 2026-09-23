@@ -72,9 +72,19 @@ final class VisualQueryImport {
     void pairs(Expression e, ArrayNode pairs) {
         if (e instanceof ParenthesedExpressionList<?> p && p.size() == 1) { pairs(p.get(0), pairs); return; }
         if (e instanceof AndExpression a) { pairs(a.getLeftExpression(), pairs); pairs(a.getRightExpression(), pairs); return; }
-        if (!(e instanceof BinaryExpression b) || !(b.getLeftExpression() instanceof Column) || !(b.getRightExpression() instanceof Column)
-                || !Set.of("=", "<>", "<", "<=", ">", ">=").contains(b.getStringExpression())) throw VisualQuery.invalid("Join predicate requires an expression unsupported by column connections");
-        ObjectNode pair = pairs.addObject().put("id", "p" + pairs.size()).put("op", b.getStringExpression()); pair.set("left", expr(b.getLeftExpression())); pair.set("right", expr(b.getRightExpression()));
+        if (!(e instanceof BinaryExpression b) || !Set.of("=", "<>", "<", "<=", ">", ">=").contains(b.getStringExpression())) throw VisualQuery.invalid("Join predicate requires an expression unsupported by column connections");
+        ObjectNode pair = pairs.addObject().put("id", "p" + pairs.size()).put("op", b.getStringExpression());
+        joinOperand(b.getLeftExpression(),pair,"left");joinOperand(b.getRightExpression(),pair,"right");
+    }
+    void joinOperand(Expression expression,ObjectNode pair,String side) {
+        while(expression instanceof ParenthesedExpressionList<?> p&&p.size()==1)expression=p.get(0);
+        if(expression instanceof CastExpression cast){
+            if(cast.getFormat()!=null||cast.keyword!=null&&!cast.keyword.equalsIgnoreCase("CAST")||cast.getColDataType()==null)throw VisualQuery.invalid("Unsupported join conversion syntax");
+            pair.put(side+"Cast",cast.getColDataType().toString());expression=cast.getLeftExpression();
+            while(expression instanceof ParenthesedExpressionList<?> p&&p.size()==1)expression=p.get(0);
+        }
+        if(!(expression instanceof Column))throw VisualQuery.invalid("Join conversion must reference one source column");
+        pair.set(side,expr(expression));
     }
     JsonNode expr(Expression e) {
         if (e instanceof ParenthesedExpressionList<?> p && p.size() == 1) return expr(p.get(0));

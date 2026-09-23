@@ -26,12 +26,16 @@ final class VisualQuery {
         ArrayNode diagnostics = result.putArray("diagnostics");
         try {
             Compiler compiler = new Compiler(request.path("model"), request.path("quote").asText("\""), request.path("engine").asText("jdbc"), request.path("uniqueOutputNames").asBoolean());
+            ArrayNode joins = VisualJoinTypes.analyze(request.path("model"), compiler.engine); result.set("joinTypes", joins);
             String sql = compiler.query();
             if (sql.length() > 16384) throw invalid("The generated query exceeds 16 KiB. Reduce its outputs or expressions.");
             ObjectNode validation = Profiles.JSON.createObjectNode().put("sql", sql).put("action", "refresh");
             ArrayNode values = validation.putArray("parameters"); compiler.bindings.forEach(b -> values.addNull());
             GridSql.prepare(validation);
-            result.put("valid", true).put("sql", sql); result.set("bindings", compiler.bindings); result.set("outputs", compiler.descriptors);
+            result.put("structurallyValid", true).put("sql", sql); result.set("bindings", compiler.bindings); result.set("outputs", compiler.descriptors);
+            boolean resolved = true;
+            for (JsonNode join : joins) if (!join.path("resolved").asBoolean()) { resolved = false; diagnostics.addObject().put("code", "join_type_resolution").put("message", join.path("message").asText()).put("joinId", join.path("joinId").asText()).put("pairId", join.path("pairId").asText()); }
+            result.put("valid", resolved);
         } catch (IllegalArgumentException e) { diagnostics.addObject().put("message", e.getMessage()); }
         catch (Exception e) { diagnostics.addObject().put("message", "This query cannot be represented by the visual SQL compiler."); }
         return result;
@@ -176,7 +180,11 @@ final class VisualQuery {
                         || !(leftSources.contains(a.path("source").asText()) && rightSources.contains(b.path("source").asText())
                         || rightSources.contains(a.path("source").asText()) && leftSources.contains(b.path("source").asText()))) throw invalid("Join columns must connect its left and right operands");
                 String op = pair.path("op").asText("="); if (!Set.of("=", "<>", "<", "<=", ">", ">=").contains(op)) throw invalid("Invalid join comparison");
-                pairs.add(expr(a, 0, false) + " " + op + " " + expr(b, 0, false));
+                String aSql = expr(a, 0, false), bSql = expr(b, 0, false);
+                String aCast = VisualJoinTypes.cast(pair, "leftCast", engine), bCast = VisualJoinTypes.cast(pair, "rightCast", engine);
+                if (!aCast.isEmpty()) aSql = "CAST(" + aSql + " AS " + aCast + ")";
+                if (!bCast.isEmpty()) bSql = "CAST(" + bSql + " AS " + bCast + ")";
+                pairs.add(aSql + " " + op + " " + bSql);
             }
             if (!type.equals("CROSS") && pairs.isEmpty()) throw invalid("Connect columns for every join, or choose Cross join explicitly");
             if (type.equals("CROSS") && !pairs.isEmpty()) throw invalid("Cross joins cannot contain column constraints");

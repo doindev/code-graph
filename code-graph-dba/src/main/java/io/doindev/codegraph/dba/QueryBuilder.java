@@ -32,7 +32,10 @@ final class QueryBuilder {
         ArrayNode out=Profiles.JSON.createArrayNode();
         // Empty SELECT obtains exact projected columns, including views. Never requests table data.
         try(PreparedStatement st=c.prepareStatement("SELECT * FROM "+reference+" WHERE 1=0")){job.statement=st;st.setQueryTimeout(timeout);st.setMaxRows(1);
-            try(ResultSet rs=st.executeQuery()){ResultSetMetaData m=rs.getMetaData();if(m.getColumnCount()>256)throw new IllegalArgumentException("Builder sources are limited to 256 columns");for(int i=1;i<=m.getColumnCount();i++)out.addObject().put("name",bounded(m.getColumnLabel(i))).put("type",bounded(m.getColumnTypeName(i))).put("jdbcType",m.getColumnType(i));}
+            try(ResultSet rs=st.executeQuery()){ResultSetMetaData m=rs.getMetaData();if(m.getColumnCount()>256)throw new IllegalArgumentException("Builder sources are limited to 256 columns");for(int i=1;i<=m.getColumnCount();i++){
+                ObjectNode column=out.addObject().put("name",bounded(m.getColumnLabel(i))).put("type",bounded(m.getColumnTypeName(i))).put("jdbcType",m.getColumnType(i));
+                try{column.put("precision",m.getPrecision(i));column.put("scale",m.getScale(i));column.put("length",m.getColumnDisplaySize(i));column.put("signed",m.isSigned(i));}catch(SQLException|AbstractMethodError unavailable){/* Missing modifiers disable conversions that depend on them. */}
+            }}
         }finally{job.statement=null;}return out;
     }
     private static String bounded(String value){if(value==null)return "";if(value.length()>2048)throw new IllegalArgumentException("Oversized catalog identifier");return value;}
@@ -49,7 +52,7 @@ final class QueryBuilder {
             retained+=Profiles.JSON.writeValueAsBytes(source).length;
             if(retained>1048576){out.put("editable",false).put("notice","Source metadata exceeds the bounded visual model allowance. SQL is preserved in text mode.");out.remove("model");break;}
         }
-        if(out.path("editable").asBoolean())try{ObjectNode visual=VisualQueryImport.convert(sql,out.path("model"));ObjectNode request=Profiles.JSON.createObjectNode().put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));request.set("model",visual);ObjectNode compiled=VisualQuery.compile(request);if(!compiled.path("valid").asBoolean())throw VisualQuery.invalid(compiled.path("diagnostics").toString());out.set("visualModel",visual);}catch(Exception unsupported){out.put("editable",false).put("notice","The complete query requires constructs outside the visual editor. Its exact SQL is preserved for inspection and Open in Script.");}
+        if(out.path("editable").asBoolean())try{ObjectNode visual=VisualQueryImport.convert(sql,out.path("model"));ObjectNode request=Profiles.JSON.createObjectNode().put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));request.set("model",visual);ObjectNode compiled=VisualQuery.compile(request);if(!compiled.path("structurallyValid").asBoolean())throw VisualQuery.invalid(compiled.path("diagnostics").toString());out.set("visualModel",visual);}catch(Exception unsupported){out.put("editable",false).put("notice","The complete query requires constructs outside the visual editor. Its exact SQL is preserved for inspection and Open in Script.");}
         return out;
     }
     static ObjectNode importSql(String sql){

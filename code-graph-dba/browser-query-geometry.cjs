@@ -11,8 +11,8 @@ module.exports=async(browser,base)=>{
    const {VisualQueryBuilder}=await import('/dba/query-builder.js'),{emptyModel,column,connect}=await import('/dba/visual-model.js');
    document.body.replaceChildren();const host=document.createElement('div');host.style.cssText='position:fixed;inset:0';document.body.append(host);
    const calls=[],b=new VisualQueryBuilder({connectionId:'geometry',connectionName:'Canvas fixture',draft:emptyModel(),api:async(path)=>{calls.push(path);if(path==='/query-builder/compile')return {valid:true,sql:'SELECT 1',bindings:[],outputs:[],diagnostics:[]};throw Error('Unexpected request '+path);}});
-   const columns=Array.from({length:14},(_,i)=>({name:'C'+i,type:'INTEGER'}));
-   const left=b.insertSource({name:'Left table',reference:'LEFT_TABLE',columns}),right=b.insertSource({name:'Right table',reference:'RIGHT_TABLE',columns});
+   const columns=Array.from({length:60},(_,i)=>({name:'C'+i,type:'INTEGER'}));
+   const left=b.insertSource({name:'Left table',reference:'LEFT_TABLE',columns}),right=b.insertSource({name:'Right table',reference:'LEFT_TABLE',columns});
    for(const name of ['C0','C10'])connect(b.model,column(left.id,name),column(right.id,name));
    await b.initialize();b.mount(host);window.geometryFixture={b,calls};
   });
@@ -63,6 +63,23 @@ module.exports=async(browser,base)=>{
   await page.locator('.qb-source-columns').first().evaluate(e=>e.scrollTop=80);await aligned('Column scrolling');
   await page.setViewportSize({width:700,height:900});await aligned('Narrow canvas');
   await page.locator('.qb-canvas').evaluate(e=>{e.scrollLeft=180;e.scrollTop=60;});await aligned('Scrolled canvas');
+  // Multiple long lists retain independent offsets through both canvas and full renders.
+  await page.setViewportSize({width:1500,height:1000});
+  await page.evaluate(()=>{const b=geometryFixture.b;b.zoom=1;b.refreshCanvas();b.viewport.scrollLeft=0;b.viewport.scrollTop=0;const fields=[...b.board.querySelectorAll('.qb-source-columns')];fields[0].scrollTop=fields[0].scrollHeight;fields[1].scrollTop=fields[1].scrollHeight-fields[1].clientHeight-120;});
+  const offsets=()=>page.locator('.qb-source-columns').evaluateAll(nodes=>nodes.map(n=>({top:n.scrollTop,left:n.scrollLeft})));
+  await page.route('**/dba/geometry-scroll-fixture.css',r=>r.fulfill({contentType:'text/css',body:'.qb-source-columns .qb-column{min-width:380px}'}));await page.addStyleTag({url:base+'/dba/geometry-scroll-fixture.css'});await page.locator('.qb-source-columns').evaluateAll(nodes=>nodes.forEach((n,i)=>{n.scrollLeft=4+i*56;n.scrollTop=n.scrollHeight-n.clientHeight-i*120;}));
+  const savedOffsets=await offsets();assert.ok(savedOffsets[0].left>0);assert.notEqual(savedOffsets[0].left,savedOffsets[1].left);assert.ok(savedOffsets[0].top>500);assert.notEqual(savedOffsets[0].top,savedOffsets[1].top);
+  for(const n of [57,58,59]){const check=page.getByLabel('Select t1.C'+n,{exact:true});await check.uncheck();assert.deepEqual(await offsets(),savedOffsets,'Mouse toggle preserves independent source scrolls');assert.equal(await check.evaluate(e=>document.activeElement===e),true,'Checkbox focus survives replacement');await aligned('Toggle near bottom');}
+  const check=page.getByLabel('Select t1.C59',{exact:true});await check.press('Space');assert.equal(await check.isChecked(),true);assert.deepEqual(await offsets(),savedOffsets,'Keyboard toggle keeps scroll');
+  await page.evaluate(()=>geometryFixture.b.render());assert.deepEqual(await offsets(),savedOffsets,'Full render keeps scroll');assert.equal(await check.evaluate(e=>document.activeElement===e),true);
+  const handle=page.getByRole('button',{name:'Connect t1.C59',exact:true});await handle.evaluate(e=>e.focus({preventScroll:true}));await page.evaluate(()=>geometryFixture.b.render());assert.equal(await handle.evaluate(e=>document.activeElement===e),true,'Column handle focus survives full renders');assert.deepEqual(await offsets(),savedOffsets,'Handle focus keeps source positions');
+  await page.evaluate(()=>geometryFixture.b.undo());assert.deepEqual(await offsets(),savedOffsets,'Undo keeps scroll');assert.equal(await check.isChecked(),false);
+  await page.evaluate(()=>geometryFixture.b.undo(true));assert.deepEqual(await offsets(),savedOffsets,'Redo keeps scroll');assert.equal(await check.isChecked(),true);
+  const closeOffsets=async stage=>{const actual=await offsets();for(let i=0;i<actual.length;i++)for(const key of ['top','left'])assert.ok(Math.abs(actual[i][key]-savedOffsets[i][key])<1,stage+': '+JSON.stringify(actual));};
+  await page.getByRole('button',{name:'Zoom out',exact:true}).click();await closeOffsets('Zoom keeps scroll within one device pixel');await aligned('Preserved long lists after zoom');
+  await page.getByLabel('Output mode',{exact:true}).selectOption('summary');await closeOffsets('Mode switch keeps scroll');await page.getByLabel('Output mode',{exact:true}).selectOption('detail');
+  await page.setViewportSize({width:700,height:900});await closeOffsets('Narrow layout keeps scroll');await aligned('Narrow independently scrolled lists');
+  await page.screenshot({path:'code-graph-dba/target/query-scroll-narrow.png'});
   assert.equal(await page.evaluate(()=>geometryFixture.calls.some(path=>path==='/query/execute'||path==='/query/explain')),false);
   await page.evaluate(()=>geometryFixture.b.dispose());assert.deepEqual(errors,[]);
   console.log('Canvas geometry: Query Output drag/keyboard, divider/window resize, canvas growth/shrinkage, zoom, card-edge endpoints, unobstructed cards, clickable joins, source movement and scrolling passed.');
