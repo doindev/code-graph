@@ -259,3 +259,7 @@ Reference catalogs: [PostgreSQL](https://www.postgresql.org/docs/current/catalog
 [Snowflake](https://docs.snowflake.com/en/sql-reference/info-schema),
 [DuckDB](https://duckdb.org/docs/lts/sql/meta/duckdb_table_functions).
 Live validation evidence and missing environments are recorded in [dba-validation.md](dba-validation.md).
+
+## Scheduled jobs
+
+The tree detects available database schedulers and loads jobs on expansion. Open a job for Properties, schedule/command editing, SQL review and available run history. See [scheduler coverage and management](dba-scheduled-jobs.md).

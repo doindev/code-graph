@@ -4,7 +4,7 @@ const MAX_NODES=2000;
 const MAX_DESCRIPTOR_BYTES=2*1024*1024;
 const descriptorBytes=node=>new TextEncoder().encode(JSON.stringify(node)).length;
 const isKeyScan=entry=>entry.descriptor.kind==='native_keys';
-const objectParents=new Set(['schemas','databases','tables','foreign_tables','views','materialized_views','external_tables','indexes','functions','procedures','sequences','types','aggregates','event_triggers','extensions','roles','tablespaces','foreign_servers','relation','domains','triggers','events','queues','packages','synonyms','schema_triggers','table_triggers','database_links','java','jobs','scheduler_jobs','scheduler_programs','scheduler_schedules','scheduler_chains','aliases','stages','file_formats','pipes','tasks','streams','table_columns','table_constraints','table_foreign_keys','table_indexes','table_triggers','table_policies','table_rules','table_partitions']);
+const objectParents=new Set(['schemas','databases','tables','foreign_tables','views','materialized_views','external_tables','indexes','functions','procedures','sequences','types','aggregates','event_triggers','extensions','roles','tablespaces','foreign_servers','relation','domains','triggers','events','queues','packages','synonyms','schema_triggers','table_triggers','database_links','java','scheduled_jobs','jobs','scheduler_jobs','scheduler_programs','scheduler_schedules','scheduler_chains','aliases','stages','file_formats','pipes','tasks','streams','table_columns','table_constraints','table_foreign_keys','table_indexes','table_triggers','table_policies','table_rules','table_partitions']);
 function svg(path){const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');const p=document.createElementNS(icon.namespaceURI,'path');p.setAttribute('d',path);icon.append(p);return icon;}
 
 /* Lucide table/sheet icons: https://github.com/lucide-icons/lucide (ISC License).
@@ -94,6 +94,7 @@ export class MetadataTreeView {
     const status=text=>{const message=this.message(entry.container,text);message.classList.add('metadata-page-status');message.setAttribute('role','status');};
     if(isKeyScan(entry))status(`${entry.children.length} distinct keys loaded. ${nextOffset!==undefined?'Scan unfinished; empty and duplicate-only batches can occur.':result.scanComplete?'Scan finished.':'Scan incomplete; refine the pattern and refresh.'} Live scan, not a snapshot; keys can change or disappear. Refresh starts a new scan.`);
     else if(!entry.children.length)status('No items');
+    if(entry.descriptor.schedulerMessage)status(entry.descriptor.schedulerMessage);
     if(result.warning)status(result.warning);
     if(nextOffset===undefined)return;
     const more=document.createElement('button');more.type='button';more.className='metadata-more';more.textContent=isKeyScan(entry)?'Continue scan…':'Load more…';more.title=isKeyScan(entry)?'Read one bounded SCAN batch; it may contain no new keys':'Load the next 200 items';

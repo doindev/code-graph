@@ -511,8 +511,8 @@ final class QueryJobs implements AutoCloseable {
     }
     ObjectNode metadataObject(String owner,String id,JsonNode input,boolean execute){
         if(owner.startsWith("agent:"))throw new SecurityException("Catalog object actions are browser-only");
-        if(connections.genericOnly(id))throw new IllegalArgumentException("Object mutations are not certified for this database template; use the SQL editor with the vendor's documented syntax");
         ObjectNode selection=MetadataActions.request(input);int timeout=config.timeoutSeconds();
+        if(connections.genericOnly(id)&&!selection.path("parent").path("kind").asText().equals("scheduled_jobs"))throw new IllegalArgumentException("Object mutations are not certified for this database template; use the SQL editor with the vendor's documented syntax");
         if(!execute)return catalogRead(owner,id,(ObjectNode)selection.path("parent"),(job,c)->{
             MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,timeout);ObjectNode result=plan.json(Objects.toString(c.getCatalog(),""));
             // Cross-database browsing is supported, but mutations require an explicit saved target.
@@ -593,8 +593,9 @@ final class QueryJobs implements AutoCloseable {
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
                 c=connections.open(id);String database=snapshot.path("database").asText();
                 if(!database.isBlank()&&!database.equals(c.getCatalog())){
-                    if(!snapshot.path("engine").asText().equals("postgresql"))throw new SQLFeatureNotSupportedException("Use a saved connection targeting this database for object changes");
-                    c.close();c=null;external=connections.openDatabase(id,database,config.timeoutSeconds());c=external.connection();
+                    if(snapshot.path("engine").asText().equals("postgresql")){c.close();c=null;external=connections.openDatabase(id,database,config.timeoutSeconds());c=external.connection();}
+                    else if(snapshot.has("scheduler")){Connection physical=c.unwrap(Connection.class);c.setCatalog(database);if(!database.equals(physical.getCatalog()))throw new SQLFeatureNotSupportedException("The driver cannot select this scheduler database; use a connection targeting it");}
+                    else throw new SQLFeatureNotSupportedException("Use a saved connection targeting this database for object changes");
                 }
                 c.setReadOnly(false);c.setAutoCommit(!atomic);
                 if(snapshot.path("engine").asText().equals("postgresql"))try(var st=c.createStatement()){
@@ -602,6 +603,7 @@ final class QueryJobs implements AutoCloseable {
                 }finally{job.statement=null;}
                 ObjectNode request=creating?Profiles.JSON.createObjectNode().put("creation",true):(ObjectNode)snapshot.path("selection").deepCopy();
                 if(creating)request.set("target",snapshot.path("target"));
+                if(snapshot.has("scheduler"))request.set("draft",plan.path("draft"));
                 ObjectNode current=objectSnapshot(job,id,c,request);
                 if(!current.path("fingerprint").equals(snapshot.path("fingerprint"))||!current.path("connectionFingerprint").equals(snapshot.path("connectionFingerprint")))throw new IllegalArgumentException("Object or connection changed after review. Refresh and review again.");
                 Set<String> previousRoutines=new HashSet<>();

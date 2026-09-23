@@ -30,6 +30,7 @@ final class ObjectDesigner {
         default->{String text=kind.replace('_',' ');if(text.endsWith("s"))text=text.substring(0,text.length()-1);yield text.isEmpty()?"Object":Character.toUpperCase(text.charAt(0))+text.substring(1);}
     };}
     static ObjectNode load(QueryJobs.Job job,Connection c,JsonNode input,boolean generic)throws Exception{
+        if(input.path(input.path("creation").asBoolean()?"target":"parent").path("kind").asText().equals("scheduled_jobs"))return ScheduledJobs.load(job,c,input);
         boolean creating=input.path("creation").asBoolean();
         ObjectNode parent=MetadataTree.request(creating?input.path("target"):input.path("parent"));
         if(!GROUPS.contains(str(parent,"kind")))throw new IllegalArgumentException("Choose an object category in the database tree");
@@ -69,6 +70,7 @@ final class ObjectDesigner {
         // Run history, last/next run, and other volatile scheduler status remain outside it.
         ObjectNode identity=Profiles.JSON.createObjectNode().put("engine",str(out,"engine")).put("database",str(out,"database"));
         identity.set("target",out.path("target"));identity.set("fields",out.path("fields"));identity.put("ddl",str(out,"ddl"));
+        for(String key:List.of("schedulerConfig","schedulerFunctions","schedulerSteps","schedulerSchedules","mysqlNoBackslashEscapes"))if(out.has(key))identity.set(key,out.path(key));
         if(out.has("refreshSchedule"))identity.set("refreshSchedule",MaterializedViewSchedules.stable(out.path("refreshSchedule")));
         if(out.path("details").has("Permissions"))identity.set("permissions",out.path("details").path("Permissions"));
         if(out.has("node"))identity.set("node",out.path("node"));if(out.has("replacement"))identity.set("replacement",out.path("replacement"));
@@ -86,7 +88,7 @@ final class ObjectDesigner {
         boolean sqlMode=draft.path("sqlMode").asBoolean();
         List<String> objectCommands;
         if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft);}
-        else objectCommands=ObjectForms.compile(snapshot,draft);
+        else objectCommands=snapshot.has("scheduler")?ScheduledJobEditor.compile(snapshot,draft):ObjectForms.compile(snapshot,draft);
         List<MaterializedViewSchedules.Command> scheduleCommands=MaterializedViewSchedules.compile(snapshot,draft);
         if(objectCommands.isEmpty()&&scheduleCommands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
         if(objectCommands.size()+scheduleCommands.size()>128)throw new IllegalArgumentException("At most 128 statements can be reviewed together");
@@ -101,6 +103,7 @@ final class ObjectDesigner {
         List<String> commands=new ArrayList<>();for(JsonNode command:sql)commands.add(command.path("sql").asText());out.put("sql",String.join(";\n\n",commands)+";");
         out.put("warning",sqlMode?"Execute the reviewed SQL on the displayed connection/database. Custom SQL can affect objects beyond this tab.":"Review the exact object and refresh-schedule changes. Definitions can run database code and acquire locks.");
         if(!oneDatabase||!atomic&&!objectCommands.isEmpty()&&!scheduleCommands.isEmpty())out.put("partialCommitWarning","Object definition and scheduler configuration cannot be atomic. If scheduling fails after object creation, the object remains and the Refresh page can retry only its schedule.");
+        if(snapshot.has("scheduler")){out.put("warning","Review the scheduled job changes and their execution identity. Enabled schedules may start due work immediately. Native calls may also start or cancel work according to the displayed command.");if(!atomic)out.put("partialCommitWarning","This scheduler may commit each operation separately. A failure can leave some reviewed changes applied; inspect the reported outcome before retrying.");}
         return out;
     }
     static List<String> sqlCommands(JsonNode draft){
@@ -111,7 +114,7 @@ final class ObjectDesigner {
         return SqlScript.extract(sql).stream().map(SqlScript.Unit::sql).toList();
     }
     static ObjectNode annotate(ObjectNode result){
-        for(JsonNode n:result.path("nodes"))if(GROUPS.contains(str(n,"kind"))&&n.path("branch").asBoolean())((ObjectNode)n).put("canCreate",true);
+        for(JsonNode n:result.path("nodes"))if(GROUPS.contains(str(n,"kind"))&&n.path("branch").asBoolean()&&!str(n,"kind").equals("scheduled_jobs"))((ObjectNode)n).put("canCreate",true);
         return result;
     }
     private ObjectDesigner(){}

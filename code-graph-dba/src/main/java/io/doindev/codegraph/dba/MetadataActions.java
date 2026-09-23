@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Browser-only object actions. Never execute a client-supplied identifier or SQL fragment. */
 final class MetadataActions {
-    static final Set<String> OBJECT_PARENTS=Set.of("schemas","databases","tables","foreign_tables","views","materialized_views","external_tables","indexes","functions","procedures","sequences","types","aggregates","event_triggers","extensions","roles","tablespaces","foreign_servers","relation","domains","triggers","events","queues","packages","synonyms","schema_triggers","table_triggers","database_links","java","jobs","scheduler_jobs","scheduler_programs","scheduler_schedules","scheduler_chains","aliases","stages","file_formats","pipes","tasks","streams");
+    static final Set<String> OBJECT_PARENTS=Set.of("schemas","databases","tables","foreign_tables","views","materialized_views","external_tables","indexes","functions","procedures","sequences","types","aggregates","event_triggers","extensions","roles","tablespaces","foreign_servers","relation","domains","triggers","events","queues","packages","synonyms","schema_triggers","table_triggers","database_links","java","scheduled_jobs","jobs","scheduler_jobs","scheduler_programs","scheduler_schedules","scheduler_chains","aliases","stages","file_formats","pipes","tasks","streams");
     record Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint,String truncate,String refresh,List<MaterializedViewSchedules.Command> deleteCleanup,List<String> deleteWarnings) {
         Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint){this(name,type,target,drop,rename,reason,fingerprint,"","",List.of(),List.of());}
         Plan(String name,String type,String target,String drop,String rename,String reason,String fingerprint,String truncate,String refresh){this(name,type,target,drop,rename,reason,fingerprint,truncate,refresh,List.of(),List.of());}
@@ -32,6 +32,7 @@ final class MetadataActions {
         out.put("key",Profiles.text(input,"key",4096));return out;
     }
     static Plan resolve(QueryJobs.Job job,Connection c,JsonNode selection,int timeout)throws Exception{
+        if(selection.path("parent").path("kind").asText().equals("scheduled_jobs"))return ScheduledJobEditor.actionPlan(job,c,selection);
         JsonNode parent=selection.path("parent");String group=parent.path("kind").asText();if(group.equals("table_columns"))group="relation";
         if(group.startsWith("table_"))group=switch(group){case "table_indexes"->"indexes";case "table_constraints","table_foreign_keys"->"constraints";case "table_triggers"->"triggers";case "table_policies"->"policies";case "table_rules"->"rules";case "table_partitions"->"tables";default->group;};
         if(!OBJECT_PARENTS.contains(group)&&!Set.of("constraints","policies","rules").contains(group))throw new IllegalArgumentException("This tree item is a grouping, not a database object");
