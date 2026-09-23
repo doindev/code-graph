@@ -59,7 +59,7 @@ final class SqlReadGuard {
     // a positive grammar gate, excluding only the parser's token/back-reference base class.
     // New parser constructs must be reviewed and tested before being added here.
     private static final Set<String> READ_NODES=Set.of("PlainSelect","Values","SelectItem","ParenthesedSelect",
-            "Table","Column","Database","Alias","LongValue","DoubleValue","StringValue","NullValue",
+            "Table","Column","Database","Alias","LongValue","DoubleValue","StringValue","NullValue","BooleanValue",
             "JdbcParameter","AllColumns","AllTableColumns","Join","OrderByElement","Limit","Offset","Distinct",
             "EqualsTo","NotEqualsTo","GreaterThan","GreaterThanEquals","MinorThan","MinorThanEquals",
             "AndExpression","OrExpression","NotExpression","Between","InExpression","IsNullExpression",

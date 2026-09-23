@@ -31,6 +31,8 @@ class ReusableVendorIntegrationTest {
                 submit(approvals,principal,connection,"CREATE VIEW "+schema+".qa_view AS SELECT id, name FROM "+table,ReusableApprovals.SIMILAR,"one");
                 submit(approvals,principal,connection,"SELECT id, name FROM "+table,ReusableApprovals.SIMILAR,"one");
                 submit(approvals,principal,connection,"SELECT id FROM "+table+" WHERE id=1",null,"two");
+                submit(approvals,principal,connection,"SELECT TRUE AS enabled FROM "+table+" WHERE FALSE OR id=1",null,"two");
+                submit(approvals,principal,connection,"SELECT FALSE",null,"two");
                 if(vendor.equals("postgresql")){
                     var outside=approvals.request(principal,"one",base(connection,"SELECT oid FROM pg_class"));assertTrue(outside.has("matchedPolicy"));
                     JsonNode stopped=outside;long until=System.nanoTime()+10_000_000_000L;

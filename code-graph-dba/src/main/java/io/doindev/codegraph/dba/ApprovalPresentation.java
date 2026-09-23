@@ -23,10 +23,23 @@ final class ApprovalPresentation {
         }else if(node instanceof ArrayNode a)a.forEach(ApprovalPresentation::scrub);
     }
     static String escape(String s){return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;").replace("'","&#39;");}
+    /** Explain the actual offered choices, including transport/session restrictions after SQL classification. */
+    static String reusableUnavailable(JsonNode request){
+        var reasons=new LinkedHashSet<String>();boolean hasReusable=false;
+        for(JsonNode choice:request.path("approvalChoices")){
+            if(choice.path("action").asText().equals("approve_once"))continue;
+            hasReusable=true;
+            if(choice.path("enabled").asBoolean())return "";
+            String reason=choice.path("reason").asText();if(!reason.isBlank())reasons.add(reason);
+        }
+        if(!hasReusable)return "";
+        return "Only Allow once is available. "+(reasons.isEmpty()?"This request does not qualify for reusable approval.":String.join("; ",reasons));
+    }
     static String html(JsonNode source){
         JsonNode r=safe(source);StringBuilder s=new StringBuilder("<html><body style='font-family: sans-serif; color:#e8edf5; background-color:#202735; margin:14px'>");
         field(s,"Request",r.path("type").asText("live_sql").replace('_',' '));field(s,"Agent",r.path("agentName").asText(r.path("agentId").asText()));field(s,"Identity",r.path("identityNotice").asText());
         if(r.has("operation")){field(s,"Operation category",r.path("operation").path("category").asText());field(s,"Eligibility",r.path("operation").path("reason").asText());field(s,"Limitations",r.path("operation").path("limitations").asText());}
+        field(s,"Approval choices",reusableUnavailable(r));
         if(r.has("permissionScope"))field(s,"Exact reusable scope",r.path("permissionScope").toPrettyString());
         if(r.has("approvalChoices"))field(s,"Permission lifetime","Allow once: this request only. Always allow: exact SQL, parameter values and options until revoked. Session similar: this category until the requesting MCP session ends. Always similar: this category until revoked. No other database, schema, binding or role is included.");
         field(s,"Purpose",r.path("purpose").asText());

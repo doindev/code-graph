@@ -76,11 +76,16 @@ class DesktopApprovalsTest {
         }
     }
     @Test void splitMenuDoesNotApproveOnOpenAndResetsForEveryRequest()throws Exception{
-        for(boolean eligible:new boolean[]{true,false}){
+        record Scenario(String vendor,String sql,boolean session,boolean eligible){}
+        for(var scenario:List.of(new Scenario("mysql","CREATE TABLE item(id INT)",true,true),
+                new Scenario("postgresql","SELECT TRUE",true,true),new Scenario("mysql","SELECT FALSE",true,true),
+                new Scenario("postgresql","SELECT TRUE",false,false),new Scenario("h2","SELECT TRUE",true,false),
+                new Scenario("postgresql","SELECT evil()",true,false),new Scenario("mysql","DROP TABLE item",true,false))){
+            boolean eligible=scenario.eligible();
             var decision=new AtomicReference<ApprovalBroker.Decision>();
-            var r=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("type","live_sql").put("agentName","Trusted local agents").put("connectionName","Synthetic reusable target").put("expiresAt",System.currentTimeMillis()+300000);
-            var op=ReusableOperation.classify(eligible?"CREATE TABLE item(id INT)":"DROP TABLE item",ReusableOperationTest.scope("mysql"));
-            r.set("operation",op.json());r.set("permissionScope",ReusableOperationTest.scope("mysql"));r.set("approvalChoices",ApprovalQueue.choices(op,true));
+            var r=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("type","live_sql").put("agentName","Synthetic desktop test").put("connectionName","Synthetic reusable target").put("sql",scenario.sql()).put("expiresAt",System.currentTimeMillis()+300000);
+            var scope=ReusableOperationTest.scope(scenario.vendor());var op=ReusableOperation.classify(scenario.sql(),scope);
+            r.put("mutation",!op.readOnly());r.set("operation",op.json());r.set("permissionScope",scope);r.set("approvalChoices",ApprovalQueue.choices(op,scenario.session()));
             desktop.show(r,0,decision::set,()->{});
             JDialog card=null;for(int i=0;i<100;i++){card=onEdt(DesktopApprovalsTest::visible);if(card!=null)break;Thread.sleep(30);}assertNotNull(card);
             JDialog shown=card;
@@ -90,7 +95,20 @@ class DesktopApprovalsTest {
                 JButton arrow=(JButton)nodes.stream().filter(c->c instanceof JButton b&&"Reusable approval choices".equals(b.getToolTipText())).findFirst().orElseThrow();
                 arrow.doClick();assertNull(decision.get());
                 JPopupMenu menu=(JPopupMenu)Arrays.stream(MenuSelectionManager.defaultManager().getSelectedPath()).filter(JPopupMenu.class::isInstance).findFirst().orElseThrow();
-                assertEquals(4,menu.getComponentCount());for(int i=1;i<4;i++){JMenuItem item=(JMenuItem)menu.getComponent(i);assertEquals(eligible,item.isEnabled());assertFalse(item.getToolTipText().isBlank());}
+                assertEquals(eligible?4:6,menu.getComponentCount());for(int i=1;i<4;i++){JMenuItem item=(JMenuItem)menu.getComponent(i);assertEquals(eligible,item.isEnabled());assertFalse(item.getToolTipText().isBlank());}
+                if(!eligible){
+                    JLabel explanation=(JLabel)menu.getComponent(5);
+                    assertEquals("approval-reuse-unavailable",explanation.getName());assertTrue(explanation.isShowing());
+                    String reason=ApprovalPresentation.reusableUnavailable(r);
+                    assertEquals(reason,explanation.getAccessibleContext().getAccessibleDescription());
+                    assertTrue(explanation.getText().contains(ApprovalPresentation.escape(reason)));
+                    assertTrue(menu.getWidth()<500,"Wrap the explanation inside a compact popup");
+                    if(!scenario.session()){
+                        var snapshot=new java.awt.image.BufferedImage(menu.getWidth(),menu.getHeight(),java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                        var graphics=snapshot.createGraphics();try{menu.printAll(graphics);}finally{graphics.dispose();}
+                        ImageIO.write(snapshot,"png",Path.of("target","approval-unavailable-menu.png").toFile());
+                    }
+                }
                 if(eligible)((JMenuItem)menu.getComponent(2)).doClick();else{menu.setVisible(false);JButton deny=(JButton)nodes.stream().filter(c->c instanceof JButton b&&"Deny".equals(b.getText())).findFirst().orElseThrow();deny.doClick();}
                 return null;
             });

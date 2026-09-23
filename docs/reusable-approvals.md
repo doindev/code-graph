@@ -3,6 +3,8 @@
 SQL approvals offer a separate **Deny** button and an **Allow once ▾** split button in
 the browser and native desktop prompt. Opening the menu does not approve anything.
 Every request resets to Allow once. Disabled choices explain why reuse is unavailable.
+When all reusable choices are disabled, the native menu and request details also show the
+reason directly, including missing-session restrictions even if the SQL itself is eligible.
 The prompt displays the classified operation, exact scope, lifetime and limitations.
 
 | Choice | Matching and lifetime |
@@ -51,7 +53,8 @@ create_procedure and create_function. A new-table grant does not permit view cre
 creating a routine never grants permission to invoke it.
 
 This is a conservative positive grammar, not a general SQL sandbox. An existing AST-based
-restricted-read validator checks SELECT/VALUES and expressions. A bounded dialect-aware
+restricted-read validator checks SELECT/VALUES and expressions, including TRUE/FALSE
+literals in projections and comparisons. A bounded dialect-aware
 lexer/parser checks creation, names, body structure and the complete statement. Unknown
 constructs, multiple statements, executable comments and ambiguous quoting fail closed.
 
@@ -149,7 +152,7 @@ never touches saved application connections. Per-vendor reports remain under tar
 
 Interactive macOS/Linux desktop behavior, real screen-reader usability and every other
 vendor/version remain separate, unverified release gates. Windows automated Swing tests
-do not certify those environments. No application restart is part of this feature change.
+do not certify those environments. Restart the server after updating the native approval UI.
 
 ### Verification recorded for this change
 

@@ -26,6 +26,17 @@ class ReusableOperationTest {
             }
         }
     }
+    @Test void booleanLiteralsInSelectKeepReusableReadChoicesAvailable(){
+        for(String vendor:List.of("postgresql","mysql","mariadb")){
+            var target=scope(vendor);
+            for(String sql:List.of("SELECT TRUE", "SELECT FALSE", "SELECT id FROM "+target.path("schema").asText()+".items WHERE active = TRUE", "SELECT id FROM "+target.path("schema").asText()+".items WHERE active <> FALSE")){
+                var operation=ReusableOperation.classify(sql,target);
+                assertTrue(operation.eligible(),vendor+" "+sql+": "+operation.reason());
+                assertTrue(operation.readOnly());assertEquals("read",operation.category());
+                for(var choice:ApprovalQueue.choices(operation,true))assertTrue(choice.path("enabled").asBoolean(),choice.toString());
+            }
+        }
+    }
     @Test void hardDeniesDangerousUnknownOrCrossScopeEvenForExact(){
         for(String vendor:List.of("postgresql","mysql","mariadb","h2"))for(String sql:List.of(
                 "DROP TABLE item","DELETE FROM item","TRUNCATE TABLE item","UPDATE item SET x=1","INSERT INTO item VALUES(1)",
@@ -33,7 +44,7 @@ class ReusableOperationTest {
                 "CREATE OR REPLACE VIEW v AS SELECT 1","CREATE TABLE item AS SELECT 1","CREATE TABLE item LIKE other",
                 "CREATE TABLE item(id INT DEFAULT evil())","GRANT SELECT ON item TO public","CREATE USER x",
                 "CALL item()","DO $$BEGIN END$$","EXPLAIN ANALYZE SELECT 1","EXPLAIN (ANALYZE TRUE) SELECT 1",
-                "SELECT evil()","SELECT 1; DELETE FROM item","SELECT 1; SELECT 2","/*!50000 DROP TABLE item */ SELECT 1",
+                "SELECT evil()","SELECT TRUE WHERE evil()","SELECT CAST(TRUE AS INT)","SELECT 1; DELETE FROM item","SELECT 1; SELECT 2","/*!50000 DROP TABLE item */ SELECT 1",
                 "/*M! DROP TABLE item */ SELECT 1","SELECT * FROM unrelated.secret","CREATE TABLE unrelated.item(id INT)",
                 "CREATE VIEW item AS SELECT * FROM unrelated.secret","SELECT * FROM item FOR UPDATE",
                 "WITH d AS (DELETE FROM item RETURNING *) SELECT * FROM d","SELECT 1 INTO item",

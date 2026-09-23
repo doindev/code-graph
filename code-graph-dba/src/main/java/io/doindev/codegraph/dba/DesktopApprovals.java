@@ -106,6 +106,15 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
                             item.setEnabled(choice.path("enabled").asBoolean());item.setToolTipText(choice.path("reason").asText()+" · "+choice.path("lifetime").asText());
                             item.getAccessibleContext().setAccessibleDescription(item.getToolTipText());item.addActionListener(e->resolve(choice.path("action").asText(),true));menu.add(item);
                         }
+                        String unavailable=ApprovalPresentation.reusableUnavailable(r);
+                        if(!unavailable.isBlank()){
+                            menu.addSeparator();
+                            JLabel explanation=new JLabel("<html><body style='width:280px'>"+ApprovalPresentation.escape(unavailable)+"</body></html>");
+                            explanation.setName("approval-reuse-unavailable");explanation.setForeground(new Color(185,198,216));
+                            explanation.setBorder(new EmptyBorder(8,12,8,12));
+                            explanation.getAccessibleContext().setAccessibleName("Reusable approval unavailable");
+                            explanation.getAccessibleContext().setAccessibleDescription(unavailable);menu.add(explanation);
+                        }
                         arrow.addActionListener(e->menu.show(arrow,Math.min(0,arrow.getWidth()-menu.getPreferredSize().width),arrow.getHeight()));actions.add(arrow);
                     }else if(r.path("eligiblePersistentRead").asBoolean()){
                         JComboBox<String> choices=new JComboBox<>(new String[]{"Always allow this read on this target"});
