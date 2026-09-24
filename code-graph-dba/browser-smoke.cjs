@@ -30,6 +30,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     }finally{await close(...options);}
   };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='oracle-sql'){await require('./browser-oracle-sql.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='connection-editor'){await require('./browser-connection-editor.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='compare'){await require('./browser-compare.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='read-permissions'){await require('./browser-read-permissions.cjs')(browser,base,jar);return;}

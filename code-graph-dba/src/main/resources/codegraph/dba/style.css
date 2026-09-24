@@ -313,3 +313,5 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .scan-status-dialog>h2,.scan-status-dialog>p,.scan-status-footer{flex:none}
 .scan-status-dialog .scan-status-layout{flex:1;overflow:auto;align-items:start}
 .scan-status-footer{display:flex;gap:8px;padding-top:16px}
+
+.script-output{overflow:auto;padding:1rem;display:block}.script-output textarea{width:100%;min-height:12rem;resize:vertical;font-family:monospace}.script-output pre{white-space:pre-wrap;overflow-wrap:anywhere}.script-output table{width:100%;border-collapse:collapse}.script-output td,.script-output th{text-align:left;padding:.4rem}

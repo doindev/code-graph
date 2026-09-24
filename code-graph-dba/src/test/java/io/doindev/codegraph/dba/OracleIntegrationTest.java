@@ -1,0 +1,130 @@
+package io.doindev.codegraph.dba;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
+import java.sql.*;
+import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
+
+/** Invoked only against the task-owned disposable Oracle container. */
+@EnabledIfEnvironmentVariable(named="DBA_ORACLE_OWNER",matches="code-graph-oracle-[a-f0-9]+")
+@Timeout(180)
+class OracleIntegrationTest {
+    @TempDir Path directory;
+    private static JsonNode jars;
+    @BeforeAll static void installDriver()throws Exception{
+        var template=DatabaseCatalog.get("oracle");
+        var bundles=new DriverBundles(Path.of(System.getenv("DBA_ORACLE_CACHE")),DriverDownloadConfig.embedded());
+        var coordinates=Profiles.JSON.createObjectNode().put("groupId",template.group()).put("artifactId",template.artifact()).put("templateId","oracle");
+        var status=bundles.status(coordinates,()->false);assertTrue(status.path("latestAvailable").asBoolean(),status.toString());
+        coordinates.put("version",status.path("latestVersion").asText());jars=bundles.install(coordinates,()->false,p->{}).path("jars");
+        System.out.println("ORACLE_JDBC_VERIFIED "+coordinates.path("version").asText());
+    }
+    private static ObjectNode draft(String user,String password){
+        var result=Profiles.JSON.createObjectNode().put("name","Oracle disposable "+user).put("templateId","oracle").put("driverClass","oracle.jdbc.OracleDriver")
+            .put("url",System.getenv("DBA_ORACLE_URL")).put("username",user).put("password",password).put("readOnly",false);
+        result.set("jars",jars.deepCopy());return result;
+    }
+    private static ObjectNode systemDraft(){return draft("SYSTEM",System.getenv("DBA_ORACLE_PASSWORD"));}
+    private QueryJobs jobs(Connections connections){return new QueryJobs(connections,new DbaConfig(directory,64L<<20,2,30,100,30),s->true);}
+    private static JsonNode complete(QueryJobs jobs,JsonNode submitted)throws Exception{
+        var result=ConnectionSetupTest.await(jobs,"browser",submitted);assertEquals("complete",result.path("state").asText(),result.toString());return result.path("result");
+    }
+    @Test void resolvedPdbSchemaPrivilegesAndExplicitAdminRoles()throws Exception{
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            var setup=new ConnectionSetup(profiles,jobs);var input=systemDraft();
+            var test=complete(jobs,setup.operation("browser","draft-test",input));var target=test.path("oracle").path("target");
+            assertEquals("FREEPDB1",target.path("container").asText());assertEquals("SYSTEM",target.path("schema").asText());assertTrue(test.path("oracle").path("supportedVersion").asBoolean());
+            input.put("receipt",test.path("receipt").asText());String id=setup.save("browser",null,input).path("id").asText();
+            try(var selected=connections.target(id,"FREEPDB1")){
+                var c=selected.connection();Connections.selectSchema(c,"SYS");assertEquals("SYS",OracleDialect.target(c,10).schema());
+                assertEquals("FREEPDB1",OracleDialect.target(c,10).database());
+            }
+            assertThrows(SQLException.class,()->connections.target(id,"OTHER_PDB"));
+            var databases=complete(jobs,jobs.permissionTargets("browser",id,Profiles.JSON.createObjectNode().put("kind","databases")));
+            assertEquals("FREEPDB1",databases.path("items").get(0).path("name").asText());
+            var schemas=complete(jobs,jobs.permissionTargets("browser",id,Profiles.JSON.createObjectNode().put("kind","schemas").put("database","FREEPDB1")));
+            assertFalse(schemas.path("items").isEmpty());
+            var admin=draft("SYS",System.getenv("DBA_ORACLE_PASSWORD"));admin.putObject("properties").put("internal_logon","sysdba");
+            var adminTest=complete(jobs,setup.operation("browser","draft-test",admin));assertEquals("SYS",adminTest.path("oracle").path("target").path("user").asText());
+            admin.withObject("properties").put("internal_logon","invented_role");assertThrows(IllegalArgumentException.class,()->ConnectionDraft.create(admin,Profiles.JSON.createObjectNode()));
+        }
+    }
+    @Test void leastPrivilegeMixedSqlPlsqlPrecisionAndQuotedDelimiters()throws Exception{
+        String user="CG"+UUID.randomUUID().toString().replace("-","").substring(0,16).toUpperCase(),password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                st.execute("CREATE USER "+OracleDialect.identifier(user)+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");
+                st.execute("GRANT CREATE SESSION, CREATE TABLE, CREATE PROCEDURE TO "+OracleDialect.identifier(user));
+            }
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            var setup=new ConnectionSetup(profiles,jobs);var tested=complete(jobs,setup.operation("browser","draft-test",draft(user,password)));
+            assertEquals(3,tested.path("oracle").path("sessionPrivileges").size(),tested.toString());assertTrue(tested.path("oracle").path("sessionRoles").isEmpty());
+            String script="""
+                CREATE TABLE sample (id NUMBER(38), text_value NVARCHAR2(100), moment TIMESTAMP(9) WITH TIME ZONE);
+                INSERT INTO sample VALUES (12345678901234567890123456789012345678, nq'[Unicode ; ? / '' Ω]', TO_TIMESTAMP_TZ('2026-09-24 12:34:56.123456789 +05:30','YYYY-MM-DD HH24:MI:SS.FF TZH:TZM'));
+                BEGIN
+                  INSERT INTO sample(id,text_value) VALUES (?,q'{second;?''}');
+                END;
+                /
+                SELECT id,text_value,TO_CHAR(moment,'YYYY-MM-DD HH24:MI:SS.FF9 TZH:TZM') AS moment FROM sample ORDER BY id DESC;
+                """;
+            var run=HumanSqlTest.finish(jobs,"human",jobs.humanQuery("human",id,script,Profiles.JSON.createArrayNode().add(7),false));
+            assertEquals("complete",run.path("state").asText(),run.toString());assertEquals(4,run.path("result").path("statements").size());
+            var rows=run.path("result").path("rows");assertEquals("12345678901234567890123456789012345678",rows.get(0).get(0).asText());
+            assertTrue(rows.get(0).get(1).asText().contains("Ω"));assertEquals("2026-09-24 12:34:56.123456789 +05:30",rows.get(0).get(2).asText());
+            assertEquals("second;?''",rows.get(1).get(1).asText());assertTrue(rows.get(1).get(2).isNull());
+            var objects=complete(jobs,jobs.permissionTargets("browser",id,Profiles.JSON.createObjectNode().put("kind","objects").put("database","FREEPDB1").put("schema",user)));
+            assertTrue(objects.path("items").toString().contains("SAMPLE"));
+        }
+    }
+    @Test void outputParametersRefCursorsServerOutputAndImplicitCommits()throws Exception{
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String id=profiles.put(null,systemDraft()).path("id").asText();
+            var parameters=Profiles.JSON.createArrayNode();
+            parameters.addObject().put("mode","out").put("type","NUMBER");
+            parameters.addObject().put("mode","out").put("type","REF_CURSOR");
+            parameters.addObject().put("mode","out").put("type","CLOB");
+            parameters.addObject().put("mode","out").put("type","DATE");
+            String sql="""
+                DECLARE n NUMBER:=12345678901234567890123456789012345670;
+                BEGIN
+                  ?:=n+1;
+                  OPEN ? FOR SELECT LEVEL AS n FROM dual CONNECT BY LEVEL<=105;
+                  ?:=TO_CLOB(RPAD('x',9000,'x'));
+                  ?:=TO_DATE('2026-09-24 12:34:56','YYYY-MM-DD HH24:MI:SS');
+                  FOR i IN 1..300 LOOP DBMS_OUTPUT.PUT_LINE('line '||i); END LOOP;
+                END;
+                """;
+            var run=HumanSqlTest.finish(jobs,"human",jobs.humanQuery("human",id,sql,parameters,false,null,true));
+            assertEquals("complete",run.path("state").asText(),run.toString());var result=run.path("result");
+            assertEquals("12345678901234567890123456789012345671",result.path("outputParameters").get(0).path("value").asText());
+            assertEquals(8192,result.path("outputParameters").get(1).path("value").asText().length());assertTrue(result.path("outputParameters").get(1).path("truncated").asBoolean());
+            assertEquals("2026-09-24T12:34:56",result.path("outputParameters").get(2).path("value").asText());
+            assertEquals(30,result.path("rows").size());assertTrue(result.path("truncated").asBoolean());
+            assertEquals(256,result.path("serverOutput").path("lines").size());assertTrue(result.path("serverOutput").path("truncated").asBoolean());
+            var inout=Profiles.JSON.createArrayNode();inout.addObject().put("mode","inout").put("type","NUMBER").put("value","12345678901234567890123456789012345670");
+            var echoed=HumanSqlTest.finish(jobs,"human",jobs.humanQuery("human",id,"DECLARE PROCEDURE increment_value(n IN OUT NUMBER) IS BEGIN n:=n+1; DBMS_OUTPUT.PUT_LINE(n); END; BEGIN DBMS_OUTPUT.PUT_LINE('next'); increment_value(?); END;",inout,false,null,true));
+            assertEquals("complete",echoed.path("state").asText(),echoed.toString());assertEquals(2,echoed.path("result").path("serverOutput").path("lines").size());
+            assertEquals("12345678901234567890123456789012345671",echoed.path("result").path("outputParameters").get(0).path("value").asText());
+            var typed=Profiles.JSON.createArrayNode();
+            typed.addObject().put("mode","in").put("type","NUMBER").put("value","12345678901234567890123456789012345678");
+            typed.addObject().put("mode","in").put("type","TIMESTAMP_WITH_TIMEZONE").put("value","2026-09-24T12:34:56.123456789+05:30");
+            typed.addObject().put("mode","in").put("type","DATE").put("value","2026-09-24T12:34:56");
+            var typedResult=HumanSqlTest.finish(jobs,"human",jobs.humanQuery("human",id,"SELECT ? AS n, TO_CHAR(?,'YYYY-MM-DD HH24:MI:SS.FF9 TZH:TZM') AS tz,TO_CHAR(?,'YYYY-MM-DD HH24:MI:SS') AS d FROM dual",typed,false));
+            assertEquals("complete",typedResult.path("state").asText(),typedResult.toString());
+            var typedRows=typedResult.path("result").path("rows").get(0);assertEquals("12345678901234567890123456789012345678",typedRows.get(0).asText());
+            assertEquals("2026-09-24 12:34:56.123456789 +05:30",typedRows.get(1).asText());assertEquals("2026-09-24 12:34:56",typedRows.get(2).asText());
+            String table="CG"+UUID.randomUUID().toString().replace("-","").substring(0,16).toUpperCase();
+            var partial=HumanSqlTest.run(jobs,id,"CREATE TABLE "+table+" (id NUMBER); SELECT * FROM missing_oracle_validation_table",false);
+            assertEquals("cancelled",partial.path("state").asText(),partial.toString());assertTrue(partial.path("result").path("changesMayAlreadyBeCommitted").asBoolean());
+            try(var c=connections.open(id);var st=c.createStatement()){try(var rows=st.executeQuery("SELECT COUNT(*) FROM "+table)){assertTrue(rows.next());}st.execute("DROP TABLE "+table+" PURGE");}
+        }
+    }
+
+}

@@ -52,7 +52,7 @@ final class GridResults implements AutoCloseable {
     void capture(QueryJobs.Job job,Connection c,ObjectNode output,JsonNode parameters)throws Exception {
         if(job.owner.startsWith("agent:"))return;
         for(JsonNode item:output.path("results")){
-            if(!item.path("kind").asText().equals("rows"))continue;ObjectNode row=(ObjectNode)item;JsonNode source=null;
+            if(!item.path("kind").asText().equals("rows")||item.path("refCursor").asBoolean())continue;ObjectNode row=(ObjectNode)item;JsonNode source=null;
             for(JsonNode statement:output.path("statements"))if(statement.path("index").asInt()==row.path("statementIndex").asInt()){source=statement;break;}
             if(source==null)continue;String sql=source.path("sql").asText();ArrayNode values=Profiles.JSON.createArrayNode();
             if(parameters.size()>0){if(!source.has("parameterOffset")||!source.has("parameterCount"))continue;int start=source.path("parameterOffset").asInt(),count=source.path("parameterCount").asInt();if(start<0||count<0||start+count>parameters.size())continue;for(int i=start;i<start+count;i++)values.add(parameters.get(i));}

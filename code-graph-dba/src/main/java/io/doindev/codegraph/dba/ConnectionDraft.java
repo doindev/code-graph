@@ -35,6 +35,11 @@ record ConnectionDraft(ObjectNode profile,ObjectNode secret) {
         Set<String> described=new HashSet<>();DatabaseCatalog.properties(template).forEach(n->described.add(n.path("name").asText()));
         for(String key:keys(properties,hidden))if(!template.equals("custom")&&key.toLowerCase(Locale.ROOT).contains("proxy")&&!described.contains(key))throw new IllegalArgumentException("This template does not support that proxy property; routing must not silently fall back");
         for(String key:keys(properties,hidden)){if(key.length()>180||key.isBlank())throw new IllegalArgumentException("Invalid property name");if(key.equalsIgnoreCase("password")||key.equalsIgnoreCase("user"))throw new IllegalArgumentException("Use dedicated username/password fields");String encoded=java.net.URLEncoder.encode(key,java.nio.charset.StandardCharsets.UTF_8);if(url.matches("(?is).*[?;&]"+java.util.regex.Pattern.quote(key)+"=.*")||url.matches("(?is).*[?;&]"+java.util.regex.Pattern.quote(encoded)+"=.*"))throw new IllegalArgumentException("A driver property is also present in the URL; specify it only once");}
+        if(template.equals("oracle")&&properties.has("internal_logon")){
+            String role=properties.path("internal_logon").asText().toLowerCase(Locale.ROOT);
+            if(!Set.of("sysdba","sysoper","sysbackup","sysdg","syskm").contains(role))throw new IllegalArgumentException("Unsupported Oracle administrative role");
+            properties.put("internal_logon",role);
+        }
         if(template.equals("snowflake")){
             if(!properties.has("authenticator"))properties.put("authenticator","snowflake_jwt");
             for(String key:keys(properties,hidden))if(Set.of("privatekey","private_key_base64","private_key").contains(key.toLowerCase(Locale.ROOT)))throw new IllegalArgumentException("Snowflake accepts an existing private key file only; inline keys are not supported");

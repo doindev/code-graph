@@ -78,6 +78,11 @@ final class Connections implements AutoCloseable {
     Target target(String id,String catalog)throws Exception{
         Connection c=open(id);
         try{
+            if(OracleDialect.isOracle(c)){
+                OracleDialect.Target actual=OracleDialect.target(c,30);
+                if(!actual.matches(catalog))throw new SQLException("Oracle connection targets service "+actual.service()+" / container "+actual.database()+"; select a connection for the requested service/PDB");
+                return new Target(id,c,null);
+            }
             String current=Objects.toString(c.getCatalog(),"");
             if(catalog!=null&&!catalog.isBlank()&&!catalog.equals(current)){
                 if(profiles.get(id).path("url").asText().startsWith("jdbc:postgresql:")){
@@ -94,6 +99,7 @@ final class Connections implements AutoCloseable {
     static void selectSchema(Connection c,String schema)throws SQLException{
         if(schema==null||schema.isBlank())return;
         String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+        if(product.contains("oracle")){OracleDialect.selectSchema(c,schema,30);return;}
         if(product.contains("mysql")||product.contains("mariadb")){if(!schema.equals(c.getCatalog())){c.setCatalog(schema);if(!schema.equals(c.getCatalog()))throw new SQLException("Requested schema was not selected");}return;}
         if(!c.getMetaData().supportsSchemasInDataManipulation())return;
         if(!schema.equals(c.getSchema())){c.setSchema(schema);if(!schema.equals(c.getSchema()))throw new SQLException("Requested schema was not selected; qualify names explicitly using a database-only binding");}

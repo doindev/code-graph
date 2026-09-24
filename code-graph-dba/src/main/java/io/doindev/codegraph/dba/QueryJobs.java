@@ -457,12 +457,16 @@ final class QueryJobs implements AutoCloseable {
         return value.intValue();
     }
     ObjectNode humanQuery(String owner,String id,String sql,JsonNode parameters,boolean autoCommit,JsonNode rowLimit){
+        return humanQuery(owner,id,sql,parameters,autoCommit,rowLimit,false);
+    }
+    ObjectNode humanQuery(String owner,String id,String sql,JsonNode parameters,boolean autoCommit,JsonNode rowLimit,boolean serverOutput){
         if(owner.startsWith("agent:"))throw new SecurityException("Human SQL is not available to agents");
         if(sql==null||sql.isBlank()||sql.length()>16384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
-        HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
+        OracleSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
         return submit(owner,id,(job,c)->{
             job.rowLimit=Math.min(requested,config.uiRows());
-            ObjectNode result=HumanSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e));
+            ObjectNode result=OracleDialect.isOracle(c)?OracleSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e),serverOutput)
+                :HumanSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e));
             if(grids!=null)grids.capture(job,c,result,values);return result;
         },true,autoCommit);
     }
@@ -563,7 +567,7 @@ final class QueryJobs implements AutoCloseable {
         });
     }
     ObjectNode capabilities(String owner,String id,ObjectNode profile,ObjectNode scope,boolean approvalsEnabled,Runnable reauthorize){
-        return catalogRead(owner,id,scope,(job,c)->{reauthorize.run();return DatabaseCapabilities.observe(c,profile,scope,approvalsEnabled);});
+        return catalogRead(owner,id,scope,(job,c)->{reauthorize.run();ObjectNode result=DatabaseCapabilities.observe(c,profile,scope,approvalsEnabled);if(OracleDialect.isOracle(c))result.set("oracle",OracleDialect.capabilities(job,c));return result;});
     }
     ObjectNode permissionTargets(String owner,String connection,JsonNode input){
         ReadPermissions.fields(input,Set.of("connectionId","kind","database","schema","offset"));
@@ -574,8 +578,11 @@ final class QueryJobs implements AutoCloseable {
         return catalogRead(owner,connection,scope,(job,c)->{
             ObjectNode result=Profiles.JSON.createObjectNode();ArrayNode items=result.putArray("items");
             DatabaseMetaData md=c.getMetaData();String database=scope.path("database").asText(),schema=input.path("schema").asText();
+            boolean oracle=OracleDialect.isOracle(c);
+            if(oracle&&kind.equals("databases")){if(offset==0)items.addObject().put("name",OracleDialect.target(job,c,config.timeoutSeconds()).database()).put("type","databases");return result;}
+            String catalog=oracle?null:database;
             String escape=md.getSearchStringEscape();String pattern=schema.replace(escape,escape+escape).replace("%",escape+"%").replace("_",escape+"_");
-            try(ResultSet rs=kind.equals("databases")?md.getCatalogs():kind.equals("schemas")?md.getSchemas(database,null):md.getTables(database,pattern,"%",new String[]{"TABLE","VIEW","MATERIALIZED VIEW"})){
+            try(ResultSet rs=kind.equals("databases")?md.getCatalogs():kind.equals("schemas")?md.getSchemas(catalog,null):md.getTables(catalog,pattern,"%",new String[]{"TABLE","VIEW","MATERIALIZED VIEW"})){
                 int skipped=0;while(rs.next()){
                     if(job.cancelled)throw new java.util.concurrent.CancellationException();
                     if(skipped++<offset)continue;
@@ -856,6 +863,11 @@ final class QueryJobs implements AutoCloseable {
         int timeout=config.timeoutSeconds();
         return submit(owner,id,(CatalogTask)(job,c)->{
             String database=request.path("database").asText("");
+            if(OracleDialect.isOracle(c)){
+                OracleDialect.Target target=OracleDialect.target(job,c,timeout);
+                if(!target.matches(database))throw new SQLException("Oracle connection targets a different service/PDB; choose its own connection");
+                return catalogTask.run(job,c);
+            }
             if(database.isEmpty()||database.equals(c.getCatalog()))return catalogTask.run(job,c);
             if(!c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL")){
                 String original=c.getCatalog();

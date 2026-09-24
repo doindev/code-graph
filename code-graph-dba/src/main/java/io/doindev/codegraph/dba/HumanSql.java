@@ -29,18 +29,23 @@ final class HumanSql {
     }
 
     static ObjectNode execute(QueryJobs.Job job,Connection connection,String source,JsonNode values,int decisionTimeout,Function<Exception,String> safeError)throws Exception {
-        List<SqlScript.Unit> units=SqlScript.extract(source);int expected=units.stream().mapToInt(SqlScript.Unit::parameters).sum();
+        boolean oracle=OracleDialect.isOracle(connection);if(!oracle)checkParameters(values);
+        List<SqlScript.Unit> units=SqlScript.extract(source,ExplainPlans.engine(connection.getMetaData()));int expected=units.stream().mapToInt(SqlScript.Unit::parameters).sum();
         if(expected!=values.size())throw new IllegalArgumentException("Script contains "+expected+" prepared parameter marker"+(expected==1?"":"s")+" but "+values.size()+" value"+(values.size()==1?" was":"s were")+" supplied; nothing was executed");
         Totals totals=new Totals(job);ArrayNode statements=totals.out.putArray("statements");int bindingOffset=0;for(var unit:units){statements.addObject().put("index",unit.index()).put("sql",unit.sql()).put("parameterOffset",bindingOffset).put("parameterCount",unit.parameters());bindingOffset+=unit.parameters();}
         boolean autoCommit=connection.getAutoCommit(),savepoints=!autoCommit&&connection.getMetaData().supportsSavepoints();int parameterOffset=0;Set<ErrorKey> ignored=new HashSet<>();
+        if(oracle)totals.out.put("transactionNotice","Oracle DDL commits implicitly. PL/SQL can commit or execute DDL; rollback may not undo those changes.");
         for(SqlScript.Unit unit:units){
             if(job.cancelled)throw cancelled(totals,"Script cancelled before statement "+unit.index());
             Savepoint savepoint=null;if(savepoints)try{savepoint=connection.setSavepoint("code_graph_statement_"+unit.index());}catch(SQLException unsupported){savepoints=false;}
+            int outputStart=totals.out.path("outputParameters").size();
+            if(oracle&&OracleDialect.mayCommit(unit.sql()))totals.out.put("changesMayAlreadyBeCommitted",true);
             int resultStart=totals.results.size(),rowsBefore=totals.totalRows,remainingRowsBefore=totals.remainingRows;long bytesBefore=totals.remainingBytes,affectedBefore=totals.affected;boolean updateBefore=totals.hasUpdate,truncatedBefore=totals.truncated;ObjectNode firstBefore=totals.first;
             try{
                 executeUnit(job,connection,unit,values,parameterOffset,totals);
                 parameterOffset+=unit.parameters();if(savepoint!=null)try{connection.releaseSavepoint(savepoint);}catch(SQLException ignoredRelease){}
             }catch(Exception failure){
+                if(totals.out.has("outputParameters")){ArrayNode outputs=(ArrayNode)totals.out.get("outputParameters");while(outputs.size()>outputStart)outputs.remove(outputs.size()-1);}
                 while(totals.results.size()>resultStart)totals.results.remove(totals.results.size()-1);totals.totalRows=rowsBefore;totals.remainingRows=remainingRowsBefore;totals.remainingBytes=bytesBefore;totals.affected=affectedBefore;totals.hasUpdate=updateBefore;totals.truncated=truncatedBefore;totals.first=firstBefore;
                 if(job.cancelled||failure instanceof CancellationException||failure instanceof InterruptedException)throw cancelled(totals,"Script cancelled while executing statement "+unit.index());
                 boolean canContinue=autoCommit;
@@ -59,9 +64,12 @@ final class HumanSql {
     }
 
     private static void executeUnit(QueryJobs.Job job,Connection c,SqlScript.Unit unit,JsonNode values,int offset,Totals totals)throws Exception {
-        try(Statement statement=unit.parameters()==0?c.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY):c.prepareStatement(unit.sql(),ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
+        boolean callable=false;for(int i=0;i<unit.parameters();i++)callable|=values.get(offset+i).isObject()&&!values.get(offset+i).path("mode").asText().equals("in");
+        try(Statement statement=callable?c.prepareCall(unit.sql()):unit.parameters()==0?c.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY):c.prepareStatement(unit.sql(),ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
             job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.setFetchSize(64);statement.setMaxRows(totals.remainingRows+1);
-            if(statement instanceof PreparedStatement prepared)for(int i=0;i<unit.parameters();i++)bind(prepared,i+1,values.get(offset+i));
+            if(statement instanceof PreparedStatement prepared)for(int i=0;i<unit.parameters();i++){
+                JsonNode value=values.get(offset+i);if(value.isObject())OracleSql.bind(prepared,i+1,value);else bind(prepared,i+1,value);
+            }
             boolean resultSet=statement instanceof PreparedStatement prepared?prepared.execute():statement.execute(unit.sql());
             while(true){
                 if(job.cancelled)throw new CancellationException();long count=resultSet?-1:statement.getLargeUpdateCount();if(!resultSet&&count==-1)break;
@@ -72,6 +80,22 @@ final class HumanSql {
                 if(entry.path("kind").asText().equals("rows"))GridSql.describeColumns(unit.sql(),entry);
                 totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(entry).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("JDBC result metadata exceeds byte allowance");totals.results.add(entry);
                 resultSet=statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
+            }
+            if(statement instanceof CallableStatement call)for(int i=0;i<unit.parameters();i++){
+                JsonNode parameter=values.get(offset+i);if(!parameter.isObject()||parameter.path("mode").asText().equals("in"))continue;
+                if(job.cancelled)throw new CancellationException();
+                if(parameter.path("type").asText().equals("REF_CURSOR")){
+                    Object cursor=call.getObject(i+1);if(cursor==null){totals.out.withArray("outputParameters").addObject().put("parameterIndex",offset+i+1).put("statementIndex",unit.index()).putNull("value");continue;}
+                    if(!(cursor instanceof ResultSet))throw new SQLException("Oracle REF CURSOR did not return a JDBC result set");
+                    ObjectNode entry;try(ResultSet rows=(ResultSet)cursor){entry=QueryJobs.rows(rows,totals.remainingRows,(int)Math.max(32768,totals.remainingBytes));}
+                    if(totals.results.size()>=32)throw new IllegalArgumentException("More than 32 JDBC results; run a smaller selection");
+                    entry.put("kind","rows").put("statementIndex",unit.index()).put("parameterIndex",offset+i+1).put("refCursor",true);
+                    int size=entry.path("rowCount").asInt();totals.remainingRows-=size;totals.totalRows+=size;totals.truncated|=entry.path("truncated").asBoolean();if(totals.first==null)totals.first=entry;
+                    totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(entry).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("Oracle cursor exceeds byte allowance");totals.results.add(entry);
+                }else{
+                    ObjectNode value=OracleSql.scalar(call,i+1,parameter).put("parameterIndex",offset+i+1).put("statementIndex",unit.index());
+                    totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(value).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("Oracle output parameters exceed byte allowance");totals.out.withArray("outputParameters").add(value);
+                }
             }
         }finally{job.statement=null;}
     }
