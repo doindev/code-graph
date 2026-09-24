@@ -114,7 +114,8 @@ public final class McpInstaller {
             var servers=McpConfigDocument.tomlServers(original);
             Edit existing=inspectServers(servers,url,original); if(existing!=null)return existing;
             String nl=original.contains("\r\n")?"\r\n":"\n";
-            String updated=original+nl+"[mcp_servers.code-graph]"+nl+"url = "+McpConfigDocument.quote(url)+nl;
+            String updated=original+nl+"[mcp_servers.code-graph]"+nl+"url = "+McpConfigDocument.quote(url)+nl
+                    +"supports_parallel_tool_calls = true"+nl;
             McpConfigDocument.tomlServers(updated);
             return new Edit("configured",updated,"Added user-level HTTP connection; restart/reload the client if needed.");
         }

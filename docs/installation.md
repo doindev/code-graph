@@ -328,6 +328,17 @@ An explicitly named skill without a detected connection is reported as incomplet
 Check-only never reads/writes client configuration or installs skills. Build-only
 does neither and rejects nonempty explicit MCP/skill selections.
 
+New Codex registrations include parallel tool-call support in `config.toml`:
+
+```toml
+[mcp_servers.code-graph]
+url = "http://localhost:3000/mcp"
+supports_parallel_tool_calls = true
+```
+
+Existing matching registrations are preserved. To enable this for an existing
+Codex connection, add `supports_parallel_tool_calls = true` to its MCP server table.
+
 ### Existing configuration and recovery
 
 - Matching endpoints under any server name are a no-op; disabled entries, tool
