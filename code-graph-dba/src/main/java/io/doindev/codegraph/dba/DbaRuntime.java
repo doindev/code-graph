@@ -21,6 +21,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final GridResults grids;
     private final GridSettings gridSettings;
     private final ApprovalSettings approvalSettings;
+    private final McpSessionSettings mcpSessionSettings;
     private final ConnectionSetup setup;
     private final NativeOperations nativeOperations;
     private final ProjectContexts contexts;
@@ -51,6 +52,7 @@ public final class DbaRuntime implements AutoCloseable {
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         gridSettings=new GridSettings(profiles.directory());
         approvalSettings=new ApprovalSettings(profiles.directory());
+        mcpSessionSettings=new McpSessionSettings(profiles.directory());
         setup=new ConnectionSetup(profiles,jobs,config.driverDownloads());
         contexts=new ProjectContexts(profiles,connections,agents);contexts.accounting(jobs);nativeOperations=new NativeOperations(profiles,jobs,contexts);contexts.nativeCatalogs(nativeOperations);
         migrations=new MigrationPlans();approvals=new ApprovalQueue(contexts,profiles,agents,jobs);approvals.migrations(migrations);agentRequests=new AgentRequests(profiles,connections,setup,contexts,agents,jobs);var approvalCapacity=new java.util.concurrent.Semaphore(32);approvals.capacity(approvalCapacity);agentRequests.capacity(approvalCapacity);approvals.otherCount(agentRequests::count);agentRequests.otherCount(approvals::count);
@@ -233,7 +235,7 @@ public final class DbaRuntime implements AutoCloseable {
                 return;
             }
             if(path.equals("/api/dba/settings")){
-                if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo(),config.driverDownloads());if(b.has("approvalTimeoutSeconds"))approvalSettings.save(b.get("approvalTimeoutSeconds"));jobs.configure(next);config=next;}
+                if(method.equals("PUT")){JsonNode b=body(x);if(b.has("yolo")||b.has("approvalMode")||b.has("effectiveApprovalBehavior"))throw new IllegalArgumentException("Authorization mode is startup-only");DbaConfig next=new DbaConfig(config.directory(),b.has("memory")?DbaConfig.budget(b.path("memory").asText()):config.memoryBytes(),b.path("concurrency").asInt(config.concurrency()),b.path("uiRows").asInt(config.uiRows()),b.path("agentRows").asInt(config.agentRows()),b.path("timeoutSeconds").asInt(config.timeoutSeconds()),b.path("decisionTimeoutSeconds").asInt(config.decisionTimeoutSeconds()),config.approvalMode(),config.yolo(),config.driverDownloads());if(b.has("approvalTimeoutSeconds"))ApprovalSettings.validate(b.get("approvalTimeoutSeconds"));if(b.has("mcpSessionIdleTimeoutMinutes"))McpSessionSettings.validate(b.get("mcpSessionIdleTimeoutMinutes"));if(b.has("approvalTimeoutSeconds"))approvalSettings.save(b.get("approvalTimeoutSeconds"));if(b.has("mcpSessionIdleTimeoutMinutes"))mcpSessionSettings.save(b.get("mcpSessionIdleTimeoutMinutes"));jobs.configure(next);config=next;}
                 else if(!method.equals("GET"))throw new IllegalArgumentException("Unsupported settings method");
                 json(x,200,settings());return;
             }
@@ -311,7 +313,7 @@ public final class DbaRuntime implements AutoCloseable {
         finally{x.close();}
     }
     private static String optional(JsonNode n,String key){return n.hasNonNull(key)?n.get(key).asText():null;}
-    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("approvalTimeoutSeconds",approvalSettings.timeoutSeconds()).put("approvalSettingsWarning",approvalSettings.warning()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("grids",grids.telemetry());n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
+    private ObjectNode settings(){ObjectNode n=jobs.telemetry().put("approvalMode",config.approvalMode()).put("approvalsEnabled",approvalsEnabled()).put("uiRows",config.uiRows()).put("agentRows",Math.min(100,config.agentRows())).put("timeoutSeconds",config.timeoutSeconds()).put("decisionTimeoutSeconds",config.decisionTimeoutSeconds()).put("approvalTimeoutSeconds",approvalSettings.timeoutSeconds()).put("approvalSettingsWarning",approvalSettings.warning()).put("mcpSessionIdleTimeoutMinutes",mcpSessionSettings.idleTimeoutMinutes()).put("mcpSessionSettingsWarning",mcpSessionSettings.warning()).put("pools",connections.count()).put("writeExecutionEnabled",auth!=null).put("agentWriteExecutionEnabled",approvalsEnabled()).put("agentToolsEnabled",true).put("milestone","statement-aware-human-sql");n.set("grids",grids.telemetry());n.set("nativeClients",nativeOperations.telemetry());return authorization.describe(n).put("reviewAvailable",broker.enabled());}
     public String authenticateAgent(String token){return agents.authenticate(token);}
     /** Only loopback-validated HTTP and local stdio transports may establish this identity. */
     public String trustedLocalAgent(){return agents.trustedLocal();}
@@ -320,6 +322,8 @@ public final class DbaRuntime implements AutoCloseable {
     private void requireApprovalAvailable(){if(!authorization.automatic)broker.requireAvailable();}
     public boolean editorPairingEnabled(){return editorPairings!=null;}
     private ObjectNode permissions(String principal){ObjectNode out=agents.permissions(principal,contexts);out.set("reusablePolicies",approvals.reusable.list(principal));return authorization.describe(out);}
+    /** Read by HTTP transports for new sessions and activity renewals; in-flight leases stay protected. */
+    public long mcpSessionIdleTimeoutMillis(){return mcpSessionSettings.idleTimeoutMillis();}
     /** Only trusted transports register the logical SDK session, never tool arguments. */
     public void registerMcpSession(String id,String principal,long expires){if(!agentAlive(principal))throw new SecurityException("Agent revoked");approvals.reusable.sessions.register(id,principal,expires);}
     public void endMcpSession(String id){if(editorPairings!=null)editorPairings.sessionEnded(id);approvals.sessionEnded(id);agentRequests.sessionEnded(id);migrations.sessionEnded(id);}

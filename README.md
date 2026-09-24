@@ -443,10 +443,10 @@ expose this listener with a reverse proxy or tunnel. Docker port publishing does
 a loopback-bound listener; clients must share its network namespace (or use local stdio).
 MCP `add_project` can access directories readable by the server account. Read-only UI mode
 does **not** disable MCP project management. Neither `--viz-admin` nor its absence identifies
-an agent. MCP sessions expire after one hour of inactivity; active POST calls hold their session
+an agent. MCP sessions default to one hour of inactivity; active POST calls hold their session
 until response completion. Unknown/expired IDs return 404 so clients can reinitialize.
 Approval delivery stays in the native/browser UI; agents receive queued operation status.
-The five-minute approval timeout is configurable and persisted through `/dba` settings.
+The MCP idle timeout and five-minute approval timeout are configurable and persisted through `/dba` settings.
 See [MCP session and approval behavior](docs/mcp-session-approvals.md).
 
 ### Workspace file and project onboarding

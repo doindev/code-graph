@@ -127,28 +127,51 @@ class DbaHttpAccessTest {
     @Test void activitySlidesExpiryForMoreThanAnHour()throws Exception {
         var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"active");
         for(int i=0;i<8;i++){clock.addAndGet(30*60_000);var request=new Exchange("POST","active");request.send(filter);assertEquals(200,request.status);}
-        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var idle=new Exchange("POST","active");idle.send(filter);assertEquals(404,idle.status);
+        clock.addAndGet(DbaHttpAccess.DEFAULT_IDLE_MILLIS+1);var idle=new Exchange("POST","active");idle.send(filter);assertEquals(404,idle.status);
+    }
+    @Test void changedPolicyAppliesToNewSessionsAndRenewalsWithoutRevivingExpiredIds()throws Exception {
+        var clock=new AtomicLong(1000);var timeout=new AtomicLong(DbaHttpAccess.DEFAULT_IDLE_MILLIS);
+        var filter=new DbaHttpAccess(null,clock::get,timeout::get);initialize(filter,"existing");initialize(filter,"renewed");
+        timeout.set(60_000);initialize(filter,"new");
+        clock.addAndGet(30_000);new Exchange("POST","renewed").send(filter);
+        clock.addAndGet(30_001);var newExpired=new Exchange("POST","new");newExpired.send(filter);assertEquals(404,newExpired.status);
+        var existing=new Exchange("POST","existing");existing.send(filter);assertEquals(200,existing.status,"Changing policy does not retroactively expire an idle session");
+        clock.addAndGet(30_000);var renewedExpired=new Exchange("POST","renewed");renewedExpired.send(filter);assertEquals(404,renewedExpired.status);
+        timeout.set(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS);
+        newExpired.send(filter);assertEquals(404,newExpired.status,"Raising the timeout cannot revive a terminated ID");
+        existing.send(filter);assertEquals(200,existing.status);
+        clock.addAndGet(DbaHttpAccess.DEFAULT_IDLE_MILLIS+1);existing.send(filter);assertEquals(200,existing.status,"A renewed session uses the longer timeout");
+    }
+    @Test void shorterPolicyStillProtectsOverlappingWorkAndAppliesAfterCompletion()throws Exception {
+        var clock=new AtomicLong(1000);var timeout=new AtomicLong(DbaHttpAccess.DEFAULT_IDLE_MILLIS);
+        var filter=new DbaHttpAccess(null,clock::get,timeout::get);initialize(filter,"busy");
+        var first=new Exchange("POST","busy");first.async=true;filter.doFilter(first.request,first.response,(q,r)->q.startAsync());
+        var second=new Exchange("POST","busy");second.async=true;filter.doFilter(second.request,second.response,(q,r)->q.startAsync());
+        timeout.set(60_000);clock.addAndGet(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS);first.listener.onComplete(new AsyncEvent(first.context));
+        clock.addAndGet(60_001);var parallel=new Exchange("POST","busy");parallel.send(filter);assertEquals(200,parallel.status);
+        second.listener.onComplete(new AsyncEvent(second.context));clock.addAndGet(60_001);
+        parallel.send(filter);assertEquals(404,parallel.status);
     }
     @Test void synchronousWorkAndOverlappingAsyncPostsDoNotExpireOrShortenEachOthersLeases()throws Exception {
         var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"active");
         var sync=new Exchange("POST","active");
         filter.doFilter(sync.request,sync.response,(request,response)->{
-            clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);
+            clock.addAndGet(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS);
             var parallel=new Exchange("POST","active");filter.doFilter(parallel.request,parallel.response,(q,r)->{});assertEquals(200,parallel.status);
         });
         var first=new Exchange("POST","active");first.async=true;
         filter.doFilter(first.request,first.response,(request,response)->request.startAsync());
         var second=new Exchange("POST","active");second.async=true;
         filter.doFilter(second.request,second.response,(request,response)->request.startAsync());
-        clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);first.listener.onComplete(new AsyncEvent(first.context));
-        clock.addAndGet(2*DbaHttpAccess.IDLE_MILLIS);var parallel=new Exchange("POST","active");parallel.send(filter);assertEquals(200,parallel.status);
+        clock.addAndGet(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS);first.listener.onComplete(new AsyncEvent(first.context));
+        clock.addAndGet(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS);var parallel=new Exchange("POST","active");parallel.send(filter);assertEquals(200,parallel.status);
         second.listener.onError(new AsyncEvent(second.context));second.listener.onComplete(new AsyncEvent(second.context));
-        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var idle=new Exchange("GET","active");idle.send(filter);assertEquals(404,idle.status);
+        clock.addAndGet(DbaHttpAccess.DEFAULT_IDLE_MILLIS+1);var idle=new Exchange("GET","active");idle.send(filter);assertEquals(404,idle.status);
     }
     @Test void idleEventStreamDoesNotPinAndLateCompletionCannotResurrectDeletedSession()throws Exception {
         var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"stream");
         var stream=new Exchange("GET","stream");stream.async=true;filter.doFilter(stream.request,stream.response,(q,r)->q.startAsync());
-        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var expired=new Exchange("POST","stream");expired.send(filter);assertEquals(404,expired.status);
+        clock.addAndGet(DbaHttpAccess.DEFAULT_IDLE_MILLIS+1);var expired=new Exchange("POST","stream");expired.send(filter);assertEquals(404,expired.status);
         stream.listener.onComplete(new AsyncEvent(stream.context));expired.send(filter);assertEquals(404,expired.status);
         initialize(filter,"deleted");var post=new Exchange("POST","deleted");post.async=true;filter.doFilter(post.request,post.response,(q,r)->q.startAsync());
         new Exchange("DELETE","deleted").send(filter);post.listener.onComplete(new AsyncEvent(post.context));
@@ -158,7 +181,7 @@ class DbaHttpAccessTest {
         var clock=new AtomicLong(1000);var filter=new DbaHttpAccess(null,clock::get);initialize(filter,"failure");
         var post=new Exchange("POST","failure");assertThrows(ServletException.class,()->filter.doFilter(post.request,post.response,(q,r)->{throw new ServletException("fixture");}));
         var async=new Exchange("POST","failure");async.async=true;filter.doFilter(async.request,async.response,(q,r)->q.startAsync());async.listener.onTimeout(new AsyncEvent(async.context));
-        clock.addAndGet(DbaHttpAccess.IDLE_MILLIS-1);var denied=new Exchange("POST","failure");denied.requestHeaders.put("Origin","https://evil.example");denied.send(filter);assertEquals(403,denied.status);
+        clock.addAndGet(DbaHttpAccess.DEFAULT_IDLE_MILLIS-1);var denied=new Exchange("POST","failure");denied.requestHeaders.put("Origin","https://evil.example");denied.send(filter);assertEquals(403,denied.status);
         clock.addAndGet(2);post.send(filter);assertEquals(404,post.status);
     }
 
@@ -169,11 +192,13 @@ class DbaHttpAccessTest {
             public void remove(String id){}
         };
         var config=new io.doindev.codegraph.dba.DbaConfig(directory,64L<<20,2,100,100,5,60,"none");
+        try(var initial=new io.doindev.codegraph.dba.DbaRuntime(config,vault,false)){assertEquals(DbaHttpAccess.DEFAULT_IDLE_MILLIS,initial.mcpSessionIdleTimeoutMillis());}
+        java.nio.file.Files.writeString(directory.resolve("mcp-session-settings.json"),"{\"version\":1,\"mcpSessionIdleTimeoutMinutes\":120}");
         try(var runtime=new io.doindev.codegraph.dba.DbaRuntime(config,vault,false)){
             var clock=new AtomicLong(System.currentTimeMillis());var filter=new DbaHttpAccess(runtime,clock::get);initialize(filter,"runtime");
             String principal=runtime.trustedLocalAgent();var args=new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();
-            for(int i=0;i<5;i++){clock.addAndGet(30*60_000);new Exchange("POST","runtime").send(filter);assertDoesNotThrow(()->runtime.agentToolCall(principal,"runtime","dba_get_my_permissions",args));}
-            clock.addAndGet(DbaHttpAccess.IDLE_MILLIS+1);var expired=new Exchange("POST","runtime");expired.send(filter);assertEquals(404,expired.status);
+            for(int i=0;i<5;i++){clock.addAndGet(90*60_000);new Exchange("POST","runtime").send(filter);assertDoesNotThrow(()->runtime.agentToolCall(principal,"runtime","dba_get_my_permissions",args));}
+            clock.addAndGet(2*DbaHttpAccess.DEFAULT_IDLE_MILLIS+1);var expired=new Exchange("POST","runtime");expired.send(filter);assertEquals(404,expired.status);
             assertThrows(SecurityException.class,()->runtime.agentToolCall(principal,"runtime","dba_get_my_permissions",args));
             initialize(filter,"replacement");assertDoesNotThrow(()->runtime.agentToolCall(principal,"replacement","dba_get_my_permissions",args));filter.destroy();
         }

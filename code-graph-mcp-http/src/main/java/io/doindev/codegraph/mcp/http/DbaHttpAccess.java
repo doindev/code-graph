@@ -12,7 +12,7 @@ import java.util.function.LongSupplier;
 
 /** Enforce local-only MCP access and bind sessions to the shared local or optional token identity. */
 final class DbaHttpAccess implements Filter {
-    static final long IDLE_MILLIS=3_600_000;
+    static final long DEFAULT_IDLE_MILLIS=3_600_000;
     private static final class Binding {
         final String principal;
         long expires;
@@ -23,8 +23,10 @@ final class DbaHttpAccess implements Filter {
     private final Map<String,Binding> sessions=new HashMap<>();
     private final DbaRuntime runtime;
     private final LongSupplier clock;
+    private final LongSupplier idleTimeout;
     DbaHttpAccess(DbaRuntime runtime){this(runtime,System::currentTimeMillis);}
-    DbaHttpAccess(DbaRuntime runtime,LongSupplier clock){this.runtime=runtime;this.clock=clock;}
+    DbaHttpAccess(DbaRuntime runtime,LongSupplier clock){this(runtime,clock,runtime==null?()->DEFAULT_IDLE_MILLIS:runtime::mcpSessionIdleTimeoutMillis);}
+    DbaHttpAccess(DbaRuntime runtime,LongSupplier clock,LongSupplier idleTimeout){this.runtime=runtime;this.clock=clock;this.idleTimeout=idleTimeout;}
     public void doFilter(ServletRequest request,ServletResponse response,FilterChain chain)throws IOException,ServletException {
         HttpServletRequest req=(HttpServletRequest)request;HttpServletResponse res=(HttpServletResponse)response;
         // Apply peer and browser-origin checks even without DBA or an Authorization header.
@@ -59,7 +61,7 @@ final class DbaHttpAccess implements Filter {
                 synchronized(sessions){
                     if(!sessions.containsKey(value)){
                         if(sessions.size()>=256)throw new IllegalStateException("MCP session capacity reached");
-                        Binding binding=new Binding(identity,clock.getAsLong()+IDLE_MILLIS);
+                        Binding binding=new Binding(identity,clock.getAsLong()+idleTimeout.getAsLong());
                         publish(value,binding);sessions.put(value,binding);
                         if(req.getMethod().equals("POST"))activity.begin(value,binding);
                     }
@@ -85,7 +87,7 @@ final class DbaHttpAccess implements Filter {
         }
     }
     private void publish(String id,Binding binding){if(runtime!=null)runtime.registerMcpSession(id,binding.principal,binding.active>0?Long.MAX_VALUE:binding.expires);}
-    private void touch(String id,Binding binding){binding.expires=clock.getAsLong()+IDLE_MILLIS;publish(id,binding);}
+    private void touch(String id,Binding binding){binding.expires=clock.getAsLong()+idleTimeout.getAsLong();publish(id,binding);}
     private void reap(){synchronized(sessions){long now=clock.getAsLong();var iterator=sessions.entrySet().iterator();while(iterator.hasNext()){
         var entry=iterator.next();if(entry.getValue().active==0&&entry.getValue().expires<=now){iterator.remove();if(runtime!=null)runtime.endMcpSession(entry.getKey());}
     }}}
