@@ -159,6 +159,7 @@ final class DbaInputSchemas {
         if (props.has("length")) props.withObject("length").put("minimum", 1).put("maximum", 64000);
         if (props.has("waitMillis")) props.withObject("waitMillis").put("minimum", 0).put("maximum", 5000).put("default", 0);
         if (props.has("afterGeneration")) props.withObject("afterGeneration").put("minimum", 0);
+        if (props.has("afterScanRevision")) props.withObject("afterScanRevision").put("minimum", 0);
         if (props.has("afterRevision")) props.withObject("afterRevision").put("minimum",0).put("description","Revision from an earlier status of this exact job; required for positive waitMillis.");
         if (props.has("section")) props.withObject("section").putArray("enum")
                 .add("columns").add("indexes").add("primaryKeys").add("foreignKeys").add("privileges").add("fieldObservations").add("nativeColumns").add("nativeKeys").add("nativeIndexes").add("constraints");

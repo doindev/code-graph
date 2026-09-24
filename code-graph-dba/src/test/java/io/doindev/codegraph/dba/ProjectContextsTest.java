@@ -81,7 +81,10 @@ class ProjectContextsTest {
     @Test void boundedStatusWaitDoesNotExtendActivityAndRefreshNeedsAuthorization()throws Exception{
         contexts.scanNow(binding);finishScan();long generation=state().path("generation").asLong();
         JsonNode waited=contexts.agent(principal,"dba_scan_status",args().put("afterGeneration",generation).put("waitMillis",30));
-        assertTrue(waited.path("waitTimedOut").asBoolean());
+        assertFalse(waited.path("waitTimedOut").asBoolean(),"An idle target must not be reported as still pending");
+        assertEquals("succeeded",waited.path("lastRun").path("state").asText());
+        JsonNode revisionWait=contexts.agent(principal,"dba_scan_status",args().put("afterScanRevision",waited.path("scanRevision").asLong()).put("waitMillis",30));
+        assertTrue(revisionWait.path("waitTimedOut").asBoolean());
         assertThrows(IllegalArgumentException.class,()->contexts.agent(principal,"dba_scan_status",args().put("waitMillis",1)));
         assertThrows(SecurityException.class,()->contexts.agent("other","dba_refresh_catalog",args()));
         contexts.agent(principal,"dba_refresh_catalog",args());finishScan();
@@ -125,7 +128,11 @@ class ProjectContextsTest {
     }
     @Test void failedPublicationRetainsPreviousSnapshot()throws Exception{
         int[] publications={0};contexts.attach(new ProjectContextHost(){public JsonNode projects(){return projects;}public DocumentStore documents(){DocumentStore delegate=DocumentStore.memory(64L<<20);return new DocumentStore(){public void replace(java.util.function.Consumer<Writer> writer){if(++publications[0]>1)throw new IllegalStateException("fixture publish failure");delegate.replace(writer);}public byte[] get(String key){return delegate.get(key);}public void scan(String prefix,java.util.function.BiConsumer<String,byte[]> visitor){delegate.scan(prefix,visitor);}public <T>T read(java.util.function.Supplier<T> read){return delegate.read(read);}public void close(){delegate.close();}};}});
-        contexts.scanNow(binding);finishScan();String fingerprint=contexts.fingerprint(binding);contexts.scanNow(binding);finishScan();assertEquals("stale",state().path("state").asText());assertEquals(1,state().path("generation").asInt());assertEquals(fingerprint,contexts.fingerprint(binding));assertTrue(contexts.agent(principal,"dba_search_objects",args()).path("objects").size()>0);
+        contexts.scanNow(binding);finishScan();String fingerprint=contexts.fingerprint(binding);contexts.scanNow(binding);finishScan();assertEquals("stale",state().path("state").asText());assertEquals(1,state().path("generation").asInt());assertEquals(fingerprint,contexts.fingerprint(binding));
+        JsonNode failed=contexts.agent(principal,"dba_scan_status",args().put("afterGeneration",1).put("waitMillis",5000));
+        assertFalse(failed.path("scanInProgress").asBoolean());assertFalse(failed.path("waitTimedOut").asBoolean());
+        assertEquals("failed",failed.path("lastRun").path("state").asText());assertEquals("publishing",failed.path("lastRun").path("phase").asText());
+        assertFalse(failed.toString().contains("fixture publish failure"));assertTrue(contexts.agent(principal,"dba_search_objects",args()).path("objects").size()>0);
     }
     @Test void databaseQueriesRenewHostLeaseButPollingDoesNot(){int[] leases={0};contexts.attach(new ProjectContextHost(){public JsonNode projects(){return projects;}public DocumentStore documents(){return DocumentStore.memory(64L<<20);}public AutoCloseable hold(String id){assertEquals(project,id);leases[0]++;return ()->{};}});contexts.agent(principal,"dba_scan_status",args());assertEquals(0,leases[0]);contexts.agent(principal,"dba_search_objects",args());assertEquals(1,leases[0]);}
     @Test void agentCanCancelWithoutLegacyConnectionGrant(){String id=approvals.request(principal,request("DELETE FROM ITEMS")).path("id").asText();assertThrows(SecurityException.class,()->approvals.cancel("other",id));assertEquals("cancelled",approvals.cancel(principal,id).path("state").asText());assertThrows(IllegalArgumentException.class,()->approvals.decide("human",id,true,true));}
@@ -138,4 +145,13 @@ class ProjectContextsTest {
         try(Connection c=connections.open(connection)){for(var template:DatabaseCatalog.ALL)try(var docs=DocumentStore.memory(16L<<20)){ObjectNode profile=profiles.get(connection).put("templateId",template.id());ObjectNode[] snapshot={null};docs.replace(w->{try{snapshot[0]=new CatalogScanner(c,profile,contexts.binding(binding),w,()->false).scan();}catch(Exception e){throw new RuntimeException(template.id(),e);}});assertTrue(snapshot[0].path("objects").asInt()>=2,template.id());assertEquals("H2",snapshot[0].path("version").path("product").asText());c.rollback();}}
         for(String sql:List.of("DROP TABLE t","DELETE FROM t","TRUNCATE t","SELECT 1","CALL native_procedure()","MATCH (n) DETACH DELETE n"))assertTrue(ApprovalQueue.classify(sql).path("approvalRequired").asBoolean());
     }
+    @Test void scanStatusNeverRewritesSavedDefaultCatalogSelector()throws Exception{
+        assertEquals("",contexts.binding(binding).path("database").asText());contexts.scanNow(binding);finishScan();
+        assertEquals("",state().path("database").asText());assertFalse(state().path("catalogTarget").path("database").asText().isBlank());
+        var status=contexts.agent(principal,"dba_scan_status",args());assertEquals("",status.path("database").asText());
+        contexts.save(((ObjectNode)state()).put("purpose","Updated after scanning"));assertEquals("Updated after scanning",contexts.binding(binding).path("purpose").asText());
+        var summary=contexts.agent(agents.trustedLocal(),"dba_list_project_databases",Profiles.JSON.createObjectNode()).path("bindings").get(0);
+        for(String field:List.of("snapshot","currentRun","lastRun","catalogTarget"))assertFalse(summary.has(field),field);
+    }
+
 }

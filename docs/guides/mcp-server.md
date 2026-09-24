@@ -188,7 +188,7 @@ With DBA enabled:
 | `dba_get_capabilities` | Exact binding or connection ID/name; cached description by default; `live: true` submits bounded JDBC metadata or native server-version observation requiring scoped permission |
 | `dba_request_native_command` | Exact native MongoDB/Redis binding or UUID/name/database, optional Mongo collection, structured command, requestId and purpose; one-time approval or startup YOLO, asynchronous bounded results; unavailable in reduced approval-disabled mode |
 | `dba_refresh_catalog` | Requests/coalesces an authorized binding scan under existing single-scanner limits; no database writes |
-| `dba_scan_status` | Passive status; optional `afterGeneration` and `waitMillis` (0–5000), at most four concurrent waiters |
+| `dba_scan_status` | Per-target current/last run status; optional `afterScanRevision` or `afterGeneration` and `waitMillis` (0–5000), at most four concurrent waiters |
 | `dba_capture_schema` | Asynchronous, capped catalog observation for an exact binding or standalone UUID/name/database/schema; requires existing catalog permission |
 | `dba_compare_schemas` | Compare owned retained capture-job IDs (`leftSnapshotId`, `rightSnapshotId`, `limit` 1–100); rechecks authorization and revisions for both sides |
 | `dba_prepare_migration` | Create a ten-minute retained SQL/manifest artifact from explicit changes or supplied DDL; no execution or inferred rename/cascade/backfill |

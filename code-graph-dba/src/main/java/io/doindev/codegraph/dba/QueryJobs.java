@@ -16,6 +16,7 @@ final class QueryJobs implements AutoCloseable {
     private static final int MAX_CELL=8192,MAX_COLUMNS=256;
     final class Job {
         final String id=UUID.randomUUID().toString(),owner,connection;
+        volatile Set<String> participatingConnections=Set.of();
         int rowLimit;
         final int byteLimit;
         final long created=System.currentTimeMillis();
@@ -184,6 +185,15 @@ final class QueryJobs implements AutoCloseable {
     }
     synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup){
         return local(owner,connection,task,cleanup,config.timeoutSeconds());
+    }
+    /** Protect both targets before releasing the job admission lock. */
+    synchronized ObjectNode comparison(String owner,Set<String> targets,LocalTask task,Runnable cleanup){
+        if(owner.startsWith("agent:"))throw new SecurityException("Database comparison is browser-only");
+        if(targets.isEmpty()||targets.size()>2)throw new IllegalArgumentException("Comparison requires one or two connections");
+        for(String target:targets)if(DatabaseTransport.of(connections.profile(target))!=DatabaseTransport.JDBC)throw new IllegalArgumentException("Select SQL connections");
+        ObjectNode submitted=local(owner,targets.iterator().next(),task,cleanup);
+        jobs.get(submitted.path("id").asText()).participatingConnections=Set.copyOf(targets);
+        return submitted;
     }
     static final int FILE_SELECTION_TIMEOUT_SECONDS=90;
     synchronized ObjectNode fileSelection(String owner,LocalTask task,Runnable cleanup){
@@ -908,7 +918,7 @@ final class QueryJobs implements AutoCloseable {
     synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0&&job.permissionDiscovery){job.releaseOnFinish=true;cancel(job);return;}if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
     void cancel(Job job){synchronized(job){if(job.cancelled)return;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
     synchronized void cancelOwner(String owner){jobs.values().stream().filter(j->j.owner.equals(owner)).forEach(this::cancel);}
-    synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->j.connection.equals(id)&&j.finished==0);}
+    synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->(j.connection.equals(id)||j.participatingConnections.contains(id))&&j.finished==0);}
     synchronized ObjectNode connectionState(String id){return Profiles.JSON.createObjectNode().put("connected",connections.connected(id)).put("busy",activeConnection(id));}
     synchronized ObjectNode connectionAction(String owner,String id,String action){
         if(owner.startsWith("agent:"))throw new SecurityException("Connection management is browser-only");

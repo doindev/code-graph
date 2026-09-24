@@ -25,6 +25,12 @@ final class CatalogScanner {
     private long bytes;private int objects,edges;
     private boolean inventoryComplete=true;
     private volatile Statement statement;
+    interface Progress {void accept(String phase,long objects,long dependencies,long bytes);}
+    private Progress progress=(phase,objects,dependencies,bytes)->{};
+    private String phase="server_version";
+    void onProgress(Progress listener){progress=listener;}
+    private void phase(String next){phase=next;report();}
+    private void report(){progress.accept(phase,objects,edges,bytes);}
     record Limits(int objects,long bytes,int rows,int ddlCharacters){
         static final Limits DEFAULT=new Limits(MAX_OBJECTS,MAX_BYTES,10_000,MAX_DDL);
     }
@@ -42,7 +48,7 @@ final class CatalogScanner {
         case "azure-sql"->"sqlserver";case "cosmos-cassandra"->"cassandra";default->p.path("templateId").asText("custom");};}
     void cancel(){Statement s=statement;if(s!=null)try{s.cancel();}catch(SQLException ignored){}}
     ObjectNode scan()throws Exception{
-        check();DatabaseMetaData metadata=connection.getMetaData();if(engine.equals("custom")){String product=metadata.getDatabaseProductName();engine=product.toLowerCase(Locale.ROOT).contains("postgres")?"postgresql":VendorMetadata.engine(product);}
+        phase("server_version");check();DatabaseMetaData metadata=connection.getMetaData();if(engine.equals("custom")){String product=metadata.getDatabaseProductName();engine=product.toLowerCase(Locale.ROOT).contains("postgres")?"postgresql":VendorMetadata.engine(product);}
         ObjectNode result=Profiles.JSON.createObjectNode().put("engine",engine).put("startedAt",System.currentTimeMillis());
         ObjectNode version=result.putObject("version");
         version.put("product",metadata.getDatabaseProductName()).put("server",metadata.getDatabaseProductVersion())
@@ -52,7 +58,7 @@ final class CatalogScanner {
         String catalog=binding.path("database").asText(),schema=binding.path("schema").asText();
         if(engine.equals("sqlserver"))optional("Compatibility level",()->query("SELECT compatibility_level FROM sys.databases WHERE name=DB_NAME()",rs->version.put("compatibility",rs.getString(1))));
         if(engine.equals("mysql")||engine.equals("mariadb"))optional("SQL mode",()->query("SELECT @@sql_mode",rs->version.put("compatibility",rs.getString(1))));
-        boolean roster=false;
+        boolean roster=false;phase("relations");
         try(ResultSet tables=metadata.getTables(catalog.isBlank()?null:catalog,pattern(metadata,schema),"%",null)){
             roster=true;while(tables.next()){
                 check();String s=text(tables,"TABLE_SCHEM"),db=text(tables,"TABLE_CAT"),name=text(tables,"TABLE_NAME"),kind=text(tables,"TABLE_TYPE");
@@ -64,9 +70,9 @@ final class CatalogScanner {
             }
         }catch(SQLFeatureNotSupportedException e){inventoryComplete=false;warn("Table inventory is unavailable through this driver");}
         catch(SQLException e){throw new SQLException("Catalog inventory failed; the previous snapshot remains available",e);}
-        nativeInventory();supplementalInventory(metadata);
+        phase("native_inventory");nativeInventory();phase("supplemental_inventory");supplementalInventory(metadata);
         if(!Set.of("postgresql","oracle","sqlserver","mysql","mariadb","db2","snowflake").contains(engine)){
-            optional("Routine inventory",()->{try(ResultSet routines=metadata.getProcedures(catalog.isBlank()?null:catalog,pattern(metadata,schema),"%")){
+            phase("routines");optional("Routine inventory",()->{try(ResultSet routines=metadata.getProcedures(catalog.isBlank()?null:catalog,pattern(metadata,schema),"%")){
                 while(routines.next()){check();String s=text(routines,"PROCEDURE_SCHEM"),db=text(routines,"PROCEDURE_CAT"),name=text(routines,"PROCEDURE_NAME");if(inScope(db,s)&&!systemSchema(s)){ObjectNode o=object(s,name,"procedure",text(routines,"SPECIFIC_NAME"));o.put("remarks",text(routines,"REMARKS"));nativeDefinition(o);emit(o);}}
             }});
             optional("Function inventory",()->{try(ResultSet routines=metadata.getFunctions(catalog.isBlank()?null:catalog,pattern(metadata,schema),"%")){
@@ -175,7 +181,7 @@ final class CatalogScanner {
         if(!seen.add(object.path("id").asText()))return;if(++objects>limits.objects())throw new CaptureLimit("Catalog object limit reached; narrow the schema scope");
         String ddl=object.path("ddl").asText();if(ddl.length()>limits.ddlCharacters())throw new CaptureLimit("Definition exceeds capture limit; narrow the scope");
         object.put("objectHash",hash(stable(object))).put("definitionHash",hash(ddl)).put("observedAt",System.currentTimeMillis());String id=object.path("id").asText();
-        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks","nativeColumns","nativeKeys","nativeIndexes","constraints","fieldObservations"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);
+        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks","nativeColumns","nativeKeys","nativeIndexes","constraints","fieldObservations"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);report();
     }
     private void store(String key,JsonNode value){check();byte[] data=value.toString().getBytes(StandardCharsets.UTF_8);bytes+=data.length+key.length()*2L+128;if(bytes>limits.bytes())throw new CaptureLimit("Catalog byte limit reached; narrow its scope");writer.put(key,data);}
     private boolean inScope(String catalog,String schema){String db=binding.path("database").asText(),s=binding.path("schema").asText();return (db.isBlank()||catalog.isBlank()||db.equals(catalog))&&(s.isBlank()||s.equals(schema)||schema.isBlank()&&(s.equals(catalog)||engine.equals("sqlite")&&s.equals("main")));}
@@ -190,6 +196,7 @@ final class CatalogScanner {
     interface Rows{void accept(ResultSet r)throws Exception;}
     interface Checked{void run()throws Exception;}
     private void query(String sql,Rows consume,Object...args)throws Exception{check();try(PreparedStatement s=connection.prepareStatement(sql)){statement=s;execution.accept(s);try{s.setQueryTimeout(30);}catch(SQLFeatureNotSupportedException ignored){}try{s.setFetchSize(128);}catch(SQLFeatureNotSupportedException ignored){}for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(ResultSet r=s.executeQuery()){while(r.next()){check();consume.accept(r);}}}finally{statement=null;execution.accept(null);}}
-    private void optional(String label,Checked work)throws Exception{Savepoint point=null;try{if(!connection.getAutoCommit()&&connection.getMetaData().supportsSavepoints())point=connection.setSavepoint();work.run();}catch(SQLException|UnsupportedOperationException failure){if(point!=null)connection.rollback(point);inventoryComplete=false;warn(label+" is unavailable with this provider or database account");}finally{if(point!=null)try{connection.releaseSavepoint(point);}catch(SQLException ignored){}}}
+    // MySQL-family drivers may reject SAVEPOINT on read-only connections; their catalog read errors do not abort the transaction.
+    private void optional(String label,Checked work)throws Exception{Savepoint point=null;try{if(!Set.of("mysql","mariadb").contains(engine)&&!connection.getAutoCommit()&&connection.getMetaData().supportsSavepoints())point=connection.setSavepoint();work.run();}catch(SQLException|UnsupportedOperationException failure){if(point!=null)connection.rollback(point);inventoryComplete=false;warn(label+" is unavailable with this provider or database account");}finally{if(point!=null)try{connection.releaseSavepoint(point);}catch(SQLException ignored){}}}
     private void warn(String warning){if(warnings.size()<100)warnings.add(warning);}
 }

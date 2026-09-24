@@ -80,7 +80,7 @@ final class ProjectContexts implements AutoCloseable {
     synchronized AutoCloseable hold(String bindingId){String project=binding(bindingId).path("projectId").asText();touch(project);holds.merge(project,1,Integer::sum);AutoCloseable projectLease=host.hold(project);return ()->{synchronized(this){holds.computeIfPresent(project,(k,v)->v<=1?null:v-1);touch(project);}projectLease.close();};}
     private Set<String> onboarded(){Set<String> ids=new HashSet<>();for(JsonNode p:host.projects())ids.add(p.path("id").asText());return ids;}
     private boolean active(JsonNode b,Set<String> onboarded){String p=b.path("projectId").asText();return b.path("enabled").asBoolean()&&onboarded.contains(p)&&(holds.getOrDefault(p,0)>0||activity.containsKey(p)&&clock.getAsLong()-activity.get(p)<b.path("idleTimeoutSeconds").asLong()*1000);}
-    synchronized ObjectNode state(){cleanupScopes();ObjectNode result=Profiles.JSON.createObjectNode().put("scanIntervalDefaultSeconds",900).put("idleTimeoutDefaultSeconds",1800).put("scanInProgress",cache.scanning());result.set("projects",host.projects());ArrayNode list=result.putArray("bindings");Set<String> live=onboarded();for(JsonNode b:configuration.path("bindings")){ObjectNode row=b.deepCopy();CatalogCache.Scope scope=null;try{scope=cache.find(cache.target(b));ObjectNode profile=profiles.get(b.path("connectionId").asText());row.put("connectionName",profile.path("name").asText()).put("scanSupported",cache.supports(profile));}catch(IllegalArgumentException e){row.put("connectionName","Removed connection");}row.put("active",active(b,live)).put("onboarded",live.contains(b.path("projectId").asText())).put("lastActivityAt",activity.getOrDefault(b.path("projectId").asText(),0L));if(scope!=null){row.put("state",scope.state).put("error",scope.error).put("generation",scope.generation).put("nextScanAt",active(b,live)?scope.nextScan:0).set("snapshot",scope.metadata());}else row.put("state",row.path("scanSupported").asBoolean(true)?"never_scanned":"native_live_only");list.add(row);}return result;}
+    synchronized ObjectNode state(){cleanupScopes();ObjectNode result=Profiles.JSON.createObjectNode().put("scanIntervalDefaultSeconds",900).put("idleTimeoutDefaultSeconds",1800).put("scanInProgress",cache.scanning());result.set("projects",host.projects());ArrayNode list=result.putArray("bindings");Set<String> live=onboarded();for(JsonNode b:configuration.path("bindings")){ObjectNode row=b.deepCopy();CatalogCache.Scope scope=null;try{scope=cache.find(cache.target(b));ObjectNode profile=profiles.get(b.path("connectionId").asText());row.put("connectionName",profile.path("name").asText()).put("scanSupported",cache.supports(profile));}catch(IllegalArgumentException e){row.put("connectionName","Removed connection");}row.put("active",active(b,live)).put("onboarded",live.contains(b.path("projectId").asText())).put("lastActivityAt",activity.getOrDefault(b.path("projectId").asText(),0L));if(scope!=null){applyScanStatus(row,cache.status(scope.target));row.put("nextScanAt",active(b,live)?row.path("nextScanAt").asLong():0);}else row.put("state",row.path("scanSupported").asBoolean(true)?"never_scanned":"native_live_only");list.add(row);}return result;}
     synchronized void scanNow(String id){
         ObjectNode b=binding(id);
         if(!cache.supports(profiles.get(b.path("connectionId").asText())))
@@ -111,7 +111,7 @@ final class ProjectContexts implements AutoCloseable {
         return agent(principal,operation,args,supplemental,null);
     }
     JsonNode agent(String principal,String operation,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental,String mcpSession){
-        if(operation.equals("dba_list_project_databases")){ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("bindings");for(JsonNode b:state().path("bindings"))try{if(!agents.isTrustedLocal(principal))agents.requireContext(principal,(ObjectNode)b,false);ObjectNode row=b.deepCopy();row.remove("projectRoot");try{agents.requireContext(principal,row,false);}catch(SecurityException denied){row.remove(List.of("snapshot","error"));}row.set("effectivePermissions",agents.effectiveForBinding(principal,row));rows.add(row);}catch(SecurityException ignored){}return out;}
+        if(operation.equals("dba_list_project_databases")){ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("bindings");for(JsonNode b:state().path("bindings"))try{if(!agents.isTrustedLocal(principal))agents.requireContext(principal,(ObjectNode)b,false);ObjectNode row=b.deepCopy();row.remove("projectRoot");try{agents.requireContext(principal,row,false);}catch(SecurityException denied){row.remove(List.of("snapshot","error","currentRun","lastRun","catalogTarget"));}row.set("effectivePermissions",agents.effectiveForBinding(principal,row));rows.add(row);}catch(SecurityException ignored){}return out;}
         String id=Profiles.text(args,"bindingId",36);ObjectNode b;
         com.fasterxml.jackson.databind.node.ArrayNode readProof=null;ObjectNode readScope=null;
         try{b=authorized(principal,id,false);}catch(SecurityException denied){
@@ -129,11 +129,12 @@ final class ProjectContexts implements AutoCloseable {
             String database=permissionScope.path("vendor").asText().equals("postgresql")?permissionScope.path("database").asText():schema;
             return readPermissions.coveredByProof(principal,mcpSession,permissionScope,proof,new ReadQueries.Relation(database,schema,ReadPermissions.metadataObject(row)));
         };
+        if(Set.of("dba_scan_status","dba_refresh_catalog").contains(operation))waitAfter(args,number(args,"waitMillis",0,0,5000));
         final ObjectNode selectedBinding=b;if(!operation.equals("dba_scan_status"))touch(b.path("projectId").asText());
         if(operation.equals("dba_refresh_catalog")){scanNow(id);return scopedStatus(scanStatus(principal,id,args,proof==null?supplemental:ignored->readPermissions.require(principal,mcpSession,proof)),proof!=null);}
         if(operation.equals("dba_scan_status"))return scopedStatus(scanStatus(principal,id,args,proof==null?supplemental:ignored->readPermissions.require(principal,mcpSession,proof)),proof!=null);
         CatalogCache.Target target=cache.target(b);CatalogCache.Scope scope=cache.find(target);
-        if(scope==null||scope.generation==0)return Profiles.JSON.createObjectNode().put("state","scan_pending").put("message","Catalog scan will start while this project is active; retry after it completes");
+        if(scope==null||scope.generation==0)return pendingStatus(cache.status(target),proof!=null);
         JsonNode result=queries.read(scope,principal,target.key(),profileRevision(b)+(proof==null?"":proof.toString()),operation,args,
                 object->host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()),permitted);
         ObjectNode current;
@@ -145,24 +146,24 @@ final class ProjectContexts implements AutoCloseable {
     JsonNode standalone(String principal,String operation,JsonNode args,java.util.function.Supplier<WorkflowTargets.Target> authorize){
         WorkflowTargets.Target selected=authorize.get();CatalogCache.Target target=cache.target(selected.scope());
         cleanupScopes();
+        if(Set.of("dba_scan_status","dba_refresh_catalog").contains(operation))waitAfter(args,number(args,"waitMillis",0,0,5000));
         var previous=cache.find(target);
         if(args.has("cursor")&&(previous==null||previous.generation==0))throw new IllegalArgumentException("stale_cursor: catalog scope expired or changed; restart without a cursor");
         if(!operation.equals("dba_scan_status")){
             cache.touchStandalone(target);
-            if(operation.equals("dba_refresh_catalog")||cache.find(target).generation==0)cache.request(target,Long.MAX_VALUE);
+            if(operation.equals("dba_refresh_catalog")||cache.find(target).state.equals("never_scanned"))cache.request(target,Long.MAX_VALUE);
         }
         if(operation.equals("dba_scan_status")||operation.equals("dba_refresh_catalog")){
-            int wait=number(args,"waitMillis",0,0,5000);long after=args.path("afterGeneration").asLong(-1);
-            if(args.has("afterGeneration")&&(!args.path("afterGeneration").isIntegralNumber()||!args.path("afterGeneration").canConvertToLong()||after<0))throw new IllegalArgumentException("afterGeneration must be a nonnegative integer");
-            if(wait>0&&after<0)throw new IllegalArgumentException("afterGeneration is required when waiting");
+            int wait=number(args,"waitMillis",0,0,5000);long after=waitAfter(args,wait);
             if(wait>0&&!statusWaiters.tryAcquire())throw new IllegalArgumentException("Catalog status wait capacity reached");
             long deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(wait);
             try{
                 while(true){
                     revalidateTarget(selected,authorize.get());cleanupScopes();
                     ObjectNode status=(ObjectNode)scopedStatus(cache.status(target),selected.scope().has("readPermissionProof"));boolean expired=System.nanoTime()>=deadline;
-                    if(wait==0||status.path("generation").asLong()>after||expired||closed)
-                        return status.put("waitTimedOut",wait>0&&status.path("generation").asLong()<=after&&expired)
+                    boolean changed=waitChanged(status,args,after);
+                    if(wait==0||changed||expired||closed)
+                        return status.put("waitTimedOut",wait>0&&!changed&&expired)
                                 .put("scope","standalone").put("authorizationReason",selected.authorization());
                     if(Thread.currentThread().isInterrupted())throw new CancellationException("Catalog wait cancelled");
                     java.util.concurrent.locks.LockSupport.parkNanos(Math.min(100_000_000L,Math.max(0,deadline-System.nanoTime())));
@@ -170,7 +171,7 @@ final class ProjectContexts implements AutoCloseable {
             }finally{if(wait>0)statusWaiters.release();}
         }
         CatalogCache.Scope scope=cache.find(target);
-        if(scope==null||scope.generation==0)return ((ObjectNode)scopedStatus(cache.status(target),selected.scope().has("readPermissionProof"))).put("state","scan_pending").put("message","Exact standalone catalog requested; use dba_scan_status with bounded waiting");
+        if(scope==null||scope.generation==0)return pendingStatus(cache.status(target),selected.scope().has("readPermissionProof"));
         JsonNode result=queries.read(scope,principal,target.key(),selected.scope().toString(),operation,args,object->{
             String project=Profiles.text(args,"projectId",36);
             if(!onboarded().contains(project))throw new IllegalArgumentException("Standalone code references require an explicit onboarded projectId");
@@ -180,34 +181,68 @@ final class ProjectContexts implements AutoCloseable {
         if(result instanceof ObjectNode out){out.set("target",selected.request());out.put("scope","standalone").put("authorizationReason",selected.authorization());}
         return result;
     }
+    private static ObjectNode pendingStatus(ObjectNode status,boolean scoped){
+        ObjectNode out=(ObjectNode)scopedStatus(status,scoped);
+        if(out.path("state").asText().equals("failed"))return out.put("message","Catalog scan failed; inspect lastRun and correct the problem before requesting dba_refresh_catalog.");
+        return out.put("state","scan_pending").put("message","Catalog scan has not published a snapshot; inspect currentRun with dba_scan_status.");
+    }
     private static JsonNode scopedStatus(JsonNode status,boolean scoped){
         if(!scoped)return status;ObjectNode out=status.deepCopy();
         out.remove(java.util.List.of("snapshot","error"));
+        for(String key:List.of("currentRun","lastRun"))if(out.path(key) instanceof ObjectNode run)
+            run.remove(List.of("objects","dependencies","bytes","error","errorCode"));
         return out.put("coverage","Status for the selected scope; use scoped object tools for authorized metadata");
     }
     private static void revalidateTarget(WorkflowTargets.Target before,WorkflowTargets.Target after){
         if(!before.scope().equals(after.scope()))throw new SecurityException("Catalog target or authorization revision changed; request a fresh snapshot");
     }
+    /** Revision waits cover failures and progress; generation waits also stop once the target is idle. */
+    private static long waitAfter(JsonNode args,int wait){
+        if(args.has("afterGeneration")&&args.has("afterScanRevision"))throw new IllegalArgumentException("Choose afterGeneration or afterScanRevision");
+        String key=args.has("afterScanRevision")?"afterScanRevision":"afterGeneration";
+        if(args.has(key)&&(!args.path(key).isIntegralNumber()||!args.path(key).canConvertToLong()||args.path(key).asLong()<0))
+            throw new IllegalArgumentException(key+" must be a nonnegative integer");
+        if(wait>0&&!args.has(key))throw new IllegalArgumentException("afterGeneration or afterScanRevision is required when waiting");
+        return args.path(key).asLong(-1);
+    }
+    private static boolean waitChanged(JsonNode status,JsonNode args,long after){
+        return args.has("afterScanRevision")?status.path("scanRevision").asLong()>after:
+            status.path("generation").asLong()>after||!status.path("scanInProgress").asBoolean();
+    }
     private JsonNode scanStatus(String principal,String id,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental){
-        int wait=number(args,"waitMillis",0,0,5000);
-        long after=args.path("afterGeneration").asLong(-1);
-        if(args.has("afterGeneration")&&(!args.path("afterGeneration").isIntegralNumber()||after<0))throw new IllegalArgumentException("afterGeneration must be a nonnegative integer");
-        if(wait>0&&after<0)throw new IllegalArgumentException("afterGeneration is required when waiting");
+        int wait=number(args,"waitMillis",0,0,5000);long after=waitAfter(args,wait);
         if(wait>0&&!statusWaiters.tryAcquire())throw new IllegalArgumentException("Catalog status wait capacity reached; poll without waiting");
         long deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(wait);
         try{
             while(true){
                 ObjectNode current;try{current=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;current=authorized(principal,id,true);supplemental.accept(current);}
-                long generation;synchronized(this){CatalogCache.Scope scope=cache.find(cache.target(current));generation=scope==null?0:scope.generation;}
-                boolean timeout=System.nanoTime()>=deadline;
-                if(wait==0||generation>after||timeout||closed){
-                    for(JsonNode row:state().path("bindings"))if(row.path("id").asText().equals(id))return ((ObjectNode)row).put("waitTimedOut",wait>0&&generation<=after&&timeout);
-                    throw new IllegalArgumentException("Binding removed while waiting");
+                ObjectNode status=cache.status(cache.target(current));boolean changed=waitChanged(status,args,after),timeout=System.nanoTime()>=deadline;
+                if(wait==0||changed||timeout||closed){
+                    // The binding response includes activity and scheduling but uses this target's scan state.
+                    applyScanStatus(current,status);synchronized(this){current.put("active",active(current,onboarded())).put("onboarded",onboarded().contains(current.path("projectId").asText())).put("lastActivityAt",activity.getOrDefault(current.path("projectId").asText(),0L));}
+                    return current.put("waitTimedOut",wait>0&&!changed&&timeout);
                 }
                 try{Thread.sleep(Math.min(100,Math.max(1,TimeUnit.NANOSECONDS.toMillis(deadline-System.nanoTime()))));}
-                catch(InterruptedException cancelled){Thread.currentThread().interrupt();throw new java.util.concurrent.CancellationException("Catalog status wait cancelled");}
+                catch(InterruptedException cancelled){Thread.currentThread().interrupt();throw new CancellationException("Catalog status wait cancelled");}
             }
         }finally{if(wait>0)statusWaiters.release();}
+    }
+    private static void applyScanStatus(ObjectNode binding,ObjectNode status){
+        // A saved binding may select its profile's default catalog; observations must not mutate that selector.
+        binding.set("catalogTarget",status.deepCopy().retain("connectionId","database","schema"));
+        status.remove(List.of("connectionId","database","schema"));binding.setAll(status);
+    }
+    synchronized ObjectNode scanOverview(){
+        cleanupScopes();ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("scans");
+        for(var scope:cache.scopes()){
+            ObjectNode row=cache.status(scope.target);row.put("connectionName",profiles.get(scope.target.connection()).path("name").asText());
+            ArrayNode bindings=row.putArray("bindings");
+            for(JsonNode binding:configuration.path("bindings"))try{if(cache.target(binding).equals(scope.target))
+                bindings.addObject().put("id",binding.path("id").asText()).put("projectName",binding.path("projectName").asText()).put("role",binding.path("role").asText());
+            }catch(IllegalArgumentException ignored){}
+            rows.add(row);
+        }
+        return out;
     }
     static JsonNode json(byte[] bytes){if(bytes==null)return null;try{return Profiles.JSON.readTree(bytes);}catch(Exception e){throw new IllegalStateException("Invalid snapshot record",e);}}
     private synchronized void cleanupScopes(){

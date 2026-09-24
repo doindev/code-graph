@@ -133,4 +133,10 @@ class DbaToolSchemaTest {
             if(name.equals("dba_request_connection_create"))assertEquals("object",schema.path("properties").path("profile").path("type").asText());
         }
     }
+    @Test void catalogStatusSupportsRevisionWaitsAndExplainsTerminalRuns()throws Exception{
+        var mapper=new ObjectMapper();for(var tool:DbaMcpTools.tools(null,()->null))if(Set.of("dba_scan_status","dba_refresh_catalog").contains(tool.spec().name())){
+            var schema=mapper.readTree(tool.spec().inputSchemaJson());assertEquals("integer",schema.at("/properties/afterScanRevision/type").asText());assertEquals(0,schema.at("/properties/afterScanRevision/minimum").asLong());assertEquals(5000,schema.at("/properties/waitMillis/maximum").asInt());assertTrue(tool.spec().description().contains("afterScanRevision"));
+        }
+    }
+
 }

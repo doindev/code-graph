@@ -1,0 +1,54 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+module.exports=async(browser,base)=>{
+ const context=await browser.newContext({viewport:{width:1440,height:960},acceptDownloads:true});
+ const page=await context.newPage(),errors=[],requests=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/dba/'))requests.push([r.method(),r.url()]);});
+ try{
+  await page.goto(base+'/dba');await page.waitForFunction(()=>document.querySelector('#connection-count')?.textContent.includes('connection'));
+  await page.getByRole('button',{name:'Compare',exact:true}).click();
+  const wizard=page.getByRole('region',{name:'Database Compare'});
+  const source=wizard.getByLabel('source connection',{exact:true});await source.selectOption({label:'Context H2'});
+  await page.waitForFunction(()=>[...document.querySelector('[aria-label="source schema"]').options].some(o=>o.value==='SRC'));
+  await wizard.getByLabel('source schema',{exact:true}).selectOption('SRC');
+  await wizard.getByLabel('destination connection',{exact:true}).selectOption({label:'Context H2'});
+  await page.waitForFunction(()=>[...document.querySelector('[aria-label="destination schema"]').options].some(o=>o.value==='DST'));
+  await wizard.getByLabel('destination schema',{exact:true}).selectOption('DST');
+  await wizard.getByRole('button',{name:'Choose object types',exact:true}).click();
+  await wizard.getByRole('button',{name:'Clear all',exact:true}).click();
+  for(const kind of ['Tables','Views','Sequences'])await wizard.getByRole('checkbox',{name:kind,exact:true}).check();
+  await wizard.getByRole('checkbox',{name:'Sync sequence values',exact:true}).check();
+  await wizard.getByRole('button',{name:'Load objects and choose table data'}).click();
+  const parent=wizard.locator('.compare-object-option').filter({hasText:'SRC.PARENT'});await parent.getByRole('checkbox',{name:'Include data',exact:true}).check();
+  await wizard.getByRole('button',{name:'Compare',exact:true}).click();
+  await wizard.getByRole('button',{name:'SRC.CHILD',exact:true}).waitFor({timeout:30000});
+  await wizard.locator('.compare-tree details').filter({has:page.locator(':scope > summary',{hasText:/^Identical/})}).evaluateAll(nodes=>nodes.forEach(n=>n.open=true));
+  await wizard.getByRole('button',{name:'SRC.PARENT',exact:true}).click();
+  await wizard.getByRole('tab',{name:'Data differences',exact:true}).click();
+  await wizard.locator('.compare-data-scroll').waitFor();
+  assert.match(await wizard.locator('.compare-detail-content').innerText(),/Different: 1/);
+  assert.match(await wizard.locator('.compare-detail-content').innerText(),/Only in source: 1/);
+  assert.match(await wizard.locator('.compare-detail-content').innerText(),/Only in destination: 1/);
+  await wizard.getByRole('tab',{name:'Source / Destination',exact:true}).click();await wizard.locator('.compare-code-pair').waitFor();
+  await wizard.getByRole('button',{name:'Expand',exact:true}).click();
+  const verifyLayout=async()=>{const boxes=await wizard.evaluate(e=>({root:e.getBoundingClientRect().toJSON(),footer:e.querySelector('footer').getBoundingClientRect().toJSON(),width:innerWidth,height:innerHeight}));assert.ok(boxes.root.x>=0&&boxes.root.right<=boxes.width+1);assert.ok(boxes.footer.bottom<=boxes.height+1);};
+  await verifyLayout();await fs.mkdir('target/compare-browser-evidence',{recursive:true});await page.screenshot({path:'target/compare-browser-evidence/review.png'});
+  await page.setViewportSize({width:600,height:800});await verifyLayout();await page.screenshot({path:'target/compare-browser-evidence/review-narrow.png'});await page.setViewportSize({width:1440,height:960});
+  await wizard.getByRole('button',{name:'Generate script',exact:true}).click();
+  const sql=wizard.getByRole('textbox',{name:'Generated destination SQL',exact:true});await sql.waitFor({timeout:30000});
+  const script=await sql.inputValue();assert.match(script,/CREATE TABLE "DST"\."CHILD"/);assert.match(script,/RESTART WITH 20/);assert.match(script,/UPDATE "DST"\."PARENT"/);
+  assert.equal(await wizard.getByRole('button',{name:/^(Execute|Apply)$/}).count(),0);
+  const downloadPromise=page.waitForEvent('download');await wizard.getByRole('button',{name:'Save',exact:true}).click();const download=await downloadPromise;
+  assert.equal(await fs.readFile(await download.path(),'utf8'),script);
+  await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:base});await wizard.getByRole('button',{name:'Copy',exact:true}).click();await page.waitForFunction(expected=>navigator.clipboard.readText().then(text=>text===expected),script);
+  await page.screenshot({path:'target/compare-browser-evidence/script.png'});
+  const downloadRequest=requests.filter(([method,url])=>method==='GET'&&url.includes('/compare/artifacts/')&&url.endsWith('/download')).at(-1)[1];
+  assert.equal((await context.request.post(base+'/api/dba/compare/test',{data:{}})).status(),403,'Compare mutations require CSRF');
+  const other=await browser.newContext();await other.request.post(base+'/api/dba/bootstrap',{headers:{Origin:base},data:{}});assert.equal((await other.request.get(downloadRequest)).status(),403,'Artifacts are owner-bound');await other.close();
+  await wizard.getByRole('button',{name:'Cancel',exact:true}).click();await wizard.waitFor({state:'detached'});
+  assert.equal((await context.request.get(downloadRequest)).status(),403,'Cancelled script must no longer be downloadable');
+  assert.equal(requests.filter(([method,url])=>method==='POST'&&/\/api\/dba\/(queries|query\/execute|execute|mutations)(\/|$)/.test(url)).length,0);
+  assert.deepEqual(errors,[]);console.log('COMPARE_BROWSER_VERIFIED review, rows, SQL, save, copy, viewport, disposal');
+ }catch(error){await fs.mkdir('target/compare-browser-evidence',{recursive:true});await page.screenshot({path:'target/compare-browser-evidence/failure.png'});console.error(await page.locator('body').innerText());throw error;}
+ finally{await context.close();}
+};

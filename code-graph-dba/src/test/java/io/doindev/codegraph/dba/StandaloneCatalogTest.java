@@ -85,7 +85,24 @@ class StandaloneCatalogTest {
         try{call("dba_refresh_catalog",args());long until=System.nanoTime()+2_000_000_000L;
             while(fixture.contexts.state().path("scanInProgress").asBoolean()&&System.nanoTime()<until)Thread.sleep(10);
             var status=call("dba_scan_status",args());assertEquals("stale",status.path("state").asText());assertEquals(generation,status.path("generation").asLong());
+            var failed=call("dba_scan_status",args().put("afterGeneration",generation).put("waitMillis",5000));
+            assertFalse(failed.path("waitTimedOut").asBoolean());assertFalse(failed.path("scanInProgress").asBoolean());assertEquals("failed",failed.path("lastRun").path("state").asText());
+            var revision=call("dba_scan_status",args().put("afterScanRevision",0).put("waitMillis",5000));assertFalse(revision.path("waitTimedOut").asBoolean());
         }finally{reservation.close();}
         assertFalse(call("dba_search_objects",args()).path("objects").isEmpty());
     }
+    @Test void failedInitialScanIsNotMisreportedAsPendingOrRetriedBySearch()throws Exception{
+        try(var reserved=fixture.jobs.retainAllowance(fixture.jobs.availableRetainedBytes()-1)){
+            var first=call("dba_refresh_catalog",args().put("afterGeneration",0).put("waitMillis",5000));assertEquals("failed",first.path("state").asText());
+            var searched=call("dba_search_objects",args());assertEquals("failed",searched.path("state").asText());assertEquals(first.path("lastRun").path("id"),searched.path("lastRun").path("id"));assertFalse(searched.path("scanInProgress").asBoolean());
+        }
+        scan();assertEquals("succeeded",call("dba_scan_status",args()).path("lastRun").path("state").asText());
+    }
+    @Test void narrowedStatusRedactsCatalogCountsAndDiagnostics()throws Exception{
+        scan();var selected=targets.cached(fixture.principal,null,"dba_scan_status",args());selected.scope().putArray("readPermissionProof");
+        var status=fixture.contexts.standalone(fixture.principal,"dba_scan_status",args(),()->selected);
+        assertFalse(status.has("snapshot"));assertTrue(status.path("lastRun").has("startedAt"));
+        for(String field:List.of("objects","dependencies","bytes","error","errorCode"))assertFalse(status.path("lastRun").has(field),field);
+    }
+
 }

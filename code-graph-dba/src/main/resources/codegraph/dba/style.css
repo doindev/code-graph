@@ -295,3 +295,21 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .read-permission-dialog pre { white-space:pre-wrap; overflow-wrap:anywhere; }
 .read-permission-dialog article { padding:12px 0; border-bottom:1px solid var(--border,#555); }
 .read-permission-dialog button { margin:4px; }
+
+/* Scan monitoring uses the viewport and keeps long operational details scrollable. */
+.scan-status-dialog,#catalog-dialog{width:calc(100vw - 48px);max-width:none;max-height:calc(100dvh - 48px);box-sizing:border-box}
+.scan-status-dialog{height:calc(100dvh - 48px)}
+.scan-status-layout{display:grid;grid-template-columns:minmax(220px,28%) minmax(0,1fr);gap:20px;min-height:0}
+.scan-targets{display:flex;flex-direction:column;gap:8px;align-self:start}
+.scan-targets button{display:flex;flex-direction:column;text-align:left;gap:4px;white-space:normal;overflow-wrap:anywhere}
+.scan-targets button[aria-pressed=true]{outline:2px solid var(--accent,#78a9ff);outline-offset:-2px}
+.scan-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}
+.scan-details section{border:1px solid var(--border,#384254);padding:16px;border-radius:8px;min-width:0}
+.scan-details h3{margin:0 0 12px}.scan-details dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:0}
+.scan-details dt{opacity:.75}.scan-details dd{margin:0;overflow-wrap:anywhere}.scan-snapshot{grid-column:1/-1}
+@media(max-width:850px){.scan-status-layout,.scan-details{grid-template-columns:1fr}.scan-status-dialog,#catalog-dialog{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}.scan-status-dialog{height:calc(100dvh - 20px)}}
+
+.scan-status-dialog[open]{display:flex;flex-direction:column}
+.scan-status-dialog>h2,.scan-status-dialog>p,.scan-status-footer{flex:none}
+.scan-status-dialog .scan-status-layout{flex:1;overflow:auto;align-items:start}
+.scan-status-footer{display:flex;gap:8px;padding-top:16px}

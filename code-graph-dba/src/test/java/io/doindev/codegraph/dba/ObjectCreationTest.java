@@ -31,6 +31,7 @@ class ObjectCreationTest {
                     var p=ObjectCreation.prepare(c,d,false);st.execute(p.path("sql").asText());
                 }
                 assertFalse(ObjectCreation.supports("oracle","schemas"));assertFalse(ObjectCreation.supports("jdbc","tables"));assertTrue(ObjectCreation.supports("postgresql","materialized_views"));
+                org.h2.Driver.load();
                 try(var other=java.sql.DriverManager.getConnection("jdbc:h2:mem:other_creation_target")){
                     assertNotEquals(ObjectCreation.prepare(c,draft,false).path("targetFingerprint"),ObjectCreation.prepare(other,draft,false).path("targetFingerprint"));
                 }

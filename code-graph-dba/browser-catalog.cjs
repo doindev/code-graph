@@ -18,6 +18,17 @@ module.exports=async(browser,base)=>{
   await dialog.getByRole('button',{name:'Refresh catalog',exact:true}).click();
   await page.waitForFunction(()=>/Generation 1/.test(document.querySelector('#catalog-status').textContent)&&!document.querySelector('#catalog-database').disabled);
   assert.ok(calls.some(call=>call.operation==='refresh_catalog'&&call.database==='CONTEXT-DB'&&call.schema==='PUBLIC'));
+  const details=dialog.locator('#catalog-scan-details');assert.match(await details.innerText(),/Last run/);assert.match(await details.innerText(),/succeeded/);assert.match(await details.innerText(),/Started/);
+  const before=await page.evaluate(async()=>await(await fetch('/api/dba/catalog/scans')).json());assert.equal(before.scans.length,1);assert.equal(before.scans[0].scanInProgress,false);assert.equal(before.scans[0].lastRun.state,'succeeded');
+  await dialog.getByRole('button',{name:'All scan status',exact:true}).click();const monitor=page.locator('#scan-status-dialog');await monitor.waitFor();await monitor.locator('.scan-targets button').waitFor();
+  assert.match(await monitor.innerText(),/0 active \/ queued/);assert.match(await monitor.innerText(),/No scan queued or running/);assert.match(await monitor.innerText(),/Generation 1/);
+  const bounds=await monitor.boundingBox();assert.ok(bounds.width>=1200&&bounds.height>=840,JSON.stringify(bounds));
+  await page.screenshot({path:'code-graph-dba/target/scan-status-desktop.png'});
+  const refreshCount=calls.filter(call=>call.operation==='refresh_catalog').length;await page.waitForTimeout(2200);
+  const after=await page.evaluate(async()=>await(await fetch('/api/dba/catalog/scans')).json());assert.equal(after.scans[0].expiresAt,before.scans[0].expiresAt);assert.equal(after.scans[0].generation,1);assert.equal(calls.filter(call=>call.operation==='refresh_catalog').length,refreshCount);
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'code-graph-dba/target/scan-status-mobile.png'});
+  const overflow=await monitor.evaluate(node=>({width:node.clientWidth,scroll:node.scrollWidth}));assert.ok(overflow.scroll<=overflow.width+1,JSON.stringify(overflow));
+  await monitor.getByRole('button',{name:'Close',exact:true}).click();assert.equal(await monitor.isVisible(),false);assert.equal(await page.evaluate(()=>document.activeElement.id),'all-scan-status');await page.setViewportSize({width:1280,height:900});
   await dialog.getByLabel('Search cached objects').fill('ITEMS');await dialog.getByRole('button',{name:'Search snapshot',exact:true}).click();
   const object=dialog.locator('#catalog-results button').filter({hasText:'PUBLIC.ITEMS'});await object.waitFor();
   await object.click();await dialog.getByLabel('Cached object DDL').waitFor();

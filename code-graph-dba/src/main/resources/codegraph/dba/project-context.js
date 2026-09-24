@@ -1,3 +1,4 @@
+import {scanLabel} from './scan-status.js';
 import {installReadPermissions} from './read-permissions.js';
 import {installApprovalUI} from './approval-ui.js';
 import {lucide} from './tree-icons.js';
@@ -8,7 +9,7 @@ const environments=['local','dev','test','stage','prod'];
 const typeName=value=>value.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 export function installProjectContext({api,profiles,notify,openConnection,reviewConnection}){
   const menu=document.getElementById('workspace-settings-menu'),toolbar=document.getElementById('workspace-toolbar-actions');
-  installCatalogUI({api,profiles,menu});
+  const openScans=installCatalogUI({api,profiles,menu});
   installReadPermissions({api,menu});
   const contextButton=el('button','Project databases');contextButton.id='project-databases';contextButton.setAttribute('role','menuitem');contextButton.prepend(lucide('database'));menu.append(contextButton);
   const approvalButton=el('button','Approvals');approvalButton.id='agent-approvals';approvalButton.title='Review agent database requests';approvalButton.setAttribute('aria-label','Agent database approvals');toolbar.prepend(approvalButton);
@@ -41,10 +42,10 @@ export function installProjectContext({api,profiles,notify,openConnection,review
     const rank=value=>{const index=environments.indexOf(value);return index<0?environments.length:index;},ordered=[...state.bindings].sort((a,b)=>a.projectName.localeCompare(b.projectName)||rank(a.environment)-rank(b.environment)||a.role.localeCompare(b.role));
     let group='';for(const binding of ordered){const next=binding.projectName+'|'+binding.environment;if(next!==group){group=next;list.append(el('h3',binding.projectName+' · '+binding.environment));}
       const row=el('article',undefined,'context-binding');row.dataset.binding=binding.id;row.append(el('h4',binding.role+' · '+binding.connectionName),el('p',binding.purpose));
-      row.append(el('p',[binding.database,binding.schema,binding.connectionState?.state].filter(Boolean).join(' / ')),el('p',(binding.active?'Active':'Idle')+' · '+binding.state+' · Last scan: '+time(binding.snapshot?.finishedAt)+' · Last MCP activity: '+time(binding.lastActivityAt)));
+      row.append(el('p',[binding.database,binding.schema,binding.connectionState?.state].filter(Boolean).join(' / ')),el('p',(binding.active?'Active':'Idle')+' · '+binding.state+' · Scan: '+scanLabel(binding)+' · Started: '+time(binding.currentRun?.startedAt||binding.lastRun?.startedAt)+' · Last scan: '+time(binding.lastRun?.finishedAt||binding.snapshot?.finishedAt)+' · Last MCP activity: '+time(binding.lastActivityAt)));
       if(binding.effectivePermissions?.length)row.append(el('p','Agent policy coverage: '+binding.effectivePermissions.join(', ')));
       if(binding.reviewRequired)row.append(el('p','Migrated relationship needs environment, role, and purpose review.','context-error'));if(binding.error)row.append(el('p',binding.error,'context-error'));
-      for(const [label,action]of [['Edit',()=>edit(binding)],['Scan now',async()=>{await api('/project-context/'+binding.id+'/scan','POST',{});await refresh();}],[binding.enabled?'Disable':'Enable',async()=>{await api('/project-context','POST',{...binding,enabled:!binding.enabled});await refresh();}],['Remove',async()=>{if(!confirm('Remove this application/database relationship? The saved connection and database are not deleted.'))return;await api('/project-context/'+binding.id,'DELETE');if(editing?.id===binding.id)reset();await refresh();}]]){const button=el('button',label);button.type='button';button.onclick=safely(action);if(label==='Scan now'&&binding.scanSupported===false){button.disabled=true;button.title='Native cached catalogs are not available; use the native workspace metadata commands.';}row.append(button);}list.append(row);
+      for(const [label,action]of [['Edit',()=>edit(binding)],['Scan details',()=>openScans(binding.catalogTarget||binding)],['Scan now',async()=>{await api('/project-context/'+binding.id+'/scan','POST',{});await refresh();}],[binding.enabled?'Disable':'Enable',async()=>{await api('/project-context','POST',{...binding,enabled:!binding.enabled});await refresh();}],['Remove',async()=>{if(!confirm('Remove this application/database relationship? The saved connection and database are not deleted.'))return;await api('/project-context/'+binding.id,'DELETE');if(editing?.id===binding.id)reset();await refresh();}]]){const button=el('button',label);button.type='button';button.onclick=safely(action);if(label==='Scan now'&&binding.scanSupported===false){button.disabled=true;button.title='Native cached catalogs are not available; use the native workspace metadata commands.';}row.append(button);}list.append(row);
     }
   }
   async function renderPolicies(){
@@ -69,5 +70,5 @@ export function installProjectContext({api,profiles,notify,openConnection,review
   document.getElementById('agents-dialog').prepend(managePolicies);document.getElementById('agents').title='Manage MCP identities and scoped reusable permissions';
   managePolicies.onclick=safely(async()=>{document.getElementById('agents-dialog').close();await refresh();context.showModal();grantSection.scrollIntoView({block:'start'});agentSelect.focus();});
   installApprovalUI({api,button:approvalButton,reviewConnection});
-  setInterval(async()=>{if(loading||document.hidden||!context.open)return;loading=true;try{if(!form.contains(document.activeElement)&&!grantSection.contains(document.activeElement)){state=await api('/project-context');renderBindings();}}catch{}finally{loading=false;}},5000);
+  setInterval(async()=>{if(loading||document.hidden||!context.open||document.getElementById('scan-status-dialog')?.open)return;loading=true;try{if(!form.contains(document.activeElement)&&!grantSection.contains(document.activeElement)){state=await api('/project-context');renderBindings();}}catch{}finally{loading=false;}},5000);
 }

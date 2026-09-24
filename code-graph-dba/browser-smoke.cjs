@@ -30,6 +30,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     }finally{await close(...options);}
   };return context;};
   try {
+    if(process.env.DBA_BROWSER_SUITE==='compare'){await require('./browser-compare.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='read-permissions'){await require('./browser-read-permissions.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='approval-settings'){await require('./browser-approval-settings.cjs')(browser,base);return;}
     if(process.env.DBA_BROWSER_SUITE==='scheduled-jobs'){await require('./browser-scheduled-jobs.cjs')(browser,base);return;}
