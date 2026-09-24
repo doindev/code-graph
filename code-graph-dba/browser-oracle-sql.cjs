@@ -24,6 +24,16 @@ module.exports=async(browser,base)=>{
   await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');assert.match(await page.locator('#grid').innerText(),/second run/);
   await page.locator('#result-tabs').getByRole('button',{name:'Server output',exact:true}).click();assert.match(await page.locator('#grid').innerText(),/No server output/);
   await page.screenshot({path:'code-graph-dba/target/oracle-output.png'});
+  const gridTable='CG_GRID_UI_'+Date.now();
+  await page.locator('#sql').fill(`CREATE TABLE ${gridTable}(id NUMBER PRIMARY KEY,label NVARCHAR2(80),stamp DATE); INSERT INTO ${gridTable} SELECT LEVEL,'row-'||LEVEL,TO_DATE('2026-09-24 12:34:56','YYYY-MM-DD HH24:MI:SS') FROM dual CONNECT BY LEVEL<=451;`);
+  await page.locator('#run').click();await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');
+  await page.locator('#sql').fill(`SELECT id AS row_key,label,stamp FROM ${gridTable}`);await page.locator('#run').click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('1–10'));
+  const footer=page.locator('#grid .data-grid-footer'),rows=page.locator('#grid .grid-body .grid-row');
+  await rows.first().locator('[data-column-id=c2]').dblclick();await page.locator('.grid-cell-editor textarea').fill('Oracle edited Ω漢字');await page.locator('.grid-cell-editor textarea').press('Enter');await footer.getByRole('button',{name:'Save',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false'&&!document.querySelector('.grid-row-status')?.textContent.includes('pending'));
+  await footer.getByRole('button',{name:'Refresh',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#grid')?.getAttribute('aria-busy')==='false');assert.match(await rows.first().innerText(),/Oracle edited Ω漢字/);
+  await footer.getByRole('button',{name:'Last row',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.grid-row-status')?.textContent.includes('442–451'));assert.match(await rows.last().innerText(),/451/);
+  await page.screenshot({path:'code-graph-dba/target/oracle-grid.png'});
+  await page.locator('#sql').fill(`DROP TABLE ${gridTable} PURGE;`);await page.locator('#run').click();await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');
   const packageName='CG_BROWSER_'+Date.now();
   await page.locator('#sql').fill(`CREATE PACKAGE ${packageName} AS FUNCTION answer RETURN NUMBER; END;\n/\nCREATE PACKAGE BODY ${packageName} AS FUNCTION answer RETURN NUMBER IS BEGIN RETURN 91; END; END;\n/\n`);
   await page.locator('#run').click();await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');
@@ -39,6 +49,6 @@ module.exports=async(browser,base)=>{
   await page.waitForFunction(()=>document.querySelector('.object-properties')?.getAttribute('aria-busy')==='false');assert.match(await view.innerText(),/Object changes saved/);
   await view.getByRole('tab',{name:'DDL',exact:true}).click();assert.match(await view.getByRole('textbox',{name:'Existing object DDL',exact:true}).inputValue(),/RETURN 92/);
   await page.screenshot({path:'code-graph-dba/target/oracle-package-editor.png'});assert.deepEqual(errors,[]);
-  console.log('Oracle SQL browser passed: output parameters, REF CURSOR grid, server output, retained inputs, repeat execution, native package/body editing, reviewed apply and error-free navigation.');
- }finally{await context.close();}
+  console.log('Oracle SQL browser passed: output parameters, REF CURSOR grid, server output, retained inputs, repeat execution, verified Oracle grid edits and pagination, native package/body editing, reviewed apply and error-free navigation.');
+ }catch(error){await page.screenshot({path:'code-graph-dba/target/oracle-sql-failure.png'});console.error(await page.locator('body').innerText());throw error;}finally{await context.close();}
 };

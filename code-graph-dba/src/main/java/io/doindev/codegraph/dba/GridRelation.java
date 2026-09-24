@@ -10,7 +10,7 @@ import java.util.*;
 
 /** Conservative, server-observed row identity. Unknown mappings never become writable. */
 final class GridRelation {
-    static final Set<String> ENGINES=Set.of("postgresql","mysql","mariadb","h2","sqlserver");
+    static final Set<String> ENGINES=Set.of("postgresql","mysql","mariadb","h2","sqlserver","oracle");
     static String engine(String product){return product.toLowerCase(Locale.ROOT).contains("postgres")?"postgresql":VendorMetadata.engine(product);}
     static final Set<Integer> TYPES=Set.of(Types.CHAR,Types.VARCHAR,Types.NCHAR,Types.NVARCHAR,
             Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT,Types.NUMERIC,Types.DECIMAL,
@@ -37,7 +37,7 @@ final class GridRelation {
         }
         DatabaseMetaData m=c.getMetaData();String engine=engine(m.getDatabaseProductName());
         if(!ENGINES.contains(engine)||!m.supportsTransactions())throw new IllegalArgumentException("This vendor has no verified transactional grid adapter.");
-        String catalog=Objects.toString(c.getCatalog(),""),schema=Objects.toString(c.getSchema(),""),table=identifier(from.getName());
+        String catalog=engine.equals("oracle")?OracleDialect.target(c,3).database():Objects.toString(c.getCatalog(),""),schema=Objects.toString(c.getSchema(),""),table=identifier(from.getName());
         if(from.getSchemaName()!=null)schema=identifier(from.getSchemaName());
         if(Set.of("mysql","mariadb").contains(engine)){if(from.getSchemaName()!=null&&!schema.equals(catalog))throw new IllegalArgumentException("Select the exact database before editing.");schema="";}
         if(from.getDatabase()!=null&&from.getDatabase().getDatabaseName()!=null&&!identifier(from.getDatabase().getDatabaseName()).equals(catalog))throw new IllegalArgumentException("Cross-database SQL is not an editable target.");
@@ -45,7 +45,7 @@ final class GridRelation {
         if(!quoted(from.getName())&&m.storesLowerCaseIdentifiers())table=table.toLowerCase(Locale.ROOT);
         if(from.getSchemaName()!=null&&!quoted(from.getSchemaName())&&m.storesUpperCaseIdentifiers())schema=schema.toUpperCase(Locale.ROOT);
         if(from.getSchemaName()!=null&&!quoted(from.getSchemaName())&&m.storesLowerCaseIdentifiers())schema=schema.toLowerCase(Locale.ROOT);
-        boolean found=false,view=false;try(ResultSet tables=m.getTables(catalog,schema.isEmpty()?null:pattern(m,schema),pattern(m,table),null)){
+        boolean found=false,view=false;try(ResultSet tables=m.getTables(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:pattern(m,schema),pattern(m,table),null)){
             int count=0;while(tables.next()){if(++count>256)throw new IllegalArgumentException("Ambiguous table metadata.");if(!table.equals(tables.getString("TABLE_NAME")))continue;
                 String kind=tables.getString("TABLE_TYPE");view="VIEW".equals(kind);
                 if(!view&&!Set.of("TABLE","BASE TABLE").contains(kind))throw new IllegalArgumentException("Materialized views and this object type are read-only.");
@@ -56,17 +56,23 @@ final class GridRelation {
         if(Set.of("mysql","mariadb").contains(engine))try(var statement=c.prepareStatement("SELECT ENGINE FROM information_schema.tables WHERE TABLE_SCHEMA=? AND TABLE_NAME=?")){
             statement.setQueryTimeout(3);statement.setString(1,catalog);statement.setString(2,table);try(var rs=statement.executeQuery()){if(!rs.next()||!"InnoDB".equalsIgnoreCase(rs.getString(1)))throw new IllegalArgumentException("Atomic row saves require InnoDB.");}
         }
-        var all=new LinkedHashMap<String,Column>();var unsupported=new HashSet<String>();try(ResultSet rs=m.getColumns(catalog,schema.isEmpty()?null:pattern(m,schema),pattern(m,table),"%")){
+        var all=new LinkedHashMap<String,Column>();var unsupported=new HashSet<String>();try(ResultSet rs=m.getColumns(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:pattern(m,schema),pattern(m,table),"%")){
             while(rs.next()){if(all.size()>=256)throw new IllegalArgumentException("Table exceeds the supported column allowance.");String name=rs.getString("COLUMN_NAME");
                 if(!scalarTypeSupported(engine,rs.getInt("DATA_TYPE"),rs.getString("TYPE_NAME"),rs.getInt("COLUMN_SIZE")))unsupported.add(name);
-                all.put(name,new Column("",name,rs.getInt("DATA_TYPE"),rs.getInt("COLUMN_SIZE"),rs.getInt("DECIMAL_DIGITS"),
+                int type=rs.getInt("DATA_TYPE"),size=rs.getInt("COLUMN_SIZE"),scale=rs.getInt("DECIMAL_DIGITS");
+                if(engine.equals("oracle")){
+                    if(Set.of(Types.NUMERIC,Types.DECIMAL).contains(type)&&(size==0||scale<-84)){size=38;scale=Integer.MIN_VALUE;}
+                    if(rs.getString("TYPE_NAME").equalsIgnoreCase("DATE")){type=Types.TIMESTAMP;scale=0;}
+                }
+                all.put(name,new Column("",name,type,size,scale,
                         rs.getInt("NULLABLE")==DatabaseMetaData.columnNullable,"YES".equals(rs.getString("IS_GENERATEDCOLUMN"))||"YES".equals(rs.getString("IS_AUTOINCREMENT")),rs.getString("COLUMN_DEF")!=null,-1));}
         }
-        var keys=new TreeMap<Integer,String>();try(ResultSet rs=m.getPrimaryKeys(catalog,schema.isEmpty()?null:schema,table)){while(rs.next()){if(keys.size()>=256)throw new IllegalArgumentException("Key metadata exceeds limits.");keys.put(rs.getInt("KEY_SEQ"),rs.getString("COLUMN_NAME"));}}
-        if(keys.isEmpty()){var unique=new TreeMap<String,TreeMap<Integer,String>>();try(ResultSet rs=m.getIndexInfo(catalog,schema.isEmpty()?null:schema,table,true,false)){int n=0;while(rs.next()){if(++n>4096)throw new IllegalArgumentException("Index metadata exceeds limits.");String name=rs.getString("INDEX_NAME"),column=rs.getString("COLUMN_NAME");if(name==null||column==null||rs.getBoolean("NON_UNIQUE")||rs.getString("FILTER_CONDITION")!=null)continue;unique.computeIfAbsent(name,k->new TreeMap<>()).put(rs.getInt("ORDINAL_POSITION"),column);}}
+        var keys=new TreeMap<Integer,String>();try(ResultSet rs=m.getPrimaryKeys(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:schema,table)){while(rs.next()){if(keys.size()>=256)throw new IllegalArgumentException("Key metadata exceeds limits.");keys.put(rs.getInt("KEY_SEQ"),rs.getString("COLUMN_NAME"));}}
+        if(keys.isEmpty()){var unique=new TreeMap<String,TreeMap<Integer,String>>();try(ResultSet rs=m.getIndexInfo(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:schema,table,true,false)){int n=0;while(rs.next()){if(++n>4096)throw new IllegalArgumentException("Index metadata exceeds limits.");String name=rs.getString("INDEX_NAME"),column=rs.getString("COLUMN_NAME");if(name==null||column==null||rs.getBoolean("NON_UNIQUE")||rs.getString("FILTER_CONDITION")!=null)continue;unique.computeIfAbsent(name,k->new TreeMap<>()).put(rs.getInt("ORDINAL_POSITION"),column);}}
             for(var key:unique.values())if(!key.isEmpty()&&key.values().stream().allMatch(n->all.containsKey(n)&&!all.get(n).nullable())){keys.putAll(key);break;}}
         if(keys.isEmpty())throw new IllegalArgumentException("A primary key or non-null unique key is required.");
         if(engine.equals("sqlserver"))sqlServerProvenance(c,select,result,catalog,schema,table);
+        if(engine.equals("oracle"))oracleProvenance(m,select,result,schema,table);
         var columns=new ArrayList<Column>();var seen=new HashSet<String>();int index=0;
         for(JsonNode output:result.path("columns")){String name=output.path("name").asText();Column column=all.get(name);
             String sourceTable=output.path("table").asText(),sourceSchema=output.path("schema").asText();
@@ -81,6 +87,21 @@ final class GridRelation {
         String fingerprint=CatalogScanner.hash(engine+"|"+catalog+"|"+schema+"|"+table+"|"+all+"|"+keys);
         boolean insert=all.values().stream().allMatch(col->seen.contains(col.name())||col.nullable()||col.generated()||col.hasDefault());
         return new GridRelation(engine,catalog,schema,table,target,fingerprint,sql,columns,new ArrayList<>(keys.values()),insert);
+    }
+    private static void oracleProvenance(DatabaseMetaData metadata,PlainSelect select,ObjectNode result,String schema,String table)throws SQLException{
+        // Oracle omits base-table metadata and reports aliases as column names. The already
+        // executed, direct single-table projection was checked above; resolve only its columns.
+        int explicit=0,stars=0;for(var item:select.getSelectItems())if(item.getExpression() instanceof net.sf.jsqlparser.schema.Column)explicit++;else stars++;
+        if(stars>1)throw new IllegalArgumentException("Repeated wildcard projections are not an editable target.");
+        int width=result.path("columns").size()-explicit,index=0;
+        for(var item:select.getSelectItems()){
+            if(item.getExpression() instanceof net.sf.jsqlparser.schema.Column column){
+                String raw=column.getColumnName(),name=identifier(raw);if(!quoted(raw)&&metadata.storesUpperCaseIdentifiers())name=name.toUpperCase(Locale.ROOT);
+                if(index>=result.path("columns").size())throw new IllegalArgumentException("Oracle projection metadata is incomplete.");
+                ((ObjectNode)result.path("columns").get(index++)).put("name",name).put("schema",schema).put("table",table);
+            }else for(int i=0;i<width;i++)((ObjectNode)result.path("columns").get(index++)).put("schema",schema).put("table",table);
+        }
+        if(index!=result.path("columns").size())throw new IllegalArgumentException("Oracle projection metadata is incomplete.");
     }
     private static void sqlServerProvenance(Connection c,PlainSelect select,ObjectNode result,String catalog,String schema,String table)throws Exception{
         // The Microsoft JDBC driver may omit base-table metadata for forward-only results.
@@ -98,6 +119,7 @@ final class GridRelation {
     static boolean scalarTypeSupported(String engine,int type,String nativeType,int size){
         if(!TYPES.contains(type))return false;
         String name=Objects.toString(nativeType,"").toLowerCase(Locale.ROOT);
+        if(engine.equals("oracle")&&!Set.of("number","char","nchar","varchar","varchar2","nvarchar2","date").contains(name)&&!(name.startsWith("timestamp")&&!name.contains("time zone")))return false;
         // JDBC's generic TIMESTAMP/TIME/BIT labels hide these incompatible semantics.
         if(engine.equals("sqlserver")&&Set.of("datetime","smalldatetime").contains(name))return false;
         if(Set.of("mysql","mariadb").contains(engine)&&(name.contains("unsigned")||type==Types.TIME||type==Types.BIT&&size>1))return false;
@@ -114,7 +136,9 @@ final class GridRelation {
         try{
             switch(column.type()){
                 case Types.CHAR,Types.VARCHAR,Types.NCHAR,Types.NVARCHAR->{if(column.size()>0&&text.codePointCount(0,text.length())>column.size())throw new IllegalArgumentException("Value exceeds column length.");}
-                case Types.NUMERIC,Types.DECIMAL->{var n=new java.math.BigDecimal(text).stripTrailingZeros();if(n.scale()>column.scale()||Math.max(0,n.precision()-n.scale())>column.size()-column.scale())throw new IllegalArgumentException("Value exceeds column precision/scale; no rounding is performed.");}
+                case Types.NUMERIC,Types.DECIMAL->{var n=new java.math.BigDecimal(text).stripTrailingZeros();
+                    if(column.scale()==Integer.MIN_VALUE){long exponent=(long)n.precision()-n.scale()-1;if(n.precision()>38||n.signum()!=0&&(exponent< -130||exponent>125))throw new IllegalArgumentException("Value exceeds Oracle NUMBER precision/range.");}
+                    else if(n.scale()>column.scale()||Math.max(0L,(long)n.precision()-n.scale())>(long)column.size()-column.scale())throw new IllegalArgumentException("Value exceeds column precision/scale; no rounding is performed.");}
                 case Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT->new java.math.BigDecimal(text).toBigIntegerExact();
                 case Types.DATE->java.time.LocalDate.parse(text);
                 case Types.TIME->temporalPrecision(java.time.LocalTime.parse(text).getNano(),column.scale());
@@ -127,6 +151,7 @@ final class GridRelation {
     private static void temporalPrecision(int nanos,int scale){if(scale>=0&&scale<9&&nanos%(int)Math.pow(10,9-scale)!=0)throw new IllegalArgumentException("Value exceeds temporal precision; no rounding is performed.");}
     static void bind(PreparedStatement s,int at,JsonNode value,int type)throws SQLException{
         if(value==null||value.isNull()){s.setNull(at,type);return;}String text=value.asText();
+        if(Set.of(Types.NCHAR,Types.NVARCHAR).contains(type)&&OracleDialect.isOracle(s.getConnection())){s.setNString(at,text);return;}
         try{switch(type){
             case Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT->{var number=new java.math.BigDecimal(text);number.toBigIntegerExact();s.setObject(at,number,type);}
             case Types.NUMERIC,Types.DECIMAL->s.setBigDecimal(at,new java.math.BigDecimal(text));

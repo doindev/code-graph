@@ -54,6 +54,22 @@ Oracle DDL commits implicitly, and PL/SQL can commit or execute DDL. Execution d
 this behavior. Cancellation or rollback cannot promise to undo earlier DDL. Error decisions,
 result bounds and disposal of the execution session remain in effect.
 
+## Result grids
+
+Direct single-table scalar projections with a verified non-null key support Oracle server
+paging, value filtering, counts, reviewed row edits and bounded exports. Source-column
+verification handles Oracle's omitted JDBC table provenance and SQL aliases. Grid operations
+and exports are bound to the captured service/PDB identity. Joins, ambiguous projections,
+unsupported types and incomplete/truncated values remain read-only.
+
+Oracle DATE values retain their time component; edits with fractional seconds are rejected.
+Unconstrained NUMBER values retain up to 38 significant digits and are checked against
+Oracle's exponent range. National text uses national-character parameter binding. Empty
+text follows Oracle's NULL semantics and is rejected for required columns. Transactional
+locks, original-value comparisons and affected-row checks protect reviewed saves; a failed
+batch rolls back together. SQL exports use explicit timestamp literals and bounded Unicode
+chunks. SQL date exports currently require AD years 1–9999.
+
 ## Native properties, definitions and scans
 
 Object properties include native definitions, status, compilation errors, incoming/outgoing
@@ -137,7 +153,8 @@ real connection tests, resolved targets, explicit SYSDBA, least-privileged users
 38-digit numbers, Unicode, temporal values, bounded LOB/cursor/output results, INOUT routines
 and partial DDL commits, native package/type editing, compilation diagnostics and scoped scans. `OracleSqlTest` and `SqlScriptTest` cover deterministic validation.
 The optional `oracle-sql` browser suite requires the same disposable environment plus the
-verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions and reviewed package/body changes.
+verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions,
+Oracle grid edits/paging and reviewed package/body changes.
 
 The optional `oracle-compare` browser suite covers automatic target tests, native definition
 review, per-table data selection and previews, structure-only switching, independent sequence synchronization, viewport layout, complete

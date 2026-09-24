@@ -77,6 +77,9 @@ validation. An Oracle row adapter now implements per-table data modes, bounded n
 row revalidation and generated staging SQL. Live checks cover all four data modes, invisible
 columns, scalar/LOB fidelity, stale data and foreign-key restoration. The Oracle comparison
 browser suite passes data selection/review/generation, structure-only switching and disposal.
+Oracle scalar grid paging, filtering, reviewed edits and bounded exports now pass live
+precision/date, rollback, concurrent-edit and target-identity checks. The Oracle SQL browser
+suite also passes saved national-character edits, refresh and pagination.
 Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 

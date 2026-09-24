@@ -43,7 +43,7 @@ final class GridPaging {
         // Outer wrapper names are the SELECT labels, not source table qualifiers.
         var labels=new LinkedHashMap<String,String>();int at=0;
         for(var item:select.getSelectItems()){
-            if(item.getExpression() instanceof Column column){String name=GridRelation.identifier(column.getColumnName());var match=relation.columns.stream().filter(c->c.name().equalsIgnoreCase(name)).toList();if(match.size()!=1)throw new IllegalArgumentException("Column ordering is ambiguous.");String label=item.getAlias()==null?match.getFirst().name():GridRelation.identifier(item.getAlias().getName());labels.put(match.getFirst().name(),label);at++;}
+            if(item.getExpression() instanceof Column column){String name=GridRelation.identifier(column.getColumnName());var match=relation.columns.stream().filter(c->c.name().equalsIgnoreCase(name)).toList();if(match.size()!=1)throw new IllegalArgumentException("Column ordering is ambiguous.");String label=item.getAlias()==null?match.getFirst().name():label(metadata,item.getAlias().getName());labels.put(match.getFirst().name(),label);at++;}
             else for(var column:relation.columns)labels.put(column.name(),column.name());
         }
         if(new HashSet<>(labels.values()).size()!=labels.size())throw new IllegalArgumentException("Duplicate output labels prevent server paging; use unique aliases.");
@@ -53,6 +53,10 @@ final class GridPaging {
         for(String key:relation.keys)if(!covered.contains(key))parts.add("cg."+GridRelation.quote(metadata,labels.get(key))+" ASC");
         return "SELECT * FROM ("+scope(relation)+") cg ORDER BY "+String.join(", ",parts);
     }
+    private static String label(DatabaseMetaData metadata,String value)throws SQLException{
+        String name=GridRelation.identifier(value);if(GridRelation.quoted(value))return name;
+        return metadata.storesUpperCaseIdentifiers()?name.toUpperCase(Locale.ROOT):metadata.storesLowerCaseIdentifiers()?name.toLowerCase(Locale.ROOT):name;
+    }
     static String scope(GridRelation relation)throws Exception{
         PlainSelect select=(PlainSelect)CCJSqlParserUtil.parse(relation.sql,p->p.withTimeOut(500));String sql=select.toString();
         if(relation.engine.equals("sqlserver")&&select.getOrderByElements()!=null&&select.getOffset()==null&&select.getTop()==null&&select.getFetch()==null)sql+=" OFFSET 0 ROWS";
@@ -61,7 +65,7 @@ final class GridPaging {
     static void bind(PreparedStatement statement,JsonNode parameters)throws SQLException{for(int i=0;i<parameters.size();i++){JsonNode value=parameters.get(i);if(value.isNull())statement.setNull(i+1,Types.NULL);else if(value.isNumber())statement.setBigDecimal(i+1,value.decimalValue());else if(value.isBoolean())statement.setBoolean(i+1,value.asBoolean());else statement.setString(i+1,value.asText());}}
     static ObjectNode read(GridResults.Context context,QueryJobs.Job job,Connection c,long offset,int limit)throws Exception{
         if(job.cancelled)throw new java.util.concurrent.CancellationException();
-        String sql=context.orderedSql==null?context.sql:context.orderedSql+(context.relation.engine.equals("sqlserver")?" OFFSET "+offset+" ROWS FETCH NEXT "+(limit+1)+" ROWS ONLY":" LIMIT "+(limit+1)+" OFFSET "+offset);
+        String sql=context.orderedSql==null?context.sql:context.orderedSql+(Set.of("sqlserver","oracle").contains(context.relation.engine)?" OFFSET "+offset+" ROWS FETCH NEXT "+(limit+1)+" ROWS ONLY":" LIMIT "+(limit+1)+" OFFSET "+offset);
         try(var statement=c.prepareStatement(sql,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
             job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.setFetchSize(64);statement.setMaxRows(limit+1);bind(statement,context.parameters);
             try(var rs=statement.executeQuery()){return QueryJobs.rows(rs,limit,job.byteLimit/2).put("kind","rows").put("sourceSql",context.orderedSql==null?context.sql:context.orderedSql);}

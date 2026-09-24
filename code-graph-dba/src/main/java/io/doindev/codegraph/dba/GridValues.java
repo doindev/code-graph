@@ -41,7 +41,7 @@ final class GridValues {
         if(mysql){if(table.getSchemaName()!=null&&!catalog.equals(schema))throw new IllegalArgumentException("Source database does not match the result.");schema="";}
         String name=normalize(metadata,table.getName()),column=normalize(metadata,output.getColumnName());
         int tables=0;
-        try(ResultSet rs=metadata.getTables(catalog,schema.isEmpty()?null:GridRelation.pattern(metadata,schema),GridRelation.pattern(metadata,name),null)){
+        try(ResultSet rs=metadata.getTables(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:GridRelation.pattern(metadata,schema),GridRelation.pattern(metadata,name),null)){
             while(rs.next()){
                 if(!name.equals(rs.getString("TABLE_NAME")))continue;
                 if(++tables>1)throw new IllegalArgumentException("Qualify the source schema before loading values.");
@@ -52,7 +52,7 @@ final class GridValues {
         }
         if(tables!=1)throw new IllegalArgumentException("Source metadata is unavailable. Check database permissions.");
         int type=0,found=0;
-        try(ResultSet rs=metadata.getColumns(catalog,schema.isEmpty()?null:GridRelation.pattern(metadata,schema),GridRelation.pattern(metadata,name),GridRelation.pattern(metadata,column))){
+        try(ResultSet rs=metadata.getColumns(engine.equals("oracle")?null:catalog,schema.isEmpty()?null:GridRelation.pattern(metadata,schema),GridRelation.pattern(metadata,name),GridRelation.pattern(metadata,column))){
             while(rs.next())if(column.equals(rs.getString("COLUMN_NAME"))){
                 if(++found>1)throw new IllegalArgumentException("Ambiguous source column");
                 type=rs.getInt("DATA_TYPE");
@@ -74,12 +74,12 @@ final class GridValues {
         Source source=source(connection,context,columnId);service.check(context,job);
         boolean counts=request.path("showDistinctValuesCount").asBoolean(),totals=request.path("showRowCount").asBoolean();
         String count=source.engine.equals("sqlserver")?"COUNT_BIG(*)":"COUNT(*)";
-        String cast=switch(source.engine){case "postgresql"->"TEXT";case "mysql","mariadb"->"CHAR";case "sqlserver"->"NVARCHAR(MAX)";default->"VARCHAR";};
+        String cast=switch(source.engine){case "postgresql"->"TEXT";case "mysql","mariadb"->"CHAR";case "sqlserver"->"NVARCHAR(MAX)";case "oracle"->"VARCHAR2(4000)";default->"VARCHAR";};
         String searchValue="%"+search.toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_").replace("[","![")+"%";
         String where=search.isEmpty()?"":" WHERE (LOWER(CAST("+source.column+" AS "+cast+")) LIKE ? ESCAPE '!'"+("null".contains(search.toLowerCase(Locale.ROOT))?" OR "+source.column+" IS NULL":"")+")";
         String from=" FROM "+source.target,group=" GROUP BY "+source.column;
         String sql=(counts?"SELECT "+source.column+", "+count:"SELECT DISTINCT "+source.column)+from+where+(counts?group:"")+" ORDER BY "+source.column+" ASC";
-        sql+=source.engine.equals("sqlserver")?" OFFSET "+offset+" ROWS FETCH NEXT "+(limit+1)+" ROWS ONLY":" LIMIT "+(limit+1)+" OFFSET "+offset;
+        sql+=Set.of("sqlserver","oracle").contains(source.engine)?" OFFSET "+offset+" ROWS FETCH NEXT "+(limit+1)+" ROWS ONLY":" LIMIT "+(limit+1)+" OFFSET "+offset;
         ObjectNode out=Profiles.JSON.createObjectNode().put("columnId",columnId).put("jdbcType",source.jdbcType).put("offset",offset).put("limit",limit).put("coverage","source").put("source",source.target);
         ArrayNode entries=out.putArray("values");
         try(var statement=connection.prepareStatement(sql)){

@@ -23,6 +23,14 @@ class GridSafetyTest {
         assertTrue(GridRelation.scalarTypeSupported("sqlserver",Types.TINYINT,"tinyint",3));
         assertTrue(GridRelation.scalarTypeSupported("postgresql",Types.TIME,"time",15));
     }
+    @Test void oracleUnconstrainedNumbersAndDatePrecisionAreValidatedWithoutRounding(){
+        var number=new GridRelation.Column("c1","VALUE",Types.NUMERIC,38,Integer.MIN_VALUE,true,false,false,0);
+        for(String value:new String[]{"0","1E-130","1E125","12345678901234567890123456789012345678"})GridRelation.validate(number,TextNode.valueOf(value));
+        for(String value:new String[]{"1E-131","1E126","123456789012345678901234567890123456789"})assertThrows(IllegalArgumentException.class,()->GridRelation.validate(number,TextNode.valueOf(value)));
+        var fixed=new GridRelation.Column("c1","FIXED",Types.NUMERIC,38,0,true,false,false,0);assertThrows(IllegalArgumentException.class,()->GridRelation.validate(fixed,TextNode.valueOf("1E2147483647")));
+        assertFalse(GridRelation.scalarTypeSupported("oracle",Types.NUMERIC,"FLOAT",126));assertFalse(GridRelation.scalarTypeSupported("oracle",Types.TIMESTAMP,"TIMESTAMP WITH TIME ZONE",35));assertTrue(GridRelation.scalarTypeSupported("oracle",Types.TIMESTAMP,"TIMESTAMP(9)",11));
+        var date=new GridRelation.Column("c1","DATE_VALUE",Types.TIMESTAMP,7,0,true,false,false,0);GridRelation.validate(date,TextNode.valueOf("2026-09-24T23:45:56"));assertThrows(IllegalArgumentException.class,()->GridRelation.validate(date,TextNode.valueOf("2026-09-24T23:45:56.1")));
+    }
     class Fixture implements AutoCloseable {
         final Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());
         final Connections connections=new Connections(profiles);

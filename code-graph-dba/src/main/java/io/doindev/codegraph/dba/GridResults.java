@@ -26,7 +26,7 @@ final class GridResults implements AutoCloseable {
         final QueryJobs.RetainedReservation reservation;
         ObjectNode result;
         GridRelation relation;
-        String reason="",orderedSql,countSql,countReason="Exact counts are unavailable for this result.";
+        String oracleTarget="",reason="",orderedSql,countSql,countReason="Exact counts are unavailable for this result.";
         List<String> rowIds=new ArrayList<>();
         long revision=1,offset,capturedAt=System.currentTimeMillis();
         boolean cacheHit,refreshRequired;
@@ -43,7 +43,7 @@ final class GridResults implements AutoCloseable {
     record Command(String sql,List<Binding> values,String rowId,String operation){}
     record Plan(String id,long revision,long expires,List<Command> commands,boolean deletes){}
     private static long baseBytes(String sql,JsonNode parameters){return 262144+sql.length()*6L+parameters.toString().length()*3L;}
-    private static String catalog(Connection c){try{return Objects.toString(c.getCatalog(),"");}catch(SQLException|UnsupportedOperationException ignored){return "";}}
+    private static String catalog(Connection c)throws SQLException{if(OracleDialect.isOracle(c))return OracleDialect.target(c,3).database();try{return Objects.toString(c.getCatalog(),"");}catch(SQLException|UnsupportedOperationException ignored){return "";}}
     private static String schema(Connection c){try{return Objects.toString(c.getSchema(),"");}catch(SQLException|UnsupportedOperationException|AbstractMethodError ignored){return "";}}
     static boolean sqlExport(Context c){return c.relation!=null&&!c.result.path("cellsTruncated").asBoolean()&&c.relation.columns.stream().noneMatch(GridRelation.Column::generated);}
     synchronized ObjectNode status(String owner,String id){return descriptor(require(owner,id));}
@@ -61,6 +61,7 @@ final class GridResults implements AutoCloseable {
                 synchronized(this){if(contexts.size()>=MAX_CONTEXTS)throw new IllegalArgumentException("Close result tabs before creating more grid contexts.");}
                 reservation=jobs.retainAllowance(Math.max(4096,Profiles.JSON.writeValueAsBytes(row).length*3L+baseBytes(sql,values)));
                 Context context=new Context(job.owner,job.connection,ProjectContexts.profileRevision(connections.profile(job.connection)),catalog(c),schema(c),sql,values,job.id,reservation);
+                if(OracleDialect.isOracle(c))context.oracleTarget=OracleDialect.target(c,job.remainingSeconds()).json().toString();
                 context.result=row.deepCopy();context.limit=job.rowLimit;context.hasMore=row.path("truncated").asBoolean();
                 try{validateReload(context);context.canLimitRows=true;}catch(IllegalArgumentException unsupported){context.canLimitRows=false;}
                 try{SqlReadGuard.validate(sql);context.fullExport=output.path("statements").size()==1&&GridRelation.ENGINES.contains(GridRelation.engine(c.getMetaData().getDatabaseProductName()));}catch(Exception unsupported){context.fullExport=false;}
@@ -130,7 +131,9 @@ final class GridResults implements AutoCloseable {
             // Target discovery can already have started a driver transaction. End that read
             // before choosing isolation; PostgreSQL rejects isolation changes mid-transaction.
             if(!connection.getAutoCommit())connection.rollback();
-            connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);connection.setReadOnly(action.equals("values")||action.equals("count"));
+            connection.setAutoCommit(true);Connections.selectSchema(connection,c.schema);
+            if(!c.oracleTarget.isEmpty()&&!c.oracleTarget.equals(OracleDialect.target(connection,job.remainingSeconds()).json().toString()))throw new IllegalArgumentException("Oracle service/PDB identity changed; rerun the query before using this grid.");
+            connection.setReadOnly(action.equals("values")||action.equals("count"));
             if(action.equals("page")||action.equals("reconcile"))connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             connection.setAutoCommit(false);
             try{check(c,job);return switch(action){case "count"->GridCounts.count(this,c,job,connection);case "values"->GridValues.read(this,c,job,connection,request);case "prepare"->prepare(c,connection,request);case "apply"->apply(c,job,connection,request);case "export"->exports.create(c,job,connection,request);case "reload"->GridPaging.reload(this,c,job,connection,request);case "page","reconcile"->window?GridPaging.window(this,c,job,connection,request):action.equals("reconcile")&&c.orderedSql==null?GridPaging.reload(this,c,job,connection,request):GridPaging.page(this,c,job,connection,request,action.equals("reconcile"));default->throw new IllegalArgumentException("Unsupported grid operation");};}
@@ -168,12 +171,16 @@ final class GridResults implements AutoCloseable {
             if(kind.equals("null")&&!column.nullable())throw new IllegalArgumentException("Column does not allow NULL.");
             JsonNode value=kind.equals("null")?NullNode.instance:entry.getValue().path("value");
             if(kind.equals("value")&&(!value.isTextual()||value.asText().length()>8192))throw new IllegalArgumentException("Cell text exceeds its allowance.");
+            if(relation.engine.equals("oracle")&&kind.equals("value")&&value.asText().isEmpty()){
+                if(!column.nullable())throw new IllegalArgumentException("Oracle treats empty text as NULL; "+column.name()+" is required.");value=NullNode.instance;
+            }
             if(!kind.equals("default"))GridRelation.validate(column,value);
             String expression=kind.equals("default")?"DEFAULT":"?";if(!kind.equals("default"))parameters.add(new Binding(value,column.type()));
             names.add(quoted);assignments.add(quoted+" = "+expression);placeholders.add(expression);
         }
         String sql;
         if(op.equals("insert")){for(var col:relation.columns)if(!col.generated()&&!col.nullable()&&!col.hasDefault()&&!edited.has(col.id()))throw new IllegalArgumentException("Required column is missing: "+col.name());
+            if(names.isEmpty()&&relation.engine.equals("oracle"))return new Command("INSERT INTO "+relation.qualified+" ("+GridRelation.quote(c.getMetaData(),relation.columns.getFirst().name())+") VALUES (DEFAULT)",List.of(),change.path("rowId").asText(),op);
             sql=names.isEmpty()?relation.engine.equals("mysql")||relation.engine.equals("mariadb")?"INSERT INTO "+relation.qualified+" () VALUES ()":"INSERT INTO "+relation.qualified+" DEFAULT VALUES":"INSERT INTO "+relation.qualified+" ("+String.join(", ",names)+") VALUES ("+String.join(", ",placeholders)+")";
         }else{if(op.equals("update")&&assignments.isEmpty())throw new IllegalArgumentException("No changed values.");var predicates=new ArrayList<String>();
             for(var col:relation.columns){JsonNode value=original.get(col.source());String name=GridRelation.quote(c.getMetaData(),col.name());predicates.add(name+(value.isNull()?" IS NULL":" = ?"));if(!value.isNull())parameters.add(new Binding(value,col.type()));}
@@ -198,6 +205,9 @@ final class GridResults implements AutoCloseable {
         // Acquire target locks before the final fingerprint check. Never use MySQL
         // LOCK TABLES (which can implicitly commit). SQL Server takes an explicit
         // table lock; ordinary saves may therefore block other sessions until commit.
+        if(r.engine.equals("oracle")){
+            try(var statement=connection.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.execute("LOCK TABLE "+r.qualified+" IN ROW EXCLUSIVE MODE NOWAIT");}finally{job.statement=null;}return;
+        }
         String sql=r.engine.equals("sqlserver")?"SELECT TOP (1) "+key+" FROM "+r.qualified+" WITH (TABLOCKX,HOLDLOCK)"
                 :"SELECT "+key+" FROM "+r.qualified+" LIMIT 1 FOR UPDATE";
         try(var statement=connection.prepareStatement(sql)){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());

@@ -115,7 +115,19 @@ final class GridExports implements AutoCloseable {
         }
         void entry(String name,String value)throws IOException{zip.putNextEntry(new ZipEntry(name));zip.write(value.getBytes(StandardCharsets.UTF_8));zip.closeEntry();}
         void row(List<String> values)throws IOException{
-            if(format.equals("xlsx"))xlsx(values,false);else if(format.equals("sql")){var cells=new ArrayList<String>();for(int i=0;i<values.size();i++)cells.add(literal(values.get(i),types.get(i),engine));writer.write("INSERT INTO "+target+" ("+String.join(", ",names)+") VALUES ("+String.join(", ",cells)+");\n");}else delimited(values);
+            if(format.equals("xlsx"))xlsx(values,false);else if(format.equals("sql")&&engine.equals("oracle"))oracleRow(values);else if(format.equals("sql")){var cells=new ArrayList<String>();for(int i=0;i<values.size();i++)cells.add(literal(values.get(i),types.get(i),engine));writer.write("INSERT INTO "+target+" ("+String.join(", ",names)+") VALUES ("+String.join(", ",cells)+");\n");}else delimited(values);
+        }
+        private void oracleRow(List<String> values)throws IOException{
+            ArrayNode cells=Profiles.JSON.createArrayNode();
+            for(int i=0;i<values.size();i++){
+                String value=values.get(i);int type=types.get(i);if(value==null){cells.add(OracleCompareData.nil());continue;}
+                ObjectNode cell=cells.addObject().put("value",value).put("type","scalar");
+                if(Set.of(Types.CHAR,Types.VARCHAR,Types.NCHAR,Types.NVARCHAR).contains(type)){
+                    cell.put("sql",OracleCompareData.unicode(value));if(value.length()>500)cell.put("type",Set.of(Types.NCHAR,Types.NVARCHAR).contains(type)?"oracle_nstring":"oracle_string");
+                }else cell.put("sql",literal(value,type,"oracle"));
+            }
+            try{OracleCompareData.insert(null,writer,target,names.stream().map(GridRelation::identifier).toList(),cells);}
+            catch(Exception failure){throw new IOException("Oracle SQL export could not encode this row: "+failure.getMessage(),failure);}
         }
         void delimited(List<String> values)throws IOException{for(int i=0;i<values.size();i++){if(i>0)writer.write(format.equals("csv")?',':'\t');String value=values.get(i);
             if(value==null){writer.write("\\N");continue;}if(value.startsWith("\\"))value="\\"+value;
@@ -133,6 +145,14 @@ final class GridExports implements AutoCloseable {
             if(value==null)return "NULL";
             if(Set.of(Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT,Types.NUMERIC,Types.DECIMAL).contains(type))return new java.math.BigDecimal(value).toPlainString();
             if(type==Types.BOOLEAN||type==Types.BIT)return value.equalsIgnoreCase("true")||value.equals("1")?engine.equals("postgresql")||engine.equals("h2")?"TRUE":"1":engine.equals("postgresql")||engine.equals("h2")?"FALSE":"0";
+            if(engine.equals("oracle")){
+                if(type==Types.DATE||type==Types.TIMESTAMP){
+                    var time=value.length()==10?java.time.LocalDate.parse(value).atStartOfDay():java.time.LocalDateTime.parse(value.replace(' ','T'));
+                    if(time.getYear()<1||time.getYear()>9999)throw new IllegalArgumentException("Oracle grid SQL export requires an AD date from year 1 to 9999");
+                    return "TIMESTAMP '"+time.format(java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSSSSS",Locale.ROOT))+"'";
+                }
+                return OracleCompareData.unicode(value);
+            }
             if(engine.equals("mysql")||engine.equals("mariadb"))return "CONVERT(X'"+HexFormat.of().formatHex(value.getBytes(StandardCharsets.UTF_8))+"' USING utf8mb4)";
             if(engine.equals("postgresql"))return "E'"+value.replace("\\","\\\\").replace("'","''")+"'";
             return (engine.equals("sqlserver")?"N":"")+"'"+value.replace("'","''")+"'";
