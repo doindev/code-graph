@@ -51,7 +51,7 @@ final class OracleCompare {
                 var object=roster.remove(key(owner,"table_triggers",str(row,"trigger_name")));if(object!=null){object.put("kind","schema_triggers");roster.put(key(owner,"schema_triggers",str(row,"trigger_name")),object);}
             }
             for(JsonNode row:query(job,c,"SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name FROM "+(catalogReader?"dba_dependencies":"all_dependencies")+" WHERE owner=? OR referenced_owner=? ORDER BY owner,name,type,referenced_owner,referenced_name",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
-            for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name AS name,'TABLE' AS type,r.owner AS referenced_owner,r.table_name AS referenced_name,'TABLE' AS referenced_type FROM "+(catalogReader?"dba_constraints":"all_constraints")+" c JOIN "+(catalogReader?"dba_constraints":"all_constraints")+" r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name WHERE c.constraint_type='R' AND (c.owner=? OR r.owner=?)",owner,owner))edges.add(row);
+            for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name AS name,'TABLE' AS type,r.owner AS referenced_owner,r.table_name AS referenced_name,'TABLE' AS referenced_type FROM "+(catalogReader?"dba_constraints":"all_constraints")+" c JOIN "+(catalogReader?"dba_constraints":"all_constraints")+" r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name WHERE c.constraint_type='R' AND (c.owner=? OR r.owner=?)",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
             for(JsonNode row:query(job,c,"SELECT index_name,table_owner,table_name FROM all_indexes WHERE owner=?",owner)){
                 var index=roster.get(key(owner,"indexes",str(row,"index_name")));if(index!=null)((ArrayNode)index.path("dependencies")).add(key(str(row,"table_owner"),"tables",str(row,"table_name")));
             }
@@ -108,14 +108,17 @@ final class OracleCompare {
                 object.put("oracleBodyDdl",body).put("oracleBodyXml",OracleDocuments.capture(job,c,bodyType,owner,name,"XML"));
             }
         }
+        if(kind.equals("tables"))OracleCompareData.metadata(job,c,object);
         object.put("supported",true).put("reason","");
     }
     static void review(QueryJobs.Job job,Connection destination,Inventory source,Inventory target,Target from,Target to)throws Exception{
-        Map<String,String> mapping=from.allSchemas()?Map.of():Map.of(from.schema(),to.schema());int processed=0;
+        Map<String,String> mapping=from.allSchemas()?Map.of():Map.of(from.schema(),to.schema());int processed=0;long reviewBytes=0;
         for(ObjectNode object:source.objects.values()){
             check(job);String owner=mapping.getOrDefault(str(object,"schema"),str(object,"schema")),name=str(object,"name"),kind=str(object,"kind"),type=str(object,"oracleType");
             job.comparisonProgress("Preparing Oracle differences","destination",owner+"."+name,processed++,source.objects.size());
-            ArrayNode changes=object.putArray("oracleChanges");if(!object.path("supported").asBoolean()||object.path("implicit").asBoolean())continue;
+            ArrayNode changes=object.putArray("oracleChanges");if(!object.path("supported").asBoolean()||object.path("implicit").asBoolean()){
+                reviewBytes=reviewBudget(reviewBytes,object);continue;
+            }
             ObjectNode old=target.objects.get(key(owner,kind,name));
             try{
                 if(old!=null&&!old.path("supported").asBoolean())throw new IllegalArgumentException("Destination metadata is blocked: "+str(old,"reason"));
@@ -140,8 +143,12 @@ final class OracleCompare {
                     change(changes,"REPLACE_BODY",name,"",false,List.of(OracleCompareSql.remap(OracleDocuments.remap(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,false,true),mapping)));
                 if(!changes.isEmpty()&&!object.path("outsideDependents").isEmpty())throw new IllegalArgumentException("Incoming dependents outside the captured scope: "+object.path("outsideDependents"));
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;changes.removeAll();object.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Oracle cannot generate this change"));}
-            if(Profiles.JSON.writeValueAsBytes(object).length>MAX_BYTES/2)throw new IllegalArgumentException("Oracle review exceeds its metadata allowance; narrow the scope");
+            reviewBytes=reviewBudget(reviewBytes,object);
         }
+    }
+    static long reviewBudget(long used,ObjectNode object)throws Exception{
+        long next=used+Profiles.JSON.writeValueAsBytes(object).length*2L+512;
+        if(next>MAX_BYTES)throw new IllegalArgumentException("Oracle review exceeds its metadata allowance; narrow the scope");return next;
     }
     private static void change(ArrayNode changes,String clause,String name,String attribute,boolean destructive,List<String> statements){
         ObjectNode change=changes.addObject().put("clause",clause).put("name",name).put("attribute",attribute).put("destructive",destructive);ArrayNode sql=change.putArray("sql");statements.forEach(sql::add);
@@ -160,7 +167,16 @@ final class OracleCompare {
                 if(old==null)continue;
                 if(!plan.selected.containsKey(dependent.getKey())&&!CompareSql.same(plan,object,old))throw new IllegalArgumentException("Select the changed incoming dependent "+str(object,"schema")+"."+str(object,"name"));
                 recompile.put(dependent.getKey(),object);
-            }if(choice.options().path("includeData").asBoolean())throw new IllegalArgumentException("Oracle table-data comparison is not yet validated for this object");
+            }
+            if(choice.options().path("includeData").asBoolean()){
+                if(!source.path("dataSupported").asBoolean())throw new IllegalArgumentException(str(source,"name")+": "+str(source,"dataReason"));
+                if(choice.destination()!=null&&!choice.destination().path("dataSupported").asBoolean())throw new IllegalArgumentException("Destination "+str(source,"name")+": "+str(choice.destination(),"dataReason"));
+                if(!source.path("outsideDependents").isEmpty()||choice.destination()!=null&&!choice.destination().path("outsideDependents").isEmpty())throw new IllegalArgumentException("Data changes require including incoming dependents outside the captured owners");
+                if(source.path("oracleSelectedChanges").size()!=source.path("oracleChanges").size())throw new IllegalArgumentException("Include all reviewed Oracle table changes before copying its data");
+                String mode=plan.mode(choice);
+                if(choice.destination()!=null&&Set.of("replace","mirror").contains(mode)&&!str(choice.destination(),"incomingCoverage").equals("catalog"))throw new IllegalArgumentException("Oracle data deletion requires destination SELECT_CATALOG_ROLE to verify incoming foreign keys across owners");
+                plan.data.add(choice);
+            }
             for(JsonNode change:source.path("oracleSelectedChanges")){
                 if(change.path("destructive").asBoolean()&&str(source,"incomingCoverage").equals("accessible_objects"))throw new IllegalArgumentException("Destructive Oracle changes require SELECT_CATALOG_ROLE to validate incoming dependents across owners");
                 if(change.path("destructive").asBoolean()&&!plan.destructive)throw new IllegalArgumentException("Enable destructive schema changes to include "+str(change,"clause")+" for "+str(source,"name"));

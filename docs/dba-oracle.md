@@ -81,7 +81,7 @@ Tables, views, sequences, package/type specifications and bodies have live creat
 repeat-comparison coverage. Native adapters also inspect indexes, materialized views, routines,
 triggers and synonyms; unsupported transformations, external assets, dynamic SQL, ambiguous
 identifier remapping and dependency cycles stop generation with an explicit reason. Complete
-scheduler/grant generation and optional Oracle table-data comparison remain in progress.
+scheduler/grant generation and broader Oracle data variants remain in progress.
 Unvalidated queue, database-link, Java and scheduler definitions are shown as blocked.
 
 Schema remapping uses Oracle metadata transforms plus Oracle-aware identifier tokens for
@@ -95,6 +95,35 @@ catalog/cache boundary and never consumes source NEXTVAL. Exact cached values ar
 Scalable, sharded, session and identity-owned sequence state is blocked pending dedicated
 validation. With synchronization off, a new sequence starts at its initial bound. DDL commits
 implicitly; copy/save/cancel remain the only actions in the generated-script screen.
+
+## Optional table data
+
+Select a data mode and explicitly include individual tables. Structure-only remains the
+first/default mode and suppresses retained table-data selections. Catalog inspection does
+not evaluate table rows. Numeric primary/unique keys and explicitly binary variable-width
+text keys are supported; tables without a verified matching key require Replace all rows.
+
+The Oracle adapter uses native column/key/foreign-key/index metadata. Generated scripts use
+session temporary staging tables, explicitly validate restored foreign keys, and dispose of
+the staging tables. CREATE TABLE privilege is required when executing a data script. Oracle
+DDL commits independently; a failed script may leave changes, staging tables or disabled
+constraints requiring review. Date literals use the Gregorian calendar and the script sets
+the session calendar and time zone explicitly.
+
+Captured values preserve NUMBER precision, DATE time components, fractional timestamps,
+time-zone regions, UTC instants for local timestamps, Unicode, RAW, intervals, bounded binary
+floating-point values, and BLOB/CLOB/NCLOB null versus empty values. Non-finite floats are
+blocked. Text LOBs are bounded to 512 Ki characters and binary values to 1 MiB, subject to the
+shared 2 MiB row, 128 MiB data and 64 MiB script limits. Long literals are emitted in bounded
+PL/SQL chunks with temporary-LOB cleanup. Generation revalidates captured source and
+destination rows before publishing the script.
+
+Identity transitions, user-defined column types, enabled triggers, row security, specialized
+indexes and disabled/unvalidated/deferrable constraints require dedicated validation and are
+reported as unavailable for data comparison. Changing table definitions while copying data
+requires selecting all reviewed native table changes. Replace/mirror on existing tables require
+destination SELECT_CATALOG_ROLE to verify incoming foreign keys across owners. These limits do not disable native
+structure review for otherwise supported objects.
 
 ## Validation
 
@@ -111,8 +140,12 @@ The optional `oracle-sql` browser suite requires the same disposable environment
 verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions and reviewed package/body changes.
 
 The optional `oracle-compare` browser suite covers automatic target tests, native definition
-review, structure-only output, independent sequence synchronization, viewport layout, complete
+review, per-table data selection and previews, structure-only switching, independent sequence synchronization, viewport layout, complete
 copy/save and artifact disposal. Live tests execute application-generated scripts against
 separate disposable owner connections, verify the destination, reject stale evidence and
 repeat the comparison. Deterministic tests cover XML bounds, remapping, sequence advancement
-and dependency blockers.
+and dependency blockers. Oracle data checks cover all four modes, invisible columns,
+38-digit values, named time zones, fractional/local timestamps, Unicode and empty/null LOBs,
+stale rows, and foreign-key restoration when a child changes parent. Independent source and
+destination row captures and generation-time checks use bounded virtual workers; cancellation
+joins both sides before releasing their private snapshots.

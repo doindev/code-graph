@@ -73,7 +73,11 @@ inputs also pass against the live database.
 Native package/type bodies, dependencies, grants, status and compilation diagnostics now pass
 live Oracle scanner and reviewed editor tests, including browser validation. Native structure comparison and ordinary sequence advancement now generate destination scripts
 through the existing review/copy/save/cancel flow, with live execution and repeat-comparison
-validation. Catalog completion, Oracle data comparison, broader object variants, grants/scheduler
+validation. An Oracle row adapter now implements per-table data modes, bounded native values,
+row revalidation and generated staging SQL. Live checks cover all four data modes, invisible
+columns, scalar/LOB fidelity, stale data and foreign-key restoration. The Oracle comparison
+browser suite passes data selection/review/generation, structure-only switching and disposal.
+Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

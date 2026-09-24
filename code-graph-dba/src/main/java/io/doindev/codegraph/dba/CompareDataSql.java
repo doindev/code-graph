@@ -30,8 +30,13 @@ final class CompareDataSql {
             String stage=CompareSql.q(plan.engine,"cgraph_compare_"+UUID.randomUUID().toString().replace("-",""));stages.put(id,stage);keys.put(id,rows.key);
             String cols=names(plan.engine,rows.columns);
             out.write("-- Captured rows: "+CompareSql.comment(str(choice.source(),"name"))+" ("+rows.left.rows()+")\n");
-            out.write("CREATE "+(plan.engine.equals("h2")?"LOCAL ":"")+"TEMPORARY TABLE "+stage+(plan.engine.equals("postgresql")?" ON COMMIT DROP":"")+" AS SELECT "+cols+" FROM "+plan.target(choice.source())+" WHERE 1=0;\n");
-            try(BufferedReader reader=Files.newBufferedReader(rows.left.file())){JsonNode row;while((row=CompareData.read(reader))!=null){check(job);List<String> values=new ArrayList<>();row.path("values").forEach(v->values.add(str(v,"sql")));out.write("INSERT INTO "+stage+" ("+cols+") VALUES ("+String.join(", ",values)+");\n");}}
+            out.write("CREATE "+(plan.engine.equals("h2")?"LOCAL ":plan.engine.equals("oracle")?"GLOBAL ":"")+"TEMPORARY TABLE "+stage+(plan.engine.equals("postgresql")?" ON COMMIT DROP":plan.engine.equals("oracle")?" ON COMMIT PRESERVE ROWS":"")+" AS SELECT "+cols+" FROM "+plan.target(choice.source())+" WHERE 1=0;\n");
+            try(BufferedReader reader=Files.newBufferedReader(rows.left.file())){JsonNode row;while((row=CompareData.read(reader))!=null){check(job);if(plan.engine.equals("oracle")){OracleCompareData.insert(job,out,stage,rows.columns,row.path("values"));continue;}List<String> values=new ArrayList<>();row.path("values").forEach(v->values.add(str(v,"sql")));out.write("INSERT INTO "+stage+" ("+cols+") VALUES ("+String.join(", ",values)+");\n");}}
+        }
+        List<String> restoreOracleKeys=new ArrayList<>();
+        if(plan.engine.equals("oracle"))for(CompareSql.Choice choice:ordered){
+            Map<String,JsonNode> constraints=new LinkedHashMap<>();for(JsonNode fk:choice.source().path("foreignKeys"))constraints.put(str(fk,"name"),fk);
+            for(String name:constraints.keySet()){String target=plan.target(choice.source())+" ",constraint=CompareSql.q(plan.engine,name);out.write("ALTER TABLE "+target+"DISABLE CONSTRAINT "+constraint+";\n");restoreOracleKeys.add("ALTER TABLE "+target+"ENABLE VALIDATE CONSTRAINT "+constraint+";\n");}
         }
         List<CompareSql.Choice> reverse=new ArrayList<>(ordered);Collections.reverse(reverse);
         for(CompareSql.Choice choice:reverse){
@@ -49,8 +54,10 @@ final class CompareDataSql {
             boolean identity=false;for(JsonNode col:choice.source().path("columns"))if(!str(col,"identity").isEmpty())identity=true;
             out.write("INSERT INTO "+target+" ("+names(plan.engine,rows.columns)+")"+(identity&&Set.of("postgresql","h2").contains(plan.engine)?" OVERRIDING SYSTEM VALUE":"")+" SELECT "+String.join(", ",rows.columns.stream().map(n->"s."+CompareSql.q(plan.engine,n)).toList())+" FROM "+stage+" s"+(mode.equals("replace")?"":" WHERE NOT EXISTS (SELECT 1 FROM "+target+" d WHERE "+join+")")+";\n");
             ensureSequences(plan,choice,rows);
+            if(plan.engine.equals("oracle"))out.write("TRUNCATE TABLE "+stage+";\n");
             out.write("DROP TABLE "+stage+";\n\n");
         }
+        for(String restore:restoreOracleKeys)out.write(restore);
     }
     static String names(String engine,List<String> names){return String.join(", ",names.stream().map(n->CompareSql.q(engine,n)).toList());}
     static String join(String engine,List<String> keys){return String.join(" AND ",keys.stream().map(n->"d."+CompareSql.q(engine,n)+"=s."+CompareSql.q(engine,n)).toList());}

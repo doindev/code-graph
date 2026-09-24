@@ -54,13 +54,13 @@ final class CompareData implements AutoCloseable {
             }}
         if(selected.isEmpty())throw new IllegalArgumentException("No comparable columns in "+str(object,"name"));
         List<Path> chunks=new ArrayList<>();List<String> buffer=new ArrayList<>();int buffered=0;long count=0;
-        String sql="SELECT "+String.join(", ",selected.stream().map(n->CompareSql.q(engine,n)).toList())+" FROM "+CompareSql.qualified(engine,str(object,"schema"),str(object,"name"));
+        String sql="SELECT "+String.join(", ",selected.stream().map(n->engine.equals("oracle")?OracleCompareData.projection(available.get(n)):CompareSql.q(engine,n)).toList())+" FROM "+CompareSql.qualified(engine,str(object,"schema"),str(object,"name"));
         try(Statement st=c.createStatement()){
             job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.setMaxRows(ROW_LIMIT+1);st.setFetchSize(128);
             try(ResultSet rs=st.executeQuery(sql)){ResultSetMetaData meta=rs.getMetaData();
                 while(rs.next()){check(job);if(++count>ROW_LIMIT)throw new IllegalArgumentException("Table data exceeds 1,000,000 rows; narrow the selection");
                     ObjectNode row=Profiles.JSON.createObjectNode();ArrayNode values=row.putArray("values");
-                    for(String name:table.columns){int index=selected.indexOf(name);if(index<0)values.addObject().put("type","missing").putNull("value");else values.add(cell(rs,index+1,meta.getColumnType(index+1),meta.getColumnTypeName(index+1),engine));}
+                    for(String name:table.columns){int index=selected.indexOf(name);if(index<0)values.addObject().put("type","missing").putNull("value");else values.add(engine.equals("oracle")?OracleCompareData.cell(job,rs,index+1,available.get(name)):cell(rs,index+1,meta.getColumnType(index+1),meta.getColumnTypeName(index+1),engine));}
                     ArrayNode keys=Profiles.JSON.createArrayNode();for(String name:table.key){JsonNode cell=values.get(table.columns.indexOf(name));if(cell.path("value").isNull())throw new IllegalArgumentException("Matching key contains null");keys.add(cell.path("value"));}
                     String key=table.keyed?keys.toString():values.toString();row.put("key",HexFormat.of().formatHex(key.getBytes(StandardCharsets.UTF_8)));
                     String encoded=row.toString();if(encoded.getBytes(StandardCharsets.UTF_8).length>LINE_LIMIT)throw new IllegalArgumentException("A data row exceeds 2 MiB");buffer.add(encoded);buffered+=encoded.length()*2+64;

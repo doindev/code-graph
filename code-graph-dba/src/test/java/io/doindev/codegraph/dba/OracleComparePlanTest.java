@@ -24,5 +24,17 @@ class OracleComparePlanTest {
         source.putArray("dependencies").add("a");plan.selected.clear();plan.selected.put("a",new CompareSql.Choice(source,null,Profiles.JSON.createObjectNode()));
         assertTrue(assertThrows(IllegalArgumentException.class,()->OracleCompare.prepare(plan)).getMessage().contains("cycle"));
     }
+    @Test void dataDeletionRequiresCompleteIncomingDependencyVisibility()throws Exception{
+        var base=plan();var plan=new CompareSql.Plan(base.source,base.destination,base.from,base.to,Profiles.JSON.createObjectNode().put("dataMode","mirror"));
+        var source=CompareCatalog.item("SRC","tables","ITEM").put("supported",true).put("dataSupported",true);
+        var destination=CompareCatalog.item("DST","tables","ITEM").put("supported",true).put("dataSupported",true).put("incomingCoverage","accessible_objects");
+        plan.selected.put(CompareCatalog.key("SRC","tables","ITEM"),new CompareSql.Choice(source,destination,Profiles.JSON.createObjectNode().put("includeData",true)));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->OracleCompare.prepare(plan)).getMessage().contains("SELECT_CATALOG_ROLE"));assertTrue(plan.data.isEmpty());
+        destination.put("incomingCoverage","catalog");OracleCompare.prepare(plan);assertEquals(1,plan.data.size());
+    }
+    @Test void blockedAndImplicitDefinitionsStillConsumeTheReviewAllowance()throws Exception{
+        var object=CompareCatalog.item("SRC","tables","ITEM").put("implicit",true);long size=OracleCompare.reviewBudget(0,object);
+        assertTrue(size>512);assertThrows(IllegalArgumentException.class,()->OracleCompare.reviewBudget(CompareCatalog.MAX_BYTES-size+1,object));
+    }
     @Test void oracleServerCancellationIsFatalToCapture(){assertTrue(CompareCatalog.fatal(new java.sql.SQLException("cancelled","72000",1013)));}
 }

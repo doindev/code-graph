@@ -31,9 +31,10 @@ public final class BrowserFixture {
                     try(var c=connections.open(id);var st=c.createStatement()){
                         st.execute("CREATE USER "+OracleDialect.identifier(owner)+" NO AUTHENTICATION QUOTA 10M ON USERS");
                         if(side.equals("source")){
-                            st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"ITEMS")+" (id NUMBER,label VARCHAR2(100))");
+                            st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"ITEMS")+" (id NUMBER PRIMARY KEY,label VARCHAR2(100))");
                             st.execute("CREATE SEQUENCE "+OracleDialect.qualified(owner,"COUNTER")+" START WITH 13 INCREMENT BY 3 CACHE 10");
                             st.execute("CREATE VIEW "+OracleDialect.qualified(owner,"ITEM_VIEW")+" AS SELECT id FROM "+OracleDialect.qualified(owner,"ITEMS"));
+                            st.execute("INSERT INTO "+OracleDialect.qualified(owner,"ITEMS")+" VALUES(1,'source row')");c.commit();
                         }
                     }
                 }

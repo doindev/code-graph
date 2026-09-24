@@ -35,6 +35,7 @@ final class CompareSql {
             if(dataMode.equals("none"))w.write("-- Structure only: table data is excluded. Sequence values are synchronized only when explicitly selected.\n");
             if(Set.of("mysql","mariadb","h2","oracle").contains(engine))w.write("-- This engine commits DDL independently. A failure may leave partially applied changes.\n");
             if(engine.equals("postgresql"))w.write("BEGIN;\nSET LOCAL check_function_bodies = false;\n");
+            if(engine.equals("oracle")&&!data.isEmpty())w.write("-- Oracle data literals use the Gregorian calendar. Staging tables need CREATE TABLE privilege.\nALTER SESSION SET NLS_CALENDAR='GREGORIAN';\nALTER SESSION SET TIME_ZONE='+00:00';\n");
             w.write("\n");for(String warning:warnings)w.write("-- "+comment(warning)+"\n");emit(w,before);
         }
         void footer(Writer w)throws Exception{emit(w,after);emit(w,state);if(engine.equals("postgresql"))w.write("COMMIT;\n");}

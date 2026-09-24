@@ -15,6 +15,8 @@ module.exports=async(browser,base)=>{
   await wizard.getByRole('button',{name:'Choose object types',exact:true}).click();await wizard.getByRole('heading',{name:'Object types',exact:true}).waitFor();
   assert.equal(await wizard.getByLabel('Default table data mode',{exact:true}).inputValue(),'none');
   await wizard.getByRole('button',{name:'Clear all',exact:true}).click();for(const name of ['Tables','Views','Sequences'])await wizard.getByRole('checkbox',{name,exact:true}).check();
+  await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('upsert');await wizard.getByRole('button',{name:'Load objects and choose table data',exact:true}).click();
+  await wizard.getByRole('checkbox',{name:'Include data',exact:true}).check();await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('none');assert.equal(await wizard.getByRole('checkbox',{name:'Include data',exact:true}).isDisabled(),true);
   await wizard.getByRole('checkbox',{name:'Sync sequence values',exact:true}).check();await wizard.getByRole('button',{name:'Compare',exact:true}).click();
   await wizard.getByRole('button',{name:owners.source+'.ITEMS',exact:true}).click();await wizard.getByRole('tab',{name:'Source / Destination',exact:true}).click();
   assert.match(await wizard.locator('.compare-code-pair').innerText(),/CREATE TABLE/);await wizard.getByRole('button',{name:'Expand',exact:true}).click();
@@ -26,7 +28,14 @@ module.exports=async(browser,base)=>{
   await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:base});await wizard.getByRole('button',{name:'Copy',exact:true}).click();await page.waitForFunction(expected=>navigator.clipboard.readText().then(value=>value===expected),script);
   const url=requests.filter(([method,url])=>method==='GET'&&url.endsWith('/download')).at(-1)[1];await page.screenshot({path:'code-graph-dba/target/oracle-compare-script.png'});
   await wizard.getByRole('button',{name:'Cancel',exact:true}).click();await wizard.waitFor({state:'detached'});assert.equal((await context.request.get(url)).status(),403);
+  await page.getByRole('button',{name:'Compare',exact:true}).click();
+  for(const side of ['source','destination']){await wizard.getByLabel(side+' connection',{exact:true}).selectOption({label:'Oracle '+side+' / '+owners[side]});await page.waitForFunction(([side,owner])=>[...document.querySelector(`[aria-label="${side} schema"]`).options].some(o=>o.value===owner),[side,owners[side]]);await wizard.getByLabel(side+' schema',{exact:true}).selectOption(owners[side]);}
+  await wizard.getByRole('button',{name:'Choose object types',exact:true}).click();await wizard.getByRole('heading',{name:'Object types',exact:true}).waitFor();await wizard.getByRole('button',{name:'Clear all',exact:true}).click();await wizard.getByRole('checkbox',{name:'Tables',exact:true}).check();
+  await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('upsert');await wizard.getByRole('button',{name:'Load objects and choose table data',exact:true}).click();await wizard.getByRole('checkbox',{name:'Include data',exact:true}).check();
+  await wizard.getByRole('button',{name:'Compare',exact:true}).click();await wizard.getByRole('button',{name:owners.source+'.ITEMS',exact:true}).click();await wizard.getByRole('tab',{name:'Data differences',exact:true}).click();await wizard.getByText('source row',{exact:true}).waitFor();
+  await page.screenshot({path:'code-graph-dba/target/oracle-compare-data.png'});await wizard.getByRole('button',{name:'Generate script',exact:true}).click();await sql.waitFor();const dataScript=await sql.inputValue();assert.match(dataScript,/CREATE GLOBAL TEMPORARY TABLE/);assert.match(dataScript,/source row/);assert.match(dataScript,/TRUNCATE TABLE/);
+  await wizard.getByRole('button',{name:'Cancel',exact:true}).click();await wizard.waitFor({state:'detached'});
   assert.equal(requests.filter(([method,url])=>method==='POST'&&url.endsWith('/query/execute')).length,0);assert.deepEqual(errors,[]);
-  console.log('ORACLE_COMPARE_BROWSER_VERIFIED automatic tests, native review, structure-only, independent sequence sync, full viewport, complete copy/save and cancellation disposal');
+  console.log('ORACLE_COMPARE_BROWSER_VERIFIED automatic tests, native review, data selection and preview, structure-only switching, independent sequence sync, full viewport, complete copy/save and cancellation disposal');
  }catch(error){await page.screenshot({path:'code-graph-dba/target/oracle-compare-failure.png'});console.error(await page.locator('body').innerText());throw error;}finally{await context.close();}
 };

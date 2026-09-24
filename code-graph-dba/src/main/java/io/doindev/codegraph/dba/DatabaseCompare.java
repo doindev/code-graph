@@ -43,6 +43,7 @@ final class DatabaseCompare implements AutoCloseable {
             if(transactional){if(c.getMetaData().supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ))c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);c.setAutoCommit(false);}
             try{
                 if(ExplainPlans.engine(c.getMetaData()).equals("postgresql"))try(Statement setup=c.createStatement()){job.statement=setup;setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET LOCAL search_path = pg_catalog");setup.execute("SET LOCAL TIME ZONE 'UTC'");setup.execute("SET LOCAL lock_timeout = '3s'");setup.execute("SET LOCAL statement_timeout = "+job.remainingSeconds()*1000);}
+                if(OracleDialect.isOracle(c))try(Statement setup=c.createStatement()){job.statement=setup;setup.setQueryTimeout(job.remainingSeconds());setup.execute("ALTER SESSION SET NLS_CALENDAR='GREGORIAN'");setup.execute("ALTER SESSION SET TIME_ZONE='+00:00'");}
                 return action.run(c);
             }finally{job.statement=null;if(transactional)c.rollback();}
         }
@@ -79,7 +80,7 @@ final class DatabaseCompare implements AutoCloseable {
                 if(kind.asText().equals("tables")){
                     ObjectNode object=item(schema,"tables",name),selection=Profiles.JSON.createObjectNode().put("key",str(n,"key"));selection.putObject("parent").put("kind","tables").put("database",target.database()).put("schema",schema).put("offset",n.path("_offset").asInt());
                     Savepoint point=c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL")?c.setSavepoint():null;
-                    try{table(job,c,new Inventory(ExplainPlans.engine(c.getMetaData()),target.database(),""),object,selection,n);listed.set("keys",object.path("keys"));listed.put("dataSupported",object.path("dataSupported").asBoolean()).put("dataReason",str(object,"dataReason"));}
+                    try{if(OracleDialect.isOracle(c))OracleCompareData.metadata(job,c,object);else table(job,c,new Inventory(ExplainPlans.engine(c.getMetaData()),target.database(),""),object,selection,n);listed.set("keys",object.path("keys"));listed.put("dataSupported",object.path("dataSupported").asBoolean()).put("dataReason",str(object,"dataReason"));}
                     catch(SQLException|IllegalArgumentException error){check(job);if(error instanceof SQLException sql&&fatal(sql))throw error;if(point!=null)c.rollback(point);listed.put("dataSupported",false).put("dataReason","Data inspection is unavailable for this table");}
                     finally{if(point!=null)c.releaseSavepoint(point);}
                 }
@@ -111,8 +112,9 @@ final class DatabaseCompare implements AutoCloseable {
                     CompareDiff.ObjectDiff object=diff.objects.get(str(option,"id"));if(object==null||object.source==null||!str(object.source,"kind").equals("tables")||!object.source.path("dataSupported").asBoolean())throw new IllegalArgumentException("Table data is unavailable for selected object");
                     data.table(object,option);
                 }
-                if(!data.tables.isEmpty())read(job,from,c->{for(CompareData.Table table:data.tables.values()){job.comparisonProgress("Reading rows","source",str(table.source,"name"),0,data.tables.size());table.left=data.capture(job,c,source.engine,table,true);}return null;});
-                if(!data.tables.isEmpty())read(job,to,c->{for(CompareData.Table table:data.tables.values()){job.comparisonProgress("Reading rows","destination",str(table.source,"name"),0,data.tables.size());table.right=data.capture(job,c,destination.engine,table,false);}return null;});
+                if(!data.tables.isEmpty())jobs.comparisonReads(job,from.connectionId(),to.connectionId(),
+                    side->read(side,from,c->{for(CompareData.Table table:data.tables.values()){side.comparisonProgress("Reading rows","source",str(table.source,"name"),0,data.tables.size());table.left=data.capture(side,c,source.engine,table,true);}return null;}),
+                    side->read(side,to,c->{for(CompareData.Table table:data.tables.values()){side.comparisonProgress("Reading rows","destination",str(table.source,"name"),0,data.tables.size());table.right=data.capture(side,c,destination.engine,table,false);}return null;}));
                 for(CompareData.Table table:data.tables.values()){job.progress="Comparing rows: "+str(table.source,"name");data.compare(job,table);}
                 synchronized(this){if(comparison.disposed)throw new IllegalArgumentException("Comparison closed");comparison.ready=true;comparison.expires=System.currentTimeMillis()+TTL;}
                 return Profiles.JSON.createObjectNode().put("comparisonId",comparison.id).put("revision",diff.revision);
@@ -144,8 +146,9 @@ final class DatabaseCompare implements AutoCloseable {
                 Inventory source=captured.source(),dest=captured.destination();
                 if(!source.fingerprint().equals(c.diff.source.fingerprint())||!dest.fingerprint().equals(c.diff.destination.fingerprint()))throw new IllegalArgumentException("Database definitions changed; compare again");
                 if(!validated.data.isEmpty())try(CompareData fresh=new CompareData(directory,dataBudget)){
-                    read(running,c.from,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));if(table==null)throw new IllegalArgumentException("Compare table data first");CompareData.Snapshot snapshot=fresh.capture(running,connection,source.engine,table,true);if(!snapshot.fingerprint().equals(table.left.fingerprint()))throw new IllegalArgumentException("Source data changed; compare again");fresh.delete(snapshot.file());}return null;});
-                    read(running,c.to,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));CompareData.Snapshot snapshot=fresh.capture(running,connection,source.engine,table,false);if(!snapshot.fingerprint().equals(table.right.fingerprint()))throw new IllegalArgumentException("Destination data changed; compare again");fresh.delete(snapshot.file());}return null;});
+                    jobs.comparisonReads(running,c.from.connectionId(),c.to.connectionId(),
+                        side->read(side,c.from,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));if(table==null)throw new IllegalArgumentException("Compare table data first");CompareData.Snapshot snapshot=fresh.capture(side,connection,source.engine,table,true);if(!snapshot.fingerprint().equals(table.left.fingerprint()))throw new IllegalArgumentException("Source data changed; compare again");fresh.delete(snapshot.file());}return null;}),
+                        side->read(side,c.to,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));CompareData.Snapshot snapshot=fresh.capture(side,connection,source.engine,table,false);if(!snapshot.fingerprint().equals(table.right.fingerprint()))throw new IllegalArgumentException("Destination data changed; compare again");fresh.delete(snapshot.file());}return null;}));
                 }
                 // Refresh sequence observations without replacing the immutable reviewed definitions.
                 for(var entry:c.diff.source.objects.entrySet())if(str(entry.getValue(),"kind").equals("sequences")&&source.objects.containsKey(entry.getKey()))entry.getValue().set("state",source.objects.get(entry.getKey()).path("state"));

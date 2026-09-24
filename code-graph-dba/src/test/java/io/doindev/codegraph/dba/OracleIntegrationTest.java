@@ -240,6 +240,77 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test @Timeout(900) void allDataModesPreserveOracleScalarsLobsAndRejectStaleRows()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),s->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,s->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            String definition=" (id NUMBER PRIMARY KEY,n NUMBER(38),label NVARCHAR2(1500),d DATE,ts TIMESTAMP(9),tz TIMESTAMP(9) WITH TIME ZONE,ltz TIMESTAMP(9) WITH LOCAL TIME ZONE,raw_value RAW(2000),body CLOB,nbody NCLOB,bytes BLOB,ym INTERVAL YEAR(9) TO MONTH,ds INTERVAL DAY(9) TO SECOND(9),bf BINARY_FLOAT,bd BINARY_DOUBLE,hidden_label VARCHAR2(30) INVISIBLE)";
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                for(String owner:java.util.List.of(source,destination)){st.execute("CREATE USER "+OracleDialect.identifier(owner)+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE TO "+OracleDialect.identifier(owner));}
+                st.execute("GRANT SELECT_CATALOG_ROLE TO "+OracleDialect.identifier(destination));
+            }
+            String from=profiles.put(null,draft(source,password)).path("id").asText(),to=profiles.put(null,draft(destination,password)).path("id").asText();
+            String text="Ω漢字😀'\\\n".repeat(1100);byte[] bytes=new byte[7001];new java.util.Random(7).nextBytes(bytes);
+            for(String connection:java.util.List.of(from,to))try(var c=connections.open(connection);var st=c.createStatement()){st.execute("CREATE TABLE values_test"+definition);}
+            try(var c=connections.open(from);var insert=c.prepareStatement("INSERT INTO values_test VALUES(1,12345678901234567890123456789012345678,?,TO_DATE('0099-12-31 23:59:58 AD','YYYY-MM-DD HH24:MI:SS AD'),TIMESTAMP '2026-09-24 12:34:56.123456789',TO_TIMESTAMP_TZ('2026-11-01 01:30:00.123456789 America/New_York EDT','YYYY-MM-DD HH24:MI:SS.FF9 TZR TZD'),TO_TIMESTAMP_TZ('2026-09-24 12:34:56.123456789 +05:30','YYYY-MM-DD HH24:MI:SS.FF9 TZH:TZM'),?,?,?,?,INTERVAL '+123456789-11' YEAR(9) TO MONTH,INTERVAL '-123456789 12:34:56.123456789' DAY(9) TO SECOND(9),1.2345678f,1.2345678901234567d)")){
+                c.setAutoCommit(true);insert.setNString(1,"Ω漢字😀'".repeat(200));insert.setBytes(2,java.util.Arrays.copyOf(bytes,1500));insert.setCharacterStream(3,new java.io.StringReader(text));insert.setNCharacterStream(4,new java.io.StringReader(text));insert.setBinaryStream(5,new java.io.ByteArrayInputStream(bytes));insert.executeUpdate();
+                try(var st=c.createStatement()){st.execute("UPDATE values_test SET hidden_label='hidden source' WHERE id=1");st.execute("INSERT INTO values_test(id,label,body,nbody,bytes) VALUES(2,'',EMPTY_CLOB(),EMPTY_CLOB(),EMPTY_BLOB())");}
+            }
+            var request=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,from,source)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,to,destination));request.putArray("objectTypes").add("tables");
+            var catalog=compareFinished(jobs,compare.catalog("human",request));assertEquals(1,catalog.path("objects").size());var table=catalog.path("objects").get(0);assertTrue(table.path("dataSupported").asBoolean(),catalog.toPrettyString());String tableId=table.path("id").asText();
+            for(String mode:java.util.List.of("upsert","insert","replace","mirror")){
+                try(var c=connections.open(to);var st=c.createStatement()){c.setAutoCommit(true);st.execute("TRUNCATE TABLE values_test");st.execute("INSERT INTO values_test(id,label) VALUES(1,'old')");st.execute("INSERT INTO values_test(id,label) VALUES(3,'retained')");}
+                request.put("dataMode",mode);request.putArray("tableData").addObject().put("id",tableId).put("includeData",true);
+                String id=compareFinished(jobs,compare.start("human",request)).path("comparisonId").asText();var results=compare.results("human",id,0,100,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());
+                var selection=DatabaseCompareTest.select(compare,id).put("dataMode",mode);for(JsonNode object:selection.path("objects"))((ObjectNode)object).put("includeData",true);
+                var artifact=compareFinished(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertTrue(script.contains("ON COMMIT PRESERVE ROWS"));
+                try(var c=connections.open(to);var st=c.createStatement()){
+                    try(var rows=st.executeQuery("SELECT label FROM values_test WHERE id=1")){assertTrue(rows.next());assertEquals("old",rows.getString(1),"Generation must not execute data mutations");}
+                    for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());
+                    try(var rows=st.executeQuery("SELECT COUNT(*) FROM values_test")){assertTrue(rows.next());assertEquals(mode.equals("upsert")||mode.equals("insert")?3:2,rows.getInt(1));}
+                    try(var rows=st.executeQuery("SELECT label,body,nbody,bytes FROM values_test WHERE id=2")){assertTrue(rows.next());assertNull(rows.getString(1));assertEquals("",rows.getString(2));assertEquals("",rows.getString(3));assertArrayEquals(new byte[0],rows.getBytes(4));}
+                    try(var rows=st.executeQuery("SELECT COUNT(*) FROM user_tables WHERE table_name LIKE 'cgraph_compare_%'")){assertTrue(rows.next());assertEquals(0,rows.getInt(1),"Generated staging objects must be disposed");}
+                }
+                compare.remove("human",id);id=compareFinished(jobs,compare.start("human",request)).path("comparisonId").asText();
+                var data=compare.object("human",id,tableId).path("data").path("counts");assertEquals(mode.equals("insert")?1:2,data.path("identical").asInt(),data.toPrettyString());assertEquals(mode.equals("insert")?1:0,data.path("different").asInt(),data.toPrettyString());
+                if(mode.equals("mirror")){
+                    selection=DatabaseCompareTest.select(compare,id).put("dataMode",mode);for(JsonNode object:selection.path("objects"))((ObjectNode)object).put("includeData",true);
+                    try(var c=connections.open(from);var st=c.createStatement()){c.setAutoCommit(true);st.execute("UPDATE values_test SET label='changed' WHERE id=2");}
+                    var stale=compareAwait(jobs,compare.generate("human",id,selection));assertEquals("failed",stale.path("state").asText());assertTrue(stale.path("error").asText().contains("Source data changed"),stale.toPrettyString());
+                }
+                compare.remove("human",id);System.out.println("ORACLE_COMPARE_DATA_MODE_VERIFIED "+mode);
+            }
+        }
+    }
+
+    @Test void dataMirrorStagesAndRestoresForeignKeysWhenParentChanges()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix;
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections);var data=new CompareData(directory)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();var job=jobs.new Job("human",admin);
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                c.setAutoCommit(true);for(String owner:java.util.List.of(source,destination)){
+                    st.execute("CREATE USER "+OracleDialect.identifier(owner)+" NO AUTHENTICATION QUOTA 10M ON USERS");
+                    st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"PARENT")+" (id NUMBER PRIMARY KEY)");
+                    st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"CHILD")+" (id NUMBER PRIMARY KEY,parent_id NUMBER,CONSTRAINT child_parent FOREIGN KEY(parent_id) REFERENCES "+OracleDialect.qualified(owner,"PARENT")+"(id))");
+                    int parent=owner.equals(source)?2:1;st.execute("INSERT INTO "+OracleDialect.qualified(owner,"PARENT")+" VALUES("+parent+")");st.execute("INSERT INTO "+OracleDialect.qualified(owner,"CHILD")+" VALUES(7,"+parent+")");
+                }
+                var left=new CompareCatalog.Inventory("oracle","FREEPDB1","23");var right=new CompareCatalog.Inventory("oracle","FREEPDB1","23");left.schemas.add(source);right.schemas.add(destination);
+                for(var inventory:java.util.List.of(left,right))for(String table:java.util.List.of("PARENT","CHILD")){
+                    ObjectNode object=CompareCatalog.item(inventory==left?source:destination,"tables",table).put("supported",true);OracleCompareData.metadata(job,c,object);assertTrue(object.path("dataSupported").asBoolean(),object.toPrettyString());inventory.add(object);
+                }
+                var from=new CompareCatalog.Target(admin,"FREEPDB1",source,false,"fixture");var to=new CompareCatalog.Target(admin,"FREEPDB1",destination,false,"fixture");
+                var diff=new CompareDiff(left,right,from,to);var plan=new CompareSql.Plan(left,right,from,to,Profiles.JSON.createObjectNode().put("dataMode","mirror"));
+                for(var object:diff.objects.values()){
+                    var option=Profiles.JSON.createObjectNode().put("includeData",true);var table=data.table(object,option);table.left=data.capture(job,c,"oracle",table,true);table.right=data.capture(job,c,"oracle",table,false);data.compare(job,table);plan.data.add(new CompareSql.Choice(object.source,object.destination,option));
+                }
+                CompareDataSql.validate(plan,data);var writer=new java.io.StringWriter();plan.header(writer);CompareDataSql.write(job,plan,data,writer);plan.footer(writer);String script=writer.toString();
+                assertTrue(script.contains("DISABLE CONSTRAINT"));assertTrue(script.contains("ENABLE VALIDATE CONSTRAINT"));for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());
+                try(var rows=st.executeQuery("SELECT p.id,c.parent_id FROM "+OracleDialect.qualified(destination,"PARENT")+" p JOIN "+OracleDialect.qualified(destination,"CHILD")+" c ON c.parent_id=p.id")){assertTrue(rows.next());assertEquals(2,rows.getInt(1));assertEquals(2,rows.getInt(2));assertFalse(rows.next());}
+                try(var rows=st.executeQuery("SELECT status,validated FROM all_constraints WHERE owner='"+destination+"' AND constraint_name='CHILD_PARENT'")){assertTrue(rows.next());assertEquals("ENABLED",rows.getString(1));assertEquals("VALIDATED",rows.getString(2));}
+            }
+        }
+    }
+
     private static ObjectNode compareAwait(QueryJobs jobs,ObjectNode submitted)throws Exception{
         long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(120);ObjectNode status;
         do{status=jobs.status("human",submitted.path("id").asText());if(status.path("finished").asLong()!=0)return status;Thread.sleep(100);}while(System.nanoTime()<deadline);
