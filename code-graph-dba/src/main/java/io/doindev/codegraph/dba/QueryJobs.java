@@ -478,12 +478,12 @@ final class QueryJobs implements AutoCloseable {
         if(owner.startsWith("agent:"))throw new SecurityException("Table grids are browser-only");
         if(database==null||database.length()>256||database.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid target database");
         ObjectNode validation=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");validation.set("parameters",parameters);
-        String validated=GridSql.prepare(validation).path("sql").asText();HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
+        String validated=GridSql.prepare(validation).path("sql").asText();OracleSql.checkInputParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
         return catalogRead(owner,id,Profiles.JSON.createObjectNode().put("database",database),(job,c)->{
             job.rowLimit=Math.min(requested,config.uiRows());
             try(PreparedStatement statement=c.prepareStatement(validated,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());statement.setFetchSize(64);statement.setMaxRows(job.rowLimit+1);
-                for(int i=0;i<values.size();i++){JsonNode v=values.get(i);if(v.isNull())statement.setNull(i+1,Types.NULL);else if(v.isBoolean())statement.setBoolean(i+1,v.asBoolean());else if(v.isNumber())statement.setBigDecimal(i+1,v.decimalValue());else statement.setString(i+1,v.asText());}
+                GridPaging.bind(statement,values);
                 try(ResultSet rs=statement.executeQuery()){
                     ObjectNode entry=rows(rs,job.rowLimit,job.byteLimit/2).put("kind","rows").put("statementIndex",1);GridSql.describeColumns(validated,entry);
                     ObjectNode result=Profiles.JSON.createObjectNode().put("rowCount",entry.path("rowCount").asInt()).put("truncated",entry.path("truncated").asBoolean());
@@ -519,7 +519,7 @@ final class QueryJobs implements AutoCloseable {
     ObjectNode browserExplain(String owner,String id,String sql,JsonNode parameters,String database){
         if(owner.startsWith("agent:"))throw new SecurityException("Browser Explain is browser-only");
         if(database==null||database.length()>256||database.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid target database");
-        ObjectNode check=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");check.set("parameters",parameters);String validated=GridSql.prepare(check).path("sql").asText();HumanSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();
+        ObjectNode check=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");check.set("parameters",parameters);String validated=GridSql.prepare(check).path("sql").asText();OracleSql.checkInputParameters(parameters);JsonNode values=parameters.deepCopy();
         return catalogRead(owner,id,Profiles.JSON.createObjectNode().put("database",database),(job,c)->ExplainPlans.collect(job,c,validated,values,connections.driverLoader(id)));
     }
     ObjectNode explain(String owner,String id,String sql,JsonNode parameters){return read(owner,id,validateSql(owner,sql),parameters,true);}

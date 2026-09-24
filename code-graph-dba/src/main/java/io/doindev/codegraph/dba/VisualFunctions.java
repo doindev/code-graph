@@ -12,6 +12,7 @@ final class VisualFunctions {
         if (schema.length() > 2048 || search.length() > 256 || key.length() > 2048) throw VisualQuery.invalid("Function search is too long");
         int offset = request.path("offset").asInt(0); if (offset < 0 || offset > 100000) throw VisualQuery.invalid("Invalid function page");
         if (c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL") && c.getMetaData().getDatabaseMajorVersion() >= 11) return postgres(job, c, schema, search, key, offset);
+        if(OracleDialect.isOracle(c))return OracleVisualQuery.functions(job,c,schema,search,key,offset);
         ObjectNode out = Profiles.JSON.createObjectNode(); ArrayNode functions = out.putArray("functions"); DatabaseMetaData m = c.getMetaData();
         try (ResultSet rs = m.getFunctions(c.getCatalog(), schema.isBlank() ? null : pattern(m, schema), "%" + pattern(m, search) + "%")) {
             int skipped = 0;

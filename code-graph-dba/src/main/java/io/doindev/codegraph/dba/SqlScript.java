@@ -112,7 +112,7 @@ final class SqlScript {
     }
     static String displayIndexed(String sql,com.fasterxml.jackson.databind.JsonNode values){
         StringBuilder text=new StringBuilder();int[] end={0};State state=new State();
-        scan(sql,0,sql.length(),state,(at,c)->{if(c!='?')return;int stop=at+1;while(stop<sql.length()&&Character.isDigit(sql.charAt(stop)))stop++;int index=Integer.parseInt(sql.substring(at+1,stop))-1;var value=values.get(index);String literal=value.isNull()?"NULL":value.isBoolean()?value.asText().toUpperCase(Locale.ROOT):value.isNumber()?value.asText():"'"+value.asText().replace("'","''")+"'";text.append(sql,end[0],at).append(literal);end[0]=stop;});
+        scan(sql,0,sql.length(),state,(at,c)->{if(c!='?')return;int stop=at+1;while(stop<sql.length()&&Character.isDigit(sql.charAt(stop)))stop++;int index=Integer.parseInt(sql.substring(at+1,stop))-1;var value=values.get(index);String literal=value.isObject()?OracleSql.displayInput(value):value.isNull()?"NULL":value.isBoolean()?value.asText().toUpperCase(Locale.ROOT):value.isNumber()?value.asText():"'"+value.asText().replace("'","''")+"'";text.append(sql,end[0],at).append(literal);end[0]=stop;});
         return text.append(sql,end[0],sql.length()).toString();
     }
     private static boolean executable(String sql){boolean[] code={false};State state=new State();scan(sql,0,sql.length(),state,(i,c)->{if(!Character.isWhitespace(c)&&c!=';')code[0]=true;});return code[0];}

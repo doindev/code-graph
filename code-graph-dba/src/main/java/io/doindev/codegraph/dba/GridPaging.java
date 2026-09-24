@@ -62,7 +62,7 @@ final class GridPaging {
         if(relation.engine.equals("sqlserver")&&select.getOrderByElements()!=null&&select.getOffset()==null&&select.getTop()==null&&select.getFetch()==null)sql+=" OFFSET 0 ROWS";
         return sql;
     }
-    static void bind(PreparedStatement statement,JsonNode parameters)throws SQLException{for(int i=0;i<parameters.size();i++){JsonNode value=parameters.get(i);if(value.isNull())statement.setNull(i+1,Types.NULL);else if(value.isNumber())statement.setBigDecimal(i+1,value.decimalValue());else if(value.isBoolean())statement.setBoolean(i+1,value.asBoolean());else statement.setString(i+1,value.asText());}}
+    static void bind(PreparedStatement statement,JsonNode parameters)throws SQLException{for(int i=0;i<parameters.size();i++){JsonNode value=parameters.get(i);if(value.isObject()){if(!OracleDialect.isOracle(statement.getConnection()))throw new IllegalArgumentException("Typed Oracle parameters require an Oracle connection");OracleSql.checkInputParameters(Profiles.JSON.createArrayNode().add(value));OracleSql.bind(statement,i+1,value);}else if(value.isNull())statement.setNull(i+1,Types.NULL);else if(value.isNumber())statement.setBigDecimal(i+1,value.decimalValue());else if(value.isBoolean())statement.setBoolean(i+1,value.asBoolean());else statement.setString(i+1,value.asText());}}
     static ObjectNode read(GridResults.Context context,QueryJobs.Job job,Connection c,long offset,int limit)throws Exception{
         if(job.cancelled)throw new java.util.concurrent.CancellationException();
         String sql=context.orderedSql==null?context.sql:context.orderedSql+(Set.of("sqlserver","oracle").contains(context.relation.engine)?" OFFSET "+offset+" ROWS FETCH NEXT "+(limit+1)+" ROWS ONLY":" LIMIT "+(limit+1)+" OFFSET "+offset);

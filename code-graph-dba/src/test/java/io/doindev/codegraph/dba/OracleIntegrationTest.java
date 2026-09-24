@@ -311,6 +311,64 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test void oracleVisualQueriesNativeFunctionsAndEstimatedPlans()throws Exception{
+        String user="CG_BUILDER_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");
+                st.execute("GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE MATERIALIZED VIEW, CREATE PROCEDURE TO "+user);
+            }
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            try{
+                try(var c=connections.open(id);var st=c.createStatement()){
+                    c.setAutoCommit(true);st.execute("CREATE TABLE ITEMS(ID NUMBER PRIMARY KEY, AMOUNT NUMBER(38), STAMP TIMESTAMP(9))");
+                    st.execute("INSERT INTO ITEMS SELECT LEVEL,12345678901234567890123456789012345678,TIMESTAMP '2026-09-24 12:34:00.123456789' FROM dual CONNECT BY LEVEL<=65");
+                    st.execute("CREATE VIEW V_ITEMS AS SELECT ID,AMOUNT FROM ITEMS");
+                    st.execute("CREATE MATERIALIZED VIEW M_ITEMS AS SELECT ID,AMOUNT FROM ITEMS");
+                    st.execute("CREATE FUNCTION PLUS_ONE(n NUMBER) RETURN NUMBER IS BEGIN RETURN n+1; END;");
+                    st.execute("CREATE PACKAGE CALCULATIONS AS FUNCTION CONVERT_VALUE(n NUMBER,extra NUMBER DEFAULT 10) RETURN NUMBER; FUNCTION CONVERT_VALUE(n VARCHAR2) RETURN VARCHAR2; FUNCTION BAD(n OUT NUMBER) RETURN NUMBER; END;");
+                    st.execute("CREATE PACKAGE BODY CALCULATIONS AS FUNCTION CONVERT_VALUE(n NUMBER,extra NUMBER DEFAULT 10) RETURN NUMBER IS BEGIN RETURN n+extra; END; FUNCTION CONVERT_VALUE(n VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN n||'!'; END; FUNCTION BAD(n OUT NUMBER) RETURN NUMBER IS BEGIN n:=1; RETURN 1; END; END;");
+                    st.execute("CREATE FUNCTION NEVER_EXECUTE RETURN NUMBER IS BEGIN RAISE_APPLICATION_ERROR(-20001,'Explain executed its query'); END;");
+                }
+                for(String kind:java.util.List.of("views","materialized_views")){
+                    var selected=MetadataActionsTest.selection(jobs,id,kind,user,kind.equals("views")?"V_ITEMS":"M_ITEMS");
+                    var source=complete(jobs,jobs.queryBuilder("browser",id,selected,true));assertEquals("FREEPDB1",source.path("database").asText());assertTrue(source.path("definition").asText().contains("ITEMS"),source.toString());assertEquals(2,source.path("columns").size());
+                }
+                var imported=complete(jobs,jobs.queryBuilder("browser",id,Profiles.JSON.createObjectNode().put("sql","SELECT a.ID, b.AMOUNT FROM "+user+".ITEMS a JOIN "+user+".V_ITEMS b ON a.ID=b.ID"),false));
+                assertTrue(imported.path("editable").asBoolean(),imported.toPrettyString());assertEquals("FREEPDB1",imported.path("database").asText());
+                var request=Profiles.JSON.createObjectNode().put("engine","oracle").put("quote","\"");request.set("model",imported.path("visualModel"));var compiled=VisualQuery.compile(request);assertTrue(compiled.path("valid").asBoolean(),compiled.toString());
+                try(var c=connections.open(id);var st=c.createStatement()){
+                    c.setAutoCommit(false);try(var rs=st.executeQuery(compiled.path("sql").asText())){assertTrue(rs.next());}
+                    var job=jobs.new Job("browser",id);var functions=OracleVisualQuery.functions(job,c,user,"CONVERT_VALUE","",0).path("functions");assertEquals(2,functions.size(),functions.toString());
+                    for(var f:functions){
+                        var full=OracleVisualQuery.functions(job,c,user,"",f.path("key").asText(),0).path("functions").get(0);assertTrue(full.path("available").asBoolean(),full.toString());assertEquals("CALCULATIONS",full.path("package").asText());
+                        var model=VisualQueryTest.model(1);((ObjectNode)model.path("sources").get(0)).put("reference",user+".ITEMS");
+                        var expression=VisualQuery.expression("function").put("name",full.path("name").asText()).put("schema",user).put("package","CALCULATIONS").put("catalogFunction",true);expression.set("arguments",full.path("arguments"));
+                        boolean numeric=full.path("returnType").asText().equals("NUMBER");expression.putArray("args").add(VisualQuery.expression("literal").put("type",numeric?"number":"text").put("value",numeric?"12345678901234567890123456789012345670":"Unicode Ω漢字"));
+                        ((ObjectNode)model.path("detail").path("outputs").get(0)).set("expression",expression);request.set("model",model);var functionQuery=VisualQuery.compile(request);assertTrue(functionQuery.path("valid").asBoolean(),functionQuery.toString());
+                        try(var rs=st.executeQuery(functionQuery.path("sql").asText())){assertTrue(rs.next());assertEquals(numeric?"12345678901234567890123456789012345680":"Unicode Ω漢字!",rs.getString(1));}
+                    }
+                    var bad=OracleVisualQuery.functions(job,c,user,"BAD","",0).path("functions").get(0);assertFalse(OracleVisualQuery.functions(job,c,user,"",bad.path("key").asText(),0).path("functions").get(0).path("available").asBoolean());
+                    var standalone=OracleVisualQuery.functions(job,c,user,"PLUS_ONE","",0).path("functions").get(0);assertTrue(OracleVisualQuery.functions(job,c,user,"",standalone.path("key").asText(),0).path("functions").get(0).path("available").asBoolean());
+                    // Estimated planning must not invoke the selected function or retain PLAN_TABLE rows.
+                    var plan=ExplainPlans.collect(job,c,"SELECT "+user+".NEVER_EXECUTE() FROM "+user+".ITEMS WHERE ID>?",Profiles.JSON.createArrayNode().add(1));assertFalse(plan.path("executed").asBoolean());assertFalse(plan.path("rows").isEmpty(),plan.toString());
+                    try(var rs=st.executeQuery("SELECT COUNT(*) FROM PLAN_TABLE WHERE STATEMENT_ID='cg"+job.id.replace("-","").substring(0,26)+"'")){assertTrue(rs.next());assertEquals(0,rs.getInt(1));}
+                    st.execute("ALTER SESSION SET NLS_DATE_FORMAT='DD-MON-RR'");st.execute("ALTER SESSION SET NLS_NUMERIC_CHARACTERS=',.'");
+                    var values=Profiles.JSON.createArrayNode();values.addObject().put("mode","in").put("type","NUMBER").put("value","12345678901234567890123456789012345678");values.addObject().put("mode","in").put("type","DATE").put("value","2026-09-24T12:34:00");values.addObject().put("mode","in").put("type","TIMESTAMP").put("value","2026-09-24T12:34:00.123456789");
+                    try(var statement=c.prepareStatement("SELECT ?,CAST(? AS DATE),CAST(? AS TIMESTAMP(9)) FROM dual")){GridPaging.bind(statement,values);try(var rs=statement.executeQuery()){assertTrue(rs.next());assertEquals(values.get(0).path("value").asText(),rs.getBigDecimal(1).toPlainString());assertEquals("2026-09-24T12:34",rs.getTimestamp(2).toLocalDateTime().toString());assertEquals("2026-09-24T12:34:00.123456789",rs.getTimestamp(3).toLocalDateTime().toString());}}
+                }
+                try(var grids=new GridResults(jobs,connections,()->new DbaConfig(directory,64L<<20,2,30,100,30),x->true)){
+                    jobs.grids=grids;var values=Profiles.JSON.createArrayNode();values.addObject().put("mode","in").put("type","NUMBER").put("value","12345678901234567890123456789012345678");
+                    var run=HumanSqlTest.finish(jobs,"human",jobs.tableQuery("human",id,"SELECT ID,AMOUNT FROM "+user+".ITEMS WHERE AMOUNT=?",values,"FREEPDB1",null));assertEquals("complete",run.path("state").asText(),run.toString());
+                    var grid=run.path("result").path("results").get(0).path("grid");assertTrue(grid.path("capabilities").path("page").asBoolean(),grid.toString());
+                    var next=HumanSqlTest.finish(jobs,"human",grids.operation("human",grid.path("id").asText(),"page",Profiles.JSON.createObjectNode().put("revision",1).put("direction","next").put("limit",30)));assertEquals("complete",next.path("state").asText(),next.toString());assertEquals(31,next.path("result").path("rows").get(0).get(0).asInt());
+                    var plan=HumanSqlTest.finish(jobs,"human",jobs.browserExplain("human",id,"SELECT ID FROM "+user+".ITEMS WHERE AMOUNT=?",values,"FREEPDB1"));assertEquals("complete",plan.path("state").asText(),plan.toString());
+                }
+            }finally{connections.remove(id);try(var c=connections.open(admin);var st=c.createStatement()){st.execute("DROP USER "+user+" CASCADE");}}
+        }
+    }
+
     @Test void oracleGridPagesFiltersAndEditsVerifiedScalarRows()throws Exception{
         DbaConfig config=new DbaConfig(directory,128L<<20,2,30,100,30);
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,config,s->true);var grids=new GridResults(jobs,connections,()->config,s->true)){

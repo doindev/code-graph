@@ -205,12 +205,13 @@ final class VisualQuery {
                     if (!resolvingOutputs.add(id)) throw invalid("Output expressions cannot reference themselves");
                     try { return expr(o.path("expression"), depth + 1, allowAggregate); } finally { resolvingOutputs.remove(id); }
                 }
-                case "literal": { String value=literal(e); if(Set.of("sqlserver","azure-sql").contains(engine)){ if(e.path("type").asText().equals("boolean"))return value.equals("TRUE")?"1":value.equals("FALSE")?"0":value; if(Set.of("date","time","timestamp").contains(e.path("type").asText())&&!value.equals("NULL")){int start=value.indexOf('\'');return "CAST("+value.substring(start)+" AS "+(e.path("type").asText().equals("timestamp")?"DATETIME2":e.path("type").asText().toUpperCase(Locale.ROOT))+")";} } return value; }
+                case "literal": { oracleValueType(e.path("type").asText()); String value=engine.equals("oracle")?OracleVisualQuery.literal(e):literal(e); if(Set.of("sqlserver","azure-sql").contains(engine)){ if(e.path("type").asText().equals("boolean"))return value.equals("TRUE")?"1":value.equals("FALSE")?"0":value; if(Set.of("date","time","timestamp").contains(e.path("type").asText())&&!value.equals("NULL")){int start=value.indexOf('\'');return "CAST("+value.substring(start)+" AS "+(e.path("type").asText().equals("timestamp")?"DATETIME2":e.path("type").asText().toUpperCase(Locale.ROOT))+")";} } return value; }
                 case "parameter": {
                     JsonNode p = parameters.get(e.path("parameter").asText()); if (p == null) throw invalid("Choose a parameter definition");
                     if (bindings.size() >= 128) throw invalid("The query exceeds 128 parameter occurrences");
+                    oracleValueType(p.path("type").asText());
                     bindings.addObject().put("id", p.path("id").asText()).put("name", p.path("name").asText()).put("type", p.path("type").asText());
-                    return switch (p.path("type").asText()) { case "date" -> "CAST(? AS DATE)"; case "time" -> "CAST(? AS TIME)"; case "timestamp" -> Set.of("sqlserver","azure-sql").contains(engine)?"CAST(? AS DATETIME2)":"CAST(? AS TIMESTAMP)"; default -> "?"; };
+                    return switch (p.path("type").asText()) { case "date" -> "CAST(? AS DATE)"; case "time" -> "CAST(? AS TIME)"; case "timestamp" -> Set.of("sqlserver","azure-sql").contains(engine)?"CAST(? AS DATETIME2)":engine.equals("oracle")?"CAST(? AS TIMESTAMP(9))":"CAST(? AS TIMESTAMP)"; default -> "?"; };
                 }
                 case "binary": {
                     String op = e.path("op").asText(); if (!Set.of("+", "-", "*", "/", "=", "<>", "<", "<=", ">", ">=", "LIKE", "NOT LIKE").contains(op)) throw invalid("Choose an expression operator");
@@ -249,14 +250,15 @@ final class VisualQuery {
                         if (name.equals("LENGTH") && Set.of("sqlserver", "azure-sql").contains(engine)) name = "LEN";
                     } else {
                         JsonNode signature=e.path("arguments");if(!signature.isArray())throw invalid("Refresh this database function signature in the function picker");int required=0;boolean variadic=false;for(JsonNode argument:signature){if(!argument.path("optional").asBoolean()&&!argument.path("variadic").asBoolean())required++;variadic|=argument.path("variadic").asBoolean();if(argument.path("valueType").asText().equals("unsupported"))throw invalid("Unsupported function argument type");}if(args.size()<required||!variadic&&args.size()>signature.size())throw invalid("Incorrect argument count for the selected overload");
-                        for(int i=0;i<args.size();i++){JsonNode argument=signature.get(Math.min(i,signature.size()-1));String castType=VisualFunctions.castType(argument.path("type").asText());if(castType==null)throw invalid("Unsupported function argument type: "+argument.path("type").asText());args.set(i,"CAST("+args.get(i)+" AS "+castType+")");}
-                        name = (schema.isBlank()?"":identifier(schema)+".")+identifier(name);
+                        for(int i=0;i<args.size();i++){JsonNode argument=signature.get(Math.min(i,signature.size()-1));String castType=engine.equals("oracle")?OracleVisualQuery.castType(argument.path("type").asText()):VisualFunctions.castType(argument.path("type").asText());if(castType==null)throw invalid("Unsupported function argument type: "+argument.path("type").asText());args.set(i,"CAST("+args.get(i)+" AS "+castType+")");}
+                        name = (schema.isBlank()?"":identifier(schema)+".")+(engine.equals("oracle")&&!e.path("package").asText().isBlank()?identifier(e.path("package").asText())+".":"")+identifier(name);
                     }
                     return name + "(" + (e.path("distinct").asBoolean() ? "DISTINCT " : "") + String.join(", ", args) + ")";
                 }
                 default: throw invalid("Complete the expression using the visual selectors");
             }
         }
+        void oracleValueType(String type) { if(engine.equals("oracle")&&Set.of("boolean","time").contains(type))throw invalid("Oracle 19c visual queries do not support SQL BOOLEAN or TIME values; use NUMBER or TIMESTAMP."); }
         void validateGrouping(JsonNode e, Set<String> groups) {
             if (++inspectionDepth > 64) throw invalid("Expression dependency cycle or excessive depth");
             try {

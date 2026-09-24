@@ -13,7 +13,7 @@ final class QueryBuilder {
     static ObjectNode source(QueryJobs.Job job,Connection c,ObjectNode selection,int timeout)throws Exception {
         ObjectNode out=TableQueries.prepare(job,c,selection,timeout);
         String table=out.path("sql").asText().substring(14),schema=out.path("schema").asText(),name=out.path("name").asText();
-        out.put("reference",table).put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));out.set("explainCapability",ExplainPlans.capability(c));out.put("engine",out.path("explainCapability").path("engine").asText());
+        out.put("database",OracleDialect.database(job,c));out.put("reference",table).put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));out.set("explainCapability",ExplainPlans.capability(c));out.put("engine",out.path("explainCapability").path("engine").asText());
         out.set("columns",columns(job,c,table,timeout));
         ArrayNode relations=out.putArray("relationships");String catalog=c.getCatalog();
         if(out.path("kind").asText().equals("tables")){
@@ -21,7 +21,7 @@ final class QueryBuilder {
             catch(SQLFeatureNotSupportedException unavailable){out.put("relationshipNotice","The driver does not expose foreign-key relationships");}
         }else{
             String product=c.getMetaData().getDatabaseProductName(),engine=product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
-            String sql=switch(engine){case "postgresql"->"SELECT pg_catalog.pg_get_viewdef(c.oid,true) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=? AND c.relname=? AND c.relkind IN ('v','m')";case "h2","hsqldb","mysql","mariadb"->"SELECT VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";default->null;};
+            String sql=switch(engine){case "postgresql"->"SELECT pg_catalog.pg_get_viewdef(c.oid,true) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=? AND c.relname=? AND c.relkind IN ('v','m')";case "oracle"->out.path("kind").asText().equals("materialized_views")?"SELECT QUERY FROM ALL_MVIEWS WHERE OWNER=? AND MVIEW_NAME=?":"SELECT TEXT FROM ALL_VIEWS WHERE OWNER=? AND VIEW_NAME=?";case "h2","hsqldb","mysql","mariadb"->"SELECT VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";default->null;};
             if(sql!=null)try(PreparedStatement st=c.prepareStatement(sql)){job.statement=st;st.setQueryTimeout(timeout);st.setString(1,schema);st.setString(2,name);try(ResultSet rs=st.executeQuery()){if(rs.next())try(var reader=rs.getCharacterStream(1)){if(reader!=null){char[] buffer=new char[16385];int count=0,n;while(count<buffer.length&&(n=reader.read(buffer,count,buffer.length-count))>0)count+=n;if(count>16384)out.put("definitionNotice","View SQL exceeds the 16 KiB editor limit");else out.put("definition",new String(buffer,0,count));}}}}finally{job.statement=null;}
             if(!out.has("definition"))out.put("definitionNotice",out.path("definitionNotice").asText("The driver does not expose this view definition, or access is denied. Paste its SELECT to import it."));
         }
@@ -43,7 +43,7 @@ final class QueryBuilder {
         try(rs){while(rs.next()){if(job.cancelled)throw new java.util.concurrent.CancellationException();if(out.size()>=256)throw new IllegalArgumentException("Relationship diagram exceeds 256 foreign-key columns");ObjectNode key=out.addObject().put("direction",direction);for(String field:List.of("FK_NAME","FKTABLE_CAT","FKTABLE_SCHEM","FKTABLE_NAME","FKCOLUMN_NAME","PKTABLE_CAT","PKTABLE_SCHEM","PKTABLE_NAME","PKCOLUMN_NAME"))key.put(field,bounded(rs.getString(field)));key.put("sequence",rs.getInt("KEY_SEQ"));}}
     }
     static ObjectNode analyze(QueryJobs.Job job,Connection c,String sql,int timeout)throws Exception{
-        ObjectNode out=importSql(sql);out.put("database",Objects.toString(c.getCatalog(),"")).put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));out.set("explainCapability",ExplainPlans.capability(c));out.put("engine",out.path("explainCapability").path("engine").asText());
+        ObjectNode out=importSql(sql);out.put("database",OracleDialect.database(job,c)).put("quote",quote(c)).put("engine",ExplainPlans.engine(c.getMetaData()));out.set("explainCapability",ExplainPlans.capability(c));out.put("engine",out.path("explainCapability").path("engine").asText());
         int retained=0;
         if(out.path("editable").asBoolean())for(JsonNode item:out.path("model").path("sources")){
             ObjectNode source=(ObjectNode)item;

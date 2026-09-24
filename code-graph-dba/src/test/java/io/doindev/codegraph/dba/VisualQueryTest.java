@@ -64,4 +64,16 @@ class VisualQueryTest {
    var imported=HumanSqlTest.finish(jobs,"human",jobs.queryBuilder("human",connection,Profiles.JSON.createObjectNode().put("sql","SELECT ID FROM ITEM WHERE ID > ? ORDER BY ID"),false));assertTrue(imported.path("result").path("editable").asBoolean(),imported.toString());assertEquals(2,imported.path("result").path("visualModel").path("version").asInt());assertEquals(1,imported.path("result").path("visualModel").path("parameters").size());assertThrows(SecurityException.class,()->jobs.browserExplain("agent:a",connection,"SELECT ID FROM ITEM",Profiles.JSON.createArrayNode(),""));
   }
  }
+ @Test void oracleTemporalAndUnsupportedScalarValuesAreExplicit(){
+  var m=model(1);var request=Profiles.JSON.createObjectNode().put("engine","oracle");request.set("model",m);
+  for(String type:List.of("time","boolean")){
+   ((ObjectNode)m.path("detail").path("outputs").get(0)).set("expression",VisualQuery.expression("literal").put("type",type).put("value",type.equals("time")?"12:34":"true"));
+   var result=VisualQuery.compile(request);assertFalse(result.path("valid").asBoolean());assertTrue(result.path("diagnostics").toString().contains("Oracle 19c"));
+  }
+  ((ObjectNode)m.path("detail").path("outputs").get(0)).set("expression",VisualQuery.expression("literal").put("type","timestamp").put("value","2026-09-24T12:34"));
+  var result=VisualQuery.compile(request);assertTrue(result.path("valid").asBoolean(),result.toString());assertTrue(result.path("sql").asText().contains("TIMESTAMP '2026-09-24 12:34:00.000000000'"));
+  m.withArray("parameters").addObject().put("id","p").put("name","stamp").put("type","timestamp");((ObjectNode)m.path("detail").path("outputs").get(0)).set("expression",VisualQuery.expression("parameter").put("parameter","p"));
+  assertTrue(VisualQuery.compile(request).path("sql").asText().contains("TIMESTAMP(9)"));
+ }
+
 }

@@ -76,7 +76,7 @@ final class ExplainPlans {
         out.set("rows",raw.path("rows"));out.put("rowCount",raw.path("rows").size()).put("analysis","Estimated plan only. No query rows were executed.");return out;
     }
     static String literalParameters(String sql,JsonNode values){ObjectNode input=Profiles.JSON.createObjectNode().put("sql",sql).put("action","refresh");input.set("parameters",values);return GridSql.prepare(input).path("displaySql").asText();}
-    static void bind(PreparedStatement st,JsonNode values)throws SQLException{for(int i=0;i<values.size();i++){JsonNode v=values.get(i);if(v.isNull())st.setNull(i+1,Types.NULL);else if(v.isBoolean())st.setBoolean(i+1,v.asBoolean());else if(v.isNumber())st.setBigDecimal(i+1,v.decimalValue());else st.setString(i+1,v.asText());}}
+    static void bind(PreparedStatement st,JsonNode values)throws SQLException{GridPaging.bind(st,values);}
     static ObjectNode query(QueryJobs.Job job,Connection c,String sql,JsonNode values)throws Exception {
         if(job.cancelled)throw new java.util.concurrent.CancellationException();
         try(PreparedStatement st=c.prepareStatement(sql)){job.statement=st;st.setQueryTimeout(job.remainingSeconds());bind(st,values);try(ResultSet rs=st.executeQuery()){return raw(rs,job.byteLimit/3,Math.min(4096,job.rowLimit));}}finally{job.statement=null;}

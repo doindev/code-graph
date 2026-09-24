@@ -130,7 +130,7 @@ final class GridSql {
     }
     static Edit edit(JsonNode input) {
         String sql=Profiles.text(input,"sql",16384),action=Profiles.text(input,"action",24);
-        JsonNode supplied=input.path("parameters");HumanSql.checkParameters(supplied);
+        JsonNode supplied=input.path("parameters");OracleSql.checkInputParameters(supplied);
         try {
             var statements=CCJSqlParserUtil.parseStatements(sql,p->p.withTimeOut(500));
             if(statements.size()!=1||!(statements.get(0) instanceof PlainSelect select))throw invalid("Only one SELECT can be edited; scripts, batches and set queries must be edited in the SQL editor");
@@ -182,7 +182,7 @@ final class GridSql {
                     select.setWhere(where);
                 }else throw invalid("Unknown grid SQL action");
             }
-            String rewritten=select.toString();var normalized=SqlScript.bindIndexed(rewritten,values);HumanSql.checkParameters(normalized.parameters());
+            String rewritten=select.toString();var normalized=SqlScript.bindIndexed(rewritten,values);OracleSql.checkInputParameters(normalized.parameters());
             if(normalized.sql().length()>16384)throw invalid("Updated SQL exceeds the statement-size limit");return normalized;
         }catch(IllegalArgumentException e){throw e;}catch(Exception e){throw invalid("This SQL syntax cannot be safely edited automatically; use the SQL editor");}
     }

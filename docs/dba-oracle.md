@@ -70,6 +70,27 @@ locks, original-value comparisons and affected-row checks protect reviewed saves
 batch rolls back together. SQL exports use explicit timestamp literals and bounded Unicode
 chunks. SQL date exports currently require AD years 1–9999.
 
+## Query builder and estimated plans
+
+The visual builder loads native Oracle view and materialized-view SELECT definitions and
+retains the resolved PDB. It imports representable joins, preserves unsupported SQL in text
+mode, and emits Oracle table aliases. The function picker reads bounded owner-scoped native
+signatures, including standalone functions and package overloads, defaulted arguments and
+separately quoted package/member names. Composite, output, pipelined and aggregate signatures
+remain unavailable in the visual picker; use Script for those routines.
+
+Builder numeric values retain decimal text through the browser and bind as JDBC NUMBER.
+Typed NUMBER inputs exceeding 38 significant digits or the supported exponent range are rejected
+before execution. Date and timestamp parameters use typed JDBC values, independently of
+session date/number formats; timestamp casts retain nine fractional digits. The Oracle 19c
+builder offers NUMBER and TIMESTAMP instead of SQL BOOLEAN and TIME controls. Parameter
+values remain transient and are excluded from saved/recovered query drafts.
+
+Typed scalar IN values also work in retained grid paging and estimated plans. Callable output
+parameters and LOBs are excluded from those retained SELECT inputs. Explain uses a private
+statement identifier and rolls PLAN_TABLE writes back to its savepoint; it does not execute
+the query. Native PLAN_TABLE and DBMS_XPLAN privileges are still required.
+
 ## Native properties, definitions and scans
 
 Object properties include native definitions, status, compilation errors, incoming/outgoing
@@ -154,7 +175,7 @@ real connection tests, resolved targets, explicit SYSDBA, least-privileged users
 and partial DDL commits, native package/type editing, compilation diagnostics and scoped scans. `OracleSqlTest` and `SqlScriptTest` cover deterministic validation.
 The optional `oracle-sql` browser suite requires the same disposable environment plus the
 verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions,
-Oracle grid edits/paging and reviewed package/body changes.
+Oracle grid edits/paging, reviewed package/body changes, exact builder inputs, native package-function selection and completed estimated plans.
 
 The optional `oracle-compare` browser suite covers automatic target tests, native definition
 review, per-table data selection and previews, structure-only switching, independent sequence synchronization, viewport layout, complete
@@ -166,3 +187,7 @@ and dependency blockers. Oracle data checks cover all four modes, invisible colu
 stale rows, and foreign-key restoration when a child changes parent. Independent source and
 destination row captures and generation-time checks use bounded virtual workers; cancellation
 joins both sides before releasing their private snapshots.
+
+Builder validation also covers native view/materialized-view imports, joins, standalone and
+package overload signatures, defaulted/output arguments, nondefault NLS settings, nine-digit
+timestamps, typed grid paging and PLAN_TABLE cleanup without executing the selected query.

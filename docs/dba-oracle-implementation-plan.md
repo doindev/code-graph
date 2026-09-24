@@ -80,6 +80,13 @@ browser suite passes data selection/review/generation, structure-only switching 
 Oracle scalar grid paging, filtering, reviewed edits and bounded exports now pass live
 precision/date, rollback, concurrent-edit and target-identity checks. The Oracle SQL browser
 suite also passes saved national-character edits, refresh and pagination.
+Oracle visual queries now load native views and materialized views, import joins, discover
+standalone/package scalar signatures and retain precise transient inputs in paging and Explain.
+The focused Java regression set passes 44 checks, including a live least-privileged Oracle
+builder/plan test; all ten live Oracle integration cases also pass after the parameter changes. Oracle browser checks cover exact numeric/timestamp values, completed
+plans and package-function selection. Shared canvas redraw retains focused join controls;
+the full non-Oracle builder browser suite passes geometry, lifecycle, typed joins, recovery,
+cancellation and failure retention.
 Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 

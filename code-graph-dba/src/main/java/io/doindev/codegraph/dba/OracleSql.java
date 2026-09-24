@@ -28,9 +28,26 @@ final class OracleSql {
             }
         }
     }
+    /** Only scalar IN values are safe for retained SELECTs, paging and estimated plans. */
+    static void checkInputParameters(JsonNode values){
+        checkParameters(values);
+        for(JsonNode value:values)if(value.isObject()&&(!value.path("mode").asText().equals("in")||!Set.of("NUMBER","DATE","TIMESTAMP","VARCHAR","NVARCHAR").contains(value.path("type").asText())))
+            throw new IllegalArgumentException("Grid and plan parameters require scalar IN values");
+    }
+    static String displayInput(JsonNode parameter){
+        checkInputParameters(Profiles.JSON.createArrayNode().add(parameter));
+        JsonNode value=parameter.path("value");if(value.isNull())return "NULL";
+        String type=parameter.path("type").asText();
+        if(type.equals("NUMBER"))return number(value.asText()).toPlainString();
+        if(type.equals("DATE")||type.equals("TIMESTAMP")){
+            String timestamp="TIMESTAMP '"+((java.time.LocalDateTime)typedValue(type,value.asText())).format(java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSSSSS",Locale.ROOT))+"'";
+            return type.equals("DATE")?"CAST("+timestamp+" AS DATE)":timestamp;
+        }
+        return "'"+value.asText().replace("'","''")+"'";
+    }
     private static java.math.BigDecimal number(String value){
-        try{var number=new java.math.BigDecimal(value);if(number.precision()>8192||Math.abs((long)number.scale())>8192)throw new NumberFormatException();return number;}
-        catch(NumberFormatException failure){throw new IllegalArgumentException("NUMBER parameter must contain a bounded decimal value");}
+        try{var number=new java.math.BigDecimal(value);var exact=number.stripTrailingZeros();long exponent=(long)exact.precision()-exact.scale()-1;if(exact.precision()>38||exact.signum()!=0&&(exponent< -130||exponent>125))throw new NumberFormatException();return exact;}
+        catch(NumberFormatException failure){throw new IllegalArgumentException("NUMBER parameter must contain at most 38 significant digits within the Oracle exponent range (-130..125)");}
     }
     private static Object typedValue(String type,String value){
         try{return switch(type){
