@@ -1,4 +1,7 @@
-io\doindev\codegraph\lang\javascript\EcmaAnalyzer.class
+io\doindev\codegraph\lang\javascript\EcmaAnalyzer$1.class
+io\doindev\codegraph\lang\javascript\EcmaMethodEvidence.class
 io\doindev\codegraph\lang\javascript\TsxAnalyzer.class
+io\doindev\codegraph\lang\javascript\EcmaModules.class
+io\doindev\codegraph\lang\javascript\EcmaAnalyzer.class
 io\doindev\codegraph\lang\javascript\JavaScriptAnalyzer.class
 io\doindev\codegraph\lang\javascript\TypeScriptAnalyzer.class

@@ -5,6 +5,8 @@ io\doindev\codegraph\analysis\BlastFormula.class
 io\doindev\codegraph\analysis\BlastFormula$Result.class
 io\doindev\codegraph\analysis\DeadCode.class
 io\doindev\codegraph\analysis\Tarjan.class
+io\doindev\codegraph\analysis\BlastScore$NodeLimit.class
 io\doindev\codegraph\analysis\DeadCode$Candidate.class
 io\doindev\codegraph\analysis\Tarjan$1Frame.class
+io\doindev\codegraph\analysis\BlastScore$1Step.class
 io\doindev\codegraph\analysis\BlastScore.class

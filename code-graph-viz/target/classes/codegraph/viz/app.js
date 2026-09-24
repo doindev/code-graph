@@ -27,7 +27,7 @@ const BAND_COLORS = {
 };
 
 const DBLCLICK_MS = 300;
-const BG_COLOR = '#0b0e14';
+const BG_COLOR = '#0c111a';
 const NODE_REL_SIZE = 4;  // set explicitly on the 2D instance so custom paint matches hit-detection
 
 // Per-renderer galaxy performance budgets. 3D is the expensive path (WebGL + force sim + per-link
@@ -110,6 +110,9 @@ function updateProjectControls() {
   $('remove-project').disabled = !hasProject || busy;
   $('add-project').disabled = busy;
   $('empty-state').classList.toggle('hidden', hasProject);
+  document.body.classList.toggle('workspace-empty', !hasProject);
+  $('welcome-project').disabled = busy || (!state.mutable && !state.roster.length);
+  $('welcome-project-label').textContent = state.roster.length ? 'Select a project' : 'Add project';
 }
 
 function activateProject(name) {
@@ -123,7 +126,7 @@ function activateProject(name) {
   renderLifetime();
 }
 
-function enterEmptyState(title = 'No projects onboarded', message = 'Add a project to begin.') {
+function enterEmptyState(title = 'No projects onboarded', message = 'Your source stays where it is. Nothing is indexed until you add a project.') {
   if (state.project !== null) state.projectEpoch++;
   clearTimeout(clickTimer);
   clearTimeout(searchTimer);
@@ -150,12 +153,12 @@ function enterEmptyState(title = 'No projects onboarded', message = 'Add a proje
 
 // ---------------------------------------------------------------- api
 
-async function api(path, method, bodyValue) {
+async function api(path, method, bodyValue, extra = {}) {
   const requestProject = state.project;
   const requestEpoch = state.projectEpoch;
   const activeBase = requestProject && '/api/p/' + encodeURIComponent(requestProject);
   const isActiveProject = activeBase && (path === activeBase || path.startsWith(activeBase + '/'));
-  const options = { method: method || 'GET', headers: {} };
+  const options = { ...extra, method: method || 'GET', headers: {} };
   if (isActiveProject && state.projectInstance) options.headers['X-Project-Instance'] = String(state.projectInstance);
   if (bodyValue !== undefined) {
     options.headers['Content-Type'] = 'application/json';
@@ -175,7 +178,9 @@ async function api(path, method, bodyValue) {
     if (response.status === 404 && isActiveProject && requestEpoch === state.projectEpoch) {
       void refreshRoster();
     }
-    throw new Error((body && body.error) || ('HTTP ' + response.status + ' for ' + path));
+    const error = new Error((body && body.error) || ('HTTP ' + response.status + ' for ' + path));
+    error.status = response.status;
+    throw error;
   }
   if (isActiveProject && requestEpoch === state.projectEpoch) {
     const entry = state.roster.find(p => p.name === requestProject);
@@ -938,28 +943,13 @@ function applyServerInfo(info) {
   state.projectTtlSeconds = info.projectTtlSeconds ?? 3600;
   state.mcpEndpoint = info.mcpEndpoint;
   state.mutable = info.mutable === true;
-  const pill = $('mcp-pill');
-  pill.textContent = 'MCP: ' + info.mcpEndpoint;
-  pill.classList.remove('hidden');
-  if (info.mcpEndpoint !== 'stdio') {
-    pill.classList.add('copyable');
-    pill.title = 'Click to copy the MCP endpoint';
-  } else {
-    pill.title = 'MCP served over stdio';
-  }
+  $('welcome-dba').classList.toggle('hidden', !info.dbaEnabled);
+  $('welcome-access').textContent = state.mutable
+    ? 'Choose a local directory to get started. You stay in control of what is indexed.'
+    : 'This server is read-only. Onboard a project through MCP, or restart with --viz-admin to add one here.';
   // read-only server: none of the add/reindex/remove UI renders at all
   $('project-actions').classList.toggle('hidden', !state.mutable);
   updateProjectControls();
-}
-
-async function copyMcpEndpoint() {
-  if (!state.mcpEndpoint || state.mcpEndpoint === 'stdio') return;
-  try {
-    await navigator.clipboard.writeText(state.mcpEndpoint);
-    toast('copied ' + state.mcpEndpoint);
-  } catch (e) {
-    toast('copy failed: ' + e.message);
-  }
 }
 
 function populateProjects(projects) {
@@ -1032,63 +1022,11 @@ function signalProjectActivity(event) {
   api(projectBase() + '/activity', 'POST').catch(() => {});
 }
 
-async function openMemorySettings() {
-  $('memory-error').textContent = '';
-  try { applyServerInfo(await api('/api/server')); }
-  catch (e) { $('memory-error').textContent = e.message; }
-  const storage = state.graphStorage;
-  const hybrid = storage.mode === 'hybrid';
-  const mib = bytes => Math.round((bytes ?? 0) / 1048576);
-  $('memory-status').textContent = hybrid
-    ? `Hybrid · cache ${mib(storage.cacheUsedBytesEstimate)} / ${mib(storage.cacheCapacityBytes)} MiB (estimated) · disk ${mib(storage.diskBytes)} MiB · hits ${storage.cacheHits ?? 0}, misses ${storage.cacheMisses ?? 0}`
-    : 'Pure in-memory mode. Restart with --graph-storage hybrid to enable disk paging.';
-  $('memory-value').value = mib(storage.budgetBytes ?? 1073741824) + 'm';
-  $('memory-value').disabled = !hybrid;
-  $('memory-save').disabled = !hybrid;
-  $('memory-overlay').classList.remove('hidden');
-  (hybrid ? $('memory-value') : $('memory-cancel')).focus();
-}
-
-function closeMemorySettings() {
-  $('memory-overlay').classList.add('hidden');
-  $('memory-settings').focus();
-}
-
-async function saveMemorySettings(event) {
-  event.preventDefault();
-  $('memory-save').disabled = true;
-  try {
-    applyServerInfo(await api('/api/settings', 'PUT', { graphMemory: $('memory-value').value.trim() }));
-    closeMemorySettings();
-  } catch (e) { $('memory-error').textContent = e.message; }
-  finally { $('memory-save').disabled = false; }
-}
-
-function openTtlSettings() {
-  const seconds = state.projectTtlSeconds;
-  $('ttl-value').value = seconds % 3600 === 0 ? seconds / 3600 + 'h' : seconds % 60 === 0 ? seconds / 60 + 'm' : seconds + 's';
-  $('ttl-error').textContent = '';
-  $('ttl-overlay').classList.remove('hidden');
-  $('ttl-value').focus();
-}
-
-function closeTtlSettings() {
-  $('ttl-overlay').classList.add('hidden');
-  $('ttl-settings').focus();
-}
-
-async function saveTtlSettings(event) {
-  event.preventDefault();
-  $('ttl-save').disabled = true;
-  try {
-    const info = await api('/api/settings', 'PUT', { projectTtl: $('ttl-value').value.trim() });
-    applyServerInfo(info);
-    closeTtlSettings();
-    await refreshRoster();
-    toast('Idle timeout updated for this server session');
-  } catch (e) { $('ttl-error').textContent = e.message; }
-  finally { $('ttl-save').disabled = false; }
-}
+const rootSettings = new RootSettings({
+  load: () => api('/api/server', 'GET', undefined, { signal: AbortSignal.timeout(15000) }),
+  save: draft => api('/api/settings', 'PUT', draft, { signal: AbortSignal.timeout(30000) }),
+  onSaved: info => { applyServerInfo(info); void refreshRoster(); }
+});
 
 async function refreshProjects() {
   try {
@@ -1274,7 +1212,20 @@ function pollJob(jobId) {
       return;  // transient — keep polling until a terminal state or the user cancels
     }
     if (state.jobId !== jobId) return;  // cancelled while the request was in flight
-    if (status.state === 'indexing') return;  // still working; timer keeps ticking
+    if (status.state === 'indexing') {
+      const progress = status.progress;
+      if (progress?.phase) {
+        const phase = {waiting:'Preparing',configuration:'Reading configuration',scanning:'Scanning',
+          scanning_and_parsing:'Scanning and parsing',parsing:'Parsing',resolving:'Resolving relationships',
+          publishing:'Publishing index',ready:'Registering project'}[progress.phase] || 'Indexing';
+        const counts = Number.isFinite(progress.parsedFiles)
+          ? ' — ' + progress.parsedFiles + ' parsed, ' + (progress.resolvedFiles || 0) + ' resolved'
+            + (progress.inventoryComplete ? ' of ' + progress.discoveredFiles + ' discovered files' : ' (discovering files)')
+            + (progress.failedFiles ? ', ' + progress.failedFiles + ' failed' : '') : '';
+        $('scan-message').textContent = phase + ' ' + (status.name || state.jobName) + counts;
+      }
+      return; // Progress is work evidence, not a guessed percentage; timer keeps ticking.
+    }
 
     const kind = state.jobKind;
     const finalName = status.name || state.jobName;
@@ -1344,14 +1295,12 @@ const refetchGalaxy = debounce(() => {
 }, 300);
 
 function wireControls() {
-  $('ttl-settings').addEventListener('click', openTtlSettings);
-  $('memory-settings').addEventListener('click', openMemorySettings);
-  $('memory-form').addEventListener('submit', saveMemorySettings);
-  $('memory-cancel').addEventListener('click', closeMemorySettings);
-  $('memory-overlay').addEventListener('click', e => { if (e.target === $('memory-overlay')) closeMemorySettings(); });
-  $('ttl-form').addEventListener('submit', saveTtlSettings);
-  $('ttl-cancel').addEventListener('click', closeTtlSettings);
-  $('ttl-overlay').addEventListener('click', e => { if (e.target === $('ttl-overlay')) closeTtlSettings(); });
+  rootIcons();
+  $('welcome-mcp').addEventListener('click', () => rootSettings.open('mcp'));
+  $('welcome-project').addEventListener('click', () => {
+    if (state.roster.length) $('project').focus();
+    else if (state.mutable) openBrowse(null);
+  });
   for (const id of ['graph', 'zoombar', 'crumbs', 'results', 'details', 'controls']) {
     for (const type of ['pointerdown', 'wheel', 'input', 'keydown']) {
       $(id).addEventListener(type, signalProjectActivity, { passive: true });
@@ -1376,7 +1325,6 @@ function wireControls() {
   $('reset-view').addEventListener('click', resetView);
   $('details-close').addEventListener('click', hideDetails);
 
-  $('mcp-pill').addEventListener('click', copyMcpEndpoint);
   $('reindex-project').addEventListener('click', reindexActive);
   $('remove-project').addEventListener('click', removeActive);
   $('add-project').addEventListener('click', () => openBrowse(null));
@@ -1400,8 +1348,7 @@ function wireControls() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (!$('ttl-overlay').classList.contains('hidden')) { closeTtlSettings(); return; }
-    if (!$('memory-overlay').classList.contains('hidden')) { closeMemorySettings(); return; }
+    if ($('root-settings-dialog').open) return;
     if (!$('scan-overlay').classList.contains('hidden')) {
       return;  // loading modal is non-dismissable — ignore Escape while indexing runs
     }

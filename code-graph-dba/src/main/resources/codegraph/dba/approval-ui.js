@@ -1,3 +1,4 @@
+import {editReadGrant} from './read-permissions.js';
 import {ApprovalClient} from './approval-client.js';
 import {lucide} from './tree-icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -40,6 +41,11 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
       }
     }else{
       add('Allow once','approve_once');
+      if(request.selectPermission){
+        const selectRead=el('button','Allow SELECTs…');selectRead.disabled=!request.selectPermission.eligible;selectRead.title=request.selectPermission.reason||'';
+        selectRead.onclick=safely(async()=>{editing=true;try{await editReadGrant({api,identity:request.agentName||request.agentId,initial:{selectors:request.selectPermission.selectors||[],lifetime:'mcp_session'},request,onSave:readGrant=>decide('allow_selects',{readGrant})});}finally{editing=false;}});
+        actions.append(selectRead);if(!request.selectPermission.eligible)row.append(el('small',request.selectPermission.reason));
+      }
       if(request.approvalChoices){
         const split=el('span',undefined,'approval-split'),arrow=el('button','▾'),menu=el('div',undefined,'approval-choice-menu');
         arrow.title='Reusable approval choices';arrow.setAttribute('aria-label',arrow.title);arrow.setAttribute('aria-haspopup','menu');arrow.setAttribute('aria-expanded','false');menu.setAttribute('role','menu');menu.hidden=true;
@@ -48,7 +54,7 @@ export function installApprovalUI({api,button,reviewConnection,only=null}){
         arrow.onclick=()=>{menu.hidden=!menu.hidden;arrow.setAttribute('aria-expanded',String(!menu.hidden));if(!menu.hidden)menu.querySelector('button')?.focus();};
         split.addEventListener('keydown',event=>{const items=[...menu.querySelectorAll('button')];if(event.key==='Escape'&&!menu.hidden){event.preventDefault();event.stopPropagation();dismiss();arrow.focus();}else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)&&!menu.hidden){event.preventDefault();let i=items.indexOf(document.activeElement);i=event.key==='Home'?0:event.key==='End'?items.length-1:(i+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[i]?.focus();}});
         split.addEventListener('focusout',event=>{if(!split.contains(event.relatedTarget))dismiss();});
-        split.append(actions.lastElementChild,arrow,menu);actions.append(split);
+        split.append([...actions.children].find(b=>b.textContent==="Allow once"),arrow,menu);actions.append(split);
       }else if(request.eligiblePersistentRead){add('Always allow this read',request.projectId?'always_binding_read':'always_connection_read');}
     }
     row.append(actions);list.append(row);countdown();

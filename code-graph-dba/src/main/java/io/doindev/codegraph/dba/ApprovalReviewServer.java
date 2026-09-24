@@ -40,12 +40,14 @@ final class ApprovalReviewServer implements AutoCloseable {
         return new ApprovalBroker.Handoff(URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/dba/review#"+token),code);
     }
     boolean alive(String session){return scopes.containsKey(session)&&auth.alive(session);}
-    static boolean assetAllowed(String path){return Set.of("/dba/review","/dba/approval-review.js","/dba/approval-client.js","/dba/approval-ui.js","/dba/connection-editor.js","/dba/native-connection-editor.js","/dba/style.css","/dba/tree-icons.js","/dba/database.svg").contains(path);}
+    static boolean assetAllowed(String path){return Set.of("/dba/review","/dba/approval-review.js","/dba/approval-client.js","/dba/approval-ui.js","/dba/read-permissions.js","/dba/connection-editor.js","/dba/native-connection-editor.js","/dba/style.css","/dba/tree-icons.js","/dba/database.svg").contains(path);}
     static void requireRoute(String path,String method,String scope){
         String prefix="/api/dba/approvals/"+scope;
         if(path.equals("/api/dba/approvals")&&method.equals("GET"))return;
         if(path.equals("/api/dba/approvals/events")&&method.equals("GET")||path.equals("/api/dba/approvals/presence")&&method.equals("POST"))return;
         if(path.equals(prefix)&&method.equals("POST"))return;
+        if(path.equals(prefix+"/permission-targets")&&method.equals("POST"))return;
+        if(path.startsWith(prefix+"/permission-targets/")&&Set.of("GET","DELETE").contains(method)&&path.substring((prefix+"/permission-targets/").length()).matches("[a-f0-9-]{36}"))return;
         if(path.startsWith(prefix+"/")&&Set.of("claim","renew","release","draft","test","test-draft").contains(path.substring(prefix.length()+1)))return;
         if(Set.of("/api/dba/templates","/api/dba/session").contains(path)&&method.equals("GET"))return;
         if(path.startsWith("/api/dba/jobs/")&&path.substring("/api/dba/jobs/".length()).matches("[a-f0-9-]{36}(/cancel)?"))return;

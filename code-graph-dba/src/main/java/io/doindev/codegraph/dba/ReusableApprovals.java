@@ -101,14 +101,24 @@ final class ReusableApprovals implements AutoCloseable {
         for (ArrayNode source : List.of(temporary, persistent)) {
             ArrayNode next = source.deepCopy();
             for (int i = 0; i < next.size(); i++) if (next.get(i).path("agentId").asText().equals(principal) && next.get(i).path("id").asText().equals(id)) {
-                if (enabled == null) next.remove(i); else ((ObjectNode)next.get(i)).put("enabled", enabled);
+                if (enabled == null) next.remove(i); else {ObjectNode updated=(ObjectNode)next.get(i);updated.put("enabled", enabled);if(updated.path("kind").asText().equals("select_read"))updated.put("revision",updated.path("revision").asLong()+1);}
                 if (source == persistent) { save(next); persistent = next; } else temporary = next;
                 return Profiles.JSON.createObjectNode().put("ok", true);
             }
         }
         throw new IllegalArgumentException("Unknown reusable permission");
     }
-    synchronized void invalidateConnection(String id) { invalidate("connectionId", id); }
+    synchronized void invalidateConnection(String id) {
+        for(ArrayNode source:List.of(persistent,temporary)){
+            ArrayNode next=source.deepCopy();boolean changed=false;
+            for(int i=next.size()-1;i>=0;i--){ObjectNode p=(ObjectNode)next.get(i);if(!p.path("kind").asText().equals("select_read"))continue;
+                ArrayNode selectors=(ArrayNode)p.path("selectors");int before=selectors.size();for(int j=selectors.size()-1;j>=0;j--)if(selectors.get(j).path("connectionId").asText().equals(id))selectors.remove(j);
+                if(before!=selectors.size()){changed=true;p.put("revision",p.path("revision").asLong()+1);if(selectors.isEmpty())next.remove(i);}
+            }
+            if(changed){if(source==persistent){save(next);persistent=next;}else temporary=next;}
+        }
+        invalidate("connectionId", id);
+    }
     synchronized void invalidateBinding(String id) { invalidate("bindingId", id); }
     private void invalidate(String field, String id) {
         ArrayNode next = Profiles.JSON.createArrayNode(); for (JsonNode p : persistent) if (!p.path("scope").path(field).asText().equals(id)) next.add(p);
@@ -118,9 +128,28 @@ final class ReusableApprovals implements AutoCloseable {
     private Iterable<JsonNode> all() { List<JsonNode> out = new ArrayList<>(); temporary.forEach(out::add); persistent.forEach(out::add); return out; }
     private void reap() { for (int i = temporary.size() - 1; i >= 0; i--) { JsonNode p = temporary.get(i); if (!sessions.alive(p.path("session").asText(), p.path("agentId").asText())) temporary.remove(i); } }
     private static ObjectNode publicPolicy(JsonNode p) {
-        ObjectNode out = p.deepCopy(); out.remove(List.of("fingerprint", "session")); out.set("scope", ApprovalScope.display(p.path("scope")));
+        ObjectNode out = p.deepCopy(); out.remove(List.of("fingerprint", "session")); if(p.has("scope"))out.set("scope", ApprovalScope.display(p.path("scope")));
+        for(JsonNode selector:out.path("selectors"))((ObjectNode)selector).remove("profileRevision");
         if (p.has("session")) out.put("sessionLabel", CatalogScanner.hash(p.path("session").asText()).substring(0, 12));
         return out;
+    }
+    synchronized List<ObjectNode> readEntries(String principal){
+        reap();List<ObjectNode> out=new ArrayList<>();for(JsonNode p:all())if(p.path("kind").asText().equals("select_read")&&p.path("version").asInt()==2&&p.path("agentId").asText().equals(principal))out.add(p.deepCopy());return out;
+    }
+    synchronized ObjectNode saveRead(ObjectNode policy,Long expectedRevision){
+        reap();String principal=policy.path("agentId").asText(),id=policy.path("id").asText();
+        JsonNode old=null;int count=0;for(JsonNode p:all()){if(p.path("agentId").asText().equals(principal))count++;if(p.path("id").asText().equals(id)&&p.path("agentId").asText().equals(principal))old=p;}
+        if(expectedRevision!=null&&(old==null||!old.path("kind").asText().equals("select_read")||old.path("revision").asLong()!=expectedRevision))throw new ReadPermissions.Conflict();
+        if(expectedRevision==null&&(old!=null||count>=128||persistent.size()+temporary.size()>=1024))throw new IllegalArgumentException("Reusable permission limit reached");
+        ArrayNode next=persistent.deepCopy(),temp=temporary.deepCopy();
+        for(ArrayNode a:List.of(next,temp))for(int i=a.size()-1;i>=0;i--)if(a.get(i).path("id").asText().equals(id))a.remove(i);
+        (policy.has("session")?temp:next).add(policy.deepCopy());
+        if(temp.toString().length()>2_097_152)throw new IllegalArgumentException("Session permission storage limit reached");
+        save(next);persistent=next;temporary=temp;return publicPolicy(policy);
+    }
+    synchronized void touchReads(String principal,JsonNode proof){
+        boolean changed=false;for(JsonNode p:all())if(p.path("agentId").asText().equals(principal))for(JsonNode used:proof)if(p.path("id").equals(used.path("id"))){((ObjectNode)p).put("lastUsedAt",clock.getAsLong());if(!p.has("session"))changed=true;}
+        if(changed)save(persistent);
     }
     private void save(ArrayNode next) {
         try {

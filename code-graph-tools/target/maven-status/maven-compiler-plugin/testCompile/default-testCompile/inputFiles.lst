@@ -1,5 +1,11 @@
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\AddProjectToolTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\ChangeEvidenceTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\CodeNavigationTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\EfficiencyRegressionTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\GitChangeSelectionTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\ImpactSeedExpansionTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\IndexFreshnessTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\RiskGateAndScoreToolTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\SymbolContextToolTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\ToolsTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-tools\src\test\java\io\doindev\codegraph\tools\WorkspaceToolsTest.java

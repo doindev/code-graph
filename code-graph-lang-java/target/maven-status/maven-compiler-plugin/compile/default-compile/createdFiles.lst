@@ -1,1 +1,3 @@
 io\doindev\codegraph\lang\java\JavaAnalyzer.class
+io\doindev\codegraph\lang\java\JavaSemanticHints.class
+io\doindev\codegraph\lang\java\JavaSemanticHints$Scope.class

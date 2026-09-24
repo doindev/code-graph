@@ -1,5 +1,7 @@
 # Scoped, reusable MCP approvals
 
+For configurable multi-connection SELECT scopes, see [Configurable MCP read permissions](mcp-read-permissions.md). The exact/category approvals below retain their original semantics; they are not silently expanded by the new read analyzer.
+
 SQL approvals offer a separate **Deny** button and an **Allow once ▾** split button in
 the browser and native desktop prompt. Opening the menu does not approve anything.
 Every request resets to Allow once. Disabled choices explain why reuse is unavailable.

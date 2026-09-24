@@ -32,7 +32,7 @@ final class ApprovalBroker implements AutoCloseable {
         public void show(JsonNode request,int waiting,Consumer<Decision> decide,Runnable detailed){throw new IllegalStateException("No interactive approval channel");}
         public void dismiss(){}
     };
-    record Decision(String action,boolean acknowledged) {}
+    record Decision(String action,boolean acknowledged,JsonNode options) { Decision(String action,boolean acknowledged){this(action,acknowledged,Profiles.JSON.createObjectNode());} }
     record Handoff(URI uri,String code) {}
     static final class Unavailable extends IllegalStateException {
         Unavailable(){super("approval_unavailable: No interactive approval channel is available");}
@@ -45,7 +45,7 @@ final class ApprovalBroker implements AutoCloseable {
     }
     private static final class Delivery {
         String channel="pending",state="pending",owner="",token="",revision="";
-        long leaseUntil,deliveredAt; boolean browserAttempted,editor;
+        long leaseUntil,deliveredAt; boolean browserAttempted,editor; JsonNode readDraft; String readError="";
     }
     private final String mode;
     private final boolean browserEnabled;
@@ -205,7 +205,7 @@ final class ApprovalBroker implements AutoCloseable {
                 if(Set.of("launching","browser_opened").contains(d.state))continue;
                 if((editor||!mode.equals("browser"))&&desktop.available()&&desktopId.isEmpty()&&r==pending.getFirst()){
                     d.owner="";d.leaseUntil=0;ObjectNode lease=claimOwner("desktop",id);desktopId=id;String token=lease.path("lease").asText();
-                    desktop.show(ApprovalPresentation.safe(r),pending.size(),decision->executor.execute(()->desktopDecision(id,token,decision)),()->executor.execute(()->openDetailed(id,token)));
+                    ObjectNode shown=ApprovalPresentation.safe(r);if(d.readDraft!=null){shown.set("readGrantDraft",d.readDraft.deepCopy());shown.put("readGrantError",d.readError);}desktop.show(shown,pending.size(),decision->executor.execute(()->desktopDecision(id,token,decision)),()->executor.execute(()->openDetailed(id,token)));
                 }else if(!desktop.available()&&!browserEnabled){d.channel="none";d.state="approval_unavailable";}
             }
         }
@@ -213,8 +213,8 @@ final class ApprovalBroker implements AutoCloseable {
     private void desktopDecision(String id,String token,Decision decision){
         synchronized(this){
             try{checkLease("desktop",id,token);JsonNode r=pending(id);if(ApprovalPresentation.complex(r)&&!decision.action().equals("reject"))throw new SecurityException("Detailed browser review is required");
-                requests.decide("desktop",id,decision.action(),decision.acknowledged(),Profiles.JSON.createObjectNode());finish(id);
-            }catch(Exception e){desktopId="";desktop.dismiss();Delivery d=deliveries.get(id);if(d!=null){d.owner="";d.leaseUntil=0;d.state="delivery_failed";}}
+                requests.decide("desktop",id,decision.action(),decision.acknowledged(),decision.options());finish(id);
+            }catch(Exception e){desktopId="";desktop.dismiss();Delivery d=deliveries.get(id);if(d!=null){d.owner="";d.leaseUntil=0;d.state="delivery_failed";if(decision.action().equals(ReadPermissions.ACTION)&&decision.options().path("readGrant").isObject()){d.readDraft=decision.options().path("readGrant").deepCopy();d.readError="Permission could not be applied. Your draft is retained; review the targets and try again.";}}}
         }
     }
     private void openDetailed(String id,String token){

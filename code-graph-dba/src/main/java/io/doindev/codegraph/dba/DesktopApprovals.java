@@ -87,7 +87,7 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
                 JLabel risk=new JLabel(editor?"Script collaboration only · No SQL execution or file saving":mutation?"This action can change database or application configuration.":"Read-only access requested.");
                 risk.setForeground(mutation?new Color(255,183,104):new Color(154,213,187));footer.add(risk);
                 JLabel confirmation=new JLabel(editor?"Choose a browser workspace. Database permissions remain unchanged.":"Choosing Allow confirms the exact request, target, and displayed risks.");confirmation.setForeground(Color.WHITE);footer.add(confirmation);
-                JLabel countdown=new JLabel();countdown.setForeground(new Color(185,198,216));footer.add(countdown);
+                if(r.has("readGrantError")){JLabel error=new JLabel(r.path("readGrantError").asText());error.setForeground(new Color(255,183,104));footer.add(error);}JLabel countdown=new JLabel();countdown.setForeground(new Color(185,198,216));footer.add(countdown);
                 JLabel limitation=new JLabel("Application consent · No operating-system administrator privileges");limitation.setForeground(new Color(185,198,216));footer.add(limitation);
                 JPanel actions=new JPanel(new FlowLayout(FlowLayout.RIGHT));actions.setOpaque(false);
                 JButton deny=new JButton("Deny");deny.addActionListener(e->resolve("reject",false));actions.add(deny);
@@ -98,6 +98,13 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
                     JButton review=new JButton("Open detailed review in browser");review.addActionListener(e->{review.setEnabled(false);detailed.run();});actions.add(review);
                 }else{
                     JButton once=new JButton("Allow once");once.addActionListener(e->resolve("approve_once",true));once.getAccessibleContext().setAccessibleDescription("Approve this exact request once without creating a permission");actions.add(once);
+                    if(r.has("selectPermission")){
+                        JButton read=new JButton("Allow SELECTs…");read.setEnabled(r.path("selectPermission").path("eligible").asBoolean());read.setToolTipText(r.path("selectPermission").path("reason").asText());
+                        JPopupMenu scopes=new JPopupMenu();String[] levels={"object","schema","database","connection"},labels={"These tables/views…","These schemas…","These databases…","This connection…"};
+                        for(int i=0;i<levels.length;i++){String level=levels[i];JMenuItem item=new JMenuItem(labels[i]);item.addActionListener(e->chooseReadScope(r,level));scopes.add(item);}
+                        JMenuItem custom=new JMenuItem("Custom selection…");custom.addActionListener(e->detailed.run());scopes.add(custom);
+                        read.addActionListener(e->scopes.show(read,0,read.getHeight()));actions.add(read);
+                    }
                     if(r.path("approvalChoices").isArray()){
                         JButton arrow=new JButton("▾");arrow.setToolTipText("Reusable approval choices");arrow.getAccessibleContext().setAccessibleName("Reusable approval choices");
                         JPopupMenu menu=new JPopupMenu();menu.setBackground(new Color(32,39,53));menu.setForeground(Color.WHITE);
@@ -159,7 +166,26 @@ final class DesktopApprovals implements ApprovalBroker.Desktop {
         if(backdrop!=null&&backdrop.isAlwaysOnTop())backdrop.setAlwaysOnTop(false);
         if(card!=null&&card.isAlwaysOnTop())card.setAlwaysOnTop(false);
     }
-    private void resolve(String action,boolean acknowledged){if(resolving)return;resolving=true;Consumer<ApprovalBroker.Decision> callback=decision;disposeWindows();if(callback!=null)callback.accept(new ApprovalBroker.Decision(action,acknowledged));}
+    private void chooseReadScope(JsonNode request,String level){
+        var selectors=Profiles.JSON.createArrayNode();java.util.Set<String> seen=new java.util.HashSet<>();
+        for(JsonNode original:request.path("readGrantDraft").path("selectors").isArray()?request.path("readGrantDraft").path("selectors"):request.path("selectPermission").path("selectors")){
+            com.fasterxml.jackson.databind.node.ObjectNode selector=original.deepCopy();selector.put("level",level);
+            if(!level.equals("object"))selector.remove("object");
+            if(level.equals("database")||level.equals("connection"))selector.remove("schema");
+            if(level.equals("connection"))selector.remove("database");
+            if(level.equals("object")&&!selector.has("object")||java.util.Set.of("object","schema").contains(level)&&!selector.has("schema"))continue;
+            if(seen.add(selector.toString()))selectors.add(selector);
+        }
+        if(selectors.isEmpty()){JOptionPane.showMessageDialog(card,"This query has no concrete table selection. Choose a schema or database scope.");return;}
+        JComboBox<String> duration=new JComboBox<>(new String[]{"This MCP session","Until revoked"});duration.getAccessibleContext().setAccessibleName("Permission duration");duration.setSelectedIndex(request.path("readGrantDraft").path("lifetime").asText().equals("until_revoked")?1:0);
+        JTextArea preview=new JTextArea(request.path("agentName").asText()+"\n"+selectors.toPrettyString()+"\nIncludes scoped metadata. Broad scopes include future objects and system catalogs. Database privileges still apply.");preview.setEditable(false);preview.setLineWrap(true);preview.setWrapStyleWord(true);preview.setRows(10);preview.setColumns(55);
+        JPanel panel=new JPanel(new BorderLayout(0,8));panel.add(new JScrollPane(preview),BorderLayout.CENTER);panel.add(duration,BorderLayout.SOUTH);
+        if(JOptionPane.showOptionDialog(card,panel,"Allow SELECTs",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE,null,new String[]{"Grant and run","Cancel"},"Cancel")!=0)return;
+        var grant=Profiles.JSON.createObjectNode().put("lifetime",duration.getSelectedIndex()==0?"mcp_session":"until_revoked");grant.set("selectors",selectors);
+        var options=Profiles.JSON.createObjectNode();options.set("readGrant",grant);resolve(ReadPermissions.ACTION,true,options);
+    }
+    private void resolve(String action,boolean acknowledged){resolve(action,acknowledged,Profiles.JSON.createObjectNode());}
+    private void resolve(String action,boolean acknowledged,JsonNode options){if(resolving)return;resolving=true;Consumer<ApprovalBroker.Decision> callback=decision;disposeWindows();if(callback!=null)callback.accept(new ApprovalBroker.Decision(action,acknowledged,options));}
     public void dismiss(){if(Boolean.TRUE.equals(usable)||card!=null||backdrop!=null)EventQueue.invokeLater(this::disposeWindows);}
     private void disposeWindows(){if(raiseTimer!=null){raiseTimer.stop();raiseTimer=null;}if(timer!=null){timer.stop();timer=null;}if(card!=null){JDialog old=card;card=null;old.dispose();}if(backdrop!=null){JFrame old=backdrop;backdrop=null;old.dispose();}request=null;decision=null;}
     public void handoff(URI uri,String code){EventQueue.invokeLater(()->{

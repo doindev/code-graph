@@ -31,6 +31,25 @@ class DesktopApprovalsTest {
         JDialog card=null;for(int i=0;i<100;i++){card=onEdt(()->{JDialog visible=visible();return visible!=null&&!visible.isAlwaysOnTop()?visible:null;});if(card!=null)break;Thread.sleep(50);}
         assertNotNull(card,"Overlay did not appear");System.out.println("DESKTOP_FIRST_PROMPT_MS="+(System.nanoTime()-started)/1_000_000);return card;
     }
+    @Test void selectPermissionScopesPreviewCancelAndSingleSubmission()throws Exception{
+        var decision=new AtomicReference<ApprovalBroker.Decision>();var handoffs=new AtomicInteger();
+        var request=Profiles.JSON.createObjectNode().put("id",UUID.randomUUID().toString()).put("type","live_sql").put("agentName","Synthetic local agents").put("connectionName","Disposable target").put("sql","SELECT COUNT(*) FROM app.items").put("mutation",false).put("expiresAt",System.currentTimeMillis()+300000);
+        request.putObject("selectPermission").put("eligible",true).put("reason","Scoped read").putArray("selectors").addObject().put("connectionId",UUID.randomUUID().toString()).put("level","object").put("database","app").put("schema","app").put("object","items");
+        desktop.show(request,1,decision::set,handoffs::incrementAndGet);
+        JDialog card=null;for(int i=0;i<100;i++){card=onEdt(DesktopApprovalsTest::visible);if(card!=null)break;Thread.sleep(30);}assertNotNull(card);JDialog shown=card;
+        Runnable open=()->{var read=(JButton)components(shown).stream().filter(c->c instanceof JButton b&&b.getText().equals("Allow SELECTs…")).findFirst().orElseThrow();read.doClick();var menu=(JPopupMenu)Arrays.stream(MenuSelectionManager.defaultManager().getSelectedPath()).filter(JPopupMenu.class::isInstance).findFirst().orElseThrow();assertNull(decision.get());((JMenuItem)menu.getComponent(1)).doClick();};
+        for(boolean apply:new boolean[]{false,true}){
+            EventQueue.invokeLater(open);JDialog preview=null;
+            for(int i=0;i<100;i++){preview=onEdt(()->Arrays.stream(Window.getWindows()).filter(w->w instanceof JDialog d&&d.isShowing()&&d.getTitle().equals("Allow SELECTs")).map(w->(JDialog)w).findFirst().orElse(null));if(preview!=null)break;Thread.sleep(20);}
+            assertNotNull(preview);JDialog dialog=preview;
+            onEdt(()->{var controls=components(dialog);var duration=(JComboBox<?>)controls.stream().filter(JComboBox.class::isInstance).findFirst().orElseThrow();assertEquals("This MCP session",duration.getSelectedItem());assertNull(decision.get());
+                ((JButton)controls.stream().filter(c->c instanceof JButton b&&b.getText().equals(apply?"Grant and run":"Cancel")).findFirst().orElseThrow()).doClick();return null;});
+            if(!apply)assertNull(decision.get());
+        }
+        for(int i=0;i<100&&decision.get()==null;i++)Thread.sleep(10);
+        assertNotNull(decision.get());assertEquals(ReadPermissions.ACTION,decision.get().action());assertEquals("mcp_session",decision.get().options().path("readGrant").path("lifetime").asText());
+        assertEquals("schema",decision.get().options().path("readGrant").path("selectors").get(0).path("level").asText());assertEquals(0,handoffs.get());
+    }
     @Test void overlayGeometryDirectConfirmationAndEscapeCleanup()throws Exception{
         var decision=new AtomicReference<ApprovalBroker.Decision>();JDialog card=show("live_sql",false,decision);
         onEdt(()->{

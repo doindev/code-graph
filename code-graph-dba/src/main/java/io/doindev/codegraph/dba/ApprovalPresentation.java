@@ -10,7 +10,7 @@ final class ApprovalPresentation {
     static boolean complex(JsonNode r){return Set.of("connection_create","connection_update").contains(r.path("type").asText())||r.path("requiresDriverInstall").asBoolean();}
     static ObjectNode safe(JsonNode source){
         ObjectNode out=Profiles.JSON.createObjectNode();
-        for(String key:List.of("id","type","agentId","agentName","identityNotice","operation","permissionScope","approvalChoices","purpose","detail","project","projectId","environment","role","connectionName","database","schema","before","after","target","sql","parameters","classification","mutation","destructive","eligiblePersistentRead","scopeNotice","transactionNotice","expiresAt","requiresDriverInstall"))
+        for(String key:List.of("id","type","agentId","agentName","identityNotice","operation","permissionScope","approvalChoices","selectPermission","purpose","detail","project","projectId","environment","role","connectionName","database","schema","before","after","target","sql","parameters","classification","mutation","destructive","eligiblePersistentRead","scopeNotice","transactionNotice","expiresAt","requiresDriverInstall"))
             if(source.has(key))out.set(key,source.path(key).deepCopy());
         scrub(out);return out;
     }
@@ -25,6 +25,7 @@ final class ApprovalPresentation {
     static String escape(String s){return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;").replace("'","&#39;");}
     /** Explain the actual offered choices, including transport/session restrictions after SQL classification. */
     static String reusableUnavailable(JsonNode request){
+        if(request.path("selectPermission").path("eligible").asBoolean())return "";
         var reasons=new LinkedHashSet<String>();boolean hasReusable=false;
         for(JsonNode choice:request.path("approvalChoices")){
             if(choice.path("action").asText().equals("approve_once"))continue;

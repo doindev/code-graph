@@ -287,3 +287,11 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 #driver-settings-status{color:#f0b6a8;overflow-wrap:anywhere}
 .driver-diagnostic pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:36vh;overflow:auto;background:#111821;border:1px solid #39434f;border-radius:6px;padding:12px;user-select:text}
 .driver-failure,.driver-choice{width:min(780px,94vw);max-height:90vh;overflow:auto}
+
+.read-permission-dialog { width:min(900px,94vw); max-height:90vh; overflow:auto; }
+.read-permission-dialog fieldset { display:flex; gap:12px; flex-wrap:wrap; align-items:end; }
+.read-permission-dialog label { display:flex; flex-direction:column; gap:6px; }
+.read-permission-dialog select { max-width:300px; min-width:160px; }
+.read-permission-dialog pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.read-permission-dialog article { padding:12px 0; border-bottom:1px solid var(--border,#555); }
+.read-permission-dialog button { margin:4px; }

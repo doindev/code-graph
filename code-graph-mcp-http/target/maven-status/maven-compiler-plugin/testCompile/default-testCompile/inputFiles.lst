@@ -1,2 +1,8 @@
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\CgraphMainTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\DbaHttpAccessTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\DbaMcpHttpTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\HttpEndToEndTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\HybridHttpTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\NativeMcpHttpTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\ReusableMcpHttpTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-mcp-http\src\test\java\io\doindev\codegraph\mcp\http\YoloMcpHttpTest.java

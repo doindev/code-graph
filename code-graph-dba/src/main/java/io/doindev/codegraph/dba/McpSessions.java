@@ -22,6 +22,13 @@ final class McpSessions {
         reap(); Session s = sessions.get(id);
         return s != null && s.principal.equals(principal);
     }
+    synchronized com.fasterxml.jackson.databind.node.ArrayNode list(String principal){
+        reap();var out=Profiles.JSON.createArrayNode();sessions.forEach((id,s)->{if(s.principal.equals(principal))out.addObject().put("label",CatalogScanner.hash(id).substring(0,12)).put("expires",s.expires);});return out;
+    }
+    synchronized String resolve(String principal,String label){
+        reap();for(var entry:sessions.entrySet())if(entry.getValue().principal.equals(principal)&&CatalogScanner.hash(entry.getKey()).substring(0,12).equals(label))return entry.getKey();
+        throw new IllegalArgumentException("MCP session ended or belongs to another identity");
+    }
     synchronized void remove(String id) { sessions.remove(id); }
     synchronized void clear() { sessions.clear(); }
     private void reap() { sessions.values().removeIf(s -> s.expires <= clock.getAsLong()); }

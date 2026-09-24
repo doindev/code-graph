@@ -1,3 +1,4 @@
+import {installReadPermissions} from './read-permissions.js';
 import {installApprovalUI} from './approval-ui.js';
 import {lucide} from './tree-icons.js';
 import {installCatalogUI} from './catalog-ui.js';
@@ -8,6 +9,7 @@ const typeName=value=>value.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase
 export function installProjectContext({api,profiles,notify,openConnection,reviewConnection}){
   const menu=document.getElementById('workspace-settings-menu'),toolbar=document.getElementById('workspace-toolbar-actions');
   installCatalogUI({api,profiles,menu});
+  installReadPermissions({api,menu});
   const contextButton=el('button','Project databases');contextButton.id='project-databases';contextButton.setAttribute('role','menuitem');contextButton.prepend(lucide('database'));menu.append(contextButton);
   const approvalButton=el('button','Approvals');approvalButton.id='agent-approvals';approvalButton.title='Review agent database requests';approvalButton.setAttribute('aria-label','Agent database approvals');toolbar.prepend(approvalButton);
   const context=el('dialog',undefined,'project-context-dialog');context.id='project-context-dialog';context.setAttribute('aria-labelledby','project-context-title');
@@ -20,7 +22,7 @@ export function installProjectContext({api,profiles,notify,openConnection,review
   input('role','Logical role (for example primary, analytics, reporting)').required=true;input('purpose','Purpose / how this database is used').required=true;input('database','Database / catalog');input('schema','Schema (optional)');
   for(const [name,label,value,max]of [['scanIntervalSeconds','Scan interval (seconds)',900,86400],['idleTimeoutSeconds','Activity idle timeout (seconds)',1800,604800]]){const field=input(name,label,'number',value);field.min=10;field.max=max;field.required=true;}
   const save=el('button','Add relationship');save.type='submit';const clear=el('button','New relationship');clear.type='button';const addConnection=el('button','Create connection');addConnection.type='button';form.append(save,clear,addConnection);context.append(el('h3','Relationship settings'),form);
-  const grantSection=el('section');grantSection.append(el('h3','Agent access'),el('p','Legacy grants retain their existing scope. New scoped SQL permissions are created only by an eligible human approval. Inspect, disable or revoke them below.'));
+  const grantSection=el('section');grantSection.append(el('h3','Agent access'),el('p','Legacy grants retain their existing scope. Create SELECT permissions in Database permissions or while reviewing a request. Inspect, disable or revoke saved grants below.'));
   const grantForm=el('form');grantForm.id='context-grant-form';const agentSelect=el('select'),bindingSelect=el('select');
   for(const [label,node]of [['Agent',agentSelect],['Database relationship',bindingSelect]]){const row=el('label',label);row.append(node);grantForm.append(row);}
   agentSelect.setAttribute('aria-label','Context agent');bindingSelect.setAttribute('aria-label','Context database binding');const live=el('input');live.type='checkbox';const liveLabel=el('label','Allow this agent to request one-time live SQL review');liveLabel.append(live);grantForm.append(liveLabel);
@@ -50,6 +52,7 @@ export function installProjectContext({api,profiles,notify,openConnection,review
     const all=[...(data.reusablePolicies||[]),...(data.readPolicies||[])];if(!all.length){policies.append(el('p','No reusable or legacy read permissions.'));return;}
     for(const policy of all){
       const reusable=!!policy.category,scope=reusable?policy.scope:null;
+      if(policy.kind==="select_read"){const row=el("div",policy.identity+" · SELECTs and metadata · "+policy.lifetime+" · "+JSON.stringify(policy.selectors));const open=el("button","Manage read permissions");open.onclick=()=>{context.close();document.getElementById("database-permissions").click();};row.append(open);policies.append(row);continue;}
       const label=reusable?[policy.identity,policy.match,policy.category,policy.lifetime,scope.projectId,scope.environment,scope.role,scope.bindingId,scope.connectionId,scope.database,scope.schema,policy.sessionLabel?'Session '+policy.sessionLabel:'',policy.lastUsedAt?'Last used '+new Date(policy.lastUsedAt).toLocaleString():'Not used yet',policy.enabled?'Enabled':'Disabled'].filter(Boolean).join(' · '):'Legacy · '+policy.scope+' · '+policy.capability+' · '+(policy.environment||policy.bindingId||policy.connectionId);
       const row=el('div',label,'policy-row');
       if(reusable){const toggle=el('button',policy.enabled?'Disable':'Enable');toggle.onclick=safely(async()=>{await api('/agents/'+id+'/policies/'+policy.id,'PATCH',{enabled:!policy.enabled});await renderPolicies();});row.append(toggle);}

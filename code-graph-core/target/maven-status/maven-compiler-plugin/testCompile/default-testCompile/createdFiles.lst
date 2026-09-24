@@ -1,5 +1,7 @@
 io\doindev\codegraph\lifecycle\ProjectLifecycleTest.class
 io\doindev\codegraph\graph\EnginePerfTest.class
 io\doindev\codegraph\graph\InMemoryCodeGraphTest.class
-io\doindev\codegraph\snapshot\FileSnapshotStoreTest.class
 io\doindev\codegraph\model\NodeIdTest.class
+io\doindev\codegraph\model\NodeLanguageTest.class
+io\doindev\codegraph\query\GenerationCursorTest.class
+io\doindev\codegraph\snapshot\FileSnapshotStoreTest.class

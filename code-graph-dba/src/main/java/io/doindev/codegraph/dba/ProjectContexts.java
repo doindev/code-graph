@@ -12,6 +12,7 @@ import java.util.function.LongSupplier;
 
 /** Persistent bindings, independent catalog generations and MCP-driven activity leases. */
 final class ProjectContexts implements AutoCloseable {
+    ReadPermissions readPermissions;
     static final List<String> ENVIRONMENTS=List.of("local","dev","test","stage","prod");
     private final Profiles profiles;private final Connections connections;private final AgentAccess agents;
     private final Path file;private ObjectNode configuration;
@@ -107,18 +108,36 @@ final class ProjectContexts implements AutoCloseable {
         return agent(principal,operation,args,null);
     }
     JsonNode agent(String principal,String operation,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental){
-        if(operation.equals("dba_list_project_databases")){ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("bindings");for(JsonNode b:state().path("bindings"))try{if(!agents.isTrustedLocal(principal))agents.requireContext(principal,(ObjectNode)b,false);ObjectNode row=b.deepCopy();row.remove("projectRoot");row.set("effectivePermissions",agents.effectiveForBinding(principal,row));rows.add(row);}catch(SecurityException ignored){}return out;}
+        return agent(principal,operation,args,supplemental,null);
+    }
+    JsonNode agent(String principal,String operation,JsonNode args,java.util.function.Consumer<ObjectNode> supplemental,String mcpSession){
+        if(operation.equals("dba_list_project_databases")){ObjectNode out=Profiles.JSON.createObjectNode();ArrayNode rows=out.putArray("bindings");for(JsonNode b:state().path("bindings"))try{if(!agents.isTrustedLocal(principal))agents.requireContext(principal,(ObjectNode)b,false);ObjectNode row=b.deepCopy();row.remove("projectRoot");try{agents.requireContext(principal,row,false);}catch(SecurityException denied){row.remove(List.of("snapshot","error"));}row.set("effectivePermissions",agents.effectiveForBinding(principal,row));rows.add(row);}catch(SecurityException ignored){}return out;}
         String id=Profiles.text(args,"bindingId",36);ObjectNode b;
-        try{b=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;b=authorized(principal,id,true);supplemental.accept(b);}
+        com.fasterxml.jackson.databind.node.ArrayNode readProof=null;ObjectNode readScope=null;
+        try{b=authorized(principal,id,false);}catch(SecurityException denied){
+            if(supplemental==null)throw denied;b=authorized(principal,id,true);
+            if(readPermissions!=null&&mcpSession!=null){
+                readScope=ApprovalScope.resolve(profiles.get(b.path("connectionId").asText()),b,Profiles.JSON.createObjectNode());
+                readProof=readPermissions.catalogMatch(principal,mcpSession,readScope,"");
+            }
+            if(readProof==null)supplemental.accept(b);
+        }
+        final var proof=readProof;final var permissionScope=readScope;
+        java.util.function.Predicate<JsonNode> permitted=row->{
+            if(proof==null)return true;readPermissions.require(principal,mcpSession,proof);
+            String schema=row.path("schema").asText(permissionScope.path("schema").asText());
+            String database=permissionScope.path("vendor").asText().equals("postgresql")?permissionScope.path("database").asText():schema;
+            return readPermissions.coveredByProof(principal,mcpSession,permissionScope,proof,new ReadQueries.Relation(database,schema,ReadPermissions.metadataObject(row)));
+        };
         final ObjectNode selectedBinding=b;if(!operation.equals("dba_scan_status"))touch(b.path("projectId").asText());
-        if(operation.equals("dba_refresh_catalog")){scanNow(id);return scanStatus(principal,id,args,supplemental);}
-        if(operation.equals("dba_scan_status"))return scanStatus(principal,id,args,supplemental);
+        if(operation.equals("dba_refresh_catalog")){scanNow(id);return scopedStatus(scanStatus(principal,id,args,proof==null?supplemental:ignored->readPermissions.require(principal,mcpSession,proof)),proof!=null);}
+        if(operation.equals("dba_scan_status"))return scopedStatus(scanStatus(principal,id,args,proof==null?supplemental:ignored->readPermissions.require(principal,mcpSession,proof)),proof!=null);
         CatalogCache.Target target=cache.target(b);CatalogCache.Scope scope=cache.find(target);
         if(scope==null||scope.generation==0)return Profiles.JSON.createObjectNode().put("state","scan_pending").put("message","Catalog scan will start while this project is active; retry after it completes");
-        JsonNode result=queries.read(scope,principal,target.key(),profileRevision(b),operation,args,
-                object->host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()));
+        JsonNode result=queries.read(scope,principal,target.key(),profileRevision(b)+(proof==null?"":proof.toString()),operation,args,
+                object->host.references(selectedBinding.path("projectId").asText(),object.path("schema").asText(),object.path("name").asText()),permitted);
         ObjectNode current;
-        try{current=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;current=authorized(principal,id,true);supplemental.accept(current);}
+        try{current=authorized(principal,id,false);}catch(SecurityException denied){if(supplemental==null)throw denied;current=authorized(principal,id,true);if(proof==null)supplemental.accept(current);else readPermissions.require(principal,mcpSession,proof);}
         if(!profileRevision(current).equals(profileRevision(b))||!cache.target(current).equals(target))
             throw new SecurityException("Catalog authorization target changed during query");
         return result;
@@ -141,7 +160,7 @@ final class ProjectContexts implements AutoCloseable {
             try{
                 while(true){
                     revalidateTarget(selected,authorize.get());cleanupScopes();
-                    ObjectNode status=cache.status(target);boolean expired=System.nanoTime()>=deadline;
+                    ObjectNode status=(ObjectNode)scopedStatus(cache.status(target),selected.scope().has("readPermissionProof"));boolean expired=System.nanoTime()>=deadline;
                     if(wait==0||status.path("generation").asLong()>after||expired||closed)
                         return status.put("waitTimedOut",wait>0&&status.path("generation").asLong()<=after&&expired)
                                 .put("scope","standalone").put("authorizationReason",selected.authorization());
@@ -151,15 +170,20 @@ final class ProjectContexts implements AutoCloseable {
             }finally{if(wait>0)statusWaiters.release();}
         }
         CatalogCache.Scope scope=cache.find(target);
-        if(scope==null||scope.generation==0)return cache.status(target).put("state","scan_pending").put("message","Exact standalone catalog requested; use dba_scan_status with bounded waiting");
+        if(scope==null||scope.generation==0)return ((ObjectNode)scopedStatus(cache.status(target),selected.scope().has("readPermissionProof"))).put("state","scan_pending").put("message","Exact standalone catalog requested; use dba_scan_status with bounded waiting");
         JsonNode result=queries.read(scope,principal,target.key(),selected.scope().toString(),operation,args,object->{
             String project=Profiles.text(args,"projectId",36);
             if(!onboarded().contains(project))throw new IllegalArgumentException("Standalone code references require an explicit onboarded projectId");
             return host.references(project,object.path("schema").asText(),object.path("name").asText());
-        });
+        },selected.permitted());
         revalidateTarget(selected,authorize.get());
         if(result instanceof ObjectNode out){out.set("target",selected.request());out.put("scope","standalone").put("authorizationReason",selected.authorization());}
         return result;
+    }
+    private static JsonNode scopedStatus(JsonNode status,boolean scoped){
+        if(!scoped)return status;ObjectNode out=status.deepCopy();
+        out.remove(java.util.List.of("snapshot","error"));
+        return out.put("coverage","Status for the selected scope; use scoped object tools for authorized metadata");
     }
     private static void revalidateTarget(WorkflowTargets.Target before,WorkflowTargets.Target after){
         if(!before.scope().equals(after.scope()))throw new SecurityException("Catalog target or authorization revision changed; request a fresh snapshot");

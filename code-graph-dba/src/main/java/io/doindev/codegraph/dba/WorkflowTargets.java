@@ -6,7 +6,9 @@ import java.util.List;
 
 /** Exact target resolution and existing catalog authorization shared by schema workflows. */
 final class WorkflowTargets {
-    record Target(ObjectNode profile,ObjectNode scope,ObjectNode request,String authorization){}
+    record Target(ObjectNode profile,ObjectNode scope,ObjectNode request,String authorization,java.util.function.Predicate<JsonNode> permitted){
+        Target(ObjectNode profile,ObjectNode scope,ObjectNode request,String authorization){this(profile,scope,request,authorization,row->true);}
+    }
     private final Profiles profiles;private final AgentAccess agents;private final ProjectContexts contexts;private final ReusableApprovals policies;
     WorkflowTargets(Profiles profiles,AgentAccess agents,ProjectContexts contexts,ReusableApprovals policies){this.profiles=profiles;this.agents=agents;this.contexts=contexts;this.policies=policies;}
     /** Explicit standalone inventory scope: an omitted schema means the selected database, never another catalog. */
@@ -25,6 +27,15 @@ final class WorkflowTargets {
         String reason="Existing connection catalog permission",policy="legacy-catalog";
         if(!allowed){
             if(DatabaseTransport.of(profile)!=DatabaseTransport.JDBC)throw new SecurityException("Native catalog permission required; SQL policies do not authorize native observations");
+            ReadPermissions reads=new ReadPermissions(policies,profiles,agents);var proof=reads.catalogMatch(principal,session,scope,"");
+            if(proof!=null){
+                reads.require(principal,session,proof);if(recordAudit)reads.used(principal,proof,operation);scope.set("readPermissionProof",proof);
+                return new Target(profile,scope,request,"Scoped SELECT metadata permission",row->{
+                    reads.require(principal,session,proof);String sn=row.path("schema").asText(scope.path("schema").asText()),name=ReadPermissions.metadataObject(row);
+                    String db=scope.path("vendor").asText().equals("postgresql")?scope.path("database").asText():sn;
+                    return reads.coveredByProof(principal,session,scope,proof,new ReadQueries.Relation(db,sn,name));
+                });
+            }
             var category=new ReusableOperation.Result("ddl_inspection",true,true,"Bounded cached catalog observation");
             ObjectNode invocation=Profiles.JSON.createObjectNode().put("sql",operation).put("autoCommit",false);invocation.set("parameters",input);
             ObjectNode match=policies.match(principal,session,invocation,scope,category);
@@ -87,6 +98,8 @@ final class WorkflowTargets {
         String reason="Existing catalog read permission",policy="legacy-catalog";
         if(agents.authorization.automatic){agents.authorization.audit(principal,session,"schema_observation",scope);return new Target(profile,scope,request,"startup_yolo");}
         if(!allowed){
+            ReadPermissions reads=new ReadPermissions(policies,profiles,agents);var proof=reads.match(principal,session,scope,List.of());
+            if(proof!=null){reads.require(principal,session,proof);reads.used(principal,proof,"schema_observation");scope.set("readPermissionProof",proof);return new Target(profile,scope,request,"Scoped SELECT metadata permission");}
             var operation=new ReusableOperation.Result("ddl_inspection",true,true,"Bounded schema observation");
             ObjectNode invocation=Profiles.JSON.createObjectNode().put("sql","dba_capture_schema").put("autoCommit",false);invocation.set("parameters",request);
             ObjectNode match=policies.match(principal,session,invocation,scope,operation);

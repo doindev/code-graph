@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 
 /** Fixed admission queue, bounded result retention and no result files. */
 final class QueryJobs implements AutoCloseable {
+    ReadPermissions readPermissions;
     private static final long JOB_RESERVATION=12L<<20;
     private static final int MAX_CELL=8192,MAX_COLUMNS=256;
     final class Job {
@@ -26,6 +27,9 @@ final class QueryJobs implements AutoCloseable {
         volatile Thread thread;
         volatile boolean cancelled;
         volatile JsonNode result;
+        volatile Runnable accessCheck=()->{};
+        volatile String permissionReview="";
+        volatile boolean permissionDiscovery,releaseOnFinish;
         volatile JsonNode exception;
         // Retained workflow targets are server-only; never accepted from an agent's comparison payload.
         volatile ObjectNode schemaScope,schemaRequest;
@@ -46,6 +50,7 @@ final class QueryJobs implements AutoCloseable {
         private final Object revisionLock=new Object();
         long revision(){return json().path("revision").asLong();}
         ObjectNode json(){
+            accessCheck.run();
             synchronized(revisionLock){
                 // Derive the revision from the exact captured response, never from an earlier field read.
                 // finished is the volatile publication fence for terminal output.
@@ -204,6 +209,7 @@ final class QueryJobs implements AutoCloseable {
         if(request.has("planSql"))return approvedPlan(principal,request,validate,completed);
         String id=request.path("connectionId").asText();
         return local("agent:"+principal,id,job->{
+            if(request.has("readPermissionProof"))job.accessCheck=validate;
             validate.run();boolean attempted=false,committing=false;Connection c=null;
             Connections.Target target=null;
             try{JsonNode scoped=request.has("reusableScope")?request.path("reusableScope"):request;target=connections.target(id,scoped.path("database").asText());
@@ -222,16 +228,16 @@ final class QueryJobs implements AutoCloseable {
                 }
                 if(c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))try(Statement st=c.createStatement()){st.execute((autoCommit?"SET ":"SET LOCAL ")+"statement_timeout = "+config.timeoutSeconds()*1000);st.execute((autoCommit?"SET ":"SET LOCAL ")+"lock_timeout = 3000");}
                 validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
-                if(request.has("reusableScope"))verifyReusableReferences(c,request,job);
+                if(request.has("readPermissionProof")){verifyReadReferences(c,request,job);if(scoped.path("vendor").asText().equals("postgresql"))try(Statement safePath=c.createStatement()){safePath.execute("SET LOCAL search_path = pg_catalog");}}else if(request.has("reusableScope"))verifyReusableReferences(c,request,job);
                 validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
                 ObjectNode result=Profiles.JSON.createObjectNode();ArrayNode results=result.putArray("results");long affected=0;int remaining=job.rowLimit;
-                try(PreparedStatement statement=c.prepareStatement(request.path("sql").asText())){
+                try(PreparedStatement statement=c.prepareStatement(request.path("readExecutionSql").asText(request.path("sql").asText()))){
                     job.statement=statement;statement.setQueryTimeout(config.timeoutSeconds());statement.setFetchSize(64);statement.setMaxRows(job.rowLimit+1);
                     JsonNode parameters=request.path("parameters");for(int i=0;i<parameters.size();i++)statement.setObject(i+1,Profiles.JSON.convertValue(parameters.get(i),Object.class));
                     attempted=true;boolean hasRows=statement.execute();int count=0;
                     while(true){
                         if(job.cancelled||!alive.test(job.owner))throw new CancellationException();if(++count>64)throw new IllegalArgumentException("Too many statement results");
-                        if(hasRows){try(ResultSet rs=statement.getResultSet()){ObjectNode data=rows(rs,remaining,Math.max(8192,job.byteLimit/2));remaining=Math.max(0,remaining-data.path("rows").size());results.add(data);}}
+                        if(hasRows){try(ResultSet rs=statement.getResultSet()){ObjectNode data=rows(rs,remaining,Math.max(8192,job.byteLimit/2));remaining=Math.max(0,remaining-data.path("rows").size());if(request.has("readCatalog")&&readPermissions!=null)readPermissions.filterMetadata(principal,request.path("readSession").asText(),request.path("reusableScope"),request.path("readCatalog"),request.path("readPermissionProof"),data);validate.run();results.add(data);}}
                         else{long n=statement.getLargeUpdateCount();if(n==-1)break;affected+=n;results.addObject().put("affectedRows",n);}
                         if(result.toString().length()*2L>job.byteLimit-16384)throw new IllegalArgumentException("Approved query result exceeds the agent result allowance");
                         hasRows=statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
@@ -302,6 +308,28 @@ final class QueryJobs implements AutoCloseable {
     }
     private static boolean safeAutoCommit(Connection connection){try{return connection.getAutoCommit();}catch(SQLException ignored){return true;}}
 
+    private static void verifyReadReferences(Connection c,JsonNode request,Job job)throws SQLException{
+        JsonNode scope=request.path("reusableScope");if(!scope.path("vendor").asText().equals("postgresql"))return;
+        if(request.path("readFunctions").asBoolean())try(PreparedStatement check=c.prepareStatement("SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='pg_catalog' AND p.oid>=16384 AND p.proname IN ('count','sum','avg','min','max','abs','lower','upper','length','char_length')")){
+            // Bootstrap built-ins use reserved OIDs below FirstNormalObjectId. A user-defined
+            // overload in the system namespace must not inherit the built-in's permission.
+            job.statement=check;check.setQueryTimeout(3);
+            try(ResultSet rows=check.executeQuery()){if(rows.next())throw new IllegalArgumentException("Custom pg_catalog function overloads require one-time review; built-in resolution is not verified");}
+            finally{job.statement=null;}
+        }
+        for(JsonNode relation:request.path("readRelations")){
+            String schema=relation.path("schema").asText(),name=relation.path("object").asText();
+            String q=Character.toString(34),quoted=q+schema.replace(q,q+q)+q+"."+q+name.replace(q,q+q)+q;
+            try(PreparedStatement check=c.prepareStatement("SELECT n.nspname, c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=pg_catalog.to_regclass(?)")){
+                job.statement=check;check.setQueryTimeout(3);check.setString(1,quoted);
+                try(ResultSet rows=check.executeQuery()){if(!rows.next()||!schema.equals(rows.getString(1))||!name.equals(rows.getString(2)))throw new SecurityException("Relation resolves outside the SELECT permission");}
+                finally{job.statement=null;}
+            }
+            if(request.path("readFunctions").asBoolean())try(PreparedStatement check=c.prepareStatement("SELECT 1 FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_type t ON t.oid=a.atttypid JOIN pg_catalog.pg_namespace n ON n.oid=t.typnamespace WHERE a.attrelid=pg_catalog.to_regclass(?) AND a.attnum>0 AND NOT a.attisdropped AND n.nspname<>'pg_catalog'")){
+                check.setQueryTimeout(3);check.setString(1,quoted);try(ResultSet rows=check.executeQuery()){if(rows.next())throw new IllegalArgumentException("Custom column types require one-time review when invoking built-in functions");}
+            }
+        }
+    }
     private static void verifyReusableReferences(Connection c,JsonNode request,Job job)throws SQLException{
         JsonNode scope=request.path("reusableScope");
         if(!scope.path("vendor").asText().equals("postgresql"))return;
@@ -432,7 +460,7 @@ final class QueryJobs implements AutoCloseable {
     ObjectNode test(String owner,String id){return submit(owner,id,(job,c)->Profiles.JSON.createObjectNode().put("connected",true).put("database",c.getMetaData().getDatabaseProductName()).put("version",c.getMetaData().getDatabaseProductVersion()));}
     ObjectNode captureSchema(String owner,WorkflowTargets.Target target,Runnable reauthorize){
         return catalogRead(owner,target.scope().path("connectionId").asText(),target.scope(),(job,c)->{
-            reauthorize.run();job.schemaScope=target.scope().deepCopy();job.schemaRequest=target.request().deepCopy();
+            job.accessCheck=reauthorize;reauthorize.run();job.schemaScope=target.scope().deepCopy();job.schemaRequest=target.request().deepCopy();
             var result=SchemaSnapshots.capture(job,c,target.profile(),target.scope());reauthorize.run();
             result.put("authorizationReason",target.authorization());return result;
         });
@@ -452,6 +480,27 @@ final class QueryJobs implements AutoCloseable {
     }
     ObjectNode capabilities(String owner,String id,ObjectNode profile,ObjectNode scope,boolean approvalsEnabled,Runnable reauthorize){
         return catalogRead(owner,id,scope,(job,c)->{reauthorize.run();return DatabaseCapabilities.observe(c,profile,scope,approvalsEnabled);});
+    }
+    ObjectNode permissionTargets(String owner,String connection,JsonNode input){
+        ReadPermissions.fields(input,Set.of("connectionId","kind","database","schema","offset"));
+        String kind=Profiles.text(input,"kind",24);if(!Set.of("databases","schemas","objects").contains(kind))throw new IllegalArgumentException("Unknown target level");
+        int offset=input.path("offset").asInt();if(offset<0||offset>1000000||input.has("offset")&&(!input.path("offset").isIntegralNumber()||!input.path("offset").canConvertToInt()))throw new IllegalArgumentException("Invalid target position");
+        ObjectNode scope=Profiles.JSON.createObjectNode();if(!kind.equals("databases"))scope.put("database",Profiles.text(input,"database",128));
+        if(kind.equals("objects"))Profiles.text(input,"schema",128);
+        return catalogRead(owner,connection,scope,(job,c)->{
+            ObjectNode result=Profiles.JSON.createObjectNode();ArrayNode items=result.putArray("items");
+            DatabaseMetaData md=c.getMetaData();String database=scope.path("database").asText(),schema=input.path("schema").asText();
+            String escape=md.getSearchStringEscape();String pattern=schema.replace(escape,escape+escape).replace("%",escape+"%").replace("_",escape+"_");
+            try(ResultSet rs=kind.equals("databases")?md.getCatalogs():kind.equals("schemas")?md.getSchemas(database,null):md.getTables(database,pattern,"%",new String[]{"TABLE","VIEW","MATERIALIZED VIEW"})){
+                int skipped=0;while(rs.next()){
+                    if(job.cancelled)throw new java.util.concurrent.CancellationException();
+                    if(skipped++<offset)continue;
+                    if(items.size()>=200){result.put("hasMore",true).put("nextOffset",offset+items.size());break;}
+                    items.addObject().put("name",rs.getString(kind.equals("databases")?"TABLE_CAT":kind.equals("schemas")?"TABLE_SCHEM":"TABLE_NAME")).put("type",kind.equals("objects")?rs.getString("TABLE_TYPE"):kind);
+                }
+            }
+            return result;
+        });
     }
     ObjectNode metadata(String owner,String id,String schema,String table){
         if((schema!=null&&schema.length()>128)||(table!=null&&table.length()>128))throw new IllegalArgumentException("Metadata identifier too long");
@@ -856,7 +905,7 @@ final class QueryJobs implements AutoCloseable {
         return value.asLong();
     }
     void decision(String owner,String id,String decisionId,String action){if(!Set.of("cancel","continue","skip_similar").contains(action))throw new IllegalArgumentException("Unknown SQL error decision");require(owner,id).decide(decisionId,action);}
-    synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
+    synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0&&job.permissionDiscovery){job.releaseOnFinish=true;cancel(job);return;}if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
     void cancel(Job job){synchronized(job){if(job.cancelled)return;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
     synchronized void cancelOwner(String owner){jobs.values().stream().filter(j->j.owner.equals(owner)).forEach(this::cancel);}
     synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->j.connection.equals(id)&&j.finished==0);}
@@ -871,7 +920,7 @@ final class QueryJobs implements AutoCloseable {
         connections.remove(id);
         return action.equals("reconnect")?test(owner,id):connectionState(id);
     }
-    synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&j.retainedUses==0&&(!alive.test(j.owner)||now-j.finished>300_000));}
+    synchronized void reap(){long now=System.currentTimeMillis();for(Job j:jobs.values())if(!alive.test(j.owner)&&j.finished==0)cancel(j);jobs.values().removeIf(j->j.finished!=0&&j.retainedUses==0&&(j.releaseOnFinish||!alive.test(j.owner)||now-j.finished>300_000));}
     synchronized void configure(DbaConfig next){int n=next.concurrency();if(n>workers.getMaximumPoolSize()){workers.setMaximumPoolSize(n);workers.setCorePoolSize(n);}else{workers.setCorePoolSize(n);workers.setMaximumPoolSize(n);}config=next;}
     private long auxiliaryBytes;
     synchronized long availableRetainedBytes(){return Math.max(0,config.memoryBytes()-reservedBytes());}

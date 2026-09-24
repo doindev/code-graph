@@ -1,2 +1,9 @@
-io\doindev\codegraph\mcp\http\HybridHttpTest.class
+io\doindev\codegraph\mcp\http\YoloMcpHttpTest.class
+io\doindev\codegraph\mcp\http\DbaHttpAccessTest.class
+io\doindev\codegraph\mcp\http\ReusableMcpHttpTest.class
+io\doindev\codegraph\mcp\http\CgraphMainTest.class
+io\doindev\codegraph\mcp\http\DbaMcpHttpTest.class
 io\doindev\codegraph\mcp\http\HttpEndToEndTest.class
+io\doindev\codegraph\mcp\http\HybridHttpTest.class
+io\doindev\codegraph\mcp\http\NativeMcpHttpTest.class
+io\doindev\codegraph\mcp\http\DbaHttpAccessTest$Exchange.class

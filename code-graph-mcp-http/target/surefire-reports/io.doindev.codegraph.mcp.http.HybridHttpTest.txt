@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.doindev.codegraph.mcp.http.HybridHttpTest
 -------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.152 s -- in io.doindev.codegraph.mcp.http.HybridHttpTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.143 s -- in io.doindev.codegraph.mcp.http.HybridHttpTest

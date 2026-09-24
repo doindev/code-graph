@@ -1,5 +1,12 @@
-io\doindev\codegraph\tools\AddProjectToolTest.class
-io\doindev\codegraph\tools\WorkspaceToolsTest.class
+io\doindev\codegraph\tools\SymbolContextToolTest.class
+io\doindev\codegraph\tools\EfficiencyRegressionTest.class
 io\doindev\codegraph\tools\ImpactSeedExpansionTest.class
 io\doindev\codegraph\tools\ToolsTest.class
+io\doindev\codegraph\tools\IndexFreshnessTest.class
+io\doindev\codegraph\tools\SymbolContextToolTest$1.class
 io\doindev\codegraph\tools\RiskGateAndScoreToolTest.class
+io\doindev\codegraph\tools\AddProjectToolTest.class
+io\doindev\codegraph\tools\GitChangeSelectionTest.class
+io\doindev\codegraph\tools\WorkspaceToolsTest.class
+io\doindev\codegraph\tools\ChangeEvidenceTest.class
+io\doindev\codegraph\tools\CodeNavigationTest.class

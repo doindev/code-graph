@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.doindev.codegraph.mcp.WorkspaceVizControlTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.275 s -- in io.doindev.codegraph.mcp.WorkspaceVizControlTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.284 s -- in io.doindev.codegraph.mcp.WorkspaceVizControlTest

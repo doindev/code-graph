@@ -35,6 +35,17 @@ class ApprovalBrokerTest {
     String presence(String session,boolean visible,boolean focused){String tab=UUID.randomUUID().toString();broker.presence(session,Profiles.JSON.createObjectNode().put("tabId",tab).put("visible",visible).put("focused",focused).put("polling",true));return tab;}
     JsonNode poll(String session,String tab){return broker.presence(session,Profiles.JSON.createObjectNode().put("tabId",tab).put("visible",true).put("polling",true));}
     @AfterEach void close(){if(broker!=null)broker.close();}
+    @Test void nativeReadValidationRetainsHumanDraft()throws Exception{
+        ObjectNode r=request("live_sql");
+        broker=new ApprovalBroker("desktop",false,new ApprovalBroker.Requests(){
+            public JsonNode list(){return Profiles.JSON.createArrayNode().add(r);}
+            public JsonNode decide(String reviewer,String id,String action,boolean ack,JsonNode options){throw new IllegalArgumentException("Invalid scope");}
+        },desktop,alive::contains,now::get,false);
+        broker.tick();var options=Profiles.JSON.createObjectNode();options.putObject("readGrant").put("lifetime","until_revoked").putArray("selectors").addObject().put("connectionId","example").put("level","connection");
+        desktop.callback.accept(new ApprovalBroker.Decision(ReadPermissions.ACTION,true,options));
+        for(int i=0;i<100;i++){Thread.sleep(10);broker.tick();if(desktop.displayed.has("readGrantDraft"))break;}
+        assertEquals(options.path("readGrant"),desktop.displayed.path("readGrantDraft"));assertTrue(desktop.displayed.has("readGrantError"));assertEquals("awaiting_approval",r.path("state").asText());
+    }
     @Test void latestFocusedVisibleTabReceivesOfferAndOthersOnlyCount(){
         create("auto",true);ObjectNode r=request("live_sql");String t1=presence("one",true,true),t2=presence("two",true,true);broker.tick();
         assertEquals(0,poll("one",t1).path("requests").size());assertEquals(r.path("id"),poll("two",t2).path("requests").get(0));

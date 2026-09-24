@@ -1,6 +1,3 @@
-io\doindev\codegraph\mcp\CodeGraphMcpServer.class
-io\doindev\codegraph\mcp\Main.class
-io\doindev\codegraph\mcp\ProjectOnboarding.class
-io\doindev\codegraph\mcp\WorkspaceVizControl$Job.class
-io\doindev\codegraph\mcp\WorkspaceVizControl$Kind.class
-io\doindev\codegraph\mcp\WorkspaceVizControl.class
+io\doindev\codegraph\mcp\ToolCatalogIdentity.class
+io\doindev\codegraph\mcp\ToolReference.class
+io\doindev\codegraph\mcp\BuildIdentity.class

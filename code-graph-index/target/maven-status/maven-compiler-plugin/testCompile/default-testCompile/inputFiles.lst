@@ -1,5 +1,17 @@
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\FileRevisionPublicationTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\FullIndexerTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\HybridIncrementalTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\HybridWorkspaceTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\IncrementalIndexerTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\JavaResolutionTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\LanguageResolutionIntegrationTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\mapping\CodeDatabaseMappingsTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\mapping\NativeMappingsTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\MethodPublicationTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\ModuleConfigurationIntegrationTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\NominalMethodsTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\OnboardingProgressTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\PendingChangesTest.java
+C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\ProtectedDirectoryTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\WatcherTest.java
 C:\Users\timhj\eclipse-workspace\code-graph\code-graph-index\src\test\java\io\doindev\codegraph\index\WorkspaceTest.java
