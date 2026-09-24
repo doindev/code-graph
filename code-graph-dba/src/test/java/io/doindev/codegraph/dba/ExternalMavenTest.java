@@ -29,10 +29,11 @@ class ExternalMavenTest {
         final AtomicBoolean reject=new AtomicBoolean(),block=new AtomicBoolean();
         final CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);
         final Path pem;boolean corrupt;
-        Mirror(boolean tls)throws Exception{
+        Mirror(boolean tls)throws Exception{this(tls,"dns:localhost,ip:127.0.0.1");}
+        Mirror(boolean tls,String certificateNames)throws Exception{
             if(tls){
                 Path store=root.resolve("tls.p12");var p=new ProcessBuilder(Path.of(System.getProperty("java.home"),"bin","keytool").toString(),
-                    "-genkeypair","-alias","fixture","-keyalg","RSA","-keysize","2048","-dname","CN=localhost","-ext","SAN=dns:localhost,ip:127.0.0.1",
+                    "-genkeypair","-alias","fixture","-keyalg","RSA","-keysize","2048","-dname","CN=localhost","-ext","SAN="+certificateNames,
                     "-validity","2","-storetype","PKCS12","-keystore",store.toString(),"-storepass","fixture-password","-keypass","fixture-password","-noprompt")
                     .redirectErrorStream(true).start();
                 try{assertTrue(p.waitFor(20,TimeUnit.SECONDS));assertEquals(0,p.exitValue(),new String(p.getInputStream().readAllBytes(),StandardCharsets.UTF_8));}finally{if(p.isAlive())p.destroyForcibly();}

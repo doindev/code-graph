@@ -19,17 +19,20 @@ and your installed Maven already works with an internal mirror.
   Windows `%USERPROFILE%\.m2\settings.xml`; macOS/Linux `~/.m2/settings.xml`.
   Mirror rules, server credentials, proxies, active profiles, offline mode and the local
   artifact repository are handled by Maven, not reconstructed by the application.
-- **CA certificate PEM:** optional complete local filename, with Browse. Supply public
-  X.509 certificates, not private keys. The bundle is limited to 1 MiB. A temporary
-  PKCS12 trust store combines these certificates with the selected Maven Java runtime's
-  standard CA roots. It is deleted when the operation finishes; original PEM/settings
-  files and system trust stores are never modified.
-- **Disable TLS certificate verification:** explicit, **off by default**, installed mode only.
-  The warning explains that certificate trust, hostname and certificate-date checks are
-  bypassed for the Maven download process. The optional PEM is ignored while this is on.
-  Maven uses its Wagon transport for the bypass; mirror routing, authentication and
-  strict artifact-checksum checks remain enabled. Intercepted downloads can install
-  executable code: use only a trusted network. Prefer a corporate CA PEM when available.
+- **CA certificate PEM:** optional complete local filename, with Browse, for **both download
+  methods**. Supply public X.509 certificates, not private keys; the bundle is limited to
+  1 MiB. Embedded Maven combines these certificates with the application's configured JVM
+  trust roots in a resolution-specific, in-memory TLS context. Installed Maven uses a
+  temporary PKCS12 trust store containing its Java runtime's standard roots plus the PEM;
+  the temporary file is deleted when the operation finishes. Hostname verification stays
+  enabled. Original files, JVM defaults and system trust stores are never modified.
+- **Disable TLS certificate verification:** explicit, **off by default**, for **both download
+  methods**. The warning explains that certificate trust, hostname and certificate-date
+  checks are bypassed for driver downloads. The optional PEM is ignored while this is on.
+  Embedded Maven uses Resolver's per-session HTTPS security mode; installed Maven uses
+  its Wagon transport. Repository routing, authentication and strict artifact-checksum
+  checks remain enabled. Intercepted downloads can install executable code: use only a
+  trusted network. Prefer a corporate CA PEM when available.
 
 Settings apply only when **Apply** is clicked. Cancel discards the dialog changes.
 They persist under `driverDownloads` in **`<dba-dir>/settings.json`**, normally
@@ -62,6 +65,12 @@ cgraph --dba-driver-download maven
 # Explicit executable/settings/CA overrides:
 cgraph --dba-driver-download maven --dba-maven-command "C:\Tools\maven\bin\mvn.cmd" --dba-maven-settings "C:\Company\settings.xml" --dba-maven-cert "C:\Company\cert.pem"
 
+# Embedded Maven with a corporate CA certificate:
+cgraph --dba-driver-download embedded --dba-maven-cert "C:\Company\cert.pem"
+
+# Embedded Maven with explicit TLS verification bypass:
+cgraph --dba-driver-download embedded --dba-maven-insecure-tls true
+
 # UNSAFE, explicit opt-in for driver downloads only:
 cgraph --dba-driver-download maven --dba-maven-insecure-tls true
 ```
@@ -73,7 +82,7 @@ configuration are changed.
 
 ## Execution and troubleshooting
 
-The application creates an owned, temporary minimal Maven project and bundles a tiny local
+Installed mode creates an owned, temporary minimal Maven project and bundles a tiny local
 Maven core extension for the request. It runs Maven in batch mode against that project, not
 against an onboarded repository. No downloaded Maven plugin is needed for the bridge.
 The extension uses Maven's effective repository session; it does not fetch external JARs
@@ -118,6 +127,21 @@ JDBC connection-test exception redaction is unchanged.
 If Maven works in a terminal but not here, compare the Maven executable, JAVA_HOME,
 the OS account running code-graph, effective settings paths, global Maven configuration,
 mirror IDs/credentials, and the CA trust configured for that Java runtime.
+
+## Embedded Maven validation
+
+`EmbeddedMavenTest` uses the actual bundled Resolver 1.9.24 and an isolated HTTPS Maven
+repository with generated test certificates. It verifies untrusted rejection, PEM-enabled
+metadata and dependency downloads, hostname mismatch rejection, explicit bypass, unchanged
+JVM trust, turning verification back on, corrupted checksums in both modes, settings reload,
+and a missing certificate. No public artifacts or installed Maven are needed for this test.
+The PEM and bypass options apply to both version checks and driver/dependency downloads.
+Remote failures are reported even if older local version metadata exists.
+
+Validation (2026-09-24): 24 targeted Java tests passed with no skips; the driver-download
+browser suite passed embedded PEM/bypass persistence, certificate Browse, re-enabling
+verification, and the existing installed-Maven settings and diagnostics workflows. The three
+real installed-Maven integration tests also passed (Maven 3.9.11 / JDK 25).
 
 ## Reproducible validation
 

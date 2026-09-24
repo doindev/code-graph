@@ -11,6 +11,9 @@ class DriverDownloadTest {
     @Test void configDefaultsOverridesAndInvalidSettings()throws Exception{
         var defaults=DbaConfig.parse(new String[]{"--dba"}).orElseThrow().driverDownloads();
         assertEquals("embedded",defaults.mode());assertFalse(defaults.insecureTls());assertNull(defaults.settings());
+        assertTrue(DbaConfig.parse(new String[]{"--dba","--dba-maven-insecure-tls","true"}).orElseThrow().driverDownloads().insecureTls());
+        Path embeddedPem=Files.writeString(root.resolve("public.pem"),"validated when used");
+        assertEquals(embeddedPem,DbaConfig.parse(new String[]{"--dba","--dba-maven-cert",embeddedPem.toString()}).orElseThrow().driverDownloads().certPem());
         var maven=DbaConfig.parse(new String[]{"--dba","--dba-driver-download","maven"}).orElseThrow().driverDownloads();
         assertNull(maven.settings(),"leave default resolution to installed Maven");
         Path settings=root.resolve("settings.xml");Files.writeString(settings,"<settings/>");
@@ -46,6 +49,7 @@ class DriverDownloadTest {
         String output=diagnostic.toString();for(String secret:List.of("user:secret","token=abc","password=hidden","Bearer hidden","really-secret-value"))assertFalse(output.contains(secret),output);
         assertTrue(output.contains("mirror.example"));assertTrue(output.contains("PKIX"));
         assertEquals("authentication",DriverDiagnostics.describe("status","maven",new Exception("407 Proxy Authentication"),"",List.of(),1).path("code").asText());
+        assertEquals("download_failed",DriverDiagnostics.describe("status","embedded",new Exception("Metadata not found in cache-140123"),"",List.of(),null).path("code").asText());
         assertTrue(DriverDiagnostics.redact("x".repeat(90000),List.of()).length()<16100);
         assertEquals(diagnostic,QueryJobs.exceptionInfo(new DriverDiagnostics.Failure(diagnostic)));
         assertFalse(QueryJobs.exceptionInfo(new java.sql.SQLException("password=hidden")).toString().contains("hidden"));

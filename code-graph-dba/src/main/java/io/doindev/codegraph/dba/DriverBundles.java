@@ -26,19 +26,26 @@ final class DriverBundles {
     private final Path root,repository;
     private final RepositorySystem resolver;
     final DriverDownloadSettings settings;
-    private final List<RemoteRepository> remotes=List.of(new RemoteRepository.Builder("central","default","https://repo.maven.apache.org/maven2/").setReleasePolicy(new RepositoryPolicy(true,RepositoryPolicy.UPDATE_POLICY_ALWAYS,RepositoryPolicy.CHECKSUM_POLICY_FAIL)).build());
+    private static final List<RemoteRepository> CENTRAL=List.of(new RemoteRepository.Builder("central","default","https://repo.maven.apache.org/maven2/").setReleasePolicy(new RepositoryPolicy(true,RepositoryPolicy.UPDATE_POLICY_ALWAYS,RepositoryPolicy.CHECKSUM_POLICY_FAIL)).build());
+    private final List<RemoteRepository> remotes;
     DriverBundles(Path data)throws IOException {
         this(data,DriverDownloadConfig.embedded());
     }
     DriverBundles(Path data,DriverDownloadConfig config)throws IOException {
+        this(data,config,CENTRAL);
+    }
+    // Package-private repository injection for loopback integration fixtures, never a browser setting.
+    DriverBundles(Path data,DriverDownloadConfig config,List<RemoteRepository> remotes)throws IOException {
+        this.remotes=List.copyOf(remotes);
         root=data.resolve("drivers");repository=root.resolve("repository");Files.createDirectories(root);
         settings=new DriverDownloadSettings(data,config);
         var locator=MavenRepositorySystemUtils.newServiceLocator();locator.addService(RepositoryConnectorFactory.class,BasicRepositoryConnectorFactory.class);locator.addService(TransporterFactory.class,HttpTransporterFactory.class);
         resolver=locator.getService(RepositorySystem.class);if(resolver==null)throw new IOException("Embedded Maven Resolver initialization failed");
     }
-    private DefaultRepositorySystemSession session(BooleanSupplier cancelled,Consumer<String> progress){
+    private DefaultRepositorySystemSession session(BooleanSupplier cancelled,Consumer<String> progress,DriverDownloadConfig config){
         var s=MavenRepositorySystemUtils.newSession();s.setLocalRepositoryManager(resolver.newLocalRepositoryManager(s,new LocalRepository(repository.toFile())));
         s.setDependencySelector(new org.eclipse.aether.util.graph.selector.AndDependencySelector(new org.eclipse.aether.util.graph.selector.ScopeDependencySelector("test","provided"),new org.eclipse.aether.util.graph.selector.OptionalDependencySelector(),new org.eclipse.aether.util.graph.selector.ExclusionDependencySelector()));
+        s.setConfigProperty(ConfigurationProperties.HTTPS_SECURITY_MODE,config.insecureTls()?ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE:ConfigurationProperties.HTTPS_SECURITY_MODE_DEFAULT);
         s.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);s.setConfigProperty("aether.connector.connectTimeout",5000);s.setConfigProperty("aether.connector.requestTimeout",15000);s.setConfigProperty("aether.artifactDescriptor.ignoreRepositories",true);
         s.setTransferListener(new AbstractTransferListener(){public void transferProgressed(TransferEvent e)throws TransferCancelledException{if(cancelled.getAsBoolean())throw new TransferCancelledException();progress.accept("Downloading dependencies: "+e.getTransferredBytes()+" bytes");}public void transferInitiated(TransferEvent e)throws TransferCancelledException{if(cancelled.getAsBoolean())throw new TransferCancelledException();progress.accept("Resolving driver/dependency artifacts");}});return s;
     }
@@ -60,7 +67,9 @@ final class DriverBundles {
                 int count=Integer.parseInt(reply.getProperty("count"));if(count<0||count>10000)throw new IOException("Invalid Maven version count");
                 versions=new ArrayList<>();for(int i=0;i<count;i++)versions.add(reply.getProperty("version."+i));
             }else{
-                var resolved=resolver.resolveVersionRange(session(cancelled,p->{}),new VersionRangeRequest(new DefaultArtifact(group+":"+artifact+":[0,)"),remotes,null));
+                var resolved=resolver.resolveVersionRange(session(cancelled,p->{},config),new VersionRangeRequest(new DefaultArtifact(group+":"+artifact+":[0,)"),EmbeddedMavenTls.repositories(remotes,config),null));
+                // Cached/local metadata must not hide a failed current remote TLS or repository check.
+                for(var failure:resolved.getExceptions())if(failure instanceof MetadataTransferException transfer&&transfer.getRepository()!=null)throw failure;
                 if(resolved.getVersions().isEmpty()&&!resolved.getExceptions().isEmpty())throw resolved.getExceptions().getFirst();
                 versions=resolved.getVersions().stream().map(Object::toString).toList();
             }
@@ -91,7 +100,7 @@ final class DriverBundles {
         }
         if(cancelled.getAsBoolean())throw new java.util.concurrent.CancellationException();
         var exclusions=classifier.equals("all")&&group.equals("com.google.cloud")&&artifact.equals("google-cloud-bigquery-jdbc")?List.of(new org.eclipse.aether.graph.Exclusion("*","*","*","*")):List.<org.eclipse.aether.graph.Exclusion>of();
-        var request=new DependencyRequest(new CollectRequest(new Dependency(new DefaultArtifact(group,artifact,classifier,"jar",version),"runtime",false,exclusions),remotes),DependencyFilterUtils.classpathFilter("runtime"));
+        var request=new DependencyRequest(new CollectRequest(new Dependency(new DefaultArtifact(group,artifact,classifier,"jar",version),"runtime",false,exclusions),config.mode().equals("embedded")?EmbeddedMavenTls.repositories(remotes,config):remotes),DependencyFilterUtils.classpathFilter("runtime"));
         ArrayList<ArtifactResult> results;
         if(config.mode().equals("maven")){
             Properties reply=ExternalMaven.run(root,config,request("install",group,artifact,version,classifier),cancelled,progress);
@@ -101,7 +110,7 @@ final class DriverBundles {
                 var a=new DefaultArtifact(reply.getProperty("coordinate."+i)).setFile(Path.of(reply.getProperty("path."+i)).toFile());
                 results.add(new ArtifactResult(new ArtifactRequest()).setArtifact(a));
             }
-        }else results=new ArrayList<>(resolver.resolveDependencies(session(cancelled,progress),request).getArtifactResults());
+        }else results=new ArrayList<>(resolver.resolveDependencies(session(cancelled,progress,config),request).getArtifactResults());
         if(results.size()>64)throw new IllegalArgumentException("Driver dependency bundle exceeds 64 artifacts");
         Path staging=Files.createTempDirectory(root,".staging-");
         try{

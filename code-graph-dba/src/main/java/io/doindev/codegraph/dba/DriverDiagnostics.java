@@ -23,7 +23,7 @@ final class DriverDiagnostics {
         String guidance="Check the Maven coordinates, repository availability and Maven configuration. Retry explicitly after correcting the problem.";
         if(lower.contains("pkix")||lower.contains("certificate")||lower.contains("sslhandshake")||lower.contains("trustanchors")){
             code="certificate";guidance="Configure your corporate CA PEM in DBA Settings → Driver downloads, or fix the trust configuration used by installed Maven. Certificate verification remains enabled.";
-        }else if(lower.contains("401")||lower.contains("403")||lower.contains("407")||lower.contains("unauthorized")){
+        }else if(lower.matches("(?s).*\\b(?:401|403|407)\\b.*")||lower.contains("unauthorized")){
             code="authentication";guidance="Check mirror/server IDs and repository or proxy credentials in Maven settings.xml. Do not put credentials into JDBC URLs.";
         }else if(lower.contains("404")||lower.contains("could not find artifact")||lower.contains("no published")||lower.contains("no stable")){
             code="artifact_missing";guidance="Check that your mirror contains the requested driver/version, its POM and runtime dependencies.";

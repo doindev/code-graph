@@ -10,8 +10,8 @@ public record DriverDownloadConfig(String mode, String command, Path settings, P
     public DriverDownloadConfig {
         if (!mode.equals("embedded") && !mode.equals("maven"))
             throw new IllegalArgumentException("--dba-driver-download must be embedded or maven");
-        if (mode.equals("embedded") && (!command.isEmpty() || settings != null || certPem != null || insecureTls))
-            throw new IllegalArgumentException("Maven command, settings and CA certificate require the installed Maven download mode");
+        if (mode.equals("embedded") && (!command.isEmpty() || settings != null))
+            throw new IllegalArgumentException("Maven command and settings require the installed Maven download mode");
         if (command.indexOf('\n') >= 0 || command.indexOf('\r') >= 0 || command.indexOf('"') >= 0)
             throw new IllegalArgumentException("--dba-maven-command must be an executable path, not a command with arguments");
         if (settings != null) {

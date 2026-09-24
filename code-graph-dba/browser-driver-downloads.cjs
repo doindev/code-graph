@@ -24,13 +24,21 @@ module.exports=async(browser,base)=>{
     assert.equal(await apply.isDisabled(),true);assert.match(await dialog.locator('#driver-default-settings').innerText(),/\.m2[\\/]settings\.xml/);
     const commandBrowse=dialog.getByRole('button',{name:'Browse for Maven executable',exact:true});
     assert.equal(await commandBrowse.isDisabled(),true,'Embedded mode does not browse installed Maven');
+    const certBrowse=dialog.locator('[data-browse=certPem]');assert.equal(await certBrowse.isEnabled(),true,'Embedded mode can browse a public CA PEM');assert.equal(await dialog.locator('[name=insecureTls]').isEnabled(),true);
+    await certBrowse.click();await page.waitForFunction(value=>document.querySelector('#driver-download-settings-dialog [name=certPem]').value===value,pem);
+    await dialog.locator('[name=insecureTls]').check();assert.equal(await dialog.locator('#driver-tls-warning').isVisible(),true);await apply.click();await dialog.waitFor({state:'hidden'});
+    await page.reload();await page.waitForFunction(()=>!document.getElementById('workspace-settings').inert);await open();
+    assert.equal(await dialog.locator('[name=mode]').inputValue(),'embedded');assert.equal(await dialog.locator('[name=certPem]').inputValue(),pem);assert.equal(await dialog.locator('[name=insecureTls]').isChecked(),true);
+    await dialog.locator('[name=insecureTls]').uncheck();assert.equal(await dialog.locator('#driver-tls-warning').isHidden(),true);await apply.click();await dialog.waitFor({state:'hidden'});await open();
+    assert.equal(await dialog.locator('[name=insecureTls]').isChecked(),false);assert.equal(await dialog.locator('[name=certPem]').inputValue(),pem,'Certificate remains configured when verification is re-enabled');
+
     await dialog.locator('[name=mode]').selectOption('maven');await commandBrowse.click();
     await page.waitForFunction(value=>document.querySelector('#driver-download-settings-dialog [name=command]').value===value,command);
     await dialog.locator('[data-browse=settings]').click();
     await page.waitForFunction(value=>document.querySelector('#driver-download-settings-dialog [name=settings]').value===value,settings);
     await dialog.locator('[data-browse=certPem]').click();
     await page.waitForFunction(value=>document.querySelector('#driver-download-settings-dialog [name=certPem]').value===value,pem);
-    assert.deepEqual(picks,['maven-executable','maven-settings','maven-cert']);
+    assert.deepEqual(picks,['maven-cert','maven-executable','maven-settings','maven-cert']);
     commandResult={available:true,paths:[]};await commandBrowse.click();
     await page.waitForFunction(()=>!document.querySelector('[data-browse=command]').matches(':disabled'));
     assert.equal(await dialog.locator('[name=command]').inputValue(),command,'Picker Cancel preserves the existing path');
@@ -62,6 +70,6 @@ module.exports=async(browser,base)=>{
     assert.match(await failure.locator('pre').innerText(),/Maven executable not found/);assert.equal((await failure.innerText()).includes('never-render-this-secret'),false);
     await failure.locator('#driver-retry-install').click();await failure.waitFor();await page.screenshot({path:'code-graph-dba/target/driver-download-failure.png'});
     await failure.locator('#driver-failure-close').click();await page.locator('#ce-tab-0').click();assert.equal(await page.locator('#ce-name').inputValue(),'Retained draft');
-    assert.deepEqual(errors,[]);console.log('Driver download UI checks passed: persistence, defaults, all three Browse actions, picker cancel/headless/error handling, warning, Cancel, error details, retry, and preserved draft.');
+    assert.deepEqual(errors,[]);console.log('Driver download UI checks passed: embedded PEM/bypass persistence and re-enable, installed Maven persistence, defaults, all three Browse actions, picker cancel/headless/error handling, warning, Cancel, error details, retry, and preserved draft.');
   }finally{await context.close();fs.rmSync(directory,{recursive:true,force:true});}
 };

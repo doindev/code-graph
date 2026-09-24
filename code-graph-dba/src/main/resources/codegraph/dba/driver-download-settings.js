@@ -12,10 +12,10 @@ export function installDriverDownloadSettings({api,toast}) {
     +'<p class="muted">Select the Maven launcher file in its bin directory, not the installation folder. Leave blank to find Maven on PATH.</p>'
     +'<label>Maven settings.xml (optional)<span class="driver-path-field"><input name="settings" autocomplete="off" spellcheck="false"><button type="button" data-browse="settings">Browse…</button></span></label>'
     +'<p class="muted" id="driver-default-settings"></p>'
-    +'<label>CA certificate PEM (optional)<span class="driver-path-field"><input name="certPem" placeholder="Full path to public CA certificate.pem" autocomplete="off" spellcheck="false"><button type="button" data-browse="certPem">Browse…</button></span></label>'
-    +'<p class="muted">Adds public certificates to a temporary trust store for Maven only. The original files and system trust store are not modified.</p>'
+    +'</fieldset><fieldset data-tls><legend>TLS · both download methods</legend><label>CA certificate PEM (optional)<span class="driver-path-field"><input name="certPem" placeholder="Full path to public CA certificate.pem" autocomplete="off" spellcheck="false"><button type="button" data-browse="certPem">Browse…</button></span></label>'
+    +'<p class="muted">Adds public certificates for this downloader only. Embedded Maven uses memory; installed Maven uses a temporary trust store. The original files and system trust store are not modified.</p>'
     +'<label class="driver-insecure-choice"><input name="insecureTls" type="checkbox">Disable TLS certificate verification for driver downloads (unsafe)</label>'
-    +'<p id="driver-tls-warning" role="status" hidden>Warning: certificate trust, hostname and expiry checks are disabled for this Maven process. A supplied PEM is ignored. Mirror routing and artifact checksum checks remain enabled. Use only on a trusted network.</p></fieldset>'
+    +'<p id="driver-tls-warning" role="status" hidden>Warning: certificate trust, hostname and expiry checks are disabled for driver downloads. A supplied PEM is ignored. Artifact checksum checks remain enabled. Use only on a trusted network.</p></fieldset>'
     +'<p class="muted">Apply saves these preferences in the application settings.json. Existing connections stay pinned. Downloads already running retain their original configuration.</p>'
     +'<p id="driver-settings-status" role="status" aria-live="polite"></p><div class="actions"><button type="button" data-cancel>Cancel</button><button type="submit" disabled>Apply</button></div></form>';
   document.body.append(dialog);
@@ -23,9 +23,9 @@ export function installDriverDownloadSettings({api,toast}) {
   let original='',busy=false,picker=null,pickerCancelled=false;
   const data=()=>({mode:form.elements.mode.value,command:form.elements.mode.value==='maven'?form.elements.command.value.trim():'',
     settings:form.elements.mode.value==='maven'?form.elements.settings.value.trim():'',
-    certPem:form.elements.mode.value==='maven'?form.elements.certPem.value.trim():'',
-    insecureTls:form.elements.mode.value==='maven'&&form.elements.insecureTls.checked});
-  function update(){form.elements.mode.disabled=busy;form.querySelector('fieldset').disabled=busy||form.elements.mode.value!=='maven';apply.disabled=busy||original===JSON.stringify(data());dialog.querySelector('#driver-tls-warning').hidden=!data().insecureTls;}
+    certPem:form.elements.certPem.value.trim(),
+    insecureTls:form.elements.insecureTls.checked});
+  function update(){form.elements.mode.disabled=busy;form.querySelector('fieldset').disabled=busy||form.elements.mode.value!=='maven';form.querySelector('[data-tls]').disabled=busy;apply.disabled=busy||original===JSON.stringify(data());dialog.querySelector('#driver-tls-warning').hidden=!data().insecureTls;}
   form.addEventListener('input',update);form.addEventListener('change',update);
   const close=()=>{pickerCancelled=true;if(picker)api('/jobs/'+picker+'/cancel','POST',{}).catch(()=>{});dialog.close();};
   dialog.querySelector('[data-cancel]').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
