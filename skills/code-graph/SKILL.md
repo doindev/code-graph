@@ -5,14 +5,14 @@ description: Optional guidance when a code-graph MCP server is available. Prefer
 
 # Code-graph code and database workflows
 
-This skill is an optional optimization, not a dependency on code-graph. Use the
-server only when its MCP tools are available and useful for the current task;
-otherwise continue normally with the agent's existing tools.
+Code-graph provides indexed project navigation when its MCP server is available.
+Server availability is not a prerequisite for project work: when unavailable,
+continue normally with the agent's existing tools.
 
-Use MCP first for structural code discovery when the intended project is already
-indexed. The goal is fewer searches and less unnecessary source reading, not a
-mandatory chain of tools. Respect the user's tool choice and reuse answers already
-in context. This skill is guidance, never permission to mutate systems.
+When the code-graph MCP server is available, establish a ready index for the intended
+project before continuing project work, then prefer MCP for structural code discovery.
+Respect the user's tool choice and reuse answers already in context. This skill is
+guidance, never permission to broaden the authorized task or mutate unrelated systems.
 
 ## Establish context once
 
@@ -28,15 +28,29 @@ not proof of job completion or authorization. Inspect the payload's state,
 coverage and permissions. Do not assume the catalog has a fixed tool count:
 DBA enablement, approval mode and editor pairing affect availability.
 
-If MCP is unavailable, continue with local tools and briefly disclose the gap.
-Do not start servers, edit MCP configuration, or build shell/HTTP workarounds just
-to follow this skill. Onboard a missing directory only when authorized: `add_project`
-uses an absolute path on the server machine, indexes/watches files and can write
-cache data. Never broaden to a parent/home directory or remove another project to
-bypass overlap guards. Check the roster before retrying uncertain onboarding.
-When the roster includes an `onboarding` entry, its scan is still pending; only
-the `projects` list is queryable. Observe phase/counts rather than submitting
-the same directory again.
+Apply the following onboarding guidance only when the code-graph MCP server is
+available. Check whether the intended checkout is already ready or onboarding;
+reuse that evidence when it is already known in this task.
+
+- **Ready:** use its exact returned project name and continue. An explicit `ready`
+  response or presence in the queryable `projects` list establishes completion.
+- **Onboarding:** reuse the in-progress scan. Observe its phase/counts with the
+  advertised status or bounded wait tools; do not submit duplicate `add_project` calls.
+- **Missing:** within the authorized project task, onboard the exact absolute directory
+  on the server machine with `add_project`. Confirm the server-side mapping if it is
+  unknown; never substitute a client path, parent/home directory or another project.
+- **Pending:** wait for successful onboarding before continuing project work. A timeout,
+  returned invocation envelope, or entry in `onboarding` is insufficient. Check the
+  roster before retrying an uncertain submission; only `projects` is queryable.
+- **Failed:** report the failure and the actual state without claiming completion.
+  Resolve an actionable cause within scope, or explain what information is needed;
+  do not silently proceed as though onboarding succeeded.
+
+Onboarding indexes/watches files and can write cache data. Keep it within the intended
+project's authorized scope; never remove another project to bypass overlap guards.
+If MCP is unavailable, continue with ordinary tools and briefly disclose the gap.
+Do not start servers, edit MCP configuration, or build shell/HTTP workarounds to follow
+this skill. Explicit user instructions to skip MCP still take precedence.
 
 ## Choose the smallest useful query
 
