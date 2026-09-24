@@ -11,7 +11,7 @@ function definition(o){if(!o)return 'Object does not exist';if(o.ddl)return o.dd
 export class DatabaseCompare {
   constructor({api,profiles,close,notify,csrf}){
     Object.assign(this,{api,profiles,close,notify,csrf});this.root=el('section',undefined,'database-compare');this.root.setAttribute('aria-label','Database Compare');
-    this.step=0;this.jobs=new Set();this.typeIds=new Set();this.dataOptions=new Map();this.selection=new Map();this.objects=[];this.catalog=[];this.targets={source:{},destination:{}};this.settings={dataMode:'upsert',sequenceMode:'advance',syncSequences:false,destructiveSchema:false};this.closed=false;this.busy=false;this.detailToken=0;
+    this.step=0;this.jobs=new Set();this.typeIds=new Set();this.dataOptions=new Map();this.selection=new Map();this.objects=[];this.catalog=[];this.targets={source:{},destination:{}};this.settings={dataMode:'none',sequenceMode:'advance',syncSequences:false,destructiveSchema:false};this.closed=false;this.busy=false;this.detailToken=0;
     this.render();
   }
   mount(host){if(!host.contains(this.root))host.replaceChildren(this.root);}
@@ -21,7 +21,7 @@ export class DatabaseCompare {
     this.jobs.add(submitted.id);if(submitted.comparisonId)this.id=submitted.comparisonId;
     if(this.closed){if(this.id)await this.api('/compare/'+this.id,'DELETE').catch(()=>{});await this.api('/jobs/'+submitted.id+'/cancel','POST',{}).catch(()=>{});}
     try{for(;;){const state=await this.api('/jobs/'+submitted.id);
-      if(this.progressNode)this.progressNode.textContent=state.progress||state.state;
+      if(this.progressNode){const elapsed=state.started?Math.max(0,Math.floor(((state.finished||Date.now())-state.started)/1000)):0;this.progressNode.textContent=(state.progress||state.state)+(state.started?' · '+elapsed+'s elapsed':'');}
       if(state.finished){if(state.state!=='complete')throw Error(state.error||'Comparison failed');return state.result;}
       await new Promise(r=>setTimeout(r,300));}
     }finally{this.jobs.delete(submitted.id);await this.api('/jobs/'+submitted.id,'DELETE').catch(()=>{});}
@@ -40,6 +40,7 @@ export class DatabaseCompare {
     const error=el('p',this.error??'','compare-error');error.setAttribute('role','alert');error.hidden=!this.error;
     this.body=el('div',undefined,'compare-body');this.footer=el('footer',undefined,'compare-footer');this.root.append(head,steps,this.progressNode,error,this.body,this.footer);
     if(this.step===0)this.targetsScreen();else if(this.step===1)this.optionsScreen();else if(this.step===2)this.resultsScreen();else this.scriptScreen();
+    if(this.busy)for(const control of this.body.querySelectorAll('input,select,button'))control.disabled=true;
     this.footer.append(button('Cancel',this.act(async()=>{await this.dispose();this.close();})));
   }
   targetsScreen(){
@@ -49,38 +50,49 @@ export class DatabaseCompare {
       const profiles=this.profiles().filter(p=>!p.transport||p.transport==='jdbc');const connection=select([['','Choose connection…'],...profiles.map(p=>[p.id,p.name])],state.connectionId??'',side+' connection');
       const database=select([['','Connection default'],...(state.databases??[]).map(n=>[n,n])],state.database??'',side+' database');
       const schema=select([['','Choose schema…'],...(state.schemas??[]).map(n=>[n,n])],state.schema??'',side+' schema');schema.disabled=!!state.allSchemas;
-      const status=el('p',state.testing?'Testing connectivity…':state.error??(state.receipt?'Connected · '+state.engine:(state.engine?'Choose a schema to verify the target.':'Select a connection.')),'compare-target-status');status.setAttribute('role','status');
-      const changed=async(name,value)=>{state[name]=value;state.receipt=null;state.error='';if(name==='connectionId'){state.database='';state.schema='';state.databases=[];state.schemas=[];}if(name==='database')state.schema='';await this.testTarget(side);};
+      const status=el('p',state.testing?(state.validating?'Testing connectivity…':'Loading databases and schemas…'):state.error||(state.verified?'Connected · '+state.engine:(state.schema||state.allSchemas?'Ready to validate.':state.engine?'Choose a schema.':'Select a connection.')),'compare-target-status');status.setAttribute('role','status');
+      const changed=async(name,value)=>{if(state[name]!==value){this.catalog=[];this.dataOptions.clear();this.sequenceOptions?.clear();this.typesInitialized=false;}state[name]=value;state.receipt=null;state.error='';if(name==='connectionId'){state.database='';state.schema='';state.databases=[];state.schemas=[];}if(name==='database')state.schema='';await this.testTarget(side);};
       connection.onchange=this.act(()=>changed('connectionId',connection.value));database.onchange=this.act(()=>changed('database',database.value));schema.onchange=this.act(()=>changed('schema',schema.value));
-      panel.append(field('Connection',connection),field('Database / catalog',database),field('Schema',schema),checkbox('All user schemas',!!state.allSchemas,this.actValue(value=>changed('allSchemas',value))),status,button('Test connection',this.act(()=>this.testTarget(side))));
+      panel.append(field('Connection',connection),field('Database / catalog',database),field('Schema',schema),checkbox('All user schemas',!!state.allSchemas,this.actValue(value=>changed('allSchemas',value))),status);
       grid.append(panel);
     }
-    this.body.append(grid,el('p','Changes flow from source to destination. The comparer reads both targets and generates a script for you to review.','compare-note'));
-    const next=button('Choose object types',this.act(async()=>{const a=this.targets.source,b=this.targets.destination;if(a.engine!==b.engine)throw Error('Choose connections using the same database engine.');if(!!a.allSchemas!==!!b.allSchemas)throw Error('Choose the same scope mode on both sides.');this.typeIds=new Set((a.objectTypes??[]).map(x=>x.id));this.step=1;this.render();}),true);
-    next.disabled=!this.targets.source.receipt||!this.targets.destination.receipt||this.targets.source.testing||this.targets.destination.testing;this.footer.append(next);
+    this.body.append(grid,el('p','Choose object types will test both selected targets before continuing. Changes flow from source to destination; comparison generates a script for you to review.','compare-note'));
+    const next=button('Choose object types',this.act(()=>this.chooseObjectTypes()),true);
+    next.disabled=this.busy||!this.targets.source.connectionId||!this.targets.destination.connectionId||this.targets.source.testing||this.targets.destination.testing;this.footer.append(next);
+  }
+  async chooseObjectTypes(){
+    this.busy=true;this.render();
+    try{
+      const verified=await Promise.all(['source','destination'].map(side=>this.testTarget(side,true)));if(this.closed)return;
+      const a=this.targets.source,b=this.targets.destination;
+      if(!verified.every(Boolean)){this.error=['source','destination'].filter((side,i)=>!verified[i]).map(side=>(side==='source'?'Source: ':'Destination: ')+(this.targets[side].error||'Choose a schema or All user schemas.')).join(' ');return;}
+      if(a.engine!==b.engine)throw Error('Choose connections using the same database engine.');
+      if(!!a.allSchemas!==!!b.allSchemas)throw Error('Choose the same scope mode on both sides.');
+      if(!this.typesInitialized){this.typeIds=new Set((a.objectTypes??[]).map(x=>x.id));this.typesInitialized=true;}this.step=1;
+    }finally{this.busy=false;this.render();}
   }
   actValue(action){return value=>this.act(()=>action(value))();}
-  async testTarget(side){
-    const state=this.targets[side];if(!state.connectionId)return;const token=(state.token??0)+1;state.token=token;state.testing=true;state.receipt=null;state.error='';this.render();
-    try{const result=await this.job(await this.api('/compare/test','POST',{connectionId:state.connectionId,database:state.database??'',schema:state.schema??'',allSchemas:!!state.allSchemas}));if(this.closed||state.token!==token)return;Object.assign(state,result);if(!state.supported)state.error='This engine has no enabled script-generation adapter. Its objects can be inspected for coverage.';}
-    catch(e){if(state.token===token)state.error=e.message;}finally{if(state.token===token){state.testing=false;this.render();}}
+  async testTarget(side,validate=false){
+    const state=this.targets[side];if(!state.connectionId)return;const token=(state.token??0)+1;state.token=token;state.testing=true;state.validating=validate;state.verified=false;state.receipt=null;state.error='';this.render();
+    try{const result=await this.job(await this.api('/compare/test','POST',{connectionId:state.connectionId,database:state.database??'',schema:state.schema??'',allSchemas:!!state.allSchemas}));if(this.closed||state.token!==token)return;Object.assign(state,result);state.verified=validate&&!!state.receipt;if(!state.supported)state.error='This engine has no enabled script-generation adapter. Its objects can be inspected for coverage.';return !!state.receipt;}
+    catch(e){if(state.token===token)state.error=e.message;return false;}finally{if(state.token===token){state.testing=false;this.render();}}
   }
   optionsScreen(){
     const layout=el('div',undefined,'compare-options'),types=el('section',undefined,'compare-card');types.append(el('h3','Object types'));
     types.append(button('Select all',()=>{this.typeIds=new Set(this.targets.source.objectTypes.map(x=>x.id));this.render();}),button('Clear all',()=>{this.typeIds.clear();this.render();}));
     for(const kind of this.targets.source.objectTypes??[])types.append(checkbox(kind.label,this.typeIds.has(kind.id),value=>{value?this.typeIds.add(kind.id):this.typeIds.delete(kind.id);this.catalog=[];this.render();}));
     const options=el('section',undefined,'compare-card');options.append(el('h3','Data and sequence options'));
-    const mode=select(modes,this.settings.dataMode,'Default table data mode');mode.onchange=()=>this.settings.dataMode=mode.value;
+    const mode=select([['none','Structure only — no data'],...modes],this.settings.dataMode,'Default table data mode');mode.onchange=()=>{this.settings.dataMode=mode.value;this.render();};
     options.append(field('Default data mode',mode),checkbox('Sync sequence values',this.settings.syncSequences,value=>this.settings.syncSequences=value));
-    const seq=select([['advance','Safe advancement'],['exact','Exact captured source state']],this.settings.sequenceMode,'Default sequence mode');seq.onchange=()=>this.settings.sequenceMode=seq.value;options.append(field('Sequence mode',seq),el('p','Data and sequence synchronization are optional. Exact sequence state is available only where the engine can establish it.','compare-note'));
-    options.append(button('Load objects and choose table data',this.act(async()=>{this.busy=true;this.render();try{const result=await this.job(await this.api('/compare/catalog','POST',{sourceReceipt:this.targets.source.receipt,objectTypes:[...this.typeIds]}));this.catalog=result.objects;this.optionPage=0;}finally{this.busy=false;this.render();}})));
+    const seq=select([['advance','Safe advancement'],['exact','Exact captured source state']],this.settings.sequenceMode,'Default sequence mode');seq.onchange=()=>this.settings.sequenceMode=seq.value;options.append(field('Sequence mode',seq),el('p','Structure only compares object definitions without table data. Choose a data mode to include selected tables. Sequence definitions are included when Sequences is selected; synchronizing their values is a separate option.','compare-note'));
+    const loadData=button('Load objects and choose table data',this.act(async()=>{this.busy=true;this.render();try{const result=await this.job(await this.api('/compare/catalog','POST',{sourceReceipt:this.targets.source.receipt,objectTypes:[...this.typeIds]}));this.catalog=result.objects;this.optionPage=0;}finally{this.busy=false;this.render();}}));loadData.disabled=this.busy||this.settings.dataMode==='none';options.append(loadData);
     layout.append(types,options);this.body.append(layout);
     if(this.catalog.length){const list=el('section',undefined,'compare-card');list.append(el('h3','Objects · Include data per table'));
       const offset=this.optionPage??0;for(const object of this.catalog.slice(offset,offset+100)){const row=el('div',undefined,'compare-object-option');row.append(el('span',object.schema+'.'+object.name+' · '+object.kind));
         if(object.kind==='tables'){
           let option=this.dataOptions.get(object.id);if(!option){option={id:object.id,includeData:false,dataMode:''};this.dataOptions.set(object.id,option);}
-          const include=checkbox('Include data',option.includeData,v=>option.includeData=v);include.querySelector('input').disabled=object.dataSupported===false;include.title=object.dataReason??'';if(object.dataSupported===false)option.includeData=false;row.append(include);
-          const key=select([['','Automatic matching key'],...(object.keys??[]).map(k=>[k.name,(k.primary?'Primary key: ':'Unique key: ')+k.columns.join(', ')])],option.key??'','Matching key for '+object.name);key.onchange=()=>option.key=key.value;row.append(key);const mode=select([['','Use default'],...modes],option.dataMode??'','Data mode for '+object.name);mode.onchange=()=>option.dataMode=mode.value;row.append(mode);
+          const include=checkbox('Include data',option.includeData,v=>option.includeData=v);include.querySelector('input').disabled=object.dataSupported===false||this.settings.dataMode==='none';include.title=object.dataReason??'';if(object.dataSupported===false)option.includeData=false;row.append(include);
+          const key=select([['','Automatic matching key'],...(object.keys??[]).map(k=>[k.name,(k.primary?'Primary key: ':'Unique key: ')+k.columns.join(', ')])],option.key??'','Matching key for '+object.name);key.disabled=this.settings.dataMode==='none';key.onchange=()=>option.key=key.value;row.append(key);const mode=select([['','Use default'],...modes],option.dataMode??'','Data mode for '+object.name);mode.disabled=this.settings.dataMode==='none';mode.onchange=()=>option.dataMode=mode.value;row.append(mode);
         }list.append(row);}
       const pages=el('div');if(offset>0)pages.append(button('Previous objects',()=>{this.optionPage=offset-100;this.render();}));if(offset+100<this.catalog.length)pages.append(button('Next objects',()=>{this.optionPage=offset+100;this.render();}));list.append(pages);this.body.append(list);
     }
@@ -89,14 +101,14 @@ export class DatabaseCompare {
   async compare(){
     this.busy=true;this.render();
     try{if(this.id)await this.api('/compare/'+this.id,'DELETE');this.id=null;this.selection.clear();this.objects=[];
-      const result=await this.job(await this.api('/compare/start','POST',{sourceReceipt:this.targets.source.receipt,destinationReceipt:this.targets.destination.receipt,objectTypes:[...this.typeIds],tableData:this.typeIds.has('tables')?[...this.dataOptions.values()]:[]}));
+      const result=await this.job(await this.api('/compare/start','POST',{sourceReceipt:this.targets.source.receipt,destinationReceipt:this.targets.destination.receipt,objectTypes:[...this.typeIds],dataMode:this.settings.dataMode,syncSequences:this.settings.syncSequences,tableData:this.settings.dataMode!=='none'&&this.typeIds.has('tables')?[...this.dataOptions.values()]:[]}));
       if(this.closed)return;this.id=result.comparisonId;this.revision=result.revision;let offset=0;
       do{const page=await this.api('/compare/'+this.id+'/results?offset='+offset+'&limit=200');this.counts=page.counts;this.objects.push(...page.objects);offset=page.nextOffset;}while(offset!==undefined&&!this.closed);
       for(const object of this.objects){this.selection.set(object.id,new Set(object.supported?object.changes.filter(c=>!c.destructive).map(c=>c.id):[]));}
       this.step=2;
     }finally{this.busy=false;this.render();}
   }
-  request(){return{revision:this.revision,...this.settings,objects:this.objects.filter(o=>o.supported&&o.status!=='destination_only'&&(this.selection.get(o.id)?.size||this.dataOptions.get(o.id)?.includeData||o.kind==='sequences'&&(this.sequenceOptions?.get(o.id)?.syncValues??this.settings.syncSequences))).map(o=>{const option={id:o.id,changes:[...(this.selection.get(o.id)??[])],...(this.dataOptions.get(o.id)??{}),...(this.sequenceOptions?.get(o.id)??{})};if(!option.dataMode)delete option.dataMode;return option;})};}
+  request(){return{revision:this.revision,...this.settings,objects:this.objects.filter(o=>o.supported&&o.status!=='destination_only'&&(this.selection.get(o.id)?.size||this.settings.dataMode!=='none'&&this.dataOptions.get(o.id)?.includeData||o.kind==='sequences'&&(this.sequenceOptions?.get(o.id)?.syncValues??this.settings.syncSequences))).map(o=>{const option={id:o.id,changes:[...(this.selection.get(o.id)??[])],...(this.dataOptions.get(o.id)??{}),...(this.sequenceOptions?.get(o.id)??{}),...(this.settings.dataMode==='none'?{includeData:false}:{})};if(!option.dataMode)delete option.dataMode;return option;})};}
   resultsScreen(){
     const summary=el('div',undefined,'compare-summary');for(const [status,count]of Object.entries(this.counts??{}))summary.append(el('span',labels[status]+': '+count));
     const tools=el('div',undefined,'compare-result-tools'),search=el('input');search.type='search';search.placeholder='Find an object…';search.value=this.search??'';search.setAttribute('aria-label','Search comparison objects');

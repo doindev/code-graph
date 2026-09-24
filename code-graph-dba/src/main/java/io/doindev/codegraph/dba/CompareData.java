@@ -64,7 +64,7 @@ final class CompareData implements AutoCloseable {
                     ArrayNode keys=Profiles.JSON.createArrayNode();for(String name:table.key){JsonNode cell=values.get(table.columns.indexOf(name));if(cell.path("value").isNull())throw new IllegalArgumentException("Matching key contains null");keys.add(cell.path("value"));}
                     String key=table.keyed?keys.toString():values.toString();row.put("key",HexFormat.of().formatHex(key.getBytes(StandardCharsets.UTF_8)));
                     String encoded=row.toString();if(encoded.getBytes(StandardCharsets.UTF_8).length>LINE_LIMIT)throw new IllegalArgumentException("A data row exceeds 2 MiB");buffer.add(encoded);buffered+=encoded.length()*2+64;
-                    if(buffered>=CHUNK){chunks.add(chunk(buffer));buffer.clear();buffered=0;}if(count%1000==0)job.progress="Reading "+str(object,"name")+": "+count+" rows";
+                    if(buffered>=CHUNK){chunks.add(chunk(buffer));buffer.clear();buffered=0;}if(count%1000==0)job.comparisonProgress("Reading rows",source?"source":"destination",str(object,"schema")+"."+str(object,"name"),(int)count,0);
                 }
             }
         }finally{job.statement=null;}

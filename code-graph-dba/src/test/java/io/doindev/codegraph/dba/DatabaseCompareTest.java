@@ -71,6 +71,9 @@ class DatabaseCompareTest {
                 JsonNode artifact=finish(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();org.h2.tools.RunScript.execute(anchor,new StringReader(script));
                 try(ResultSet rows=st.executeQuery("SELECT COUNT(*) FROM DST.ITEM")){assertTrue(rows.next());assertEquals(3,rows.getInt(1));}
                 JsonNode failed=TableDesignerTest.waitRetained(jobs,"human",compare.generate("human",id,selection));assertEquals("failed",failed.path("state").asText());assertTrue(failed.path("error").asText().contains("changed"),failed.toString());
+                jobs.remove("human",failed.path("id").asText());
+                st.execute("DELETE FROM DST.ITEM; INSERT INTO DST.ITEM VALUES(1,'old'),(3,'retained')");
+                assertTrue(finish(jobs,compare.generate("human",id,selection)).has("artifactId"),"A failed generation must preserve the comparison for retry");
             }
         }
     }
@@ -110,6 +113,41 @@ class DatabaseCompareTest {
             a.add(6);assertThrows(IllegalArgumentException.class,()->b.add(5));b.add(4);assertEquals(10,budget.used());
         }assertEquals(0,budget.used());
         assertEquals(new java.math.BigInteger("-23"),CompareSql.advance(new java.math.BigInteger("-3"),new java.math.BigInteger("-22"),java.math.BigInteger.valueOf(-5)));
+    }
+    @Test void structureOnlySuppressesStaleDataSelectionsAndAllowsGenerationRetry()throws Exception {
+        try(Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(root,384L<<20,2,100,100,30),s->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,root,s->true)){
+            String connection=profiles.put(null,new DbaTest().input().put("templateId","h2")).path("id").asText();
+            try(Connection c=connections.open(connection);Statement st=c.createStatement()){
+                c.setAutoCommit(true);st.execute("CREATE SCHEMA SRC;CREATE SCHEMA DST;CREATE TABLE SRC.ITEM(ID INT PRIMARY KEY,NOTE VARCHAR(20));CREATE TABLE DST.ITEM(ID INT PRIMARY KEY);INSERT INTO SRC.ITEM VALUES(1,'source');INSERT INTO DST.ITEM VALUES(2)");
+                ObjectNode input=request(compare,jobs,connection,"SRC","DST").put("dataMode","none").put("syncSequences",false);
+                input.putArray("tableData").addObject().put("id","stale selection").put("includeData",true);
+                String id=finish(jobs,compare.start("human",input)).path("comparisonId").asText();assertEquals(0,compare.telemetry().path("dataDiskBytes").asLong());
+                ObjectNode selection=select(compare,id).put("dataMode","upsert");for(JsonNode object:selection.path("objects"))((ObjectNode)object).put("includeData",true);
+                ObjectNode invalid=selection.deepCopy().put("revision","stale");assertThrows(IllegalArgumentException.class,()->compare.generate("human",id,invalid));
+                JsonNode artifact=finish(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();
+                assertTrue(script.contains("ADD"),script);assertFalse(script.matches("(?s).*\\b(INSERT|UPDATE|DELETE|MERGE|TRUNCATE)\\b.*"),script);org.h2.tools.RunScript.execute(c,new StringReader(script));
+                try(ResultSet rows=st.executeQuery("SELECT ID FROM DST.ITEM")){assertTrue(rows.next());assertEquals(2,rows.getInt(1));assertFalse(rows.next());}
+            }
+        }
+    }
+    @Test void connectionFailureDuringObjectInspectionStopsInsteadOfPublishingPartialResults()throws Exception {
+        try(Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(root,384L<<20,2,100,100,30),owner->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,root,owner->true)){
+            String connection=profiles.put(null,new DbaTest().input().put("templateId","h2")).path("id").asText();
+            try(Connection c=connections.open(connection);Statement st=c.createStatement()){c.setAutoCommit(true);st.execute("CREATE SCHEMA SRC;CREATE TABLE SRC.ITEM(ID INT PRIMARY KEY)");}
+            var target=compare.target(Profiles.JSON.createObjectNode().put("connectionId",connection).put("schema","SRC"));
+            ObjectNode submitted=jobs.comparison("human",Set.of(connection),job->compare.read(job,target,c->{
+                DatabaseMetaData metadata=(DatabaseMetaData)java.lang.reflect.Proxy.newProxyInstance(DatabaseMetaData.class.getClassLoader(),new Class<?>[]{DatabaseMetaData.class},(proxy,method,args)->{
+                    if(method.getName().equals("getPrimaryKeys"))throw new SQLNonTransientConnectionException("fixture connection lost","08006");
+                    try{return method.invoke(c.getMetaData(),args);}catch(java.lang.reflect.InvocationTargetException error){throw error.getCause();}
+                });
+                Connection failing=(Connection)java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(),new Class<?>[]{Connection.class},(proxy,method,args)->{
+                    if(method.getName().equals("getMetaData"))return metadata;
+                    try{return method.invoke(c,args);}catch(java.lang.reflect.InvocationTargetException error){throw error.getCause();}
+                });
+                CompareCatalog.capture(job,failing,target,Set.of("tables"),false);return Profiles.JSON.createObjectNode().put("partialPublished",true);
+            }),()->{});
+            JsonNode failed=TableDesignerTest.waitRetained(jobs,"human",submitted);assertEquals("failed",failed.path("state").asText());assertEquals("database_connection_failure",failed.path("errorCode").asText());assertFalse(failed.has("result"));
+        }
     }
     @Test void exactIntegersAndSchemaTokens(){
         assertEquals(new java.math.BigInteger("9007199254741003"),CompareSql.advance(new java.math.BigInteger("9007199254740993"),new java.math.BigInteger("9007199254741002"),java.math.BigInteger.valueOf(5)));

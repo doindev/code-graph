@@ -30,6 +30,11 @@ final class ObjectDesigner {
         default->{String text=kind.replace('_',' ');if(text.endsWith("s"))text=text.substring(0,text.length()-1);yield text.isEmpty()?"Object":Character.toUpperCase(text.charAt(0))+text.substring(1);}
     };}
     static ObjectNode load(QueryJobs.Job job,Connection c,JsonNode input,boolean generic)throws Exception{
+        return load(job,c,input,generic,null);
+    }
+    /** Node must come from the server catalog in the current transaction, never a request. */
+    static ObjectNode loadCatalogObject(QueryJobs.Job job,Connection c,JsonNode input,JsonNode node)throws Exception{return load(job,c,input,false,node);}
+    private static ObjectNode load(QueryJobs.Job job,Connection c,JsonNode input,boolean generic,JsonNode catalogNode)throws Exception{
         if(input.path(input.path("creation").asBoolean()?"target":"parent").path("kind").asText().equals("scheduled_jobs"))return ScheduledJobs.load(job,c,input);
         boolean creating=input.path("creation").asBoolean();
         ObjectNode parent=MetadataTree.request(creating?input.path("target"):input.path("parent"));
@@ -47,9 +52,9 @@ final class ObjectDesigner {
         ObjectNode values=out.putObject("fields");values.put("name","").put("schema",str(parent,"schema"));
         values.put("owner","").put("comment","");
         out.putArray("categories").add("General");out.putArray("controls");out.putObject("details");out.putArray("warnings");
-        JsonNode node=null;
+        JsonNode node=catalogNode;
         if(!creating){
-            for(JsonNode candidate:MetadataTree.browse(job,c,parent,job.remainingSeconds()).path("nodes"))
+            if(node==null)for(JsonNode candidate:MetadataTree.browse(job,c,parent,job.remainingSeconds()).path("nodes"))
                 if(str(candidate,"key").equals(str(input,"key"))){node=candidate;break;}
             if(node==null)throw new IllegalArgumentException("Object changed or is no longer on this page. Refresh its parent and reopen it.");
             out.set("node",node);values.put("name",node.path("objectName").asText(str(node,"name")));

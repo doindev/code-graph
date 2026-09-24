@@ -23,7 +23,16 @@ final class TableDesigner {
     }
     static ObjectNode load(QueryJobs.Job job,Connection c,ObjectNode selection,boolean generic)throws Exception{
         if(!selection.path("parent").path("kind").asText().equals("tables"))throw new IllegalArgumentException("View properties are read-only; use the query builder to edit a query without altering the saved view");
-        ObjectNode identity=TableQueries.prepare(job,c,selection,job.remainingSeconds());String schema=str(identity,"schema"),name=str(identity,"name"),product=c.getMetaData().getDatabaseProductName(),engine=generic?"jdbc":product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
+        return loadIdentity(job,c,selection,generic,TableQueries.prepare(job,c,selection,job.remainingSeconds()));
+    }
+    /** Called only with a node read by the comparer in this same transaction. */
+    static ObjectNode loadCatalogObject(QueryJobs.Job job,Connection c,ObjectNode selection,JsonNode node)throws Exception{
+        String schema=node.path("schema").asText(),name=node.path("objectName").asText(node.path("name").asText());
+        ObjectNode identity=Profiles.JSON.createObjectNode().put("database",Objects.toString(c.getCatalog(),"")).put("schema",schema).put("name",name).put("kind","tables");
+        return loadIdentity(job,c,selection,false,identity);
+    }
+    private static ObjectNode loadIdentity(QueryJobs.Job job,Connection c,ObjectNode selection,boolean generic,ObjectNode identity)throws Exception{
+        String schema=str(identity,"schema"),name=str(identity,"name"),product=c.getMetaData().getDatabaseProductName(),engine=generic?"jdbc":product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
         ObjectNode out=identity.deepCopy();out.put("engine",engine);out.set("selection",selection.deepCopy());out.put("editable",Set.of("postgresql","h2").contains(engine));out.put("reason","Editing is enabled only for validated PostgreSQL/H2 operations. Other drivers and unsupported fields remain read-only.");
         ArrayNode categories=out.putArray("categories");TableMetadata.categories(engine,c.getMetaData().getDatabaseMajorVersion()).forEach(categories::add);categories.add("Statistics").add("Permissions").add("DDL").add("Virtual");
         if(engine.equals("sqlserver")&&c.getMetaData().getDatabaseMajorVersion()>=16)return SqlServerDesigner.load(job,c,out);

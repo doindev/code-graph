@@ -5,7 +5,9 @@ import java.util.*;
 
 /** Explicit opt-in. Limits govern retained application records, not driver/native allocations. */
 public record DbaConfig(Path directory, long memoryBytes, int concurrency, int uiRows,
-                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds, String approvalMode, boolean yolo, DriverDownloadConfig driverDownloads) {
+                        int agentRows, int timeoutSeconds, int decisionTimeoutSeconds, String approvalMode, boolean yolo, DriverDownloadConfig driverDownloads, int compareTimeoutSeconds) {
+    public static final int DEFAULT_COMPARE_TIMEOUT_SECONDS=900;
+    public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds,String approvalMode,boolean yolo,DriverDownloadConfig driverDownloads){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,approvalMode,yolo,driverDownloads,DEFAULT_COMPARE_TIMEOUT_SECONDS);}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds,String approvalMode,boolean yolo){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,approvalMode,yolo,DriverDownloadConfig.embedded());}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds,String approvalMode){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,approvalMode,false);}
     public DbaConfig(Path directory,long memoryBytes,int concurrency,int uiRows,int agentRows,int timeoutSeconds,int decisionTimeoutSeconds){this(directory,memoryBytes,concurrency,uiRows,agentRows,timeoutSeconds,decisionTimeoutSeconds,"auto");}
@@ -15,8 +17,8 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
         if (!Set.of("auto","browser","desktop","none").contains(approvalMode)) throw new IllegalArgumentException("DBA approval mode must be auto, browser, desktop, or none");
         if (memoryBytes < 32L * 1024 * 1024 || concurrency < 1 || concurrency > 16
                 || uiRows < 1 || uiRows > 10_000 || agentRows < 1 || agentRows > 1000
-                || timeoutSeconds < 1 || timeoutSeconds > 300 || decisionTimeoutSeconds < 10 || decisionTimeoutSeconds > 600)
-            throw new IllegalArgumentException("Invalid DBA limits (memory >=32m, jobs 1..16, UI rows 1..10000, agent rows 1..1000, timeout 1..300s, decision timeout 10..600s)");
+                || timeoutSeconds < 1 || timeoutSeconds > 300 || decisionTimeoutSeconds < 10 || decisionTimeoutSeconds > 600 || compareTimeoutSeconds < 30 || compareTimeoutSeconds > 3600)
+            throw new IllegalArgumentException("Invalid DBA limits (memory >=32m, jobs 1..16, UI rows 1..10000, agent rows 1..1000, timeout 1..300s, decision timeout 10..600s, comparison timeout 30..3600s)");
     }
     public static Optional<DbaConfig> parse(String[] args) {
         validateYoloFlag(args);
@@ -26,7 +28,7 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
         Map<String,String> values = new HashMap<>();
         for (int i=0; i<args.length; i++) if (args[i].startsWith("--dba-")) {
             String key=args[i];
-            if (!Set.of("--dba-dir","--dba-memory","--dba-concurrency","--dba-ui-rows","--dba-agent-rows","--dba-timeout","--dba-decision-timeout","--dba-approval-mode","--dba-driver-download","--dba-maven-command","--dba-maven-settings","--dba-maven-cert","--dba-maven-insecure-tls").contains(key))
+            if (!Set.of("--dba-dir","--dba-memory","--dba-concurrency","--dba-ui-rows","--dba-agent-rows","--dba-timeout","--dba-compare-timeout","--dba-decision-timeout","--dba-approval-mode","--dba-driver-download","--dba-maven-command","--dba-maven-settings","--dba-maven-cert","--dba-maven-insecure-tls").contains(key))
                 throw new IllegalArgumentException("Unknown DBA argument: " + key);
             if (++i == args.length || args[i].startsWith("--")) throw new IllegalArgumentException("Missing value for " + key);
             values.put(key,args[i]);
@@ -42,7 +44,7 @@ public record DbaConfig(Path directory, long memoryBytes, int concurrency, int u
                 Integer.parseInt(values.getOrDefault("--dba-ui-rows","1000")),
                 Integer.parseInt(values.getOrDefault("--dba-agent-rows","100")),
                 Integer.parseInt(values.getOrDefault("--dba-timeout","30")),
-                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60")),values.getOrDefault("--dba-approval-mode","auto"),yolo,DriverDownloadConfig.parse(values)));
+                Integer.parseInt(values.getOrDefault("--dba-decision-timeout","60")),values.getOrDefault("--dba-approval-mode","auto"),yolo,DriverDownloadConfig.parse(values),Integer.parseInt(values.getOrDefault("--dba-compare-timeout","900"))));
     }
     public static void validateYoloFlag(String[] args) {
         for(int i=0;i<args.length;i++) {

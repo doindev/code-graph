@@ -25,6 +25,13 @@ final class QueryJobs implements AutoCloseable {
         volatile String state="queued",error="";
         volatile Statement statement;
         volatile String progress="";
+        volatile String operation="",cancellationReason="",failureCode="";
+        volatile String failureContext;
+        volatile ObjectNode comparisonProgress;
+        final int statementTimeoutSeconds=config.timeoutSeconds();
+        volatile int overallTimeoutSeconds;
+        private Job parentJob;
+        private final Set<Job> children=ConcurrentHashMap.newKeySet();
         volatile Thread thread;
         volatile boolean cancelled;
         volatile JsonNode result;
@@ -60,6 +67,7 @@ final class QueryJobs implements AutoCloseable {
                 ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("cancellationRequested",cancelled)
                         .put("state",visibleState).put("created",created).put("started",started).put("finished",completed)
                         .put("bytes",bytes).put("error",error).put("progress",progress);
+                if(!operation.isEmpty()){n.put("operation",operation).put("timeoutSeconds",overallTimeoutSeconds);if(!failureCode.isEmpty())n.put("errorCode",failureCode);ObjectNode visibleProgress=comparisonProgress;if(visibleProgress!=null)n.set("comparisonProgress",visibleProgress.deepCopy());}
                 String capturedOutcome=outcome;JsonNode capturedResult=result,capturedException=exception;ObjectNode capturedDecision=decision;
                 if(!capturedOutcome.isEmpty())n.put("outcome",capturedOutcome);
                 if(capturedResult!=null)n.set("result",capturedResult);
@@ -74,9 +82,23 @@ final class QueryJobs implements AutoCloseable {
         }
         synchronized void beginActiveBudget(int seconds){activeRemainingNanos=TimeUnit.SECONDS.toNanos(seconds);resumeActiveBudget();}
         synchronized void pauseActiveBudget(){if(activeStartedNanos==0)return;activeRemainingNanos=Math.max(0,activeRemainingNanos-(System.nanoTime()-activeStartedNanos));activeStartedNanos=0;if(activeDeadline!=null)activeDeadline.cancel(false);activeDeadline=null;}
-        synchronized void resumeActiveBudget(){if(cancelled)return;if(activeRemainingNanos<=0){QueryJobs.this.cancel(this);return;}activeStartedNanos=System.nanoTime();activeDeadline=timer.schedule(()->QueryJobs.this.cancel(this),activeRemainingNanos,TimeUnit.NANOSECONDS);}
+        synchronized void resumeActiveBudget(){if(cancelled)return;if(activeRemainingNanos<=0){QueryJobs.this.cancel(this,"deadline_exceeded");return;}activeStartedNanos=System.nanoTime();activeDeadline=timer.schedule(()->QueryJobs.this.cancel(this,"deadline_exceeded"),activeRemainingNanos,TimeUnit.NANOSECONDS);}
         synchronized void stopActiveBudget(){pauseActiveBudget();activeRemainingNanos=0;}
-        synchronized int remainingSeconds(){if(activeRemainingNanos==0&&activeStartedNanos==0)return config.timeoutSeconds();long remaining=activeRemainingNanos;if(activeStartedNanos!=0)remaining-=System.nanoTime()-activeStartedNanos;return (int)Math.max(1,Math.min(300,TimeUnit.NANOSECONDS.toSeconds(Math.max(0,remaining)+999_999_999L)));}
+        int remainingSeconds(){
+            if(parentJob!=null){if(cancelled)throw new CancellationException();return parentJob.remainingSeconds();}
+            synchronized(this){
+            if(cancelled)throw new CancellationException();
+            if(activeRemainingNanos==0&&activeStartedNanos==0)return statementTimeoutSeconds;
+            long remaining=activeRemainingNanos;if(activeStartedNanos!=0)remaining-=System.nanoTime()-activeStartedNanos;
+            if(remaining<=0){QueryJobs.this.cancel(this,"deadline_exceeded");throw new CancellationException();}
+            return (int)Math.max(1,Math.min(statementTimeoutSeconds,TimeUnit.NANOSECONDS.toSeconds(remaining+999_999_999L)));
+            }
+        }
+        void comparisonProgress(String phase,String side,String object,int processed,int total){
+            comparisonProgress=Profiles.JSON.createObjectNode().put("phase",phase).put("side",side).put("object",object).put("processed",processed).put("total",total);
+            progress=phase+(side.isEmpty()?"":" · "+side)+(object.isEmpty()?"":" · "+object)+(total>0?" · "+processed+" / "+total:"");
+            if(parentJob!=null){parentJob.comparisonProgress=comparisonProgress.deepCopy();parentJob.progress=progress;}
+        }
         synchronized String awaitDecision(ObjectNode prompt,int seconds)throws InterruptedException {
             pauseActiveBudget();decisionAction="";long expires=System.currentTimeMillis()+seconds*1000L;prompt.put("expiresAt",expires);decision=prompt;state="awaiting_decision";
             while(decisionAction.isEmpty()&&!cancelled){long remaining=expires-System.currentTimeMillis();if(remaining<=0)break;wait(remaining);}
@@ -96,7 +118,7 @@ final class QueryJobs implements AutoCloseable {
     private volatile DbaConfig config;
     GridResults grids;
     QueryJobs(Connections connections,DbaConfig config,Predicate<String> alive){this.connections=connections;this.config=config;this.alive=alive;
-        workers=new ThreadPoolExecutor(config.concurrency(),config.concurrency(),30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(16),Thread.ofPlatform().daemon().name("dba-query-",0).factory(),new ThreadPoolExecutor.AbortPolicy());
+        workers=new ThreadPoolExecutor(config.concurrency(),config.concurrency(),30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(16),Thread.ofVirtual().name("dba-query-",0).factory(),new ThreadPoolExecutor.AbortPolicy());
         timer.scheduleAtFixedRate(this::reap,1,1,TimeUnit.SECONDS);
     }
     synchronized ObjectNode submit(String owner,String connection,Task task) {
@@ -188,30 +210,82 @@ final class QueryJobs implements AutoCloseable {
     }
     /** Protect both targets before releasing the job admission lock. */
     synchronized ObjectNode comparison(String owner,Set<String> targets,LocalTask task,Runnable cleanup){
+        return comparison(owner,targets,"compare",task,cleanup);
+    }
+    synchronized ObjectNode comparison(String owner,Set<String> targets,String operation,LocalTask task,Runnable cleanup){
         if(owner.startsWith("agent:"))throw new SecurityException("Database comparison is browser-only");
         if(targets.isEmpty()||targets.size()>2)throw new IllegalArgumentException("Comparison requires one or two connections");
         for(String target:targets)if(DatabaseTransport.of(connections.profile(target))!=DatabaseTransport.JDBC)throw new IllegalArgumentException("Select SQL connections");
-        ObjectNode submitted=local(owner,targets.iterator().next(),task,cleanup);
+        ObjectNode submitted=local(owner,targets.iterator().next(),task,cleanup,operation.equals("connection_test")?config.timeoutSeconds():config.compareTimeoutSeconds(),operation);
         jobs.get(submitted.path("id").asText()).participatingConnections=Set.copyOf(targets);
         return submitted;
+    }
+    interface ComparisonRead<T>{T run(Job job)throws Exception;}
+    record ComparisonPair<T>(T source,T destination){}
+    private record ComparisonSide<T>(boolean source,T value){}
+    /** At most two independent target reads; one-profile pools and a one-job limit stay serial. */
+    <T> ComparisonPair<T> comparisonReads(Job parent,String sourceId,String destinationId,ComparisonRead<T> source,ComparisonRead<T> destination)throws Exception {
+        if(config.concurrency()<2||sourceId.equals(destinationId)){
+            parent.comparisonProgress("Opening connection","source","",0,0);T left=source.run(parent);
+            parent.comparisonProgress("Opening connection","destination","",0,0);return new ComparisonPair<>(left,destination.run(parent));
+        }
+        Job left=new Job(parent.owner,sourceId),right=new Job(parent.owner,destinationId);
+        for(Job child:List.of(left,right)){child.parentJob=parent;child.operation=parent.operation;child.overallTimeoutSeconds=parent.overallTimeoutSeconds;parent.children.add(child);}
+        try(var executor=Executors.newVirtualThreadPerTaskExecutor()){
+            var completion=new ExecutorCompletionService<ComparisonSide<T>>(executor);
+            var a=completion.submit(()->comparisonSide(parent,left,true,source));var b=completion.submit(()->comparisonSide(parent,right,false,destination));
+            T sourceValue=null,destinationValue=null;
+            try{
+                for(int i=0;i<2;i++){var completed=completion.take().get();if(completed.source())sourceValue=completed.value();else destinationValue=completed.value();}
+                parent.remainingSeconds();return new ComparisonPair<>(sourceValue,destinationValue);
+            }catch(ExecutionException failure){Throwable cause=failure.getCause();if(cause instanceof Exception error)throw error;throw new IllegalStateException("Comparison reader failed",cause);}
+            finally{if(!a.isDone()||!b.isDone()){cancel(left,"sibling_cancelled");cancel(right,"sibling_cancelled");a.cancel(true);b.cancel(true);}}
+        }finally{parent.children.remove(left);parent.children.remove(right);}
+    }
+    private <T> ComparisonSide<T> comparisonSide(Job parent,Job child,boolean source,ComparisonRead<T> read)throws Exception {
+        child.thread=Thread.currentThread();child.state="running";child.comparisonProgress("Opening connection",source?"source":"destination","",0,0);
+        try{parent.remainingSeconds();T value=read.run(child);child.state="complete";return new ComparisonSide<>(source,value);}
+        catch(Exception error){if(!parent.cancelled)synchronized(parent){if(parent.failureContext==null)parent.failureContext=child.progress;}throw error;}
+        finally{child.thread=null;child.finished=System.currentTimeMillis();}
     }
     static final int FILE_SELECTION_TIMEOUT_SECONDS=90;
     synchronized ObjectNode fileSelection(String owner,LocalTask task,Runnable cleanup){
         return local(owner,"",task,cleanup,FILE_SELECTION_TIMEOUT_SECONDS);
     }
     private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup,int timeoutSeconds){
+        return local(owner,connection,task,cleanup,timeoutSeconds,"");
+    }
+    private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup,int timeoutSeconds,String operation){
         long reservation=!connection.isEmpty()&&DatabaseTransport.of(connections.profile(connection))!=DatabaseTransport.JDBC?64L<<20:JOB_RESERVATION;
         reap();if(jobs.size()>=32||reservedBytes()+reservation>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs (native operations reserve 64 MiB including temporary decoding)");}
-        Job job=new Job(owner,connection);job.reservation=reservation;jobs.put(job.id,job);
+        Job job=new Job(owner,connection);job.operation=operation;job.overallTimeoutSeconds=timeoutSeconds;job.reservation=reservation;jobs.put(job.id,job);
         try{workers.execute(()->{
             job.started=System.currentTimeMillis();job.state="running";job.thread=Thread.currentThread();
-            var deadline=timer.schedule(()->cancel(job),timeoutSeconds,TimeUnit.SECONDS);
+            var deadline=operation.isEmpty()?timer.schedule(()->cancel(job,"deadline_exceeded"),timeoutSeconds,TimeUnit.SECONDS):null;
+            if(!operation.isEmpty())job.beginActiveBudget(timeoutSeconds);
             try{if(job.cancelled||!alive.test(owner))throw new CancellationException();JsonNode result=task.run(job);
                 if((job.cancelled||!alive.test(owner))&&!"commit_acknowledged".equals(job.outcome))throw new CancellationException();byte[] bytes=Profiles.JSON.writeValueAsBytes(result);
                 if(bytes.length>job.byteLimit)throw new IllegalArgumentException("Setup result too large");job.bytes=bytes.length;job.result=result;job.state="complete";
-            }catch(Exception e){job.state=job.cancelled?"cancelled":"failed";job.error=job.cancelled?"Cancelled or deadline exceeded; a driver may take time to stop":e instanceof IllegalArgumentException?e.getMessage():"Connection setup failed; check driver, network, credentials and vault availability";job.exception=exceptionInfo(e);}
-            finally{deadline.cancel(false);job.thread=null;Thread.interrupted();try{cleanup.run();}finally{job.reservation=JOB_RESERVATION;job.finished=System.currentTimeMillis();}}
+            }catch(Exception e){job.state=job.cancelled?"cancelled":"failed";job.error=operation.isEmpty()?(job.cancelled?"Cancelled or deadline exceeded; a driver may take time to stop":e instanceof IllegalArgumentException?e.getMessage():"Connection setup failed; check driver, network, credentials and vault availability"):comparisonError(job,e);job.exception=exceptionInfo(e);}
+            finally{if(deadline!=null)deadline.cancel(false);if(!operation.isEmpty())job.stopActiveBudget();job.thread=null;Thread.interrupted();try{cleanup.run();}finally{job.reservation=JOB_RESERVATION;job.finished=System.currentTimeMillis();}}
         });}catch(RejectedExecutionException e){jobs.remove(job.id);cleanup.run();throw new IllegalArgumentException("DBA queue full");}return job.json();
+    }
+    private static String comparisonError(Job job,Exception error){
+        String context=job.failureContext!=null?job.failureContext:job.progress.isBlank()?(job.operation.equals("connection_test")?"Testing connection":job.operation):job.progress;
+        long elapsed=Math.max(0,(System.currentTimeMillis()-job.started)/1000);
+        if(job.cancelled){
+            job.failureCode=job.cancellationReason;
+            if(job.cancellationReason.equals("deadline_exceeded"))return "Comparison deadline exceeded after "+elapsed+"s (limit "+job.overallTimeoutSeconds+"s) during "+context+". Reduce the scope or increase Comparison timeout in DBA settings.";
+            return "Cancelled by user during "+context+" after "+elapsed+"s.";
+        }
+        for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof SQLTimeoutException||cause instanceof SQLException sql&&"57014".equals(sql.getSQLState())){
+            job.failureCode="statement_timeout";return "Database statement timed out or was cancelled by the server during "+context+" (query limit "+job.statementTimeoutSeconds+"s). Check Query timeout and database activity.";
+        }
+        for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof SQLException sql&&CompareCatalog.fatal(sql)){
+            job.failureCode="database_connection_failure";return "Database connection or transaction failed during "+context+". The operation stopped; check the selected target and database availability before retrying.";
+        }
+        job.failureCode=error instanceof IllegalArgumentException?"comparison_validation":"database_failure";
+        return (error instanceof IllegalArgumentException?error.getMessage():"Database operation failed; inspect the error details and database permissions")+" — "+context+" ("+elapsed+"s).";
     }
     /** Only ApprovalQueue calls this after an authenticated human consumes a stored request. */
     ObjectNode approved(String principal,JsonNode request,Runnable validate,Runnable completed){
@@ -916,7 +990,8 @@ final class QueryJobs implements AutoCloseable {
     }
     void decision(String owner,String id,String decisionId,String action){if(!Set.of("cancel","continue","skip_similar").contains(action))throw new IllegalArgumentException("Unknown SQL error decision");require(owner,id).decide(decisionId,action);}
     synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0&&job.permissionDiscovery){job.releaseOnFinish=true;cancel(job);return;}if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
-    void cancel(Job job){synchronized(job){if(job.cancelled)return;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
+    void cancel(Job job){cancel(job,"user_cancelled");}
+    private void cancel(Job job,String reason){synchronized(job){if(job.cancelled||job.finished!=0||job.state.equals("complete"))return;job.cancellationReason=reason;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}for(Job child:job.children)cancel(child,reason);Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
     synchronized void cancelOwner(String owner){jobs.values().stream().filter(j->j.owner.equals(owner)).forEach(this::cancel);}
     synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->(j.connection.equals(id)||j.participatingConnections.contains(id))&&j.finished==0);}
     synchronized ObjectNode connectionState(String id){return Profiles.JSON.createObjectNode().put("connected",connections.connected(id)).put("busy",activeConnection(id));}

@@ -20,7 +20,7 @@ final class CompareSql {
         Plan(Inventory source,Inventory destination,Target from,Target to,JsonNode request){
             this.source=source;this.destination=destination;this.from=from;this.to=to;engine=source.engine;
             destructive=request.path("destructiveSchema").asBoolean();dataMode=request.path("dataMode").asText("upsert");sequenceMode=request.path("sequenceMode").asText("advance");sync=request.path("syncSequences").asBoolean();
-            if(!DATA_MODES.contains(dataMode)||!Set.of("advance","exact").contains(sequenceMode))throw new IllegalArgumentException("Invalid comparison mode");
+            if(!dataMode.equals("none")&&!DATA_MODES.contains(dataMode)||!Set.of("advance","exact").contains(sequenceMode))throw new IllegalArgumentException("Invalid comparison mode");
         }
         String schema(String sourceSchema){return !from.allSchemas()&&from.schema().equals(sourceSchema)?to.schema():sourceSchema;}
         String target(JsonNode object){return qualified(engine,schema(str(object,"schema")),str(object,"name"));}
@@ -32,6 +32,7 @@ final class CompareSql {
         void emit(Writer writer,List<String> statements)throws Exception{for(String sql:statements){writer.write(sql);writer.write(sql.stripTrailing().endsWith(";")?"\n\n":";\n\n");}}
         void header(Writer w)throws Exception{
             w.write("-- Database comparison: "+engine+" "+comment(source.version)+" -> "+comment(destination.version)+"\n-- Generated: "+java.time.Instant.now()+"\n-- Selected objects: "+selected.size()+"\n-- Generated from captured metadata and data. Review and execute with a SQL client.\n-- Destination: "+comment(to.database())+" / "+comment(to.allSchemas()?"all user schemas":to.schema())+"\n-- Destination-only objects are preserved. No statement has been executed by the comparer.\n-- Run against the intended destination with exclusive maintenance access; catalog and data changes after capture can invalidate this script.\n");
+            if(dataMode.equals("none"))w.write("-- Structure only: table data is excluded. Sequence values are synchronized only when explicitly selected.\n");
             if(Set.of("mysql","mariadb","h2").contains(engine))w.write("-- This engine commits DDL independently. A failure may leave partially applied changes.\n");
             if(engine.equals("postgresql"))w.write("BEGIN;\nSET LOCAL check_function_bodies = false;\n");
             w.write("\n");for(String warning:warnings)w.write("-- "+comment(warning)+"\n");emit(w,before);
@@ -44,7 +45,8 @@ final class CompareSql {
         Plan plan=new Plan(source,destination,from,to,request);
         if(!request.path("objects").isArray()||request.path("objects").isEmpty())throw new IllegalArgumentException("Select at least one object");
         Map<String,ObjectNode> ids=new HashMap<>();for(ObjectNode o:source.objects.values())ids.put(str(o,"id"),o);
-        for(JsonNode option:request.path("objects")){
+        for(JsonNode requested:request.path("objects")){
+            ObjectNode option=requested.deepCopy();if(plan.dataMode.equals("none"))option.put("includeData",false);
             ObjectNode object=ids.get(str(option,"id"));if(object==null)throw new IllegalArgumentException("Unknown selected object; refresh the comparison");
             if(!object.path("supported").asBoolean())throw new IllegalArgumentException(str(object,"name")+": "+str(object,"reason"));
             String k=key(str(object,"schema"),str(object,"kind"),str(object,"name"));

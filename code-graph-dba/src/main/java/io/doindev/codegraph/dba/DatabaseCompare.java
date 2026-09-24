@@ -42,14 +42,14 @@ final class DatabaseCompare implements AutoCloseable {
             boolean transactional=c.getMetaData().supportsTransactions();
             if(transactional){if(c.getMetaData().supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ))c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);c.setAutoCommit(false);}
             try{
-                if(ExplainPlans.engine(c.getMetaData()).equals("postgresql"))try(Statement setup=c.createStatement()){job.statement=setup;setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET LOCAL search_path = pg_catalog");setup.execute("SET LOCAL TIME ZONE 'UTC'");setup.execute("SET LOCAL lock_timeout = '3s'");}
+                if(ExplainPlans.engine(c.getMetaData()).equals("postgresql"))try(Statement setup=c.createStatement()){job.statement=setup;setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET LOCAL search_path = pg_catalog");setup.execute("SET LOCAL TIME ZONE 'UTC'");setup.execute("SET LOCAL lock_timeout = '3s'");setup.execute("SET LOCAL statement_timeout = "+job.remainingSeconds()*1000);}
                 return action.run(c);
             }finally{job.statement=null;if(transactional)c.rollback();}
         }
     }
     ObjectNode test(String owner,JsonNode request){
         human(owner);Target target=target(request);
-        return jobs.comparison(owner,Set.of(target.connectionId()),job->read(job,target,c->{
+        return jobs.comparison(owner,Set.of(target.connectionId()),"connection_test",job->read(job,target,c->{
             String engine=engine(c),database=Objects.toString(c.getCatalog(),target.database());
             ObjectNode result=Profiles.JSON.createObjectNode().put("engine",engine).put("version",c.getMetaData().getDatabaseProductVersion()).put("supported",supported(c,engine)).put("database",database);
             ArrayNode databases=result.putArray("databases");for(JsonNode n:pages(job,c,"databases",database,""))databases.add(n.path("database").asText(str(n,"name")));if(databases.isEmpty())databases.add(database);
@@ -68,18 +68,19 @@ final class DatabaseCompare implements AutoCloseable {
     synchronized Target receipt(String owner,String id){human(owner);Receipt receipt=receipts.get(id);if(receipt==null||!receipt.owner.equals(owner)||receipt.expires<System.currentTimeMillis())throw new IllegalArgumentException("Target test expired; test the selection again");current(receipt.target);return receipt.target;}
     ObjectNode catalog(String owner,JsonNode request){
         Target target=receipt(owner,str(request,"sourceReceipt"));
-        return jobs.comparison(owner,Set.of(target.connectionId()),job->read(job,target,c->{
+        return jobs.comparison(owner,Set.of(target.connectionId()),"catalog",job->read(job,target,c->{
             ArrayNode objects=Profiles.JSON.createArrayNode();List<String> schemas=new ArrayList<>();
             if(target.allSchemas()){if(Set.of("mysql","mariadb").contains(ExplainPlans.engine(c.getMetaData())))schemas.add(target.database());else for(JsonNode n:pages(job,c,"schemas",target.database(),""))if(!system(str(n,"schema")))schemas.add(str(n,"schema"));}
             else schemas.add(target.schema());
             for(String schema:schemas)for(JsonNode kind:request.path("objectTypes"))for(JsonNode n:pages(job,c,kind.asText(),target.database(),schema)){
                 if(objects.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Catalog exceeds 10,000 objects");String name=n.path("objectName").asText(str(n,"name"));
+                job.comparisonProgress("Loading object data options","source",schema+"."+name,objects.size(),0);
                 ObjectNode listed=objects.addObject().put("id",TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key(schema,kind.asText(),name))).substring(0,32)).put("name",name).put("schema",schema).put("kind",kind.asText());
                 if(kind.asText().equals("tables")){
                     ObjectNode object=item(schema,"tables",name),selection=Profiles.JSON.createObjectNode().put("key",str(n,"key"));selection.putObject("parent").put("kind","tables").put("database",target.database()).put("schema",schema).put("offset",n.path("_offset").asInt());
                     Savepoint point=c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL")?c.setSavepoint():null;
-                    try{table(job,c,new Inventory(ExplainPlans.engine(c.getMetaData()),target.database(),""),object,selection);listed.set("keys",object.path("keys"));listed.put("dataSupported",object.path("dataSupported").asBoolean()).put("dataReason",str(object,"dataReason"));}
-                    catch(SQLException|IllegalArgumentException error){if(point!=null)c.rollback(point);listed.put("dataSupported",false).put("dataReason","Data inspection is unavailable for this table");}
+                    try{table(job,c,new Inventory(ExplainPlans.engine(c.getMetaData()),target.database(),""),object,selection,n);listed.set("keys",object.path("keys"));listed.put("dataSupported",object.path("dataSupported").asBoolean()).put("dataReason",str(object,"dataReason"));}
+                    catch(SQLException|IllegalArgumentException error){check(job);if(error instanceof SQLException sql&&fatal(sql))throw error;if(point!=null)c.rollback(point);listed.put("dataSupported",false).put("dataReason","Data inspection is unavailable for this table");}
                     finally{if(point!=null)c.releaseSavepoint(point);}
                 }
             }
@@ -87,6 +88,7 @@ final class DatabaseCompare implements AutoCloseable {
         }),()->{});
     }
     synchronized ObjectNode start(String owner,JsonNode request)throws Exception{
+        validateDataMode(request);
         Target from=receipt(owner,str(request,"sourceReceipt")),to=receipt(owner,str(request,"destinationReceipt"));
         if(from.allSchemas()!=to.allSchemas())throw new IllegalArgumentException("Use the same scope mode for source and destination");
         if(!request.path("objectTypes").isArray()||request.path("objectTypes").isEmpty())throw new IllegalArgumentException("Select object types");
@@ -94,20 +96,22 @@ final class DatabaseCompare implements AutoCloseable {
         QueryJobs.RetainedReservation lease=jobs.retainAllowance(80L<<20);Comparison comparison=new Comparison(owner,from,to,request,lease);comparisons.put(comparison.id,comparison);comparison.busy=true;
         try{
             ObjectNode submitted=jobs.comparison(owner,new HashSet<>(List.of(from.connectionId(),to.connectionId())),job->{
-                comparison.activeJob=job;Inventory source=read(job,from,c->{job.progress="Inspecting source definitions";return capture(job,c,from);});
-                Inventory destination=read(job,to,c->{job.progress="Inspecting destination definitions";return capture(job,c,to);});
+                comparison.activeJob=job;var captured=jobs.comparisonReads(job,from.connectionId(),to.connectionId(),
+                    side->read(side,from,c->{side.comparisonProgress("Inspecting definitions","source","",0,0);return capture(side,c,from,kinds(request),sequenceValues(request));}),
+                    side->read(side,to,c->{side.comparisonProgress("Inspecting definitions","destination","",0,0);return capture(side,c,to,kinds(request),sequenceValues(request));}));
+                Inventory source=captured.source(),destination=captured.destination();
                 if(!source.engine.equals(destination.engine))throw new IllegalArgumentException("Source and destination must use the same engine");
                 CompareDiff diff=new CompareDiff(source,destination,from,to);CompareData data=new CompareData(directory,dataBudget);
                 synchronized(this){if(comparison.disposed){data.close();throw new IllegalArgumentException("Comparison closed");}comparison.diff=diff;comparison.data=data;}
                 Set<String> types=new HashSet<>();request.path("objectTypes").forEach(n->types.add(n.asText()));
                 Set<String> included=new HashSet<>();request.path("objectIds").forEach(n->included.add(n.asText()));
                 diff.objects.values().removeIf(o->!types.contains(str(o.source==null?o.destination:o.source,"kind"))||!included.isEmpty()&&!included.contains(o.id)&&o.source!=null);
-                for(JsonNode option:request.path("tableData"))if(option.path("includeData").asBoolean()){
+                for(JsonNode option:request.path("tableData"))if(!structureOnly(request)&&option.path("includeData").asBoolean()){
                     CompareDiff.ObjectDiff object=diff.objects.get(str(option,"id"));if(object==null||object.source==null||!str(object.source,"kind").equals("tables")||!object.source.path("dataSupported").asBoolean())throw new IllegalArgumentException("Table data is unavailable for selected object");
                     data.table(object,option);
                 }
-                read(job,from,c->{for(CompareData.Table table:data.tables.values()){job.progress="Reading source rows: "+str(table.source,"name");table.left=data.capture(job,c,source.engine,table,true);}return null;});
-                read(job,to,c->{for(CompareData.Table table:data.tables.values()){job.progress="Reading destination rows: "+str(table.source,"name");table.right=data.capture(job,c,destination.engine,table,false);}return null;});
+                if(!data.tables.isEmpty())read(job,from,c->{for(CompareData.Table table:data.tables.values()){job.comparisonProgress("Reading rows","source",str(table.source,"name"),0,data.tables.size());table.left=data.capture(job,c,source.engine,table,true);}return null;});
+                if(!data.tables.isEmpty())read(job,to,c->{for(CompareData.Table table:data.tables.values()){job.comparisonProgress("Reading rows","destination",str(table.source,"name"),0,data.tables.size());table.right=data.capture(job,c,destination.engine,table,false);}return null;});
                 for(CompareData.Table table:data.tables.values()){job.progress="Comparing rows: "+str(table.source,"name");data.compare(job,table);}
                 synchronized(this){if(comparison.disposed)throw new IllegalArgumentException("Comparison closed");comparison.ready=true;comparison.expires=System.currentTimeMillis()+TTL;}
                 return Profiles.JSON.createObjectNode().put("comparisonId",comparison.id).put("revision",diff.revision);
@@ -125,29 +129,48 @@ final class DatabaseCompare implements AutoCloseable {
     synchronized ObjectNode object(String owner,String id,String objectId){Comparison c=require(owner,id);CompareDiff.ObjectDiff object=c.diff.objects.get(objectId);if(object==null)throw new IllegalArgumentException("Unknown comparison object");ObjectNode result=object.json(true);CompareData.Table data=c.data.tables.get(objectId);if(data!=null)result.set("data",data.summary());return result;}
     synchronized ObjectNode rows(String owner,String id,String objectId,int offset,int limit,String status)throws Exception{return require(owner,id).data.page(objectId,offset,limit,status);}
     synchronized ObjectNode plan(String owner,String id,JsonNode request)throws Exception{
-        Comparison c=require(owner,id);CompareSql.Plan plan=c.diff.plan(request);CompareDataSql.validate(plan,c.data);ObjectNode result=Profiles.JSON.createObjectNode().put("revision",c.diff.revision);
+        Comparison c=require(owner,id);CompareSql.Plan plan=c.diff.plan(effectiveRequest(c,request));CompareDataSql.validate(plan,c.data);ObjectNode result=Profiles.JSON.createObjectNode().put("revision",c.diff.revision);
         ArrayNode statements=result.putArray("statements");for(String sql:plan.before)statements.add(sql);for(var d:plan.data)statements.add("-- Data: "+str(d.source(),"name")+" · "+plan.mode(d));for(String sql:plan.after)statements.add(sql);for(String sql:plan.state)statements.add(sql);return result;
     }
     synchronized ObjectNode generate(String owner,String id,JsonNode request)throws Exception{
-        Comparison c=require(owner,id);CompareSql.Plan validated=c.diff.plan(request);CompareDataSql.validate(validated,c.data);c.busy=true;artifacts.discard(owner,id);
+        Comparison c=require(owner,id);request=effectiveRequest(c,request);CompareSql.Plan validated=c.diff.plan(request);final JsonNode generationRequest=request;CompareDataSql.validate(validated,c.data);c.busy=true;artifacts.discard(owner,id);
         try{
-            ObjectNode job=jobs.comparison(owner,new HashSet<>(List.of(c.from.connectionId(),c.to.connectionId())),running->{
-                c.activeJob=running;Inventory source=read(running,c.from,connection->capture(running,connection,c.from));
-                Inventory dest=read(running,c.to,connection->{Inventory inventory=capture(running,connection,c.to);preflightColumns(running,connection,validated);return inventory;});
+            ObjectNode job=jobs.comparison(owner,new HashSet<>(List.of(c.from.connectionId(),c.to.connectionId())),"generate",running->{
+                c.activeJob=running;
+                var captured=jobs.comparisonReads(running,c.from.connectionId(),c.to.connectionId(),
+                    side->read(side,c.from,connection->{side.comparisonProgress("Revalidating definitions","source","",0,0);return capture(side,connection,c.from,kinds(c.options),sequenceValues(generationRequest));}),
+                    side->read(side,c.to,connection->{side.comparisonProgress("Revalidating definitions","destination","",0,0);Inventory inventory=capture(side,connection,c.to,kinds(c.options),sequenceValues(generationRequest));preflightColumns(side,connection,validated);return inventory;}));
+                Inventory source=captured.source(),dest=captured.destination();
                 if(!source.fingerprint().equals(c.diff.source.fingerprint())||!dest.fingerprint().equals(c.diff.destination.fingerprint()))throw new IllegalArgumentException("Database definitions changed; compare again");
-                try(CompareData fresh=new CompareData(directory,dataBudget)){
+                if(!validated.data.isEmpty())try(CompareData fresh=new CompareData(directory,dataBudget)){
                     read(running,c.from,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));if(table==null)throw new IllegalArgumentException("Compare table data first");CompareData.Snapshot snapshot=fresh.capture(running,connection,source.engine,table,true);if(!snapshot.fingerprint().equals(table.left.fingerprint()))throw new IllegalArgumentException("Source data changed; compare again");fresh.delete(snapshot.file());}return null;});
                     read(running,c.to,connection->{for(var choice:validated.data){CompareData.Table table=c.data.tables.get(str(choice.source(),"id"));CompareData.Snapshot snapshot=fresh.capture(running,connection,source.engine,table,false);if(!snapshot.fingerprint().equals(table.right.fingerprint()))throw new IllegalArgumentException("Destination data changed; compare again");fresh.delete(snapshot.file());}return null;});
                 }
                 // Refresh sequence observations without replacing the immutable reviewed definitions.
                 for(var entry:c.diff.source.objects.entrySet())if(str(entry.getValue(),"kind").equals("sequences")&&source.objects.containsKey(entry.getKey()))entry.getValue().set("state",source.objects.get(entry.getKey()).path("state"));
                 for(var entry:c.diff.destination.objects.entrySet())if(str(entry.getValue(),"kind").equals("sequences")&&dest.objects.containsKey(entry.getKey()))entry.getValue().set("state",dest.objects.get(entry.getKey()).path("state"));
-                CompareSql.Plan plan=c.diff.plan(request);running.progress="Writing ordered destination script";
+                CompareSql.Plan plan=c.diff.plan(generationRequest);running.comparisonProgress("Writing ordered destination script","destination","",0,plan.selected.size());
                 try(CompareArtifacts.Draft draft=artifacts.create(owner,id)){plan.header(draft.writer);CompareDataSql.write(running,plan,c.data,draft.writer);plan.footer(draft.writer);
                     synchronized(this){check(running);if(c.disposed)throw new IllegalArgumentException("Comparison closed");return draft.publish();}}
             },()->finished(c));
             c.jobIds.add(str(job,"id"));return job;
         }catch(Exception error){c.busy=false;throw error;}
+    }
+    static boolean structureOnly(JsonNode request){return request.path("dataMode").asText().equals("none");}
+    static void validateDataMode(JsonNode request){if(request.has("dataMode")&&!structureOnly(request)&&!CompareSql.DATA_MODES.contains(request.path("dataMode").asText()))throw new IllegalArgumentException("Invalid comparison data mode");}
+    static Set<String> kinds(JsonNode request){Set<String> kinds=new HashSet<>();request.path("objectTypes").forEach(n->kinds.add(n.asText()));return kinds;}
+    static boolean sequenceValues(JsonNode request){
+        if(!request.has("syncSequences"))return true; // Preserve older callers that choose sequence options during review.
+        if(request.path("syncSequences").asBoolean())return true;
+        for(JsonNode object:request.path("objects"))if(object.path("syncValues").asBoolean())return true;
+        return false;
+    }
+    static JsonNode effectiveRequest(Comparison comparison,JsonNode request){
+        validateDataMode(request);ObjectNode effective=request.deepCopy();
+        if(structureOnly(comparison.options)||structureOnly(request)){
+            effective.put("dataMode","none");for(JsonNode object:effective.path("objects"))((ObjectNode)object).put("includeData",false);
+        }
+        return effective;
     }
     static void preflightColumns(QueryJobs.Job job,Connection connection,CompareSql.Plan plan)throws Exception{
         for(var choice:plan.selected.values())if(str(choice.source(),"kind").equals("tables")&&choice.destination()!=null){

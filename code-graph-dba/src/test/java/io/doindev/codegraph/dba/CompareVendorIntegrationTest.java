@@ -76,5 +76,42 @@ class CompareVendorIntegrationTest {
             }
         }
     }
+    @Test @Timeout(180) void postgresStructureOnlyUsesScopedMetadataWithoutSequenceConsumerScans()throws Exception {
+        Assumptions.assumeTrue("postgresql".equals(System.getenv("DBA_COMPARE_VENDOR")));
+        try(Profiles profiles=new Profiles(directory,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,30),owner->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,directory,owner->true)){
+            String source=profiles.put(null,profile("postgresql","Source scope",System.getenv("DBA_COMPARE_SOURCE"))).path("id").asText();
+            String destination=profiles.put(null,profile("postgresql","Destination scope",System.getenv("DBA_COMPARE_DESTINATION"))).path("id").asText();
+            try(Connection a=connections.open(source);Connection b=connections.open(destination);Statement left=a.createStatement();Statement right=b.createStatement()){
+                a.setAutoCommit(true);b.setAutoCommit(true);left.execute("CREATE SCHEMA src_scope");right.execute("CREATE SCHEMA dst_scope");
+                for(int i=0;i<150;i++)left.execute("CREATE TABLE src_scope.item_"+i+"(id INT PRIMARY KEY,note TEXT)");
+                left.execute("CREATE SEQUENCE src_scope.counter;CREATE TABLE src_scope.consumer(id BIGINT DEFAULT nextval('src_scope.counter'));CREATE VIEW src_scope.unrelated_view AS SELECT 1 AS untouched");
+                var target=compare.target(Profiles.JSON.createObjectNode().put("connectionId",source).put("schema","src_scope"));
+                java.util.concurrent.atomic.AtomicInteger bulkReads=new java.util.concurrent.atomic.AtomicInteger();
+                DatabaseCompareTest.finish(jobs,jobs.comparison("human",Set.of(source),job->compare.read(job,target,connection->{
+                    Connection observed=(Connection)java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(),new Class<?>[]{Connection.class},(proxy,method,args)->{
+                        if(method.getName().equals("prepareStatement")&&args[0] instanceof String sql){
+                            if(sql.contains("WITH dependencies AS"))bulkReads.incrementAndGet();
+                            if(sql.matches("(?is)^\\s*SELECT\\s+(MAX|MIN)\\(.*"))throw new IllegalArgumentException("Structure-only must not scan sequence consumers");
+                        }
+                        try{return method.invoke(connection,args);}catch(java.lang.reflect.InvocationTargetException error){throw error.getCause();}
+                    });
+                    var inventory=CompareCatalog.capture(job,observed,target,Set.of("tables","sequences"),false);
+                    assertFalse(inventory.objects.containsKey(CompareCatalog.key("src_scope","views","unrelated_view")));
+                    assertTrue(inventory.objects.containsKey(CompareCatalog.key("src_scope","sequences","counter")));
+                    return Profiles.JSON.createObjectNode().put("objects",inventory.objects.size());
+                }),()->{}));
+                assertEquals(1,bulkReads.get());
+                ObjectNode input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,source,"src_scope")).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,destination,"dst_scope")).put("dataMode","none").put("syncSequences",false);
+                input.putArray("objectTypes").add("tables").add("sequences");
+                long started=System.nanoTime();String id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();
+                left.execute("CREATE OR REPLACE VIEW src_scope.unrelated_view AS SELECT 2 AS untouched");
+                ObjectNode selection=DatabaseCompareTest.select(compare,id).put("dataMode","none").put("syncSequences",false);
+                JsonNode artifact=DatabaseCompareTest.finish(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();
+                assertFalse(script.contains("unrelated_view"));assertFalse(script.matches("(?s).*\\b(INSERT INTO|UPDATE |DELETE FROM|MERGE INTO|TRUNCATE )\\b.*"));right.execute(script);
+                try(ResultSet rows=right.executeQuery("SELECT count(*) FROM information_schema.tables WHERE table_schema='dst_scope' AND table_type='BASE TABLE'")){assertTrue(rows.next());assertEquals(151,rows.getInt(1));}
+                System.out.println("COMPARE_SCOPED_STRUCTURE_VERIFIED 151 tables, bulk dependencies, no consumer scans; elapsedMs="+java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started));
+            }
+        }
+    }
     static ObjectNode profile(String engine,String name,String url){return Profiles.JSON.createObjectNode().put("name",name).put("templateId",engine).put("driverClass",DatabaseCatalog.get(engine).driver()).put("jar",System.getenv("DBA_COMPARE_JAR")).put("url",url).put("username",System.getenv("DBA_COMPARE_USER")).put("password","compare-fixture-only").put("readOnly",false);}
 }

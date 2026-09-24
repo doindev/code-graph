@@ -359,3 +359,47 @@ Generation uses the observed product/version, including PostgreSQL-compatible pr
 ## Database scan-status follow-up
 
 The requested catalog scan monitor is now implemented separately from comparison generation. See [scan monitoring and lifecycle](project-database-context.md#scan-status-and-last-run-details). It provides current and last run timing, phases, counts and failures, per-target queue state, passive browser monitoring, and revision-based MCP waits. Compare remains a script-generation workflow; catalog scan status does not execute comparison output.
+
+
+## Comparison timeout and structure-only hardening (2026-09-24)
+
+Catalog loading, Compare, and Generate Script have an independent overall deadline,
+900 seconds by default. Set **Comparison timeout (seconds)** in DBA resource settings
+or use `--dba-compare-timeout` (30–3600 seconds). Connectivity tests and individual
+statements retain the ordinary query timeout. Active comparison jobs retain their
+admitted deadline when settings change.
+
+**Structure only — no data** is the default data mode. Other modes enable per-table
+opt-in; returning to structure-only suppresses retained data selections on both the
+client and server. Sequence definitions are independent of the optional **Sync sequence
+values** checkbox. Without value synchronization, PostgreSQL sequence-consumer tables
+are not scanned for minimum/maximum values. Older API callers that omit `dataMode`
+retain their existing explicit per-table behavior.
+
+PostgreSQL captures selected categories and their dependency closure, including
+incoming dependents, using one bounded dependency query. Catalog nodes already resolved
+in the read transaction are reused rather than resolving each object's browser page
+again. Generation repeats the same capture scope and verifies definition/data
+fingerprints before publishing an artifact.
+
+JDK 25 virtual workers retain bounded job admission. Independent source/destination
+connections can read metadata concurrently (at most two readers per comparison).
+A shared connection or a one-job configuration uses serial reads. Both readers share
+the parent's deadline and are cancelled and joined before cleanup or terminal status.
+Failures distinguish cancellation, overall expiration, individual statement timeout,
+and database/validation errors, with phase/object context and elapsed progress.
+A failed comparison preserves UI selections; failed generation preserves completed
+review evidence and discards incomplete output so generation can be retried.
+
+The Databases step discovers available databases/schemas as selections change, without
+requiring a manual Test connection action. **Choose object types** freshly validates
+both selected targets, reports either target's failure on the current page, and advances
+only when both are ready. Earlier discovery receipts do not substitute for this check.
+
+Validation: 50 targeted Java tests passed, including deadline/cancellation cleanup,
+parallel-reader cancellation, structure-only enforcement, stale-data retry, and fatal
+connection failures. Three live PostgreSQL 16.14 tests passed, executing generated
+scripts and checking a 151-table scoped comparison. The existing postgres:16 image
+was reused and the test-owned containers were removed. The browser comparison suite
+passed automatic connection failure/retry, retained selections, structure-only output,
+independent sequence synchronization, review, copy/save, viewport, and disposal checks.

@@ -19,7 +19,7 @@ final class CompareCatalog {
     }
     static final class Inventory {
         final String engine,database,version;final SortedMap<String,ObjectNode> objects=new TreeMap<>();final SortedSet<String> schemas=new TreeSet<>();
-        long bytes;
+        long bytes;boolean sequenceValues=true;
         Inventory(String engine,String database,String version){this.engine=engine;this.database=database;this.version=version;}
         void add(ObjectNode object)throws Exception{
             if(objects.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 objects; select a smaller scope");
@@ -43,6 +43,13 @@ final class CompareCatalog {
         n.putArray("dependencies");return n;
     }
     static boolean system(String schema){String s=schema.toLowerCase(Locale.ROOT);return s.startsWith("pg_")||Set.of("information_schema","sys","system","mysql","performance_schema","sysibm","syscat","sysstat").contains(s);}
+    static boolean fatal(SQLException failure){
+        for(SQLException current=failure;current!=null;current=current.getNextException()){
+            if(current instanceof SQLTimeoutException||current instanceof SQLRecoverableException||current instanceof SQLNonTransientConnectionException)return true;
+            String state=current.getSQLState();if(state!=null&&state.length()>=2&&Set.of("08","28","40","53","57","58").contains(state.substring(0,2)))return true;
+        }
+        return false;
+    }
     static void check(QueryJobs.Job job){if(job.cancelled||Thread.currentThread().isInterrupted())throw new CancellationException();job.remainingSeconds();}
     static ArrayNode pages(QueryJobs.Job job,Connection c,String kind,String database,String schema)throws Exception{
         ArrayNode nodes=Profiles.JSON.createArrayNode();int offset=0;
@@ -52,37 +59,48 @@ final class CompareCatalog {
             int next=page.path("nextOffset").asInt(-1);if(next<0)break;if(next<=offset)throw new IllegalArgumentException("Invalid metadata pagination");offset=next;
         }while(true);return nodes;
     }
-    static Inventory capture(QueryJobs.Job job,Connection c,Target target)throws Exception{
-        String engine=engine(c);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion());
+    record CatalogObject(ObjectNode object,ObjectNode selection,JsonNode node) {}
+    static Inventory capture(QueryJobs.Job job,Connection c,Target target)throws Exception{return capture(job,c,target,Set.of(),true);}
+    static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
+        String engine=engine(c);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion());inv.sequenceValues=sequenceValues;
         if(target.allSchemas()){
             if(Set.of("mysql","mariadb").contains(engine))inv.schemas.add(inv.database);
-            else for(JsonNode n:pages(job,c,"schemas",inv.database,"")){String s=n.path("schema").asText(str(n,"name"));if(!system(s))inv.schemas.add(s);}
+            else for(JsonNode n:pages(job,c,"schemas",inv.database,"")){String schema=n.path("schema").asText(str(n,"name"));if(!system(schema))inv.schemas.add(schema);}
         }else inv.schemas.add(target.schema());
-        for(String schema:inv.schemas){
-            for(JsonNode category:pages(job,c,"schema",inv.database,schema)){
-                String kind=str(category,"kind");if(kind.equals("scheduled_jobs"))continue;
-                ArrayNode nodes;
-                try{nodes=pages(job,c,kind,inv.database,schema);}catch(SQLException|IllegalArgumentException failure){throw new IllegalArgumentException("Cannot completely inspect "+schema+" / "+kind+": "+failure.getMessage(),failure);}
-                for(JsonNode node:nodes){
-                    check(job);ObjectNode out=item(schema,kind,node.path("objectName").asText(str(node,"name")));out.put("oid",str(node,"oid"));
-                    ObjectNode selection=Profiles.JSON.createObjectNode().put("key",str(node,"key"));
-                    selection.putObject("parent").put("kind",kind).put("database",inv.database).put("schema",schema).put("offset",node.path("_offset").asInt());
-                    out.set("selection",selection);
-                    Savepoint savepoint=c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL")?c.setSavepoint():null;
-                    try{
-                        if(!supported(c,engine))out.put("reason","Comparison generation is unavailable for "+engine+"; this connection remains available for browsing");
-                        else if(kind.equals("tables"))table(job,c,inv,out,selection);
-                        else object(job,c,inv,out,selection);
-                    }catch(SQLException|IllegalArgumentException failure){if(savepoint!=null)c.rollback(savepoint);out.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Definition could not be inspected"));}
-                    if(savepoint!=null)c.releaseSavepoint(savepoint);inv.add(out);
-                }
+        Map<String,CatalogObject> catalog=new TreeMap<>();String side=job.comparisonProgress==null?"":job.comparisonProgress.path("side").asText();
+        for(String schema:inv.schemas)for(JsonNode category:pages(job,c,"schema",inv.database,schema)){
+            String kind=str(category,"kind");if(kind.equals("scheduled_jobs"))continue;
+            job.comparisonProgress("Listing objects",side,schema+" / "+kind,catalog.size(),0);
+            ArrayNode nodes;
+            try{nodes=pages(job,c,kind,inv.database,schema);}catch(SQLException|IllegalArgumentException failure){check(job);throw new IllegalArgumentException("Cannot completely inspect "+schema+" / "+kind+": "+failure.getMessage(),failure);}
+            for(JsonNode node:nodes){
+                check(job);if(catalog.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 objects; select a smaller scope");
+                ObjectNode out=item(schema,kind,node.path("objectName").asText(str(node,"name")));out.put("oid",str(node,"oid"));
+                ObjectNode selection=Profiles.JSON.createObjectNode().put("key",str(node,"key"));
+                selection.putObject("parent").put("kind",kind).put("database",inv.database).put("schema",schema).put("offset",node.path("_offset").asInt());
+                out.set("selection",selection);catalog.put(key(schema,kind,str(out,"name")),new CatalogObject(out,selection,node));
             }
         }
-        if(engine.equals("postgresql"))pgDependencies(job,c,inv);else viewDependencies(inv);
-        return inv;
+        ComparePostgresScope dependencies=engine.equals("postgresql")?ComparePostgresScope.read(job,c,catalog):null;
+        Set<String> included=dependencies==null?catalog.keySet():dependencies.closure(catalog,selectedKinds);
+        int processed=0;boolean enabled=supported(c,engine);
+        for(String identity:included){
+            CatalogObject entry=catalog.get(identity);ObjectNode out=entry.object();String kind=str(out,"kind");check(job);
+            job.comparisonProgress("Inspecting definitions",side,str(out,"schema")+"."+str(out,"name"),processed,included.size());
+            Savepoint savepoint=engine.equals("postgresql")?c.setSavepoint():null;
+            try{
+                if(!enabled)out.put("reason","Comparison generation is unavailable for "+engine+"; this connection remains available for browsing");
+                else if(kind.equals("tables"))table(job,c,inv,out,entry.selection(),entry.node());
+                else object(job,c,inv,out,entry.selection(),entry.node());
+            }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;if(savepoint!=null)c.rollback(savepoint);out.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Definition could not be inspected"));}
+            if(savepoint!=null)c.releaseSavepoint(savepoint);inv.add(out);processed++;
+        }
+        if(dependencies!=null)dependencies.apply(inv);else viewDependencies(inv);
+        job.comparisonProgress("Definitions captured",side,"",processed,included.size());return inv;
     }
-    static void table(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{
-        ObjectNode snap=TableDesigner.load(job,c,selection,false);out.set("columns",snap.path("columns"));out.put("oid",snap.path("objectIdentity").asText(str(out,"oid")));
+    static void table(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{table(job,c,inv,out,selection,null);}
+    static void table(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection,JsonNode node)throws Exception{
+        ObjectNode snap=node==null?TableDesigner.load(job,c,selection,false):TableDesigner.loadCatalogObject(job,c,selection,node);out.set("columns",snap.path("columns"));out.put("oid",snap.path("objectIdentity").asText(str(out,"oid")));
         String schema=str(out,"schema"),name=str(out,"name"),engine=inv.engine;DatabaseMetaData m=c.getMetaData();
         out.put("supported",true).put("reason","").put("dataSupported",true);
         ArrayNode external=out.putArray("externalDependents");
@@ -160,10 +178,11 @@ final class CompareCatalog {
         for(JsonNode column:out.path("columns"))if(!str(column,"generated").isEmpty())throw new IllegalArgumentException("Generated columns require a dedicated comparison adapter");
         if(out.path("triggers").size()>0)out.put("dataSupported",false).put("dataReason","Data comparison with table triggers is unavailable");
     }
-    static void object(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{
+    static void object(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{object(job,c,inv,out,selection,null);}
+    static void object(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection,JsonNode node)throws Exception{
         String kind=str(out,"kind");if(!Set.of("views","materialized_views","sequences","indexes","functions","procedures","types","domains").contains(kind))return;
         if(kind.equals("indexes")&&!inv.engine.equals("postgresql")){out.put("implicit",true).put("reason","Indexes are managed with their table");return;}
-        ObjectNode snap=ObjectDesigner.load(job,c,selection,false);out.set("fields",snap.path("fields"));out.put("ddl",str(snap,"ddl")).put("routineIdentity",str(snap,"routineIdentity"));
+        ObjectNode snap=node==null?ObjectDesigner.load(job,c,selection,false):ObjectDesigner.loadCatalogObject(job,c,selection,node);out.set("fields",snap.path("fields"));out.put("ddl",str(snap,"ddl")).put("routineIdentity",str(snap,"routineIdentity"));
         if(kind.equals("views")||kind.equals("materialized_views")){
             ArrayNode signature=out.putArray("columnSignature");try(ResultSet cols=c.getMetaData().getColumns(c.getCatalog(),str(out,"schema"),str(out,"name"),"%")){while(cols.next())signature.addObject().put("name",cols.getString("COLUMN_NAME")).put("type",cols.getString("TYPE_NAME")).put("length",cols.getInt("COLUMN_SIZE")).put("scale",cols.getInt("DECIMAL_DIGITS"));}
             String query=str(snap.path("fields"),"query");if(query.isBlank())query=str(snap.path("fields"),"definition");
@@ -204,13 +223,13 @@ final class CompareCatalog {
                 ArrayNode consumers=query(job,c,"SELECT n.nspname AS schema,t.relname AS table,a.attname AS column FROM pg_depend d JOIN pg_attrdef f ON d.classid='pg_attrdef'::regclass AND f.oid=d.objid JOIN pg_class t ON t.oid=f.adrelid JOIN pg_namespace n ON n.oid=t.relnamespace JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=f.adnum WHERE d.refclassid='pg_class'::regclass AND d.refobjid=?::oid",str(out,"oid"));
                 if(!ownership.isMissingNode())consumers.add(ownership);out.set("consumers",consumers);
                 java.math.BigInteger extreme=null,step=CompareSql.integer(str(out.path("fields"),"increment"));
-                for(JsonNode consumer:consumers){JsonNode row=query(job,c,"SELECT "+(step.signum()>0?"MAX":"MIN")+"("+CompareSql.q(inv.engine,str(consumer,"column"))+")::text AS extreme FROM "+CompareSql.qualified(inv.engine,str(consumer,"schema"),str(consumer,"table"))).path(0);if(row.path("extreme").isNull())continue;var value=CompareSql.integer(str(row,"extreme"));if(extreme==null||step.signum()>0&&value.compareTo(extreme)>0||step.signum()<0&&value.compareTo(extreme)<0)extreme=value;}
+                if(inv.sequenceValues)for(JsonNode consumer:consumers){JsonNode row=query(job,c,"SELECT "+(step.signum()>0?"MAX":"MIN")+"("+CompareSql.q(inv.engine,str(consumer,"column"))+")::text AS extreme FROM "+CompareSql.qualified(inv.engine,str(consumer,"schema"),str(consumer,"table"))).path(0);if(row.path("extreme").isNull())continue;var value=CompareSql.integer(str(row,"extreme"));if(extreme==null||step.signum()>0&&value.compareTo(extreme)>0||step.signum()<0&&value.compareTo(extreme)<0)extreme=value;}
                 if(extreme!=null)((ObjectNode)state).put("extreme",extreme.toString());
             }else if(inv.engine.equals("h2")){
                 JsonNode state=query(job,c,"SELECT BASE_VALUE AS \"value\" FROM INFORMATION_SCHEMA.SEQUENCES WHERE SEQUENCE_SCHEMA=? AND SEQUENCE_NAME=?",schema,name).path(0);out.set("state",state);if(!state.path("value").isNull())modes.add("advance").add("exact");
             }
             if(modes.isEmpty())out.put("stateReason","Read-only sequence state synchronization is unavailable for this engine");
-        }catch(SQLException failure){if(statePoint!=null)c.rollback(statePoint);modes.removeAll();out.put("stateReason","Sequence state is not readable with this connection");}finally{if(statePoint!=null)c.releaseSavepoint(statePoint);}
+        }catch(SQLException failure){check(job);if(fatal(failure))throw failure;if(statePoint!=null)c.rollback(statePoint);modes.removeAll();out.put("stateReason","Sequence state is not readable with this connection");}finally{if(statePoint!=null)c.releaseSavepoint(statePoint);}
     }
     static boolean truth(JsonNode n){return Set.of("true","t","YES","yes","1").contains(n.asText());}
     static ArrayNode query(QueryJobs.Job job,Connection c,String sql,Object... args)throws Exception{
