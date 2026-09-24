@@ -1,5 +1,73 @@
 import {approvalHeaders} from './approval-client.js';
 import {renderNativeConnection,nativeConnectionDraft} from './native-connection-editor.js';
+// Decode only connection forms the field editor can round-trip. Descriptors, failover
+// lists and other advanced URLs remain editable verbatim rather than showing defaults.
+function connectionUrlFields(template,url){
+  const id=template.id,hostPattern='(\\[[^\\]]+\\]|[^:/?#;,\\s@]+)',decode=value=>decodeURIComponent(value);
+  let match,prefix,host,port,tail,database='',rawDatabase='',before='',after='',account='';
+  try{
+    if(id==='oracle'){
+      match=url.match(new RegExp('^(jdbc:oracle:thin:@(?://)?)'+hostPattern+'(?::(\\d+))?([/:])([^?;:]+)(.*)$','i'));
+      if(!match)return null;
+      [,prefix,host,port,before,rawDatabase,after]=match;database=decode(rawDatabase);
+    }else{
+      match=url.match(new RegExp('^(jdbc:'+id+'://)'+hostPattern+'(?::(\\d+))?([/;?].*|)$','i'));
+      if(!match)return null;
+      [,prefix,host,port,tail]=match;
+      if(id==='sqlserver'){
+        // Braced SQL Server values can contain semicolons and escaped closing braces.
+        const properties=/;([^=;{}]+)=(\{(?:[^}]|}})*\}|[^;{}]*)(?=;|$)/gy;
+        let property,offset=0,found=false;
+        while(offset<tail.length){
+          properties.lastIndex=offset;property=properties.exec(tail);if(!property)return null;offset=properties.lastIndex;
+          if(property[1].toLowerCase()==='databasename'){
+            if(found)return null;found=true;rawDatabase=property[2];database=rawDatabase.startsWith('{')?rawDatabase.slice(1,-1).replaceAll('}}','}'):rawDatabase;
+            before=tail.slice(0,property.index+property[1].length+2);after=tail.slice(offset);
+          }
+        }
+        if(!found){before=tail+';databaseName=';after='';}
+      }else{
+        const path=tail.match(/^(\/([^?;:]*))?([?;:].*)?$/);if(!path)return null;
+        before=path[1]===undefined?'':'/';rawDatabase=path[2]??'';database=decode(rawDatabase);after=path[3]??'';
+        if(id==='snowflake'){if(database)return null;account=host+(port?':'+port:'');}
+      }
+    }
+    const effectivePort=port??template.port??'';
+    return {host,port:effectivePort,database,account,build(values){
+      if(id==='snowflake'){
+        const value=values.account.trim(),authority=value.includes('.')?value:value+'.snowflakecomputing.com';
+        return prefix+authority+before+rawDatabase+after;
+      }
+      const nextPort=values.port===effectivePort?(port?':'+port:''):(values.port?':'+values.port:''),nextHost=values.host.includes(':')&&!values.host.startsWith('[')?'['+values.host+']':values.host;
+      let nextDatabase=rawDatabase,nextBefore=before;
+      if(values.database!==database){
+        nextDatabase=id==='sqlserver'?(/[;{}]/.test(values.database)?'{'+values.database.replaceAll('}','}}')+'}':values.database):encodeURIComponent(values.database);
+        if(!nextBefore)nextBefore='/';
+      }
+      // An omitted database property remains omitted when only the URL mode changes.
+      if(id==='sqlserver'&&!rawDatabase&&!database&&values.database===database&&before===tail+';databaseName=')return prefix+nextHost+nextPort+tail;
+      return prefix+nextHost+nextPort+nextBefore+nextDatabase+after;
+    }};
+  }catch{return null;}
+}
+function connectionUrlProperties(url){
+  const values={};
+  if(/^jdbc:sqlserver:/i.test(url)){
+    const start=url.indexOf(';');if(start<0)return values;
+    const tail=url.slice(start),property=/;([^=;{}]+)=(\{(?:[^}]|}})*\}|[^;{}]*)(?=;|$)/gy;let offset=0,match;
+    while(offset<tail.length){property.lastIndex=offset;match=property.exec(tail);if(!match)return {};offset=property.lastIndex;values[match[1]]=match[2].startsWith('{')?match[2].slice(1,-1).replaceAll('}}','}'):match[2];}
+  }else if(/^jdbc:(h2|hsqldb):/i.test(url)){
+    const start=url.indexOf(';');if(start<0)return values;
+    const tail=url.slice(start),property=/;([^=;]+)=((?:\\.|[^;])*)(?=;|$)/gy;let offset=0,match;
+    while(offset<tail.length){property.lastIndex=offset;match=property.exec(tail);if(!match)return {};offset=property.lastIndex;values[match[1]]=match[2].replace(/\\;/g,';');}
+  }else if(url.includes('?')){
+    for(const [key,value] of new URLSearchParams(url.slice(url.indexOf('?')+1)))values[key]=value;
+  }else if(/^jdbc:db2:/i.test(url)){
+    const tail=url.match(/^jdbc:db2:\/\/[^/]+\/[^:]+:(.*)$/i)?.[1];
+    for(const item of (tail??'').split(';')){const at=item.indexOf('=');if(at>0)values[item.slice(0,at)]=item.slice(at+1);}
+  }
+  return values;
+}
 // Drafts and secrets live only in this dialog's memory; never local/session storage.
 export function connectionEditor({api,toast,saved,csrf}) {
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -16,7 +84,7 @@ export function connectionEditor({api,toast,saved,csrf}) {
   const driverFailure=el('dialog',null,'driver-failure');driverFailure.id='driver-failure';driverFailure.setAttribute('aria-labelledby','driver-failure-title');driverFailure.innerHTML='<h2 id="driver-failure-title">Driver download failed</h2><section class="driver-diagnostic"></section><div class="actions"><button id="driver-retry-install">Retry download</button><button id="driver-failure-close">Close</button></div>';document.body.append(driverFailure);
   driverFailure.querySelector('#driver-failure-close').onclick=()=>driverFailure.close();
   function diagnostic(container,value){container.replaceChildren();container.hidden=!value;if(!value)return;container.append(el('p',value.summary),el('p',value.guidance));if(value.exitCode!=null)container.append(el('p','Maven exit code: '+value.exitCode));container.append(el('pre',value.details||'No additional details available.'));container.append(el('p','Details are sanitized. Settings → Driver downloads configures Maven, mirrors and certificate trust.','muted'));}
-  let templates=[],template=null,profile=null,proposal=null,revision=0,receipt='',busy=null,fields={},props={},secretEdits={},descriptors=[],bundle=null,tab='General',dirty=false,driverStatus=null,shade='transparent',settingsChanged=false;
+  let templates=[],template=null,profile=null,proposal=null,revision=0,receipt='',busy=null,fields={},props={},secretEdits={},descriptors=[],bundle=null,tab='General',dirty=false,driverStatus=null,shade='transparent',settingsChanged=false,urlFields=null;
   const categories=['General','Driver','Authentication & TLS','Network','Driver properties','Pool & lifecycle'];
   const action=fn=>(...args)=>Promise.resolve().then(()=>fn(...args)).catch(e=>{$('ce-status').textContent=e.message;toast(e.message);});
   function changed(settings=true){if(settings){revision++;receipt='';settingsChanged=true;}dirty=true;updateButtons();}
@@ -27,7 +95,7 @@ export function connectionEditor({api,toast,saved,csrf}) {
   function close(outcome='cancelled'){revision++;receipt='';if(busy&&busy!=='starting')api('/jobs/'+busy+'/cancel','POST',{}).catch(()=>{});const done=proposal?.done;proposal=null;profile=null;template=null;props={};secretEdits={};fields={};$('ce-panels').replaceChildren();driverDialog.close();driverFailure.close();resultDialog.close();dialog.close();done?.(outcome);}
   $('ce-close').onclick=()=>{if(!dirty||confirm('Discard this unsaved connection draft?'))close();};dialog.addEventListener('cancel',e=>{e.preventDefault();$('ce-close').click();});
   function field(parent,key,label,value='',options={}){const wrapper=el('label',label);const n=el(options.multiline?'textarea':options.choices?'select':'input');n.id='ce-'+key;n.name=key;
-    if(options.choices)for(const choice of options.choices){const o=el('option',choice);o.value=choice;n.append(o);}else if(!options.multiline)n.type=options.type||'text';n.value=value??'';n.autocomplete='off';if(options.placeholder)n.placeholder=options.placeholder;if(options.required)n.required=true;if(options.readOnly)n.readOnly=true;
+    if(options.choices)for(const choice of [...new Set([...options.choices,...(value!=null&&value!==''?[String(value)]:[])])]){const o=el('option',choice);o.value=choice;n.append(o);}else if(!options.multiline)n.type=options.type||'text';n.value=value??'';n.autocomplete='off';if(options.placeholder)n.placeholder=options.placeholder;if(options.required)n.required=true;if(options.readOnly)n.readOnly=true;
     n.addEventListener('input',()=>{changed();options.oninput?.(n.value);});wrapper.append(n);if(options.help)wrapper.append(el('small',options.help,'muted'));parent.append(wrapper);fields[key]=n;return n;}
   function btn(parent,label,fn,title=label){const b=el('button',label);b.type='button';b.title=title;b.onclick=action(fn);parent.append(b);return b;}
   function get(key){return fields[key]?.value??'';}
@@ -46,15 +114,17 @@ export function connectionEditor({api,toast,saved,csrf}) {
       renderNativeConnection({template,profile,panel,field,el});
       selectTab('General');updateButtons();return;
     }
+    urlFields=connectionUrlFields(template,profile?.url??template.url);
     if(template.id==='snowflake'){
-      field(general,'account','Account identifier or hostname','',{placeholder:'organization-account.snowflakecomputing.com',oninput:generateUrl});
+      field(general,'account','Account identifier or hostname',profile?(urlFields?.account??''):'',{placeholder:'organization-account.snowflakecomputing.com',oninput:generateUrl});
       for(const k of ['warehouse','db','schema','role'])field(general,'sf-'+k,k==='db'?'Database':k[0].toUpperCase()+k.slice(1),props[k]??'',{oninput:v=>{if(v)props[k]=v;else delete props[k];}});
-    }else if(template.port){const row=el('div',null,'field-columns');general.append(row);field(row,'host','Host','localhost',{oninput:generateUrl});field(row,'port','Port',template.port,{oninput:generateUrl});field(general,'database','Database / service','database',{oninput:generateUrl});}
+    }else if(template.port){const row=el('div',null,'field-columns');general.append(row);field(row,'host','Host',urlFields?.host??'',{oninput:generateUrl});field(row,'port','Port',urlFields?.port??'',{oninput:generateUrl});field(general,'database','Database / service',urlFields?.database??'',{oninput:generateUrl});}
     field(general,'username','Username',profile?.username??'');
     field(general,'password','Password · write-only OS vault','',{type:'password',placeholder:profile?.hasCredential?'Unchanged unless replaced':'Not saved until Save'});
     field(general,'password-action','Saved password',profile?.hasCredential?'Keep':'Replace',{choices:['Keep','Replace','Remove']});
-    field(general,'url-mode','URL mode',profile||!template.port?'Edit URL':'Generate from fields',{choices:['Generate from fields','Edit URL'],oninput:()=>{fields.url.readOnly=get('url-mode')!=='Edit URL';if(fields.url.readOnly)generateUrl();}});
-    field(general,'url','JDBC URL · credentials must not appear here',profile?.url??template.url,{required:true,readOnly:!profile&&!!template.port,help:'URL properties and explicit driver properties cannot define the same setting.'});
+    field(general,'url-mode','URL mode',profile||!template.port?'Edit URL':'Generate from fields',{choices:['Generate from fields','Edit URL'],oninput:()=>{syncUrlFields();if(fields.url.readOnly)generateUrl();}});
+    field(general,'url','JDBC URL · credentials must not appear here',profile?.url??template.url,{required:true,readOnly:!profile&&!!template.port,oninput:syncUrlFields,help:'In Edit URL mode, address fields reflect this URL. Choose Generate from fields to edit a supported address while retaining URL options. Advanced descriptors and multiple hosts use Edit URL. URL properties and explicit driver properties cannot define the same setting.'});
+    syncUrlFields();
     const driver=panel('Driver');const coordinates=el('div',null,'field-columns');driver.append(coordinates);field(coordinates,'groupId','Maven group',bundle?.groupId??template.groupId);field(coordinates,'artifactId','Maven artifact',bundle?.artifactId??template.artifactId);field(coordinates,'version','Pinned version',bundle?.version??'');
     field(driver,'driverClass','Driver class · discovered or explicit override',profile?.driverClass??template.driverClass,{required:true});
     field(driver,'jars','Complete driver classpath · one JAR path per line',(profile?.jars??(profile?.jar?[profile.jar]:[])).join('\n'),{multiline:true,required:true});
@@ -71,15 +141,44 @@ export function connectionEditor({api,toast,saved,csrf}) {
       auth.append(el('p','RSA key-pair authentication is not SSH. Use an existing encrypted or unencrypted PKCS#8 PEM RSA key (2048+ bits). The matching public key must already be registered for this Snowflake user. Keys are never uploaded, copied or converted. Protect local file permissions.','muted'));
     }
     for(const category of ['Authentication & TLS','Network','Driver properties']){const p=panel(category);const search=el('input');search.type='search';search.placeholder='Filter properties…';search.setAttribute('aria-label','Search '+category+' properties');const list=el('div',null,'property-list');list.dataset.properties=category;search.oninput=()=>renderProperties(category,search.value);p.append(search,list);}
-    const properties=panel('Driver properties');btn(properties,'Discover installed driver properties',async()=>{const r=await job('properties',{...draft(),password:undefined,secretProperties:undefined});descriptors=r.properties;renderAllProperties();$('ce-status').textContent=r.catalog;});
+    const properties=panel('Driver properties');btn(properties,'Discover installed driver properties',async()=>{const r=await job('properties',{...draft(),password:undefined,secretProperties:undefined});descriptors=savedDescriptors(r.properties);renderAllProperties();$('ce-status').textContent=r.catalog;});
     const custom=el('div',null,'field-columns');properties.append(custom);field(custom,'custom-name','Additional property name','');field(custom,'custom-value','Value · unknown properties are secret','',{type:'password'});btn(properties,'Add property override',()=>{const key=get('custom-name').trim();if(!key)throw new Error('Enter a property name.');secretEdits[key]=get('custom-value');if(!descriptors.some(d=>d.name===key))descriptors.push({name:key,secret:true,category:'Driver properties',description:'Unverified custom property; write-only and stored in the OS vault.'});fields['custom-name'].value='';fields['custom-value'].value='';changed();renderAllProperties();});
     const pool=panel('Pool & lifecycle');for(const [key,label,hint] of [['maximumPoolSize','Maximum connections','2'],['minimumIdle','Minimum idle connections','0'],['connectionTimeout','Acquisition timeout (ms)','10000'],['validationTimeout','Validation timeout (ms)','3000'],['idleTimeout','Idle timeout (ms)','60000'],['maxLifetime','Maximum lifetime (ms)','300000']])field(pool,'pool-'+key,label,profile?.pool?.[key]??'',{type:'number',placeholder:'Runtime default: '+hint});pool.append(el('p','Blank values use runtime defaults; they are not explicit overrides. Global admission limits still apply. Idle connections consume resources.','muted'));
-    selectTab('General');renderAllProperties();updateButtons();
+    selectTab('General');syncUrlFields();renderAllProperties();updateButtons();
   }
   function selectTab(category){tab=category;[...$('ce-tabs').children].forEach((b,i)=>{b.setAttribute('aria-selected',categories[i]===category);b.tabIndex=categories[i]===category?0:-1;b.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();selectTab(categories[(i+(e.key==='ArrowRight'?1:5))%6]);$('ce-tabs').children[categories.indexOf(tab)].focus();}};});$('ce-panels').querySelectorAll('.settings-panel').forEach(p=>p.hidden=p.dataset.category!==category);}
-  function generateUrl(){if(!fields.url||get('url-mode')==='Edit URL')return;const host=get('host'),port=get('port'),db=encodeURIComponent(get('database'));let url='';if(template.id==='snowflake'){const account=get('account').trim();url='jdbc:snowflake://'+(account.includes('.')?account:account+'.snowflakecomputing.com')+'/';}else if(template.id==='oracle')url=`jdbc:oracle:thin:@//${host}:${port}/${db}`;else if(template.id==='sqlserver')url=`jdbc:sqlserver://${host}:${port};databaseName=${db}`;else if(template.port)url=`jdbc:${template.id==='postgresql'?'postgresql':template.id}://${host}:${port}/${db}`;if(url)fields.url.value=url;}
-  function renderProperties(category,filter=''){const list=$('ce-panels').querySelector(`[data-properties="${category}"]`);list.replaceChildren();const dedicated=template.id==='snowflake'?['authenticator','private_key_file','private_key_pwd','warehouse','db','schema','role']:[];
-    for(const d of descriptors.filter(d=>(d.category||'Driver properties')===category&&!dedicated.includes(d.name)&&d.name.toLowerCase().includes(filter.toLowerCase()))){const row=el('div',null,'property-row');const label=el('label');label.append(el('strong',d.name),el('small',d.description||'JDBC property'));const input=el(d.choices?'select':'input');if(d.choices){const empty=el('option','Driver default (not overridden)');empty.value='';input.append(empty);for(const choice of d.choices){const o=el('option',choice);o.value=choice;input.append(o);}}else input.type=d.secret?'password':'text';input.setAttribute('aria-label',d.name);input.autocomplete='off';input.placeholder=d.secret?(profile?.secretPropertyNames?.includes(d.name)?'Saved · keep unless replaced':'Write-only OS vault'):'Driver default: '+(d.default??'unspecified');input.value=d.secret?(secretEdits[d.name]??''):(props[d.name]??'');input.oninput=()=>{if(d.secret)secretEdits[d.name]=input.value;else props[d.name]=input.value;changed();};label.append(input);row.append(label);btn(row,'Reset',()=>{delete props[d.name];secretEdits[d.name]=null;changed();renderProperties(category,filter);},'Remove this override; use driver default');row.append(el('span',d.secret?'SECRET':d.source||'catalog','badge'));list.append(row);}}
+  function syncUrlFields(){
+    urlFields=connectionUrlFields(template,get('url'));
+    const supported=!!urlFields&&!!template.port,mode=fields['url-mode'];
+    mode.options[0].disabled=!supported;if(!supported)mode.value='Edit URL';
+    fields.url.readOnly=get('url-mode')!=='Edit URL';
+    for(const key of ['host','port','database','account'])if(fields[key]){
+      fields[key].value=urlFields?.[key]??'';fields[key].readOnly=!fields.url.readOnly;
+      fields[key].placeholder=urlFields?'':'Use the JDBC URL below';
+    }
+    const urlValues=connectionUrlProperties(get('url'));
+    if(template.id==='snowflake')for(const key of ['warehouse','db','schema','role'])if(fields['sf-'+key]){
+      const input=fields['sf-'+key],fromUrl=props[key]===undefined&&urlValues[key]!==undefined;
+      input.value=props[key]??urlValues[key]??'';input.readOnly=fromUrl;input.title=fromUrl?'Set in the JDBC URL; edit on General.':'';
+    }
+    if($('ce-panels').querySelector('[data-properties]'))renderAllProperties();
+  }
+  function generateUrl(){
+    if(!fields.url||get('url-mode')==='Edit URL'||!urlFields)return;
+    fields.url.value=urlFields.build({host:get('host'),port:get('port'),database:get('database'),account:get('account')});
+  }
+  function renderProperties(category,filter=''){const urlValues=connectionUrlProperties(get('url')),list=$('ce-panels').querySelector(`[data-properties="${category}"]`);list.replaceChildren();const dedicated=template.id==='snowflake'?['authenticator','private_key_file','private_key_pwd','warehouse','db','schema','role']:[];
+    const displayed=[...descriptors,...Object.keys(urlValues).filter(name=>!descriptors.some(d=>d.name.toLowerCase()===name.toLowerCase())).map(name=>({name,category:'Driver properties',description:'Configured in the JDBC URL'}))];
+    for(const d of displayed.filter(d=>(d.category||'Driver properties')===category&&!dedicated.includes(d.name)&&d.name.toLowerCase().includes(filter.toLowerCase()))){const urlKey=Object.keys(urlValues).find(key=>key.toLowerCase()===d.name.toLowerCase()),fromUrl=!d.secret&&props[d.name]===undefined&&urlKey!==undefined,value=d.secret?(secretEdits[d.name]??''):(props[d.name]??(fromUrl?urlValues[urlKey]:''));const row=el('div',null,'property-row');const label=el('label');label.append(el('strong',d.name),el('small',d.description||'JDBC property'));const input=el(d.choices?'select':'input');if(d.choices){const empty=el('option','Driver default (not overridden)');empty.value='';input.append(empty);for(const choice of [...new Set([...d.choices,...(value!==''?[String(value)]:[])])]){const o=el('option',choice);o.value=choice;input.append(o);}}else input.type=d.secret?'password':'text';input.setAttribute('aria-label',d.name);input.autocomplete='off';input.placeholder=d.secret?(profile?.secretPropertyNames?.includes(d.name)?'Saved · keep unless replaced':'Write-only OS vault'):'Driver default: '+(d.default??'unspecified');input.value=value;if(fromUrl){input.disabled=!!d.choices;input.readOnly=true;input.title='Set in the JDBC URL; edit on General.';}input.oninput=()=>{if(d.secret)secretEdits[d.name]=input.value;else props[d.name]=input.value;changed();};label.append(input);row.append(label);btn(row,'Reset',()=>{delete props[d.name];secretEdits[d.name]=null;changed();renderProperties(category,filter);},'Remove this override; use driver default').disabled=fromUrl;row.append(el('span',fromUrl?'JDBC URL':d.secret?'SECRET':d.source||'catalog','badge'));list.append(row);}}
+  function savedDescriptors(entries){
+    const result=entries.map(entry=>({...entry})),secrets=new Set(profile?.secretPropertyNames??[]);
+    for(const name of new Set([...Object.keys(props),...secrets])){
+      let entry=result.find(value=>value.name===name);
+      if(!entry){entry={name,category:'Driver properties',secret:secrets.has(name),description:'Saved property override'};result.push(entry);}
+      if(secrets.has(name))entry.secret=true;
+    }
+    return result;
+  }
   function renderAllProperties(){for(const c of ['Authentication & TLS','Network','Driver properties'])renderProperties(c);}
   function renderAppearance(parent){const box=el('fieldset',null,'connection-appearance');box.append(el('legend','Connection color'));const choices=el('div',null,'connection-color-choices'),preview=el('div','Connection row preview','connection-color-preview');preview.id='ce-color-preview';const picker=el('input');picker.type='color';picker.id='ce-color';picker.setAttribute('aria-label','Custom connection color');picker.value=shade==='transparent'?'#5796da':shade;const controls=[];
     const apply=value=>{shade=value;changed(false);render();};
@@ -87,7 +186,7 @@ export function connectionEditor({api,toast,saved,csrf}) {
     const custom=el('label','Custom shade');custom.append(picker);picker.oninput=()=>apply(picker.value);choices.append(custom);
     function render(){for(const b of controls)b.setAttribute('aria-pressed',String(b.dataset.color===shade));preview.dataset.color=shade;preview.style.backgroundColor=shade==='transparent'?'transparent':`color-mix(in srgb, ${shade} 24%, transparent)`;preview.textContent=shade==='transparent'?'Transparent · no color shade':shade.toUpperCase()+' · connection row preview';if(shade!=='transparent')picker.value=shade;}
     box.append(choices,preview,el('small','An identification aid, not an execution safeguard. Always verify the Script connection before running SQL.','muted'));parent.append(box);render();}
-  function draft(){if(template.transport&&template.transport!=='jdbc')return nativeConnectionDraft({template,profile,get,shade});const result={templateId:template.id,name:get('name'),color:shade,url:get('url'),driverClass:get('driverClass'),jars:get('jars').split('\n').map(s=>s.trim()).filter(Boolean),username:get('username'),readOnly:true,properties:{...props},secretProperties:{...secretEdits},pool:{}};if(profile)result.connectionId=profile.id;if(bundle)result.driverBundle=bundle;
+  function draft(){if(template.transport&&template.transport!=='jdbc')return nativeConnectionDraft({template,profile,get,shade});const result={templateId:template.id,name:get('name'),color:shade,url:get('url'),driverClass:get('driverClass'),jars:get('jars').split('\n').map(s=>s.trim()).filter(Boolean),username:get('username'),readOnly:profile?.readOnly??true,properties:{...props},secretProperties:{...secretEdits},pool:{}};if(profile)result.connectionId=profile.id;if(bundle)result.driverBundle=bundle;
     if(get('password-action')==='Remove')result.removePassword=true;else if(get('password')||get('password-action')==='Replace'&&profile)result.password=get('password');
     for(const key of ['maximumPoolSize','minimumIdle','connectionTimeout','validationTimeout','idleTimeout','maxLifetime'])if(get('pool-'+key)!=='')result.pool[key]=Number(get('pool-'+key));return result;}
   async function browse(kind){const r=await job('file-select',{kind});if(!r.available){toast(r.message);return;}if(!r.paths.length)return;if(kind==='key'){fields['key-file'].value=r.paths[0];props.private_key_file=r.paths[0];$('ce-key-status').textContent='Not validated';changed();}else{fields.jars.value=r.paths.join('\n');changed();await inspectDriver();}}
@@ -105,5 +204,5 @@ export function connectionEditor({api,toast,saved,csrf}) {
     try{const r=await job('draft-test',input);if(before!==revision||!dialog.open){$('ce-status').textContent='Settings changed during the test. Test the new draft again.';return;}receipt=r.receipt;updateButtons();if(andSave){await save(false);showTest(r);}else showTest(r);}catch(e){receipt='';updateButtons();showTest(null,e);}}
   async function save(untested){if(appearanceOnly()){await api('/connections/'+profile.id+'/appearance','PUT',{color:shade});dirty=false;close('saved');await saved();toast('Connection color saved.');return;}if(untested&&!confirm('Save without a successful connectivity test? Required fields, driver and vault checks still apply.'))return;if(profile&&profile.name!==get('name')&&!confirm('Renaming this connection invalidates its name-bound MCP grants. Review and reissue those grants afterward. Continue?'))return;const input=draft();input.receipt=receipt;input.saveUntested=untested;if(proposal){await api('/approvals/'+proposal.id+'/draft','PUT',input);dirty=false;close('revised');toast('Proposal revised. Review the updated diff before approval.');return;}const result=await api('/connections'+(profile?'/'+profile.id:''),profile?'PUT':'POST',input);dirty=false;close('saved');await saved();document.dispatchEvent(new CustomEvent('dba-connection-saved',{detail:{id:result.id}}));toast('Connection saved.');}
   $('ce-test').onclick=action(()=>test());$('ce-test-save').onclick=action(()=>test(true));$('ce-save').onclick=action(()=>save(false));$('ce-save-untested').onclick=action(()=>save(true));
-  const controller={close,async testSaved(p){await controller.open(p);await test();},async open(p=null){if(busy)throw new Error('A connection operation is still stopping.');proposal=null;templates=templates.length?templates:await api('/templates');profile=p;receipt='';revision++;dirty=false;settingsChanged=false;props={...(p?.properties??{})};secretEdits={};bundle=p?.driverBundle??null;template=p?templates.find(t=>t.id===(p.templateId||'custom')):null;if(p){descriptors=[...template.properties];for(const name of p.secretPropertyNames??[])if(!descriptors.some(d=>d.name===name))descriptors.push({name,category:'Driver properties',secret:true,description:'Saved custom property · write-only'});renderEditor();}else{$('ce-picker').hidden=false;$('ce-editor').hidden=true;$('ce-search').value='';$('ce-title').textContent='Choose your database';renderPicker();updateButtons();}dialog.showModal();if(!p)$('ce-search').focus();},async openProposal(request,done){if(busy)throw new Error('A connection operation is still stopping.');templates=templates.length?templates:await api('/templates');const p=await api('/approvals/'+request.id+'/draft');proposal={id:request.id,done};profile=p;receipt='';revision++;dirty=false;settingsChanged=false;props={...(p.properties??{})};secretEdits={};bundle=p.driverBundle??null;template=templates.find(t=>t.id===(p.templateId||'custom'));descriptors=[...template.properties];for(const name of p.secretPropertyNames??[])if(!descriptors.some(d=>d.name===name))descriptors.push({name,category:'Driver properties',secret:true,description:'Saved custom property · write-only'});renderEditor();dialog.showModal();$('ce-status').textContent='Agent-supplied secrets remain write-only. Test this exact draft or explicitly retain it as untested, then review the updated diff before approval.';}};return controller;
+  const controller={close,async testSaved(p){await controller.open(p);await test();},async open(p=null){if(busy)throw new Error('A connection operation is still stopping.');proposal=null;templates=templates.length?templates:await api('/templates');profile=p;receipt='';revision++;dirty=false;settingsChanged=false;props={...(p?.properties??{})};secretEdits={};bundle=p?.driverBundle??null;template=p?templates.find(t=>t.id===(p.templateId||'custom')):null;if(p){descriptors=savedDescriptors(template.properties);renderEditor();}else{$('ce-picker').hidden=false;$('ce-editor').hidden=true;$('ce-search').value='';$('ce-title').textContent='Choose your database';renderPicker();updateButtons();}dialog.showModal();if(!p)$('ce-search').focus();},async openProposal(request,done){if(busy)throw new Error('A connection operation is still stopping.');templates=templates.length?templates:await api('/templates');const p=await api('/approvals/'+request.id+'/draft');proposal={id:request.id,done};profile=p;receipt='';revision++;dirty=false;settingsChanged=false;props={...(p.properties??{})};secretEdits={};bundle=p.driverBundle??null;template=templates.find(t=>t.id===(p.templateId||'custom'));descriptors=savedDescriptors(template.properties);renderEditor();dialog.showModal();$('ce-status').textContent='Agent-supplied secrets remain write-only. Test this exact draft or explicitly retain it as untested, then review the updated diff before approval.';}};return controller;
 }
