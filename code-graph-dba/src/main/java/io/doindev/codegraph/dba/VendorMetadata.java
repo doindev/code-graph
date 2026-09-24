@@ -45,6 +45,7 @@ final class VendorMetadata {
     private static void addGroups(ArrayNode nodes,String e,String db,String s){for(String label:categories(e))node(nodes,kind(label),label,true,db,s);}
     private static void oracle(QueryJobs.Job job,Connection c,JsonNode r,ObjectNode out,int timeout)throws Exception{
         String k=r.path("kind").asText(),s=r.path("schema").asText(""),db=r.path("database").asText("");String sql;
+        if(k.equals("databases")){var target=OracleDialect.target(job,c,timeout);node((ArrayNode)out.path("nodes"),"database",target.database(),true,target.database(),"");return;}
         if(k.equals("schemas")){query(job,c,out,"SELECT username AS node_id,username AS node_name FROM all_users ORDER BY username",List.of(),"schema",true,db,"",timeout);return;}
         sql=switch(k){
             case "queues" -> "SELECT name AS node_id,name AS node_name FROM all_queues WHERE owner=? ORDER BY name";

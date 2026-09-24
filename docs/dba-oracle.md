@@ -1,8 +1,8 @@
 # Oracle DBA support
 
 The Oracle expansion is in progress; see [the implementation plan](dba-oracle-implementation-plan.md).
-The connection and SQL execution foundation described here is implemented. Complete Oracle
-comparison, catalog coverage and the administration workspace are still being developed.
+The connection, SQL execution and native comparison foundations described here are implemented.
+Complete Oracle catalog coverage, data comparison and the administration workspace are still being developed.
 Oracle 19c and newer are the target; full standard 19c administration certification remains pending.
 
 ## Connections and targets
@@ -69,6 +69,33 @@ remain available. External Java assets and database-link credentials are explici
 they are not silently reconstructed. Scheduler and queue properties are captured, but complete
 restoration of those categories and Oracle comparison remain under development.
 
+## Native comparison
+
+Oracle 19c+ now uses the existing comparison wizard for native definition review and script
+output. Capture follows selected types, required dependencies and incoming dependents.
+Independent connections exchange captured XML documents; no database link is required.
+Oracle's metadata transforms generate destination CREATE/ALTER statements without executing
+those statements. Generation revalidates captured definitions and resolved target identities.
+
+Tables, views, sequences, package/type specifications and bodies have live create/alter and
+repeat-comparison coverage. Native adapters also inspect indexes, materialized views, routines,
+triggers and synonyms; unsupported transformations, external assets, dynamic SQL, ambiguous
+identifier remapping and dependency cycles stop generation with an explicit reason. Complete
+scheduler/grant generation and optional Oracle table-data comparison remain in progress.
+Unvalidated queue, database-link, Java and scheduler definitions are shown as blocked.
+
+Schema remapping uses Oracle metadata transforms plus Oracle-aware identifier tokens for
+routine/query text. Ordinary and alternative-quoted literals remain unchanged. Cross-owner
+catalog capture requires SELECT_CATALOG_ROLE (or SYS); an owner can capture its own metadata
+without that role. Destructive changes require visibility of incoming dependencies across
+owners. Destination owners must already exist.
+
+Optional sequence synchronization advances ordinary non-cyclic sequences to an observed
+catalog/cache boundary and never consumes source NEXTVAL. Exact cached values are not claimed.
+Scalable, sharded, session and identity-owned sequence state is blocked pending dedicated
+validation. With synchronization off, a new sequence starts at its initial bound. DDL commits
+implicitly; copy/save/cancel remain the only actions in the generated-script screen.
+
 ## Validation
 
 Tested using Oracle Free 23.26.3 full, JDBC ojdbc17 23.26.3.0.0 and JDK 25.
@@ -82,3 +109,10 @@ real connection tests, resolved targets, explicit SYSDBA, least-privileged users
 and partial DDL commits, native package/type editing, compilation diagnostics and scoped scans. `OracleSqlTest` and `SqlScriptTest` cover deterministic validation.
 The optional `oracle-sql` browser suite requires the same disposable environment plus the
 verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions and reviewed package/body changes.
+
+The optional `oracle-compare` browser suite covers automatic target tests, native definition
+review, structure-only output, independent sequence synchronization, viewport layout, complete
+copy/save and artifact disposal. Live tests execute application-generated scripts against
+separate disposable owner connections, verify the destination, reject stale evidence and
+repeat the comparison. Deterministic tests cover XML bounds, remapping, sequence advancement
+and dependency blockers.

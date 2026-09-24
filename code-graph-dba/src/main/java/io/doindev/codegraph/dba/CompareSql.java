@@ -24,16 +24,16 @@ final class CompareSql {
         }
         String schema(String sourceSchema){return !from.allSchemas()&&from.schema().equals(sourceSchema)?to.schema():sourceSchema;}
         String target(JsonNode object){return qualified(engine,schema(str(object,"schema")),str(object,"name"));}
-        String mapped(String sql){return remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));}
+        String mapped(String sql){if(engine.equals("oracle"))return OracleCompareSql.remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));return remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));}
         String sourceKeyForDestination(JsonNode object){return key(from.allSchemas()?str(object,"schema"):from.schema(),str(object,"kind"),str(object,"name"));}
         String mode(Choice c){String m=c.options.path("dataMode").asText(dataMode);if(!DATA_MODES.contains(m))throw new IllegalArgumentException("Invalid data mode");return m;}
         String sequenceMode(Choice c){String m=c.options.path("sequenceMode").asText(sequenceMode);if(!Set.of("advance","exact").contains(m))throw new IllegalArgumentException("Invalid sequence mode");return m;}
         boolean sync(Choice c){return c.options.path("syncValues").asBoolean(sync);}
-        void emit(Writer writer,List<String> statements)throws Exception{for(String sql:statements){writer.write(sql);writer.write(sql.stripTrailing().endsWith(";")?"\n\n":";\n\n");}}
+        void emit(Writer writer,List<String> statements)throws Exception{for(String sql:statements){writer.write(sql);writer.write(engine.equals("oracle")&&SqlScript.oracleBlock(sql)?"\n/\n\n":sql.stripTrailing().endsWith(";")?"\n\n":";\n\n");}}
         void header(Writer w)throws Exception{
             w.write("-- Database comparison: "+engine+" "+comment(source.version)+" -> "+comment(destination.version)+"\n-- Generated: "+java.time.Instant.now()+"\n-- Selected objects: "+selected.size()+"\n-- Generated from captured metadata and data. Review and execute with a SQL client.\n-- Destination: "+comment(to.database())+" / "+comment(to.allSchemas()?"all user schemas":to.schema())+"\n-- Destination-only objects are preserved. No statement has been executed by the comparer.\n-- Run against the intended destination with exclusive maintenance access; catalog and data changes after capture can invalidate this script.\n");
             if(dataMode.equals("none"))w.write("-- Structure only: table data is excluded. Sequence values are synchronized only when explicitly selected.\n");
-            if(Set.of("mysql","mariadb","h2").contains(engine))w.write("-- This engine commits DDL independently. A failure may leave partially applied changes.\n");
+            if(Set.of("mysql","mariadb","h2","oracle").contains(engine))w.write("-- This engine commits DDL independently. A failure may leave partially applied changes.\n");
             if(engine.equals("postgresql"))w.write("BEGIN;\nSET LOCAL check_function_bodies = false;\n");
             w.write("\n");for(String warning:warnings)w.write("-- "+comment(warning)+"\n");emit(w,before);
         }
@@ -54,6 +54,7 @@ final class CompareSql {
             if(dest!=null&&!dest.path("supported").asBoolean()&&!dest.path("implicit").asBoolean())throw new IllegalArgumentException("Destination "+str(object,"name")+": "+str(dest,"reason"));
             if(plan.selected.put(k,new Choice(object,dest,option))!=null)throw new IllegalArgumentException("Duplicate selected object");
         }
+        if(plan.engine.equals("oracle"))return OracleCompare.prepare(plan);
         requireDependencies(plan);List<Choice> ordered=order(plan);
         for(String schema:source.schemas)if(!destination.schemas.contains(plan.schema(schema))){
             if(!from.allSchemas())throw new IllegalArgumentException("Selected destination schema no longer exists");
@@ -89,7 +90,7 @@ final class CompareSql {
         }
         return plan;
     }
-    static boolean same(Plan plan,ObjectNode a,ObjectNode b){return b!=null&&semantic(plan,a,true).equals(semantic(plan,b,false));}
+    static boolean same(Plan plan,ObjectNode a,ObjectNode b){if(plan.engine.equals("oracle"))return b!=null&&a.path("oracleChanges").isEmpty()&&a.path("supported").asBoolean();return b!=null&&semantic(plan,a,true).equals(semantic(plan,b,false));}
     static JsonNode semantic(Plan plan,ObjectNode object,boolean map){
         ObjectNode out=CompareCatalog.definition(object);out.remove(List.of("reason","supported","dataSupported","dataReason","implicit","triggers","rules","policies","externalDependents"));
         if(out.path("fields").isObject())((ObjectNode)out.path("fields")).remove(List.of("owner","comment"));if(map)mapNode(out,plan);canonicalNode(out);if(out.has("nativeDdl"))out.put("nativeDdl",normalizeMysql(str(out,"nativeDdl")));return out;

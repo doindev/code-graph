@@ -278,7 +278,7 @@ final class QueryJobs implements AutoCloseable {
             if(job.cancellationReason.equals("deadline_exceeded"))return "Comparison deadline exceeded after "+elapsed+"s (limit "+job.overallTimeoutSeconds+"s) during "+context+". Reduce the scope or increase Comparison timeout in DBA settings.";
             return "Cancelled by user during "+context+" after "+elapsed+"s.";
         }
-        for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof SQLTimeoutException||cause instanceof SQLException sql&&"57014".equals(sql.getSQLState())){
+        for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof SQLTimeoutException||cause instanceof SQLException sql&&("57014".equals(sql.getSQLState())||sql.getErrorCode()==1013)){
             job.failureCode="statement_timeout";return "Database statement timed out or was cancelled by the server during "+context+" (query limit "+job.statementTimeoutSeconds+"s). Check Query timeout and database activity.";
         }
         for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof SQLException sql&&CompareCatalog.fatal(sql)){

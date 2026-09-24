@@ -6,7 +6,7 @@ function field(label,input){const n=el('label',undefined,'compare-field');n.appe
 function checkbox(label,checked,change){const n=el('label',undefined,'compare-check'),input=el('input');input.type='checkbox';input.checked=checked;input.onchange=()=>change(input.checked);n.append(input,el('span',label));return n;}
 function button(text,action,primary=false){const n=el('button',text,primary?'compare-primary':'');n.type='button';n.onclick=action;return n;}
 function textArea(text,label){const n=el('textarea');n.value=text;n.readOnly=true;n.wrap='off';n.spellcheck=false;n.setAttribute('aria-label',label);return n;}
-function definition(o){if(!o)return 'Object does not exist';if(o.ddl)return o.ddl;if(o.nativeDdl)return o.nativeDdl;if(o.columns)return ['TABLE '+o.schema+'.'+o.name,...o.columns.map(c=>'  '+c.name+' '+c.type+(c.nullable?'':' NOT NULL')+(c.default?' DEFAULT '+c.default:'')),...(o.constraints??[]).map(c=>c.name+': '+c.definition),...(o.foreignKeys??[]).map(c=>'FOREIGN KEY '+c.name+' REFERENCES '+c.schema+'.'+c.table)].join('\n');return JSON.stringify(o.fields??o,null,2);}
+function definition(o){if(!o)return 'Object does not exist';if(o.ddl)return o.ddl+(o.oracleBodyDdl?'\n/\n'+o.oracleBodyDdl+'\n/':'');if(o.nativeDdl)return o.nativeDdl;if(o.columns)return ['TABLE '+o.schema+'.'+o.name,...o.columns.map(c=>'  '+c.name+' '+c.type+(c.nullable?'':' NOT NULL')+(c.default?' DEFAULT '+c.default:'')),...(o.constraints??[]).map(c=>c.name+': '+c.definition),...(o.foreignKeys??[]).map(c=>'FOREIGN KEY '+c.name+' REFERENCES '+c.schema+'.'+c.table)].join('\n');return JSON.stringify(o.fields??o,null,2);}
 
 export class DatabaseCompare {
   constructor({api,profiles,close,notify,csrf}){
@@ -161,6 +161,7 @@ export class DatabaseCompare {
     if(object.data){const option=this.dataOptions.get(object.id);content.append(checkbox('Include reviewed table data',option.includeData,v=>{option.includeData=v;this.invalidateScript();}));
       const mode=select([['','Use default'],...modes],option.dataMode??'','Data mode');mode.onchange=()=>{option.dataMode=mode.value;this.invalidateScript();};content.append(field('Data action',mode),checkbox('Synchronize identity values where supported',!!option.syncIdentity,v=>option.syncIdentity=v));}
     if(object.kind==='sequences'){if(!this.sequenceOptions)this.sequenceOptions=new Map();let option=this.sequenceOptions.get(object.id);if(!option){option={syncValues:this.settings.syncSequences,sequenceMode:this.settings.sequenceMode};this.sequenceOptions.set(object.id,option);}
+      if(object.stateReason)content.append(el('p',object.stateReason,'compare-note'));
       const modes=object.stateModes??[];const sync=checkbox('Sync sequence values',option.syncValues,v=>{option.syncValues=v;this.invalidateScript();});sync.querySelector('input').disabled=!modes.length;content.append(sync);
       if(modes.length){const mode=select(modes.map(m=>[m,m==='advance'?'Safe advancement':'Exact captured state']),modes.includes(option.sequenceMode)?option.sequenceMode:modes[0],'Sequence synchronization mode');option.sequenceMode=mode.value;mode.onchange=()=>{option.sequenceMode=mode.value;this.invalidateScript();};content.append(mode);}
     }

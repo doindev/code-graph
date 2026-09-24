@@ -20,7 +20,26 @@ public final class BrowserFixture {
             if(!java.util.Objects.toString(System.getenv("DBA_ORACLE_OWNER"),"").matches("code-graph-oracle-[a-f0-9]+"))throw new IllegalArgumentException("Oracle browser tests require a task-owned disposable container");
             try(var profiles=new Profiles(root,vault)){profiles.put(null,Profiles.JSON.createObjectNode().put("name","Browser Oracle").put("templateId","oracle").put("driverClass","oracle.jdbc.OracleDriver").put("jar",System.getenv("DBA_ORACLE_JAR")).put("url",System.getenv("DBA_ORACLE_URL")).put("username","SYSTEM").put("password",System.getenv("DBA_ORACLE_PASSWORD")));}
         }
-        boolean compareSuite="compare".equals(System.getenv("DBA_BROWSER_SUITE"));
+        boolean oracleCompare="oracle-compare".equals(System.getenv("DBA_BROWSER_SUITE"));
+        if(oracleCompare){
+            if(!java.util.Objects.toString(System.getenv("DBA_ORACLE_OWNER"),"").matches("code-graph-oracle-[a-f0-9]+"))throw new IllegalArgumentException("Oracle browser tests require a task-owned disposable container");
+            try(var profiles=new Profiles(root,vault);var connections=new Connections(profiles)){
+                String suffix=java.util.UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase();
+                for(String side:java.util.List.of("source","destination")){
+                    String owner="CGUI"+(side.equals("source")?"S":"D")+suffix;
+                    String id=profiles.put(null,Profiles.JSON.createObjectNode().put("name","Oracle "+side+" / "+owner).put("templateId","oracle").put("driverClass","oracle.jdbc.OracleDriver").put("jar",System.getenv("DBA_ORACLE_JAR")).put("url",System.getenv("DBA_ORACLE_URL")).put("username","SYSTEM").put("password",System.getenv("DBA_ORACLE_PASSWORD")).put("readOnly",false)).path("id").asText();
+                    try(var c=connections.open(id);var st=c.createStatement()){
+                        st.execute("CREATE USER "+OracleDialect.identifier(owner)+" NO AUTHENTICATION QUOTA 10M ON USERS");
+                        if(side.equals("source")){
+                            st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"ITEMS")+" (id NUMBER,label VARCHAR2(100))");
+                            st.execute("CREATE SEQUENCE "+OracleDialect.qualified(owner,"COUNTER")+" START WITH 13 INCREMENT BY 3 CACHE 10");
+                            st.execute("CREATE VIEW "+OracleDialect.qualified(owner,"ITEM_VIEW")+" AS SELECT id FROM "+OracleDialect.qualified(owner,"ITEMS"));
+                        }
+                    }
+                }
+            }
+        }
+        boolean compareSuite=oracleCompare||"compare".equals(System.getenv("DBA_BROWSER_SUITE"));
         boolean contextSuite=java.util.Set.of("project-context","approvals","approval-review","editor-pairing","read-permissions").contains(java.util.Objects.toString(System.getenv("DBA_BROWSER_SUITE"),""));
         if(compareSuite||contextSuite||"catalog".equals(System.getenv("DBA_BROWSER_SUITE"))){try(var marker=new Profiles(root,vault)){}String url="jdbc:h2:"+root.resolve("context-db").toAbsolutePath();try(var c=java.sql.DriverManager.getConnection(url,"sa","");var st=c.createStatement()){st.execute("CREATE TABLE ITEMS(ID INT PRIMARY KEY, NAME VARCHAR(40))");st.execute("INSERT INTO ITEMS VALUES(1,'original')");if(compareSuite){
             st.execute("CREATE SCHEMA SRC");st.execute("CREATE SCHEMA DST");

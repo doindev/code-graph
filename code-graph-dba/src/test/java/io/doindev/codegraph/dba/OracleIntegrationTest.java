@@ -65,6 +65,10 @@ class OracleIntegrationTest {
             String id=profiles.put(null,draft(user,password)).path("id").asText();
             var setup=new ConnectionSetup(profiles,jobs);var tested=complete(jobs,setup.operation("browser","draft-test",draft(user,password)));
             assertEquals(3,tested.path("oracle").path("sessionPrivileges").size(),tested.toString());assertTrue(tested.path("oracle").path("sessionRoles").isEmpty());
+            try(var c=connections.open(id)){
+                var job=jobs.new Job("browser",id);var other=new CompareCatalog.Target(id,"FREEPDB1","SYSTEM",false,"fixture");
+                assertTrue(assertThrows(IllegalArgumentException.class,()->OracleCompare.capture(job,c,other,java.util.Set.of("tables"),false)).getMessage().contains("SELECT_CATALOG_ROLE"));
+            }
             String script="""
                 CREATE TABLE sample (id NUMBER(38), text_value NVARCHAR2(100), moment TIMESTAMP(9) WITH TIME ZONE);
                 INSERT INTO sample VALUES (12345678901234567890123456789012345678, nq'[Unicode ; ? / '' Ω]', TO_TIMESTAMP_TZ('2026-09-24 12:34:56.123456789 +05:30','YYYY-MM-DD HH24:MI:SS.FF TZH:TZM'));
@@ -166,6 +170,83 @@ class OracleIntegrationTest {
                 assertTrue(kinds.containsAll(java.util.Set.of("table","package","package_body","type","type_body","function","sequence")),kinds.toString());assertTrue(badBody[0]);c.rollback();
             }
         }
+    }
+
+    @Test void nativeMetadataDocumentsGenerateDestinationAlterWithoutExecutingIt()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),a="CGS"+suffix,b="CGD"+suffix;
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                for(String owner:java.util.List.of(a,b))st.execute("CREATE USER "+OracleDialect.identifier(owner)+" NO AUTHENTICATION QUOTA 10M ON USERS");
+                st.execute("CREATE TABLE "+OracleDialect.qualified(a,"ITEMS")+" (id NUMBER(18),label VARCHAR2(100 CHAR) DEFAULT 'source literal',extra TIMESTAMP(9))");
+                st.execute("CREATE TABLE "+OracleDialect.qualified(b,"ITEMS")+" (id NUMBER(18),label VARCHAR2(30 CHAR))");
+                try(var jobs=jobs(connections)){
+                    var job=jobs.new Job("browser",admin);var from=new CompareCatalog.Target(admin,"FREEPDB1",a,false,"fixture");var to=new CompareCatalog.Target(admin,"FREEPDB1",b,false,"fixture");
+                    var left=OracleCompare.capture(job,c,from,java.util.Set.of("tables"),false);var right=OracleCompare.capture(job,c,to,java.util.Set.of("tables"),false);
+                    assertEquals(1,left.objects.size());assertTrue(left.objects.values().stream().allMatch(object->object.path("supported").asBoolean()),left.objects.toString());
+                    OracleCompare.review(job,c,left,right,from,to);assertEquals(2,left.objects.values().iterator().next().path("oracleChanges").size(),left.objects.toString());
+                }
+                String source=OracleDocuments.capture(null,c,"TABLE",a,"ITEMS","SXML"),destination=OracleDocuments.capture(null,c,"TABLE",b,"ITEMS","SXML");
+                String desired=OracleDocuments.remap(null,c,"TABLE",source,a,b,true,false);
+                var changes=OracleDocuments.changes(null,c,"TABLE",destination,desired);assertEquals(2,changes.size());assertTrue(changes.stream().allMatch(change->change.blocker().isBlank()),changes.toString());
+                try(var rows=st.executeQuery("SELECT COUNT(*) FROM all_tab_columns WHERE owner='"+b+"' AND table_name='ITEMS' AND column_name='EXTRA'")){assertTrue(rows.next());assertEquals(0,rows.getInt(1));}
+                for(var change:changes)for(String sql:change.statements())st.execute(sql);
+                String changed=OracleDocuments.capture(null,c,"TABLE",b,"ITEMS","SXML");assertTrue(OracleDocuments.changes(null,c,"TABLE",changed,desired).isEmpty());
+                st.execute("DROP TABLE "+OracleDialect.qualified(b,"ITEMS")+" PURGE");
+                String xml=OracleDocuments.capture(null,c,"TABLE",a,"ITEMS","XML");String create=OracleDocuments.remap(null,c,"TABLE",xml,a,b,false,true);
+                assertFalse(create.contains("\""+a+"\""));st.execute(create);
+                assertTrue(OracleDocuments.changes(null,c,"TABLE",OracleDocuments.capture(null,c,"TABLE",b,"ITEMS","SXML"),desired).isEmpty());
+            }
+        }
+    }
+
+    @Test void applicationCompareAcrossIndependentOwnersGeneratesAndRevalidates()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),s->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,s->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                for(String owner:java.util.List.of(source,destination)){
+                    st.execute("CREATE USER "+OracleDialect.identifier(owner)+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");
+                    st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE VIEW,CREATE PROCEDURE,CREATE SEQUENCE,CREATE TYPE TO "+OracleDialect.identifier(owner));
+                }
+            }
+            String from=profiles.put(null,draft(source,password)).path("id").asText(),to=profiles.put(null,draft(destination,password)).path("id").asText();
+            try(var c=connections.open(from);var st=c.createStatement()){
+                st.execute("CREATE TABLE items(id NUMBER(18),label VARCHAR2(100 CHAR) DEFAULT 'source literal',extra TIMESTAMP(9),CONSTRAINT items_pk PRIMARY KEY(id))");
+                st.execute("CREATE TABLE children(id NUMBER PRIMARY KEY,parent_id NUMBER(18),CONSTRAINT child_parent FOREIGN KEY(parent_id) REFERENCES items(id))");
+                st.execute("CREATE SEQUENCE counter START WITH 7 INCREMENT BY 3 CACHE 10");
+                st.execute("CREATE VIEW item_view AS SELECT id,label FROM items");
+                st.execute("CREATE PACKAGE api AS FUNCTION total RETURN NUMBER; END;");
+                st.execute("CREATE PACKAGE BODY api AS FUNCTION total RETURN NUMBER IS n NUMBER; BEGIN SELECT COUNT(*) INTO n FROM "+OracleDialect.qualified(source,"ITEMS")+"; RETURN n; END; END;");
+                st.execute("CREATE TYPE value_type AS OBJECT(id NUMBER)");
+            }
+            try(var c=connections.open(to);var st=c.createStatement()){st.execute("CREATE TABLE items(id NUMBER(18),label VARCHAR2(30 CHAR),CONSTRAINT items_pk PRIMARY KEY(id))");}
+            var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,from,source)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,to,destination)).put("dataMode","none").put("syncSequences",true);
+            input.putArray("objectTypes").add("tables").add("views").add("packages").add("types").add("sequences");
+            String id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();
+            var results=compare.results("human",id,0,200,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());assertEquals(6,results.path("objects").size(),results.toPrettyString());
+            var selected=DatabaseCompareTest.select(compare,id).put("dataMode","none").put("syncSequences",true);
+            var artifact=compareFinished(jobs,compare.generate("human",id,selected));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();
+            try(var c=connections.open(from);var st=c.createStatement();var rows=st.executeQuery("SELECT last_number FROM user_sequences WHERE sequence_name='COUNTER'")){assertTrue(rows.next());assertEquals(7,rows.getInt(1),"Source NEXTVAL must not be consumed");}
+            assertTrue(script.contains("RESTART START WITH 7"),script);assertFalse(script.contains("INSERT INTO"),script);assertFalse(script.contains("\""+source+"\"."),script);
+            try(var c=connections.open(to);var st=c.createStatement()){
+                try(var rows=st.executeQuery("SELECT COUNT(*) FROM user_views WHERE view_name='ITEM_VIEW'")){assertTrue(rows.next());assertEquals(0,rows.getInt(1),"Generation must not execute its output");}
+                for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());
+                try(var rows=st.executeQuery("SELECT api.total FROM dual")){assertTrue(rows.next());assertEquals(0,rows.getInt(1));}
+                try(var rows=st.executeQuery("SELECT counter.NEXTVAL FROM dual")){assertTrue(rows.next());assertEquals(7,rows.getInt(1));}
+            }
+            var stale=compareAwait(jobs,compare.generate("human",id,selected));assertEquals("failed",stale.path("state").asText());assertTrue(stale.path("error").asText().contains("changed"),stale.toString());compare.remove("human",id);
+            id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,200,"","");assertEquals(6,results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);
+        }
+    }
+
+    private static ObjectNode compareAwait(QueryJobs jobs,ObjectNode submitted)throws Exception{
+        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(120);ObjectNode status;
+        do{status=jobs.status("human",submitted.path("id").asText());if(status.path("finished").asLong()!=0)return status;Thread.sleep(100);}while(System.nanoTime()<deadline);
+        throw new AssertionError("Oracle comparison did not finish: "+status);
+    }
+    private static JsonNode compareFinished(QueryJobs jobs,ObjectNode submitted)throws Exception{
+        var status=compareAwait(jobs,submitted);try{assertEquals("complete",status.path("state").asText(),status.toPrettyString());return status.path("result").deepCopy();}finally{jobs.remove("human",submitted.path("id").asText());}
     }
 
 }

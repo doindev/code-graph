@@ -9,10 +9,10 @@ import java.util.concurrent.CancellationException;
 /** Complete, bounded inventories; discovery never evaluates defaults or consumes a sequence. */
 final class CompareCatalog {
     static final int MAX_OBJECTS=10_000,MAX_BYTES=16<<20;
-    static final Set<String> ENGINES=Set.of("postgresql","h2","mysql","mariadb");
+    static final Set<String> ENGINES=Set.of("postgresql","h2","mysql","mariadb","oracle");
     static String engine(Connection c)throws SQLException{return ExplainPlans.capability(c).path("engine").asText();}
     static boolean supported(Connection c,String engine)throws SQLException{
-        int major=c.getMetaData().getDatabaseMajorVersion();return switch(engine){case "postgresql"->major>=12;case "h2"->major>=2;case "mysql"->major>=8;case "mariadb"->major>=10;default->false;};
+        int major=c.getMetaData().getDatabaseMajorVersion();return switch(engine){case "postgresql"->major>=12;case "h2"->major>=2;case "mysql"->major>=8;case "mariadb"->major>=10;case "oracle"->major>=19;default->false;};
     }
     record Target(String connectionId,String database,String schema,boolean allSchemas,String revision){
         ObjectNode json(){return Profiles.JSON.createObjectNode().put("connectionId",connectionId).put("database",database).put("schema",schema).put("allSchemas",allSchemas).put("revision",revision);}
@@ -34,7 +34,7 @@ final class CompareCatalog {
     static String str(JsonNode node,String name){return node.path(name).asText("");}
     static String key(String schema,String kind,String name){return schema+"\u0000"+kind+"\u0000"+name;}
     static ObjectNode definition(ObjectNode object){
-        ObjectNode n=object.deepCopy();n.remove(List.of("id","oid","selection","state","stateModes","stateReason","base","identityBase","dependencies"));
+        ObjectNode n=object.deepCopy();if(n.has("oracleType"))n.remove(List.of("oracleXml","oracleBodyXml","oracleChanges","oracleSelectedChanges","supported","reason"));n.remove(List.of("id","oid","selection","state","stateModes","stateReason","base","identityBase","dependencies"));
         if(n.path("columns").isArray())for(JsonNode column:n.path("columns"))((ObjectNode)column).remove(List.of("id","identityBase"));
         return n;
     }
@@ -45,7 +45,7 @@ final class CompareCatalog {
     static boolean system(String schema){String s=schema.toLowerCase(Locale.ROOT);return s.startsWith("pg_")||Set.of("information_schema","sys","system","mysql","performance_schema","sysibm","syscat","sysstat").contains(s);}
     static boolean fatal(SQLException failure){
         for(SQLException current=failure;current!=null;current=current.getNextException()){
-            if(current instanceof SQLTimeoutException||current instanceof SQLRecoverableException||current instanceof SQLNonTransientConnectionException)return true;
+            if(current.getErrorCode()==1013||current instanceof SQLTimeoutException||current instanceof SQLRecoverableException||current instanceof SQLNonTransientConnectionException)return true;
             String state=current.getSQLState();if(state!=null&&state.length()>=2&&Set.of("08","28","40","53","57","58").contains(state.substring(0,2)))return true;
         }
         return false;
@@ -62,7 +62,7 @@ final class CompareCatalog {
     record CatalogObject(ObjectNode object,ObjectNode selection,JsonNode node) {}
     static Inventory capture(QueryJobs.Job job,Connection c,Target target)throws Exception{return capture(job,c,target,Set.of(),true);}
     static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
-        String engine=engine(c);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion());inv.sequenceValues=sequenceValues;
+        String engine=engine(c);if(engine.equals("oracle"))return OracleCompare.capture(job,c,target,selectedKinds,sequenceValues);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion());inv.sequenceValues=sequenceValues;
         if(target.allSchemas()){
             if(Set.of("mysql","mariadb").contains(engine))inv.schemas.add(inv.database);
             else for(JsonNode n:pages(job,c,"schemas",inv.database,"")){String schema=n.path("schema").asText(str(n,"name"));if(!system(schema))inv.schemas.add(schema);}

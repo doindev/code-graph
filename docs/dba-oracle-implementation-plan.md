@@ -71,7 +71,9 @@ The first 23 Java checks and Oracle SQL browser checks pass; script-selection an
 connection browser regressions also pass. Explicit typed NUMBER, DATE and timestamp-with-offset
 inputs also pass against the live database.
 Native package/type bodies, dependencies, grants, status and compilation diagnostics now pass
-live Oracle scanner and reviewed editor tests, including browser validation. Catalog completion, comparison and administration
-remain in progress; this document is not a claim of completed Oracle support.
+live Oracle scanner and reviewed editor tests, including browser validation. Native structure comparison and ordinary sequence advancement now generate destination scripts
+through the existing review/copy/save/cancel flow, with live execution and repeat-comparison
+validation. Catalog completion, Oracle data comparison, broader object variants, grants/scheduler
+generation and administration remain in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

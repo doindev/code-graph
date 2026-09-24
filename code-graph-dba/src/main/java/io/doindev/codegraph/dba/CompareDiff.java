@@ -15,7 +15,7 @@ final class CompareDiff {
         final String id,key,status;final ObjectNode source,destination;final List<Change> changes;
         ObjectDiff(String id,String key,String status,ObjectNode source,ObjectNode destination,List<Change> changes){this.id=id;this.key=key;this.status=status;this.source=source;this.destination=destination;this.changes=List.copyOf(changes);}
         ObjectNode json(boolean details){
-            JsonNode o=source==null?destination:source;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("name",str(o,"name")).put("schema",str(o,"schema")).put("kind",str(o,"kind")).put("status",status).put("supported",source!=null&&source.path("supported").asBoolean()).put("reason",str(o,"reason")).put("dataSupported",source!=null&&source.path("dataSupported").asBoolean());
+            JsonNode o=source==null?destination:source;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("name",str(o,"name")).put("schema",str(o,"schema")).put("kind",str(o,"kind")).put("status",status).put("supported",source!=null&&source.path("supported").asBoolean()).put("reason",str(o,"reason")).put("dataSupported",source!=null&&source.path("dataSupported").asBoolean()).put("stateReason",str(o,"stateReason"));
             n.set("stateModes",o.path("stateModes"));n.set("keys",o.path("keys"));ArrayNode list=n.putArray("changes");changes.forEach(c->list.add(c.json()));
             if(details){if(source!=null)n.set("source",source);if(destination!=null)n.set("destination",destination);}return n;
         }
@@ -29,7 +29,8 @@ final class CompareDiff {
             ObjectNode a=entry.getValue();String destKey=key(mapping.schema(str(a,"schema")),str(a,"kind"),str(a,"name"));ObjectNode b=destination.objects.get(destKey);if(b!=null)matched.add(destKey);
             List<Change> changes=new ArrayList<>();
             if(!a.path("implicit").asBoolean()){
-                if(b==null)add(changes,a,"object",str(a,"name"),"",null,a,false);
+                if(source.engine.equals("oracle")){int number=0;for(JsonNode change:a.path("oracleChanges")){String identity=TableDesigner.hash(Profiles.JSON.createArrayNode().add(str(a,"id")).add("oracle").add(number++)).substring(0,32);changes.add(new Change(identity,"definition",change.path("name").asText(str(a,"name")),str(change,"clause").replace('_',' ').toLowerCase(Locale.ROOT),b==null?null:b.path("ddl"),change,change.path("destructive").asBoolean()));}}
+                else if(b==null)add(changes,a,"object",str(a,"name"),"",null,a,false);
                 else if(str(a,"kind").equals("tables")){
                     compareColumns(changes,a,b);
                     for(String section:List.of("constraints","foreignKeys","indexes"))compareNamed(changes,a,section,a.path(section),b.path(section));
@@ -100,6 +101,7 @@ final class CompareDiff {
         return CompareSql.prepare(projected,destination,from,to,translated);
     }
     private ObjectNode project(ObjectDiff object,Set<String> chosen){
+        if(source.engine.equals("oracle")){ObjectNode projected=object.source.deepCopy();ArrayNode changes=projected.putArray("oracleSelectedChanges");for(Change change:object.changes)if(chosen.contains(change.id))changes.add(change.after.deepCopy());if(object.destination==null&&!object.source.path("implicit").asBoolean()&&changes.isEmpty())throw new IllegalArgumentException("Select creation of "+str(object.source,"name"));return projected;}
         if(object.destination==null){if(object.changes.isEmpty()||!chosen.contains(object.changes.getFirst().id))throw new IllegalArgumentException("Select creation of "+str(object.source,"name"));return object.source;}
         if(!str(object.source,"kind").equals("tables")){ObjectNode result=object.changes.isEmpty()||chosen.contains(object.changes.getFirst().id)?object.source:reverse(object.destination);result.put("id",object.id);return result;}
         ObjectNode result=reverse(object.destination);result.put("id",object.id);result.set("dependencies",object.source.path("dependencies"));result.set("selection",object.source.path("selection"));

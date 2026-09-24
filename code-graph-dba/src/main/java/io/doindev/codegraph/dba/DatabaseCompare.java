@@ -50,7 +50,7 @@ final class DatabaseCompare implements AutoCloseable {
     ObjectNode test(String owner,JsonNode request){
         human(owner);Target target=target(request);
         return jobs.comparison(owner,Set.of(target.connectionId()),"connection_test",job->read(job,target,c->{
-            String engine=engine(c),database=Objects.toString(c.getCatalog(),target.database());
+            String engine=engine(c),database=engine.equals("oracle")?OracleDialect.target(job,c,job.remainingSeconds()).database():Objects.toString(c.getCatalog(),target.database());
             ObjectNode result=Profiles.JSON.createObjectNode().put("engine",engine).put("version",c.getMetaData().getDatabaseProductVersion()).put("supported",supported(c,engine)).put("database",database);
             ArrayNode databases=result.putArray("databases");for(JsonNode n:pages(job,c,"databases",database,""))databases.add(n.path("database").asText(str(n,"name")));if(databases.isEmpty())databases.add(database);
             ArrayNode schemas=result.putArray("schemas");
@@ -101,6 +101,7 @@ final class DatabaseCompare implements AutoCloseable {
                     side->read(side,to,c->{side.comparisonProgress("Inspecting definitions","destination","",0,0);return capture(side,c,to,kinds(request),sequenceValues(request));}));
                 Inventory source=captured.source(),destination=captured.destination();
                 if(!source.engine.equals(destination.engine))throw new IllegalArgumentException("Source and destination must use the same engine");
+                if(source.engine.equals("oracle"))read(job,to,c->{OracleCompare.review(job,c,source,destination,from,to);return null;});
                 CompareDiff diff=new CompareDiff(source,destination,from,to);CompareData data=new CompareData(directory,dataBudget);
                 synchronized(this){if(comparison.disposed){data.close();throw new IllegalArgumentException("Comparison closed");}comparison.diff=diff;comparison.data=data;}
                 Set<String> types=new HashSet<>();request.path("objectTypes").forEach(n->types.add(n.asText()));
