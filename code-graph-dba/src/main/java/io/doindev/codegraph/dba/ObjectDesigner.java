@@ -74,6 +74,7 @@ final class ObjectDesigner {
         // Stable catalog metadata and schedule configuration participate in conflict detection.
         // Run history, last/next run, and other volatile scheduler status remain outside it.
         ObjectNode identity=Profiles.JSON.createObjectNode().put("engine",str(out,"engine")).put("database",str(out,"database"));
+        if(out.has("oracleTarget"))identity.set("oracleTarget",out.path("oracleTarget"));
         identity.set("target",out.path("target"));identity.set("fields",out.path("fields"));identity.put("ddl",str(out,"ddl"));
         for(String key:List.of("schedulerConfig","schedulerFunctions","schedulerSteps","schedulerSchedules","mysqlNoBackslashEscapes"))if(out.has(key))identity.set(key,out.path(key));
         if(out.has("refreshSchedule"))identity.set("refreshSchedule",MaterializedViewSchedules.stable(out.path("refreshSchedule")));
@@ -92,7 +93,7 @@ final class ObjectDesigner {
         JsonNode draft=input.path("draft");if(!draft.isObject())throw new IllegalArgumentException("Object draft is required");
         boolean sqlMode=draft.path("sqlMode").asBoolean();
         List<String> objectCommands;
-        if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft);}
+        if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft,str(snapshot,"engine"));}
         else objectCommands=snapshot.has("scheduler")?ScheduledJobEditor.compile(snapshot,draft):ObjectForms.compile(snapshot,draft);
         List<MaterializedViewSchedules.Command> scheduleCommands=MaterializedViewSchedules.compile(snapshot,draft);
         if(objectCommands.isEmpty()&&scheduleCommands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
@@ -111,10 +112,16 @@ final class ObjectDesigner {
         if(snapshot.has("scheduler")){out.put("warning","Review the scheduled job changes and their execution identity. Enabled schedules may start due work immediately. Native calls may also start or cancel work according to the displayed command.");if(!atomic)out.put("partialCommitWarning","This scheduler may commit each operation separately. A failure can leave some reviewed changes applied; inspect the reported outcome before retrying.");}
         return out;
     }
-    static List<String> sqlCommands(JsonNode draft){
+    static List<String> sqlCommands(JsonNode draft){return sqlCommands(draft,"");}
+    static List<String> sqlCommands(JsonNode draft,String engine){
         String sql=str(draft,"sql");if(sql.isBlank()||sql.length()>65536)throw new IllegalArgumentException("Enter 1–65536 characters of SQL in DDL");
         // A single JDBC unit preserves vendor routine bodies containing semicolons. Multiple units
         // are opt-in and use the same bounded lexical extraction as the Script editor.
+        if(engine.equals("oracle")){
+            List<String> units=SqlScript.extract(sql,"oracle",65536).stream().map(SqlScript.Unit::sql).toList();
+            if(units.size()>1&&!draft.path("splitSql").asBoolean())throw new IllegalArgumentException("Enable Split multiple statements for the Oracle definition and its body");
+            return units;
+        }
         if(!draft.path("splitSql").asBoolean())return List.of(sql);
         return SqlScript.extract(sql).stream().map(SqlScript.Unit::sql).toList();
     }

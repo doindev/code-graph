@@ -37,9 +37,10 @@ final class SqlScript {
     }
 
     /** Oracle slash delimiters terminate PL/SQL units, while ordinary SQL still splits at semicolons. */
-    static List<Unit> extract(String source,String engine){
+    static List<Unit> extract(String source,String engine){return extract(source,engine,16384);}
+    static List<Unit> extract(String source,String engine,int maximum){
         if(!"oracle".equals(engine))return extract(source);
-        if(source==null||source.isBlank()||source.length()>16_384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
+        if(source==null||source.isBlank()||source.length()>maximum)throw new IllegalArgumentException("SQL must contain 1.."+maximum+" characters");
         List<Unit> units=new ArrayList<>();State state=new State();int lineStart=0,segmentStart=0;
         for(int i=0;i<=source.length();i++)if(i==source.length()||source.charAt(i)=='\n'){
             String line=source.substring(lineStart,i).strip();

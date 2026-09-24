@@ -23,7 +23,13 @@ final class ObjectCatalog {
             if(out.size()>=1000)throw new IllegalArgumentException("This property category exceeds 1,000 entries");
             ObjectNode row=out.addObject();
             for(int i=1;i<=m.getColumnCount();i++){
-                String v=rs.getString(i);
+                String v;
+                if(Set.of(Types.CHAR,Types.VARCHAR,Types.LONGVARCHAR,Types.NCHAR,Types.NVARCHAR,Types.LONGNVARCHAR,Types.CLOB,Types.NCLOB).contains(m.getColumnType(i))){
+                    try(var reader=rs.getCharacterStream(i)){
+                        if(reader==null)v=null;else{StringBuilder text=new StringBuilder();char[] chunk=new char[4096];int count;
+                            while((count=reader.read(chunk))!=-1){if(job.cancelled)throw new java.util.concurrent.CancellationException();if(text.length()+count>65536)throw new IllegalArgumentException("A definition exceeds the 64 KiB editor limit");text.append(chunk,0,count);}v=text.toString();}
+                    }
+                }else v=rs.getString(i);
                 if(v!=null&&v.length()>65536)throw new IllegalArgumentException("A definition exceeds the 64 KiB editor limit");
                 bytes+=2L*(m.getColumnLabel(i).length()+(v==null?4:v.length()))+32;
                 if(bytes>1<<20)throw new IllegalArgumentException("This metadata category exceeds the 1 MiB editor limit");
@@ -58,12 +64,13 @@ final class ObjectCatalog {
         }
         if(node==null)return;
         if(engine.equals("h2")||engine.equals("hsqldb"))embedded(job,c,out,node);
+        else if(engine.equals("oracle"))OracleMetadata.populate(job,c,out,node);
         else nativeVendor(job,c,out,node);
         if(Set.of("views","materialized_views","foreign_tables","external_tables","tables").contains(k)){
             optional(c,out,"Columns",()->{var m=c.getMetaData();try(var rs=m.getColumns(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")),null)){detail(out,"Columns",rows(job,rs));}});
             optional(c,out,"Permissions",()->{var m=c.getMetaData();try(var rs=m.getTablePrivileges(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")))){detail(out,"Permissions",rows(job,rs));}});
         }
-        if(Set.of("functions","procedures").contains(k)){
+        if(!engine.equals("oracle")&&Set.of("functions","procedures").contains(k)){
             optional(c,out,"Parameters",()->{var m=c.getMetaData();try(var rs=k.equals("functions")?m.getFunctionColumns(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")),null):m.getProcedureColumns(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")),null)){detail(out,"Parameters",rows(job,rs));}});
         }
     }
@@ -180,12 +187,6 @@ final class ObjectCatalog {
         optional(c,out,"Native definition",()->{
             if(e.equals("sqlite")){
                 var r=query(job,c,"SELECT * FROM "+ObjectForms.q(e,s)+".sqlite_schema WHERE name=?",name);detail(out,"Advanced",r);out.put("ddl",r.path(0).path("sql").asText("")).put("ddlComplete",true);
-            }else if(e.equals("oracle")){
-                String type=label(k).toUpperCase(Locale.ROOT).replace(' ','_');
-                var r=query(job,c,"SELECT DBMS_METADATA.GET_DDL(?,?,?) AS ddl FROM dual",type,name,s);out.put("ddl",r.path(0).path("ddl").asText()).put("ddlComplete",true);
-                String view=switch(k){case "sequences"->"ALL_SEQUENCES";case "materialized_views"->"ALL_MVIEWS";case "views"->"ALL_VIEWS";case "indexes"->"ALL_INDEXES";case "triggers","schema_triggers","table_triggers"->"ALL_TRIGGERS";default->"";};
-                String col=switch(k){case "sequences"->"SEQUENCE_NAME";case "materialized_views"->"MVIEW_NAME";case "views"->"VIEW_NAME";case "indexes"->"INDEX_NAME";default->"TRIGGER_NAME";};
-                if(!view.isEmpty())detail(out,"Advanced",query(job,c,"SELECT * FROM "+view+" WHERE OWNER=? AND "+col+"=?",s,name));
             }else if(e.equals("sqlserver")){
                 var r=query(job,c,"SELECT o.*,m.definition FROM sys.objects o JOIN sys.schemas s ON s.schema_id=o.schema_id LEFT JOIN sys.sql_modules m ON m.object_id=o.object_id WHERE s.name=? AND o.name=?",s,name);
                 detail(out,"Advanced",r);out.put("ddl",r.path(0).path("definition").asText("")).put("ddlComplete",!r.path(0).path("definition").isNull());

@@ -15,8 +15,10 @@ final class OracleDialect {
             .put("container",container).put("containerId",containerId).put("service",service).put("user",user).put("schema",schema).put("database",database());}
     }
     static boolean isOracle(Connection c)throws SQLException{return c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT).contains("oracle");}
+    static String database(QueryJobs.Job job,Connection c)throws SQLException{return isOracle(c)?target(job,c,job.remainingSeconds()).database():Objects.toString(c.getCatalog(),"");}
     static Target target(Connection c,int timeout)throws SQLException{return target(null,c,timeout);}
     static Target target(QueryJobs.Job job,Connection c,int timeout)throws SQLException{
+        if(!isOracle(c))throw new SQLException("Configured Oracle target is not an Oracle database");
         String sql="SELECT SYS_CONTEXT('USERENV','DB_UNIQUE_NAME'),SYS_CONTEXT('USERENV','DB_NAME'),SYS_CONTEXT('USERENV','CON_NAME'),SYS_CONTEXT('USERENV','CON_ID'),SYS_CONTEXT('USERENV','SERVICE_NAME'),SYS_CONTEXT('USERENV','SESSION_USER'),SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM dual";
         try(Statement statement=c.createStatement()){
             if(job!=null)job.statement=statement;statement.setQueryTimeout(job==null?Math.max(1,timeout):job.remainingSeconds());statement.setMaxRows(1);

@@ -23,7 +23,22 @@ module.exports=async(browser,base)=>{
   await page.locator('#sql').fill("SELECT 'second run' AS result FROM dual;");await page.locator('#run').click();
   await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');assert.match(await page.locator('#grid').innerText(),/second run/);
   await page.locator('#result-tabs').getByRole('button',{name:'Server output',exact:true}).click();assert.match(await page.locator('#grid').innerText(),/No server output/);
-  await page.screenshot({path:'code-graph-dba/target/oracle-output.png'});assert.deepEqual(errors,[]);
-  console.log('Oracle SQL browser passed: output parameters, REF CURSOR grid, server output, retained inputs, repeat execution and error-free navigation.');
+  await page.screenshot({path:'code-graph-dba/target/oracle-output.png'});
+  const packageName='CG_BROWSER_'+Date.now();
+  await page.locator('#sql').fill(`CREATE PACKAGE ${packageName} AS FUNCTION answer RETURN NUMBER; END;\n/\nCREATE PACKAGE BODY ${packageName} AS FUNCTION answer RETURN NUMBER IS BEGIN RETURN 91; END; END;\n/\n`);
+  await page.locator('#run').click();await page.waitForFunction(()=>!document.querySelector('#run').disabled);assert.equal(await page.locator('#error').innerText(),'');
+  for(const name of ['Browser Oracle','Schemas','SYSTEM','Packages']){await page.getByRole('button',{name:new RegExp('^(Expand|Collapse) '+name+'$')}).waitFor();const expand=page.getByRole('button',{name:'Expand '+name,exact:true});if(await expand.count())await expand.click();}
+  const object=page.locator(`.metadata-node[data-name="${packageName}"] > .metadata-title`);await object.getByRole('button').first().dblclick();
+  const view=page.locator('.object-properties');await page.waitForFunction(()=>document.querySelector('.object-properties')?.getAttribute('aria-busy')==='false');
+  await view.getByRole('tab',{name:'Body',exact:true}).click();assert.match(await view.innerText(),/RETURN 91/);
+  await view.getByRole('tab',{name:'DDL',exact:true}).click();await view.getByRole('button',{name:'Use definition as draft',exact:true}).click();
+  assert.equal(await view.getByRole('checkbox',{name:/Split multiple statements/}).isChecked(),true);
+  const native= view.getByRole('textbox',{name:'Object change SQL',exact:true});await native.fill((await native.inputValue()).replace('RETURN 91','RETURN 92'));
+  await view.getByRole('button',{name:'Save',exact:true}).click();const review=page.getByRole('dialog');await review.getByRole('textbox',{name:'Reviewed object SQL',exact:true}).waitFor();
+  assert.match(await review.innerText(),/implicitly|partial|commit/i);await review.getByRole('checkbox').check();await review.getByRole('button',{name:'Apply',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.object-properties')?.getAttribute('aria-busy')==='false');assert.match(await view.innerText(),/Object changes saved/);
+  await view.getByRole('tab',{name:'DDL',exact:true}).click();assert.match(await view.getByRole('textbox',{name:'Existing object DDL',exact:true}).inputValue(),/RETURN 92/);
+  await page.screenshot({path:'code-graph-dba/target/oracle-package-editor.png'});assert.deepEqual(errors,[]);
+  console.log('Oracle SQL browser passed: output parameters, REF CURSOR grid, server output, retained inputs, repeat execution, native package/body editing, reviewed apply and error-free navigation.');
  }finally{await context.close();}
 };

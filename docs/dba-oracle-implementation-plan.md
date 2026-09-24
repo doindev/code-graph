@@ -70,5 +70,8 @@ typed routine parameters, REF CURSOR results and bounded opt-in DBMS_OUTPUT are 
 The first 23 Java checks and Oracle SQL browser checks pass; script-selection and saved
 connection browser regressions also pass. Explicit typed NUMBER, DATE and timestamp-with-offset
 inputs also pass against the live database.
-See [Oracle support details](dba-oracle.md). Catalog completion, comparison and administration
+Native package/type bodies, dependencies, grants, status and compilation diagnostics now pass
+live Oracle scanner and reviewed editor tests, including browser validation. Catalog completion, comparison and administration
 remain in progress; this document is not a claim of completed Oracle support.
+
+See [Oracle support details](dba-oracle.md) for the currently validated scope.

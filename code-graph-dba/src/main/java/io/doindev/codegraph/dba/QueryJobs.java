@@ -732,7 +732,7 @@ final class QueryJobs implements AutoCloseable {
                 if(!lock.tryLock(config.timeoutSeconds(),TimeUnit.SECONDS))throw new IllegalArgumentException("Another object operation is active");locked=true;
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
                 c=connections.open(id);String database=snapshot.path("database").asText();
-                if(!database.isBlank()&&!database.equals(c.getCatalog())){
+                if(!database.isBlank()&&!database.equals(OracleDialect.database(job,c))){
                     if(snapshot.path("engine").asText().equals("postgresql")){c.close();c=null;external=connections.openDatabase(id,database,config.timeoutSeconds());c=external.connection();}
                     else if(snapshot.has("scheduler")){Connection physical=c.unwrap(Connection.class);c.setCatalog(database);if(!database.equals(physical.getCatalog()))throw new SQLFeatureNotSupportedException("The driver cannot select this scheduler database; use a connection targeting it");}
                     else throw new SQLFeatureNotSupportedException("Use a saved connection targeting this database for object changes");
@@ -752,7 +752,7 @@ final class QueryJobs implements AutoCloseable {
                 for(JsonNode command:plan.path("commands")){
                     if(job.cancelled||!alive.test(owner))throw new CancellationException();
                     String commandDatabase=command.path("database").asText(snapshot.path("database").asText());
-                    if(!commandDatabase.isBlank()&&!commandDatabase.equals(c.getCatalog())){
+                    if(!commandDatabase.isBlank()&&!commandDatabase.equals(OracleDialect.database(job,c))){
                         if(atomic||!snapshot.path("engine").asText().equals("postgresql"))throw new SQLFeatureNotSupportedException("A reviewed scheduler command targets a different database, but this provider cannot switch databases safely");
                         if(external!=null){external.close();external=null;}else connections.discard(id,c);c=null;
                         external=connections.openDatabase(id,commandDatabase,job.remainingSeconds());c=external.connection();c.setReadOnly(false);c.setAutoCommit(true);
@@ -764,6 +764,10 @@ final class QueryJobs implements AutoCloseable {
                     steps.addObject().put("index",completed).put("status",atomic?"executed_pending_commit":"committed").put("database",command.path("database").asText(snapshot.path("database").asText())).put("phase",activePhase).put("purpose",command.path("purpose").asText());
                 }
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
+                if(snapshot.path("engine").asText().equals("oracle")&&Set.of("packages","types","functions","procedures","triggers","schema_triggers","table_triggers").contains(snapshot.path("kind").asText())){
+                    ArrayNode errors=ObjectCatalog.query(job,c,"SELECT type,line,position,text FROM all_errors WHERE owner=? AND name=? AND attribute='ERROR' ORDER BY type,sequence",snapshot.path("fields").path("schema").asText(),snapshot.path("fields").path("name").asText());
+                    if(!errors.isEmpty()){report.set("compilationErrors",errors);throw new SQLException("Oracle retained the definition with compilation errors; inspect Compilation errors before using it");}
+                }
                 committing=true;if(atomic){c.commit();objectCommitted=plan.path("commands").findValues("phase").stream().anyMatch(n->n.asText().equals("object"));}
                 report.put("status","success").put("outcome","commit_acknowledged").put("message","Object and refresh-schedule changes saved.").put("objectCommitted",objectCommitted);
                 report.set("fields",plan.path("draft").path("fields"));report.put("sqlMode",plan.path("sqlMode").asBoolean());

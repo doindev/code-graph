@@ -54,6 +54,21 @@ Oracle DDL commits implicitly, and PL/SQL can commit or execute DDL. Execution d
 this behavior. Cancellation or rollback cannot promise to undo earlier DDL. Error decisions,
 result bounds and disposal of the execution session remain in effect.
 
+## Native properties, definitions and scans
+
+Object properties include native definitions, status, compilation errors, incoming/outgoing
+catalog dependencies, grants and routine arguments. Packages and object types retain separate
+specification and body definitions. **Use definition as draft** selects Oracle-aware splitting
+when both units are present. Review and apply preserve native attributes; an invalid compilation
+reports its diagnostics and any committed DDL instead of reporting a successful save.
+
+Scoped scans verify the actual PDB and capture package/type bodies, catalog dependencies,
+grants and invalid-object diagnostics. Each optional catalog category reports unavailable
+privileges/provider metadata independently. Existing scan progress and current/last-run details
+remain available. External Java assets and database-link credentials are explicitly marked;
+they are not silently reconstructed. Scheduler and queue properties are captured, but complete
+restoration of those categories and Oracle comparison remain under development.
+
 ## Validation
 
 Tested using Oracle Free 23.26.3 full, JDBC ojdbc17 23.26.3.0.0 and JDK 25.
@@ -64,6 +79,6 @@ The owned container uses a 3 GiB limit, two CPUs and a random loopback port.
 `OracleIntegrationTest` requires the ownership-gated DBA_ORACLE environment and exercises
 real connection tests, resolved targets, explicit SYSDBA, least-privileged users, mixed scripts,
 38-digit numbers, Unicode, temporal values, bounded LOB/cursor/output results, INOUT routines
-and partial DDL commits. `OracleSqlTest` and `SqlScriptTest` cover deterministic validation.
+and partial DDL commits, native package/type editing, compilation diagnostics and scoped scans. `OracleSqlTest` and `SqlScriptTest` cover deterministic validation.
 The optional `oracle-sql` browser suite requires the same disposable environment plus the
-verified JDBC JAR; it checks parameters, cursor grids, server output and repeated executions.
+verified JDBC JAR; it checks parameters, cursor grids, server output, repeated executions and reviewed package/body changes.

@@ -127,4 +127,45 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test void nativePackageTypeSequenceDiagnosticsAndReviewedBodyChanges()throws Exception{
+        String user="CG"+UUID.randomUUID().toString().replace("-","").substring(0,16).toUpperCase(),password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                st.execute("CREATE USER "+OracleDialect.identifier(user)+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");
+                st.execute("GRANT CREATE SESSION, CREATE TABLE, CREATE PROCEDURE, CREATE TYPE, CREATE SEQUENCE, CREATE VIEW TO "+OracleDialect.identifier(user));
+            }
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            try(var c=connections.open(id);var st=c.createStatement()){
+                st.execute("CREATE TABLE items(id NUMBER)");
+                st.execute("CREATE PACKAGE sample_pkg AS FUNCTION amount RETURN NUMBER; END sample_pkg;");
+                st.execute("CREATE PACKAGE BODY sample_pkg AS FUNCTION amount RETURN NUMBER IS n NUMBER; BEGIN SELECT COUNT(*) INTO n FROM items; RETURN n+41; END; END sample_pkg;");
+                st.execute("CREATE TYPE sample_type AS OBJECT(id NUMBER,MEMBER FUNCTION amount RETURN NUMBER)");
+                st.execute("CREATE TYPE BODY sample_type AS MEMBER FUNCTION amount RETURN NUMBER IS BEGIN RETURN self.id; END; END;");
+                st.execute("CREATE SEQUENCE counter START WITH 7 INCREMENT BY 3 CACHE 10");
+                st.execute("CREATE FUNCTION broken_function RETURN NUMBER IS BEGIN RETURN missing_variable; END;");
+            }
+            var request=MetadataActionsTest.selection(jobs,id,"packages",user,"SAMPLE_PKG");var snapshot=ObjectDesignerTest.load(jobs,id,request);
+            assertTrue(snapshot.path("ddlComplete").asBoolean(),snapshot.toString());assertTrue(snapshot.path("nativeMultiUnit").asBoolean());
+            assertTrue(snapshot.path("ddl").asText().contains("PACKAGE BODY"));assertFalse(snapshot.path("details").path("Dependencies").isEmpty());assertFalse(snapshot.path("details").path("Parameters").isEmpty());
+            assertEquals(1,snapshot.path("warnings").size(),snapshot.path("warnings").toString());assertEquals("FREEPDB1",snapshot.path("database").asText());
+            var change=ObjectDesignerTest.draft(snapshot).put("sqlMode",true).put("splitSql",true).put("sql",snapshot.path("ddl").asText().replace("n+41","n+42"));
+            var saved=ObjectDesignerTest.save(jobs,id,request,snapshot,change);assertEquals("success",saved.path("result").path("status").asText(),saved.toString());
+            try(var c=connections.open(id);var st=c.createStatement();var rows=st.executeQuery("SELECT sample_pkg.amount FROM dual")){assertTrue(rows.next());assertEquals(42,rows.getInt(1));}
+            var type=ObjectDesignerTest.load(jobs,id,MetadataActionsTest.selection(jobs,id,"types",user,"SAMPLE_TYPE"));assertTrue(type.path("nativeMultiUnit").asBoolean());assertTrue(type.path("ddl").asText().contains("TYPE BODY"));
+            var sequence=ObjectDesignerTest.load(jobs,id,MetadataActionsTest.selection(jobs,id,"sequences",user,"COUNTER"));assertEquals(1,sequence.path("warnings").size(),sequence.path("warnings").toString());assertEquals("3",sequence.path("details").path("Advanced").get(0).path("increment_by").asText());
+            var broken=ObjectDesignerTest.load(jobs,id,MetadataActionsTest.selection(jobs,id,"functions",user,"BROKEN_FUNCTION"));assertFalse(broken.path("details").path("Compilation errors").isEmpty());assertTrue(broken.path("details").path("Status").toString().contains("INVALID"));
+            snapshot=ObjectDesignerTest.load(jobs,id,request);change=ObjectDesignerTest.draft(snapshot).put("sqlMode",true).put("splitSql",true).put("sql",snapshot.path("ddl").asText().replace("n+42","missing_variable"));
+            var invalid=ObjectDesignerTest.save(jobs,id,request,snapshot,change);assertEquals("failed",invalid.path("result").path("status").asText(),invalid.toString());assertTrue(invalid.path("result").path("objectCommitted").asBoolean());assertFalse(invalid.path("result").path("compilationErrors").isEmpty());
+            try(var c=connections.open(id);var docs=io.doindev.codegraph.store.DocumentStore.memory(64L<<20)){
+                c.setAutoCommit(false);var scope=Profiles.JSON.createObjectNode().put("database","FREEPDB1").put("schema",user);ObjectNode[] observed={null};
+                docs.replace(writer->{try{observed[0]=new CatalogScanner(c,profiles.get(id),scope,writer,()->false).scan();}catch(Exception failure){throw new RuntimeException(failure);}});
+                assertEquals("FREEPDB1",observed[0].path("resolvedTarget").path("database").asText());assertTrue(observed[0].path("dependencies").asInt()>0,observed[0].toString());
+                var kinds=new java.util.HashSet<String>();boolean[] badBody={false};
+                docs.scan("o/",(key,value)->{JsonNode object=ProjectContexts.json(value);assertEquals(user,object.path("schema").asText());kinds.add(object.path("kind").asText());if(object.path("kind").asText().equals("package_body")){badBody[0]=true;assertEquals("INVALID",object.path("status").asText());assertFalse(object.path("compilationErrors").isEmpty());assertTrue(object.path("ddl").asText().contains("missing_variable"));}});
+                assertTrue(kinds.containsAll(java.util.Set.of("table","package","package_body","type","type_body","function","sequence")),kinds.toString());assertTrue(badBody[0]);c.rollback();
+            }
+        }
+    }
+
 }
