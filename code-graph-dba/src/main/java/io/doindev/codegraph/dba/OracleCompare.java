@@ -18,18 +18,18 @@ final class OracleCompare {
     };}
     static List<String> schemas(QueryJobs.Job job,Connection c,Target target)throws Exception{
         if(!target.allSchemas())return List.of(target.schema());var names=new ArrayList<String>();
-        for(JsonNode row:query(job,c,"SELECT username FROM all_users WHERE oracle_maintained='N' ORDER BY username"))names.add(str(row,"username"));return names;
+        for(JsonNode row:query(job,c,"SELECT username FROM SYS.ALL_USERS WHERE oracle_maintained='N' ORDER BY username"))names.add(str(row,"username"));return names;
     }
     static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
         var resolved=OracleDialect.target(job,c,job.remainingSeconds());if(!resolved.matches(target.database()))throw new SQLException("Oracle comparison targets a different service/PDB");
         Inventory inventory=new Inventory("oracle",resolved.database(),c.getMetaData().getDatabaseProductVersion());inventory.sequenceValues=sequenceValues;
         inventory.schemas.addAll(schemas(job,c,target));var roster=new TreeMap<String,ObjectNode>();var edges=new ArrayList<JsonNode>();
-        boolean catalogReader=resolved.user().equals("SYS")||!query(job,c,"SELECT role FROM session_roles WHERE role='SELECT_CATALOG_ROLE'").isEmpty();
+        boolean catalogReader=resolved.user().equals("SYS")||!query(job,c,"SELECT role FROM SYS.SESSION_ROLES WHERE role='SELECT_CATALOG_ROLE'").isEmpty();
         for(String owner:inventory.schemas)if(!owner.equals(resolved.user())&&!catalogReader)throw new IllegalArgumentException("Complete Oracle metadata for another owner requires SELECT_CATALOG_ROLE; select that owner's connection or grant catalog access: "+owner);
         String side=job.comparisonProgress==null?"":job.comparisonProgress.path("side").asText();
         for(String owner:inventory.schemas){
             job.comparisonProgress("Listing Oracle objects",side,owner,roster.size(),0);
-            for(JsonNode row:query(job,c,"SELECT object_name,object_type,status,edition_name,TO_CHAR(object_id) AS oid FROM all_objects o WHERE owner=? AND subobject_name IS NULL AND object_type IN ('TABLE','VIEW','MATERIALIZED VIEW','INDEX','SEQUENCE','TYPE','TYPE BODY','PACKAGE','PACKAGE BODY','PROCEDURE','FUNCTION','TRIGGER','SYNONYM','JAVA SOURCE','JAVA CLASS','JAVA RESOURCE') AND (object_type<>'TABLE' OR NOT EXISTS (SELECT 1 FROM all_mviews m WHERE m.owner=o.owner AND m.mview_name=o.object_name)) ORDER BY object_name,object_type",owner)){
+            for(JsonNode row:query(job,c,"SELECT object_name,object_type,status,edition_name,TO_CHAR(object_id) AS oid FROM SYS.ALL_OBJECTS o WHERE owner=? AND subobject_name IS NULL AND object_type IN ('TABLE','VIEW','MATERIALIZED VIEW','INDEX','SEQUENCE','TYPE','TYPE BODY','PACKAGE','PACKAGE BODY','PROCEDURE','FUNCTION','TRIGGER','SYNONYM','JAVA SOURCE','JAVA CLASS','JAVA RESOURCE') AND (object_type<>'TABLE' OR NOT EXISTS (SELECT 1 FROM SYS.ALL_MVIEWS m WHERE m.owner=o.owner AND m.mview_name=o.object_name)) ORDER BY object_name,object_type",owner)){
                 String name=str(row,"object_name"),type=str(row,"object_type"),kind=kind(type),identity=key(owner,kind,name);
                 if(roster.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 Oracle objects; narrow the scope");
                 ObjectNode object=roster.computeIfAbsent(identity,k->item(owner,kind,name));object.set("oracleTarget",resolved.json());object.put("incomingCoverage",catalogReader?"catalog":"accessible_objects");object.put("oracleType",type.replace(' ','_')).put("oid",str(row,"oid"));
@@ -38,28 +38,29 @@ final class OracleCompare {
                 if(!str(row,"status").equals("VALID"))object.put("invalid",true);
                 if(!str(row,"edition_name").isBlank())object.put("edition",str(row,"edition_name"));
             }
-            for(String[] category:List.of(new String[]{"queues","all_queues","name","owner"},new String[]{"database_links","all_db_links","db_link","owner"},new String[]{"jobs","all_jobs","TO_CHAR(job)","schema_user"},new String[]{"scheduler","all_scheduler_jobs","job_name","owner"},new String[]{"scheduler","all_scheduler_programs","program_name","owner"},new String[]{"scheduler","all_scheduler_schedules","schedule_name","owner"},new String[]{"scheduler","all_scheduler_chains","chain_name","owner"})){
+            for(String[] category:List.of(new String[]{"queues","SYS.ALL_QUEUES","name","owner"},new String[]{"database_links","SYS.ALL_DB_LINKS","db_link","owner"},new String[]{"jobs","SYS.ALL_JOBS","TO_CHAR(job)","schema_user"},new String[]{"scheduler","SYS.ALL_SCHEDULER_JOBS","job_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_PROGRAMS","program_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_SCHEDULES","schedule_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_CHAINS","chain_name","owner"})){
                 if(!selectedKinds.isEmpty()&&!selectedKinds.contains(category[0]))continue;
                 for(JsonNode row:query(job,c,"SELECT "+category[2]+" AS name FROM "+category[1]+" WHERE "+category[3]+"=?",owner)){
-                    String name=(category[0].equals("scheduler")?category[1].substring(14)+" / ":"")+str(row,"name");
+                    String name=(category[0].equals("scheduler")?category[1].substring(category[1].lastIndexOf("_")+1).toLowerCase(java.util.Locale.ROOT)+" / ":"")+str(row,"name");
                     ObjectNode object=item(owner,category[0],name).put("oracleType","").put("captureBlocker",category[0].equals("database_links")?"Database-link credentials and network assets require independent destination configuration":"Native generation for this Oracle object category is not yet validated");
                     object.set("oracleTarget",resolved.json());roster.put(key(owner,category[0],name),object);
                     if(roster.size()>MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 Oracle objects; narrow the scope");
                 }
             }
-            for(JsonNode row:query(job,c,"SELECT trigger_name FROM all_triggers WHERE owner=? AND base_object_type IN ('SCHEMA','DATABASE')",owner)){
+            for(JsonNode row:query(job,c,"SELECT trigger_name FROM SYS.ALL_TRIGGERS WHERE owner=? AND base_object_type IN ('SCHEMA','DATABASE')",owner)){
                 var object=roster.remove(key(owner,"table_triggers",str(row,"trigger_name")));if(object!=null){object.put("kind","schema_triggers");roster.put(key(owner,"schema_triggers",str(row,"trigger_name")),object);}
             }
-            for(JsonNode row:query(job,c,"SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name FROM "+(catalogReader?"dba_dependencies":"all_dependencies")+" WHERE owner=? OR referenced_owner=? ORDER BY owner,name,type,referenced_owner,referenced_name",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
-            for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name AS name,'TABLE' AS type,r.owner AS referenced_owner,r.table_name AS referenced_name,'TABLE' AS referenced_type FROM "+(catalogReader?"dba_constraints":"all_constraints")+" c JOIN "+(catalogReader?"dba_constraints":"all_constraints")+" r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name WHERE c.constraint_type='R' AND (c.owner=? OR r.owner=?)",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
-            for(JsonNode row:query(job,c,"SELECT index_name,table_owner,table_name FROM all_indexes WHERE owner=?",owner)){
+            for(JsonNode row:query(job,c,"SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name FROM "+(catalogReader?"SYS.DBA_DEPENDENCIES":"SYS.ALL_DEPENDENCIES")+" WHERE owner=? OR referenced_owner=? ORDER BY owner,name,type,referenced_owner,referenced_name",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
+            for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name AS name,'TABLE' AS type,r.owner AS referenced_owner,r.table_name AS referenced_name,'TABLE' AS referenced_type FROM "+(catalogReader?"SYS.DBA_CONSTRAINTS":"SYS.ALL_CONSTRAINTS")+" c JOIN "+(catalogReader?"SYS.DBA_CONSTRAINTS":"SYS.ALL_CONSTRAINTS")+" r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name WHERE c.constraint_type='R' AND (c.owner=? OR r.owner=?)",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
+            for(JsonNode row:query(job,c,"SELECT index_name,table_owner,table_name FROM SYS.ALL_INDEXES WHERE owner=?",owner)){
                 var index=roster.get(key(owner,"indexes",str(row,"index_name")));if(index!=null)((ArrayNode)index.path("dependencies")).add(key(str(row,"table_owner"),"tables",str(row,"table_name")));
             }
-            for(JsonNode row:query(job,c,"SELECT index_owner,index_name FROM all_constraints WHERE owner=? AND constraint_type IN ('P','U') AND index_name IS NOT NULL",owner)){
+            for(JsonNode row:query(job,c,"SELECT index_owner,index_name FROM SYS.ALL_CONSTRAINTS WHERE owner=? AND constraint_type IN ('P','U') AND index_name IS NOT NULL",owner)){
                 var index=roster.get(key(str(row,"index_owner"),"indexes",str(row,"index_name")));if(index!=null)index.put("implicit",true);
             }
+            OracleCompareGrants.capture(job,c,owner,roster);
         }
-        Set<String> maintained=new HashSet<>();for(JsonNode row:query(job,c,"SELECT username FROM all_users WHERE oracle_maintained='Y'"))maintained.add(str(row,"username"));
+        Set<String> maintained=new HashSet<>();for(JsonNode row:query(job,c,"SELECT username FROM SYS.ALL_USERS WHERE oracle_maintained='Y'"))maintained.add(str(row,"username"));
         for(JsonNode edge:edges){
             String from=identity(roster,str(edge,"owner"),str(edge,"type"),str(edge,"name")),to=identity(roster,str(edge,"referenced_owner"),str(edge,"referenced_type"),str(edge,"referenced_name"));
             ObjectNode object=roster.get(from);if(object==null){if(roster.containsKey(to)&&!maintained.contains(str(edge,"owner")))roster.get(to).withArray("outsideDependents").add(str(edge,"owner")+"."+str(edge,"name"));continue;}
@@ -88,17 +89,17 @@ final class OracleCompare {
         if(object.path("invalid").asBoolean())throw new IllegalArgumentException("Source/destination object is invalid; resolve its compilation diagnostics first");
         if(!object.path("blockers").isEmpty())throw new IllegalArgumentException(object.path("blockers").toString());
         if(kind.equals("java"))throw new IllegalArgumentException("Java definitions require independent external asset validation");
-        if(kind.equals("tables")&&!query(job,c,"SELECT table_name FROM all_external_tables WHERE owner=? AND table_name=?",owner,name).isEmpty())throw new IllegalArgumentException("External table assets must be supplied and validated independently");
+        if(kind.equals("tables")&&!query(job,c,"SELECT table_name FROM SYS.ALL_EXTERNAL_TABLES WHERE owner=? AND table_name=?",owner,name).isEmpty())throw new IllegalArgumentException("External table assets must be supplied and validated independently");
         if(object.path("implicit").asBoolean()){object.put("supported",true).put("reason","Index is managed by its table constraint");return;}
         String ddl=OracleDocuments.capture(job,c,type,owner,name,"DDL");
         if(OracleCompareSql.dynamic(ddl))throw new IllegalArgumentException("Dynamic SQL requires manual dependency and identifier review");
         if(kind.equals("sequences")){
-            ObjectNode fields=query(job,c,"SELECT min_value, max_value, increment_by, cycle_flag, order_flag, cache_size, last_number, scale_flag, extend_flag, sharded_flag, session_flag, keep_value FROM all_sequences WHERE sequence_owner=? AND sequence_name=?",owner,name).path(0).deepCopy();
+            ObjectNode fields=query(job,c,"SELECT min_value, max_value, increment_by, cycle_flag, order_flag, cache_size, last_number, scale_flag, extend_flag, sharded_flag, session_flag, keep_value FROM SYS.ALL_SEQUENCES WHERE sequence_owner=? AND sequence_name=?",owner,name).path(0).deepCopy();
             JsonNode boundary=fields.remove("last_number");object.set("fields",fields);String initial=CompareSql.integer(str(fields,"increment_by")).signum()>0?str(fields,"min_value"):str(fields,"max_value");object.put("ddl",ddl.replaceFirst("(?i)START WITH\\s+[-+]?\\d+","START WITH "+initial));
             if(inventory.sequenceValues){object.putObject("state").set("value",boundary);object.withObject("state").put("observation",fields.path("cache_size").asInt()==0?"uncached_catalog_boundary":"cache_boundary");}
             boolean ordinary=str(fields,"cycle_flag").equals("N")&&str(fields,"scale_flag").equals("N")&&str(fields,"sharded_flag").equals("N")&&str(fields,"session_flag").equals("N");
             ArrayNode modes=object.putArray("stateModes");if(ordinary)modes.add("advance");object.put("stateReason",ordinary?"Sync advances to a catalog boundary; cached source values may remain unused":"Cyclic, scalable, sharded or session sequence values need manual synchronization");
-            if(!query(job,c,"SELECT table_name,column_name FROM all_tab_identity_cols WHERE owner=? AND sequence_name=?",owner,name).isEmpty()){object.put("implicit",true).put("identity",true);modes.removeAll();object.put("supported",false).put("reason","Identity-owned sequences are managed through the owning table").put("stateReason","Identity-owned sequence values are managed through the owning table");return;}
+            if(!query(job,c,"SELECT table_name,column_name FROM SYS.ALL_TAB_IDENTITY_COLS WHERE owner=? AND sequence_name=?",owner,name).isEmpty()){object.put("implicit",true).put("identity",true);modes.removeAll();object.put("supported",false).put("reason","Identity-owned sequences are managed through the owning table").put("stateReason","Identity-owned sequence values are managed through the owning table");return;}
         }else{
             object.put("ddl",ddl);object.put("oracleXml",OracleDocuments.capture(job,c,type,owner,name,"XML"));
             if(Set.of("tables","indexes","views","materialized_views","types").contains(kind))object.put("oracleSxml",OracleDocuments.capture(job,c,type,owner,name,"SXML"));
@@ -141,6 +142,7 @@ final class OracleCompare {
                 }
                 if(old!=null&&object.path("oracleBody").asBoolean()&&!OracleCompareSql.canonical(OracleCompareSql.remap(str(object,"oracleBodyDdl"),mapping)).equals(OracleCompareSql.canonical(str(old,"oracleBodyDdl"))))
                     change(changes,"REPLACE_BODY",name,"",false,List.of(OracleCompareSql.remap(OracleDocuments.remap(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,false,true),mapping)));
+                OracleCompareGrants.review(job,destination,object,old,owner,mapping,changes);
                 if(!changes.isEmpty()&&!object.path("outsideDependents").isEmpty())throw new IllegalArgumentException("Incoming dependents outside the captured scope: "+object.path("outsideDependents"));
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;changes.removeAll();object.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Oracle cannot generate this change"));}
             reviewBytes=reviewBudget(reviewBytes,object);

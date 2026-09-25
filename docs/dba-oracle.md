@@ -313,3 +313,13 @@ and private observation history after an application restart. RMAN tests verify 
 Oracle's syntax-only RMAN checker accepts the exact browser-downloaded backup script. Browser
 checks also cover deterministic Data Pump status polling, retained observations, terminal-state
 handling and complete RMAN copy/save. Standard Oracle 19c certification remains pending.
+
+### Object grants in comparison
+
+Selected objects carry their owner-issued object and column grants. Destination users/roles
+must already exist; owner mapping also maps an owner grantee. Adding or extending a grant
+is included in the reviewed script. Removal or downgrade requires destructive schema changes;
+REFERENCES revocation, delegated grant chains, and common/inherited container grants are
+blocked for separate dependency review. Grant changes invalidate captured comparison state.
+Live validation covers table creation, role/user and column grants, stale grants, reviewed
+revocation, and an identical repeat comparison after applying the generated script.

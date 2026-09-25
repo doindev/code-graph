@@ -203,6 +203,37 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test @Timeout(300) void oracleCompareObjectColumnGrantsAndRevalidation()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_GS_"+suffix,destination="CG_GD_"+suffix,reader="CG_GR_"+suffix,role="CG_GROLE_"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),x->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,x->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText(),from="",to="";
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                for(String owner:java.util.List.of(source,destination)){st.execute("CREATE USER "+owner+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE PROCEDURE,SELECT_CATALOG_ROLE TO "+owner);}
+                st.execute("CREATE USER "+reader+" NO AUTHENTICATION");st.execute("CREATE ROLE "+role);
+            }
+            try{
+                from=profiles.put(null,draft(source,password)).path("id").asText();to=profiles.put(null,draft(destination,password)).path("id").asText();
+                try(var c=connections.open(from);var st=c.createStatement()){
+                    st.execute("CREATE TABLE ITEMS(id NUMBER,label VARCHAR2(30))");st.execute("GRANT SELECT ON ITEMS TO "+reader+" WITH GRANT OPTION");st.execute("GRANT UPDATE(label) ON ITEMS TO "+reader);st.execute("GRANT READ ON ITEMS TO "+role);
+                    // Native metadata calls must ignore a package with the same name in the selected schema.
+                    st.execute("CREATE PACKAGE DBMS_METADATA AS FUNCTION GET_DDL(a VARCHAR2,b VARCHAR2,c VARCHAR2) RETURN CLOB; END;");st.execute("CREATE PACKAGE BODY DBMS_METADATA AS FUNCTION GET_DDL(a VARCHAR2,b VARCHAR2,c VARCHAR2) RETURN CLOB IS BEGIN RAISE_APPLICATION_ERROR(-20000,'owner package must not execute'); END; END;");
+                }
+                var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,from,source)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,to,destination)).put("dataMode","none");input.putArray("objectTypes").add("tables");
+                String id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();var results=compare.results("human",id,0,100,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());
+                var selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");var artifact=compareFinished(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertTrue(script.contains("WITH GRANT OPTION"),script);assertTrue(script.contains("GRANT UPDATE"),script);assertTrue(script.contains("GRANT READ"),script);assertTrue(script.indexOf("CREATE TABLE")<script.indexOf("GRANT "),script);
+                try(var c=connections.open(to);var st=c.createStatement()){try(var rows=st.executeQuery("SELECT COUNT(*) FROM SYS.USER_TABLES WHERE TABLE_NAME='ITEMS'")){assertTrue(rows.next());assertEquals(0,rows.getInt(1));}for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());}
+                compare.remove("human",id);id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(1,results.path("counts").path("identical").asInt(),results.toPrettyString());
+                selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");try(var c=connections.open(from);var st=c.createStatement()){st.execute("GRANT INSERT(id) ON ITEMS TO "+reader);}
+                var stale=compareAwait(jobs,compare.generate("human",id,selection));assertEquals("failed",stale.path("state").asText());assertTrue(stale.path("error").asText().contains("changed"),stale.toString());compare.remove("human",id);
+                try(var c=connections.open(to);var st=c.createStatement()){st.execute("GRANT DELETE ON ITEMS TO "+reader);}
+                id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");String deniedId=id;ObjectNode deniedSelection=selection;var denied=assertThrows(IllegalArgumentException.class,()->compare.generate("human",deniedId,deniedSelection));assertTrue(denied.getMessage().contains("destructive"),denied.getMessage());
+                selection.put("destructiveSchema",true);artifact=compareFinished(jobs,compare.generate("human",id,selection));script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertTrue(script.contains("REVOKE DELETE"),script);try(var c=connections.open(to);var st=c.createStatement()){for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());}compare.remove("human",id);
+                id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(1,results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);System.out.println("ORACLE_COMPARE_GRANTS_VERIFIED");
+            }finally{
+                if(!from.isEmpty())connections.remove(from);if(!to.isEmpty())connections.remove(to);try(var c=connections.open(admin);var st=c.createStatement()){for(String owner:java.util.List.of(source,destination,reader))st.execute("DROP USER "+owner+" CASCADE");st.execute("DROP ROLE "+role);}
+            }
+        }
+    }
     @Test void applicationCompareAcrossIndependentOwnersGeneratesAndRevalidates()throws Exception{
         String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),s->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,s->true)){

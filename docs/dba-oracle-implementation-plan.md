@@ -104,7 +104,11 @@ Data Pump schema export/import, reviewed stop/resume, native restart discovery, 
 catalog fallback and bounded private observation history now pass live lifecycle checks. Manual
 RMAN backup/validation artifacts have complete copy/save controls; the downloaded backup passes
 Oracle's syntax-only checker. Browser tests cover status monitoring and artifact disposal.
-Catalog completion, identities, broader object variants and grants/scheduler generation remain
+Owner-issued object and column grants now participate in comparison, stale-state revalidation
+and generated scripts. Live checks verify role/user grants, grant options, destructive revocation
+and a repeat comparison after execution. Trusted metadata packages and catalog reads are
+SYS-qualified so owner-local objects cannot shadow them.
+Catalog completion, identities, broader object variants and scheduler generation remain
 in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

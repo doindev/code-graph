@@ -24,7 +24,7 @@ final class OracleDocuments {
     static String capture(QueryJobs.Job job,Connection c,String type,String owner,String name,String format)throws Exception{
         if(!Set.of("XML","SXML","DDL").contains(format))throw new IllegalArgumentException("Invalid Oracle metadata format");
         Statement prior=job==null?null:job.statement;
-        try(var statement=c.prepareStatement("SELECT DBMS_METADATA.GET_"+format+"(?,?,?) FROM dual")){
+        try(var statement=c.prepareStatement("SELECT SYS.DBMS_METADATA.GET_"+format+"(?,?,?) FROM SYS.DUAL")){
             if(job!=null)job.statement=statement;statement.setQueryTimeout(timeout(job));statement.setMaxRows(1);statement.setString(1,type);statement.setString(2,name);statement.setString(3,owner);
             try(var rows=statement.executeQuery()){if(!rows.next())throw new SQLException("Oracle metadata was not returned for "+owner+"."+name);return bounded(job,rows.getCharacterStream(1));}
         }finally{if(job!=null)job.statement=prior;}
@@ -37,16 +37,16 @@ final class OracleDocuments {
         String block="""
             DECLARE h NUMBER; t NUMBER; result CLOB;
             BEGIN
-              h:=DBMS_METADATA.OPENW(?);
-              t:=DBMS_METADATA.ADD_TRANSFORM(h,?);
-              DBMS_METADATA.SET_REMAP_PARAM(t,'REMAP_SCHEMA',?,?);
-            """+(!output.isEmpty()?"t:=DBMS_METADATA.ADD_TRANSFORM(h,'"+output+"');\n":"")+"""
-              DBMS_LOB.CREATETEMPORARY(result,TRUE);
-              DBMS_METADATA.CONVERT(h,?,result);
-              DBMS_METADATA.CLOSE(h); h:=NULL; ?:=result;
+              h:=SYS.DBMS_METADATA.OPENW(?);
+              t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,?);
+              SYS.DBMS_METADATA.SET_REMAP_PARAM(t,'REMAP_SCHEMA',?,?);
+            """+(!output.isEmpty()?"t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,'"+output+"');\n":"")+"""
+              SYS.DBMS_LOB.CREATETEMPORARY(result,TRUE);
+              SYS.DBMS_METADATA.CONVERT(h,?,result);
+              SYS.DBMS_METADATA.CLOSE(h); h:=NULL; ?:=result;
             EXCEPTION WHEN OTHERS THEN
-              IF h IS NOT NULL THEN DBMS_METADATA.CLOSE(h); END IF;
-              IF DBMS_LOB.ISTEMPORARY(result)=1 THEN DBMS_LOB.FREETEMPORARY(result); END IF;
+              IF h IS NOT NULL THEN SYS.DBMS_METADATA.CLOSE(h); END IF;
+              IF SYS.DBMS_LOB.ISTEMPORARY(result)=1 THEN SYS.DBMS_LOB.FREETEMPORARY(result); END IF;
               RAISE;
             END;
             """;
@@ -56,23 +56,23 @@ final class OracleDocuments {
         String block="""
             DECLARE d NUMBER; w NUMBER; t NUMBER; delta CLOB; result CLOB;
             BEGIN
-              d:=DBMS_METADATA_DIFF.OPENC(?);
-              DBMS_METADATA_DIFF.ADD_DOCUMENT(d,?);
-              DBMS_METADATA_DIFF.ADD_DOCUMENT(d,?);
-              delta:=DBMS_METADATA_DIFF.FETCH_CLOB(d); DBMS_METADATA_DIFF.CLOSE(d); d:=NULL;
-              w:=DBMS_METADATA.OPENW(?);
-              t:=DBMS_METADATA.ADD_TRANSFORM(w,'ALTERXML');
-              DBMS_METADATA.SET_PARSE_ITEM(w,'CLAUSE_TYPE');
-              DBMS_METADATA.SET_PARSE_ITEM(w,'NAME');
-              DBMS_METADATA.SET_PARSE_ITEM(w,'COLUMN_ATTRIBUTE');
-              DBMS_LOB.CREATETEMPORARY(result,TRUE);
-              DBMS_METADATA.CONVERT(w,delta,result); DBMS_METADATA.CLOSE(w); w:=NULL;
-              ?:=result; DBMS_LOB.FREETEMPORARY(delta);
+              d:=SYS.DBMS_METADATA_DIFF.OPENC(?);
+              SYS.DBMS_METADATA_DIFF.ADD_DOCUMENT(d,?);
+              SYS.DBMS_METADATA_DIFF.ADD_DOCUMENT(d,?);
+              delta:=SYS.DBMS_METADATA_DIFF.FETCH_CLOB(d); SYS.DBMS_METADATA_DIFF.CLOSE(d); d:=NULL;
+              w:=SYS.DBMS_METADATA.OPENW(?);
+              t:=SYS.DBMS_METADATA.ADD_TRANSFORM(w,'ALTERXML');
+              SYS.DBMS_METADATA.SET_PARSE_ITEM(w,'CLAUSE_TYPE');
+              SYS.DBMS_METADATA.SET_PARSE_ITEM(w,'NAME');
+              SYS.DBMS_METADATA.SET_PARSE_ITEM(w,'COLUMN_ATTRIBUTE');
+              SYS.DBMS_LOB.CREATETEMPORARY(result,TRUE);
+              SYS.DBMS_METADATA.CONVERT(w,delta,result); SYS.DBMS_METADATA.CLOSE(w); w:=NULL;
+              ?:=result; SYS.DBMS_LOB.FREETEMPORARY(delta);
             EXCEPTION WHEN OTHERS THEN
-              IF d IS NOT NULL THEN DBMS_METADATA_DIFF.CLOSE(d); END IF;
-              IF w IS NOT NULL THEN DBMS_METADATA.CLOSE(w); END IF;
-              IF DBMS_LOB.ISTEMPORARY(delta)=1 THEN DBMS_LOB.FREETEMPORARY(delta); END IF;
-              IF DBMS_LOB.ISTEMPORARY(result)=1 THEN DBMS_LOB.FREETEMPORARY(result); END IF;
+              IF d IS NOT NULL THEN SYS.DBMS_METADATA_DIFF.CLOSE(d); END IF;
+              IF w IS NOT NULL THEN SYS.DBMS_METADATA.CLOSE(w); END IF;
+              IF SYS.DBMS_LOB.ISTEMPORARY(delta)=1 THEN SYS.DBMS_LOB.FREETEMPORARY(delta); END IF;
+              IF SYS.DBMS_LOB.ISTEMPORARY(result)=1 THEN SYS.DBMS_LOB.FREETEMPORARY(result); END IF;
               RAISE;
             END;
             """;
