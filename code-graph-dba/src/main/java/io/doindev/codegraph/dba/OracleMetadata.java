@@ -19,7 +19,23 @@ final class OracleMetadata {
         default->"";
     };}
     static String definition(QueryJobs.Job job,Connection c,String type,String owner,String name)throws Exception{
-        return query(job,c,"SELECT DBMS_METADATA.GET_DDL(?,?,?) AS ddl FROM dual",type,name,owner).path(0).path("ddl").asText("");
+        return query(job,c,"SELECT SYS.DBMS_METADATA.GET_DDL(?,?,?) AS ddl FROM SYS.DUAL",type,name,owner).path(0).path("ddl").asText("");
+    }
+    static String actionRevision(QueryJobs.Job job,Connection c,String kind,String owner,String name)throws Exception{
+        String type=ddlType(kind);if(type.isEmpty())return "";
+        OracleDialect.identifier(owner);OracleDialect.identifier(name);
+        var objects=query(job,c,"SELECT OBJECT_ID,OBJECT_TYPE,STATUS,LAST_DDL_TIME,EDITION_NAME FROM SYS.ALL_OBJECTS WHERE OWNER=? AND OBJECT_NAME=? AND SUBOBJECT_NAME IS NULL ORDER BY OBJECT_TYPE,OBJECT_ID",owner,name);
+        if(objects.isEmpty())throw new IllegalArgumentException("Oracle object is unavailable or catalog privileges are missing; refresh the tree");
+        // GET_DDL for materialized views can expand a large internal metadata graph. Tree
+        // refresh/drop review needs the stable native identity and definition properties only.
+        if(kind.equals("materialized_views")){
+            var materialized=query(job,c,"SELECT MVIEW_NAME,CONTAINER_NAME,QUERY,REFRESH_MODE,REFRESH_METHOD,BUILD_MODE,REWRITE_ENABLED FROM SYS.ALL_MVIEWS WHERE OWNER=? AND MVIEW_NAME=?",owner,name);
+            if(materialized.size()!=1)throw new IllegalArgumentException("Materialized-view definition is unavailable; refresh the tree");
+            return CatalogScanner.hash(objects+"\n"+materialized);
+        }
+        String ddl=definition(job,c,type,owner,name);if(ddl.isBlank())throw new IllegalArgumentException("Native Oracle definition is required to review this object action");
+        if(kind.equals("packages")||kind.equals("types"))for(JsonNode object:objects){String body=object.path("object_type").asText();if(body.equals("PACKAGE BODY")||body.equals("TYPE BODY"))ddl+="\n"+definition(job,c,body.replace(' ','_'),owner,name);}
+        return CatalogScanner.hash(objects+"\n"+ddl);
     }
     static void populate(QueryJobs.Job job,Connection c,ObjectNode out,JsonNode node)throws Exception{
         String kind=str(out,"kind"),owner=str(out.path("fields"),"schema"),name=str(out.path("fields"),"name");

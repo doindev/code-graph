@@ -41,6 +41,8 @@ final class MetadataActions {
         String product=c.getMetaData().getDatabaseProductName(),engine=product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
         String name=found.path("objectName").asText(found.path("name").asText()),schema=found.path("schema").asText(),type=type(group),target="",drop="",rename="";
         boolean pg=engine.equals("postgresql");
+        OracleDialect.Target oracle=engine.equals("oracle")?OracleDialect.target(job,c,timeout):null;
+        if(oracle!=null&&(c.getMetaData().getDatabaseMajorVersion()<19||!oracle.matches(parent.path("database").asText())))throw new IllegalArgumentException("Object actions require the selected Oracle 19c+ service/PDB");
         String columnTable="";
         if(pg){
             String oid=found.path("oid").asText();String[] raw=switch(group){
@@ -80,7 +82,7 @@ final class MetadataActions {
             if(engine.equals("sqlite")&&group.equals("relation"))name=found.path("oid").asText();
             // Catalog display labels containing signatures/table prefixes must never become identifiers.
             boolean simple=Set.of("schemas","tables","views","materialized_views","external_tables","sequences","domains","triggers","events","types","packages","synonyms","schema_triggers","table_triggers","stages","file_formats","pipes","tasks","streams").contains(group)
-                ||group.equals("indexes")&&!Set.of("mysql","mariadb","sqlserver").contains(engine);
+                ||group.equals("indexes")&&!Set.of("mysql","mariadb","sqlserver").contains(engine)||engine.equals("oracle")&&Set.of("functions","procedures").contains(group);
             if(!simple)type="";
             target=group.equals("schemas")?quote(engine,name):qualified(engine,schema,name);
             if(group.equals("relation")&&!engine.equals("sqlite")){
@@ -98,7 +100,7 @@ final class MetadataActions {
                     case "sqlite" -> Set.of("TABLE","VIEW","INDEX","TRIGGER");
                     case "duckdb" -> Set.of("SCHEMA","TABLE","VIEW","INDEX","SEQUENCE","TYPE","COLUMN");
                     case "mysql","mariadb" -> Set.of("TABLE","VIEW","TRIGGER","EVENT","COLUMN");
-                    case "oracle" -> Set.of("TABLE","VIEW","MATERIALIZED VIEW","INDEX","SEQUENCE","TYPE","PACKAGE","SYNONYM","TRIGGER","COLUMN");
+                    case "oracle" -> Set.of("TABLE","VIEW","MATERIALIZED VIEW","INDEX","SEQUENCE","TYPE","PACKAGE","SYNONYM","TRIGGER","COLUMN","FUNCTION","PROCEDURE");
                     case "sqlserver" -> Set.of("SCHEMA","TABLE","VIEW","SEQUENCE","TYPE","SYNONYM","TRIGGER","COLUMN");
                     case "db2" -> Set.of("SCHEMA","TABLE","VIEW","MATERIALIZED VIEW","INDEX","SEQUENCE","TYPE","TRIGGER","COLUMN");
                     case "snowflake" -> Set.of("SCHEMA","TABLE","VIEW","MATERIALIZED VIEW","EXTERNAL TABLE","SEQUENCE","STAGE","FILE FORMAT","PIPE","TASK","STREAM","COLUMN");
@@ -112,7 +114,8 @@ final class MetadataActions {
                     if(type.equals("COLUMN"))rename="ALTER TABLE "+columnTable+" RENAME COLUMN "+quote(engine,name)+" TO ";
                     // Rename has no portable JDBC capability flag. Enable only validated dialect/type
                     // pairs; never infer it from the mere existence of an ALTER or DROP command.
-                    if(!engine.equals("h2"))rename="";
+                    if(!engine.equals("h2")&&!engine.equals("oracle"))rename="";
+                    if(engine.equals("oracle")&&type.equals("INDEX"))rename="ALTER INDEX "+target+" RENAME TO ";
                 }
             }
         }
@@ -129,9 +132,10 @@ final class MetadataActions {
         List<MaterializedViewSchedules.Command> cleanup=group.equals("materialized_views")?MaterializedViewSchedules.deleteCleanup(job,c,engine,Objects.toString(c.getCatalog(),""),schema,name):List.of();
         if(pg&&group.equals("materialized_views")&&!cleanup.isEmpty()){rename="";reason="Rename this materialized view in its Properties tab so the managed pg_cron target is updated in the same reviewed plan.";}
         List<String> deleteWarnings=group.equals("materialized_views")?List.of("Recognized code-graph-managed schedule jobs and helper procedures are removed before the view. Other scheduler jobs are read-only here and remain unchanged."):List.of();
-        String fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((selection+"\n"+c.getCatalog()+"\n"+engine+"\n"+name+"\n"+drop+"\n"+rename+"\n"+cleanup).getBytes(StandardCharsets.UTF_8)));
+        String nativeRevision=oracle==null?"":oracle.json()+"\n"+OracleMetadata.actionRevision(job,c,group.equals("relation")?"tables":group,schema,group.equals("relation")?parent.path("table").asText(parent.path("name").asText()):name);
+        String fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((selection+"\n"+c.getCatalog()+"\n"+engine+"\n"+name+"\n"+drop+"\n"+rename+"\n"+cleanup+"\n"+nativeRevision).getBytes(StandardCharsets.UTF_8)));
         String truncate=group.equals("tables")&&Set.of("postgresql","h2","hsqldb","duckdb","mysql","mariadb","oracle","sqlserver","db2","snowflake").contains(engine)?"TRUNCATE TABLE "+target+(pg?" CONTINUE IDENTITY RESTRICT":engine.equals("h2")?" CONTINUE IDENTITY":""):"";
-        String refresh=group.equals("materialized_views")?switch(engine){case "postgresql"->"REFRESH MATERIALIZED VIEW "+target;case "oracle"->"BEGIN DBMS_MVIEW.REFRESH("+TableDesigner.literal(target)+"); END;";case "db2"->"REFRESH TABLE "+target;default->"";}:"";
+        String refresh=group.equals("materialized_views")?switch(engine){case "postgresql"->"REFRESH MATERIALIZED VIEW "+target;case "oracle"->"BEGIN SYS.DBMS_SNAPSHOT.REFRESH("+TableDesigner.literal(target)+"); END;";case "db2"->"REFRESH TABLE "+target;default->"";}:"";
         return new Plan(name,type,target,drop,rename,reason,fingerprint,truncate,refresh,cleanup,deleteWarnings);
     }
     static String command(Plan plan,String engine,String action,JsonNode input){

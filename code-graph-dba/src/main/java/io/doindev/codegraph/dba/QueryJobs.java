@@ -353,21 +353,23 @@ final class QueryJobs implements AutoCloseable {
         if(!statements.isArray()||statements.isEmpty()||statements.size()>32)throw new IllegalArgumentException("Migration plan has no bounded statement list");
         ObjectNode scope=(ObjectNode)request.path("migrationScope");String expected=request.path("migrationSchemaFingerprint").asText();
         return local("agent:"+principal,id,job->{
-            validate.run();Connections.Target target=null;Connection c=null;ArrayNode committed=Profiles.JSON.createArrayNode();boolean committing=false;
+            validate.run();Connections.Target target=null;Connection c=null;ArrayNode committed=Profiles.JSON.createArrayNode();boolean committing=false,executing=false,atomic=false;
+            ObjectNode report=Profiles.JSON.createObjectNode().put("migrationPlanId",request.path("migrationPlanId").asText()).put("applied",false);report.set("steps",committed);job.result=report;
             try{
                 target=connections.target(id,scope.path("database").asText());c=target.connection();if(!c.getAutoCommit())c.rollback();
-                boolean atomic=request.path("migrationTransactional").asBoolean()&&c.getMetaData().supportsTransactions();
+                atomic=request.path("migrationTransactional").asBoolean()&&c.getMetaData().supportsTransactions()&&!OracleDialect.isOracle(c);report.put("atomic",atomic);
                 boolean postgres=c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL");
                 c.setReadOnly(false);c.setAutoCommit(!atomic);
                 if(postgres)try(Statement setup=c.createStatement()){setup.execute("SET LOCAL statement_timeout = "+config.timeoutSeconds()*1000);setup.execute("SET LOCAL lock_timeout = 3000");setup.execute("SET LOCAL search_path = pg_catalog");}
                 else Connections.selectSchema(c,scope.path("schema").asText());
                 ObjectNode observed=SchemaSnapshots.capture(job,c,connections.profile(id),scope);
+                if(OracleDialect.isOracle(c)){OracleMigrations.snapshot(observed);OracleMigrations.execution(Profiles.JSON.convertValue(statements,new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){}),scope.path("schema").asText(),request.path("migrationRehearsal").asBoolean());}
                 if(!expected.equals(observed.path("fingerprint").asText()))throw new IllegalArgumentException("Schema changed since migration preparation; capture and prepare a new plan");
                 if(postgres)Connections.selectSchema(c,scope.path("schema").asText());
                 validate.run();
                 for(int i=0;i<statements.size();i++){
                     if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
-                    String sql=statements.get(i).asText();try(Statement statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.execute(sql);}
+                    job.progress="Applying migration step "+(i+1)+" of "+statements.size();String sql=statements.get(i).asText();try(Statement statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());executing=true;statement.execute(sql);executing=false;}finally{job.statement=null;}
                     committed.addObject().put("index",i+1).put("state",atomic?"executed_pending_commit":"committed_or_vendor_acknowledged");
                 }
                 ArrayNode validations=Profiles.JSON.createArrayNode();int remaining=Math.min(100,job.rowLimit);
@@ -377,7 +379,8 @@ final class QueryJobs implements AutoCloseable {
                         try(ResultSet result=statement.executeQuery()){ObjectNode data=rows(result,remaining,Math.max(8192,job.byteLimit/4));remaining=Math.max(0,remaining-data.path("rows").size());validations.addObject().put("index",i+1).put("sqlHash",CatalogScanner.hash(sql)).set("result",data);}}
                 }
                 ObjectNode post=SchemaSnapshots.capture(job,c,connections.profile(id),scope);
-                validate.run();committing=true;if(atomic)c.commit();job.outcome=atomic?"commit_acknowledged":"steps_acknowledged";
+                if(OracleDialect.isOracle(c))OracleMigrations.compilation(observed,post);
+                validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();committing=true;if(atomic)c.commit();job.outcome=atomic?"commit_acknowledged":"steps_acknowledged";
                 ObjectNode result=Profiles.JSON.createObjectNode().put("migrationPlanId",request.path("migrationPlanId").asText()).put("applied",true)
                         .put("rehearsal",request.path("migrationRehearsal").asBoolean()).put("atomic",atomic).put("outcome",job.outcome)
                         .put("preFingerprint",expected).put("postFingerprint",post.path("fingerprint").asText())
@@ -385,8 +388,10 @@ final class QueryJobs implements AutoCloseable {
                 if(request.path("migrationRehearsal").asBoolean())result.put("evidence","Disposable-target setup, synthetic fixtures, migration SQL and checks completed; this is not a production guarantee.");
                 return result;
             }catch(Exception failure){
-                boolean atomic=c!=null&&!safeAutoCommit(c);if(atomic&&!committing)try{c.rollback();job.outcome="rollback_requested";}catch(SQLException uncertain){job.outcome="unknown";}
-                else job.outcome=committing?"unknown":committed.isEmpty()?"not_started":"partial_or_unknown";
+                if(atomic&&!committing&&c!=null)try{c.rollback();job.outcome="rollback_requested";}catch(SQLException uncertain){job.outcome="unknown";}
+                else {boolean uncertain=executing&&(job.cancelled||failure instanceof SQLTimeoutException||failure instanceof CancellationException||failure instanceof SQLException sql&&(sql.getErrorCode()==1013||sql.getSQLState()!=null&&sql.getSQLState().startsWith("08")));job.outcome=committing||uncertain?"unknown":committed.isEmpty()?"not_started":"partial_or_unknown";}
+                if(atomic)for(JsonNode step:committed)((ObjectNode)step).put("state",job.outcome);
+                report.put("outcome",job.outcome).put("message",connections.humanError(id,failure)+(atomic?"":" Oracle/vendor DDL can commit implicitly. Inspect acknowledged steps and the destination before retrying."));
                 throw failure;
             }finally{job.statement=null;if(target!=null)target.close();}
         },completed);
@@ -652,24 +657,24 @@ final class QueryJobs implements AutoCloseable {
         ObjectNode selection=MetadataActions.request(input);int timeout=config.timeoutSeconds();
         if(connections.genericOnly(id)&&!selection.path("parent").path("kind").asText().equals("scheduled_jobs"))throw new IllegalArgumentException("Object mutations are not certified for this database template; use the SQL editor with the vendor's documented syntax");
         if(!execute)return catalogRead(owner,id,(ObjectNode)selection.path("parent"),(job,c)->{
-            MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,timeout);ObjectNode result=plan.json(Objects.toString(c.getCatalog(),""));
+            MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,timeout);String database=OracleDialect.database(job,c);ObjectNode result=plan.json(database);
             // Cross-database browsing is supported, but mutations require an explicit saved target.
-            result.put("database",c.getCatalog());
+            result.put("database",database);
             return result;
         });
         JsonNode commandInput=input.deepCopy();String action=Profiles.text(input,"action",16);
         if(!Set.of("delete","rename","truncate","refresh").contains(action))throw new IllegalArgumentException("Unsupported object action");
         if(Set.of("delete","truncate","refresh").contains(action)&&(!input.path("confirmed").isBoolean()||!input.path("confirmed").asBoolean()))throw new IllegalArgumentException("Explicit destructive-action confirmation is required");
         return submit(owner,id,(job,c)->{
-            String database=selection.path("parent").path("database").asText("");
-            if(!database.isEmpty()&&!database.equals(c.getCatalog()))throw new IllegalArgumentException("For object changes, use a saved connection targeting the selected database. No other database was modified.");
+            String database=selection.path("parent").path("database").asText(""),resolved=OracleDialect.database(job,c);
+            if(!database.isEmpty()&&!database.equals(resolved)&&!(OracleDialect.isOracle(c)&&OracleDialect.target(job,c,job.remainingSeconds()).matches(database)))throw new IllegalArgumentException("For object changes, use a saved connection targeting the selected database. No other database was modified.");
             MetadataActions.Plan plan=objectActionPlan(job,id,c,selection,job.remainingSeconds());
             String product=c.getMetaData().getDatabaseProductName(),engine=product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
             String sql=MetadataActions.command(plan,engine,action,commandInput);List<MaterializedViewSchedules.Command> commands=new ArrayList<>();
-            if(action.equals("delete"))commands.addAll(plan.deleteCleanup());commands.add(new MaterializedViewSchedules.Command(sql,Objects.toString(c.getCatalog(),""),"object",action+" the selected object"));
+            if(action.equals("delete"))commands.addAll(plan.deleteCleanup());commands.add(new MaterializedViewSchedules.Command(sql,resolved,"object",action+" the selected object"));
             for(MaterializedViewSchedules.Command command:commands){
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();String commandDatabase=command.database();
-                if(commandDatabase.isBlank()||commandDatabase.equals(c.getCatalog()))executeActionStatement(job,c,command.sql());
+                if(commandDatabase.isBlank()||commandDatabase.equals(resolved))executeActionStatement(job,c,command.sql());
                 else try(var other=connections.openDatabase(id,commandDatabase,job.remainingSeconds())){Connection target=other.connection();target.setReadOnly(false);target.setAutoCommit(true);try(Statement setup=target.createStatement()){setup.setQueryTimeout(job.remainingSeconds());setup.execute("SET statement_timeout = "+config.timeoutSeconds()*1000);setup.execute("SET lock_timeout = 3000");}executeActionStatement(job,target,command.sql());}
             }
             return Profiles.JSON.createObjectNode().put("action",action).put("name",plan.name()).put("changed",true).put("statements",commands.size());

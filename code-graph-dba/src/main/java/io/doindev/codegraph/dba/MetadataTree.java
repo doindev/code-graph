@@ -18,7 +18,8 @@ final class MetadataTree {
         String kind=request.path("kind").asText("root"),database=request.path("database").asText(c.getCatalog()),schema=request.path("schema").asText("");
         boolean postgres=!request.path("genericOnly").asBoolean()&&c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL");
         ObjectNode out=Profiles.JSON.createObjectNode().put("engine",postgres?"postgresql":"jdbc").put("offset",request.path("offset").asInt(0));ArrayNode nodes=out.putArray("nodes");
-        if(kind.startsWith("table_")||kind.equals("relation")&&request.path("relationType").asText().equals("table"))return TableMetadata.browse(job,c,request,out,timeout);
+        boolean oracleSchemaTriggers=kind.equals("table_triggers")&&request.path("table").asText().isBlank()&&OracleDialect.isOracle(c);
+        if(kind.startsWith("table_")&&!oracleSchemaTriggers||kind.equals("relation")&&request.path("relationType").asText().equals("table"))return TableMetadata.browse(job,c,request,out,timeout);
         if(!postgres)return VendorMetadata.browse(job,c,request,out,timeout);
         switch(kind){
             case "root" -> node(nodes,"databases","Databases",true,"","");

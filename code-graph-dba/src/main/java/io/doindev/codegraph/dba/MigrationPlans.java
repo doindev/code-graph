@@ -39,12 +39,15 @@ final class MigrationPlans implements AutoCloseable {
         boolean structured=input.has("changes"),supplied=input.has("sql");
         if(structured==supplied)throw new IllegalArgumentException("Supply exactly one of changes or sql");
         String engine=snapshot.result.path("engine").asText();
-        if(!List.of("postgresql","mysql","mariadb","h2","sqlserver").contains(engine))throw new IllegalArgumentException("Migration planning is not verified for engine "+engine);
-        List<String> statements=structured?generate(engine,snapshot.schemaScope,input.path("changes")):supplied(input.path("sql").asText());
+        if(!List.of("postgresql","mysql","mariadb","h2","sqlserver","oracle").contains(engine))throw new IllegalArgumentException("Migration planning is not verified for engine "+engine);
+        if(engine.equals("oracle"))OracleMigrations.snapshot(snapshot.result);
+        List<String> statements=structured?generate(engine,snapshot.schemaScope,input.path("changes")):supplied(input.path("sql").asText(),engine);
+        if(engine.equals("oracle"))OracleMigrations.statements(statements,snapshot.schemaScope.path("schema").asText());
         ObjectNode plan=Profiles.JSON.createObjectNode().put("format","codegraph-migration-v1").put("name",input.path("name").asText("Migration"))
                 .put("purpose",input.path("purpose").asText("")).put("engine",engine).put("sourceSnapshotId",snapshot.id)
                 .put("schemaFingerprint",snapshot.result.path("fingerprint").asText()).put("transactional",engine.equals("postgresql"))
                 .put("crossEngine",false).put("rehearsed",false).put("syntheticFixturesOnly",true);
+        if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
         plan.set("target",ApprovalScope.display(snapshot.schemaScope));
         ArrayNode sql=plan.putArray("statements"),steps=plan.putObject("manifest").putArray("steps"),risks=plan.putArray("risks");
         int index=0;for(String statement:statements){String action=verb(statement);sql.add(statement);steps.addObject().put("index",++index).put("action",action).put("sql",statement).put("expectedPostcondition","Statement succeeds and subsequent schema fingerprint changes as reviewed");if(destructive(statement))risks.add("Step "+index+" is destructive and can permanently remove schema objects or dependent data.");}
@@ -71,9 +74,11 @@ final class MigrationPlans implements AutoCloseable {
         input.fieldNames().forEachRemaining(key->{if(!List.of("planId","rehearsalSnapshotId","setupSql","fixtureSql","checks","name","purpose").contains(key))throw new IllegalArgumentException("Unexpected rehearsal field: "+key);});
         String engine=snapshot.result.path("engine").asText();
         if(!engine.equals(source.value.path("engine").asText()))throw new IllegalArgumentException("Rehearsal target engine must match the migration engine; version differences remain disclosed separately");
-        List<String> setup=restricted(input.path("setupSql").asText(""),Set.of("CREATE","COMMENT"),"Rehearsal setup");
-        List<String> fixtures=restricted(input.path("fixtureSql").asText(""),Set.of("INSERT"),"Synthetic fixture");
+        if(engine.equals("oracle")){OracleMigrations.snapshot(snapshot.result);OracleMigrations.distinct(source.value.path("resolvedTarget"),snapshot.result.path("resolvedTarget"));}
+        List<String> setup=restricted(input.path("setupSql").asText(""),Set.of("CREATE","COMMENT"),"Rehearsal setup",engine);
+        List<String> fixtures=restricted(input.path("fixtureSql").asText(""),Set.of("INSERT"),"Synthetic fixture",engine);
         List<String> migration=Profiles.JSON.convertValue(source.value.path("statements"),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
+        if(engine.equals("oracle")){OracleMigrations.statements(setup,snapshot.schemaScope.path("schema").asText());for(String fixture:fixtures)OracleMigrations.fixture(fixture,snapshot.schemaScope.path("schema").asText());migration=OracleMigrations.remap(migration,source.sourceScope.path("schema").asText(),snapshot.schemaScope.path("schema").asText());}
         if(setup.size()+fixtures.size()+migration.size()>MAX_STATEMENTS)throw new IllegalArgumentException("Setup, synthetic fixtures and migration together may contain at most 32 statements");
         ArrayNode checks=Profiles.JSON.createArrayNode();JsonNode suppliedChecks=input.path("checks");
         if(!suppliedChecks.isMissingNode()&&!suppliedChecks.isArray())throw new IllegalArgumentException("checks must be an array");
@@ -86,6 +91,7 @@ final class MigrationPlans implements AutoCloseable {
                 .put("sourceMigrationPlanHash",source.value.path("planHash").asText()).put("schemaFingerprint",snapshot.result.path("fingerprint").asText())
                 .put("transactional",engine.equals("postgresql")).put("crossEngine",false).put("rehearsed",false)
                 .put("rehearsal",true).put("syntheticFixturesOnly",true).put("disposableTargetRequiresHumanConfirmation",true);
+        if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
         plan.set("target",ApprovalScope.display(snapshot.schemaScope));plan.set("checks",checks);
         ArrayNode statements=plan.putArray("statements"),steps=plan.putObject("manifest").putArray("steps"),risks=plan.putArray("risks");
         int index=0;for(var phase:List.of(Map.entry("setup",setup),Map.entry("synthetic_fixture",fixtures),Map.entry("migration",migration)))for(String statement:phase.getValue()){
@@ -127,15 +133,15 @@ final class MigrationPlans implements AutoCloseable {
     synchronized long retainedBytes(){long bytes=0;for(Plan plan:plans.values())bytes+=safeSize(plan.value);return bytes;}
     public synchronized void close(){plans.values().forEach(plan->plan.release.run());plans.clear();}
 
-    private static List<String> supplied(String source){
+    private static List<String> supplied(String source,String engine){
         if(source==null||source.isBlank()||source.length()>MAX_SQL)throw new IllegalArgumentException("Migration SQL must contain 1..65536 characters");
-        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source)){String statement=unit.sql().trim();if(unit.parameters()!=0)throw new IllegalArgumentException("Migration SQL cannot contain prepared parameter markers");String verb=verb(statement);if(!List.of("CREATE","ALTER","DROP","COMMENT","RENAME").contains(verb))throw new IllegalArgumentException("Migration step "+unit.index()+" is not supported; use explicit CREATE, ALTER, DROP, COMMENT or RENAME DDL");if(statement.matches("(?is)^\\s*DROP\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException("DROP DATABASE and DROP SCHEMA are not accepted in migration plans");out.add(statement);}
+        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source,engine,MAX_SQL)){String statement=unit.sql().trim();if(unit.parameters()!=0)throw new IllegalArgumentException("Migration SQL cannot contain prepared parameter markers");String verb=verb(statement);if(!List.of("CREATE","ALTER","DROP","COMMENT","RENAME").contains(verb))throw new IllegalArgumentException("Migration step "+unit.index()+" is not supported; use explicit CREATE, ALTER, DROP, COMMENT or RENAME DDL");if(statement.matches("(?is)^\\s*DROP\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException("DROP DATABASE and DROP SCHEMA are not accepted in migration plans");out.add(statement);}
         if(out.isEmpty()||out.size()>MAX_STATEMENTS)throw new IllegalArgumentException("Migration must contain 1..32 statements");return out;
     }
-    private static List<String> restricted(String source,Set<String> allowed,String label){
+    private static List<String> restricted(String source,Set<String> allowed,String label,String engine){
         if(source==null||source.isBlank())return List.of();
         if(source.length()>MAX_SQL)throw new IllegalArgumentException(label+" SQL exceeds 65536 characters");
-        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source)){
+        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source,engine,MAX_SQL)){
             if(unit.parameters()!=0)throw new IllegalArgumentException(label+" SQL cannot contain prepared parameter markers");
             String statement=unit.sql().trim(),action=verb(statement);if(!allowed.contains(action))throw new IllegalArgumentException(label+" statement "+unit.index()+" must be one of "+allowed);
             if(statement.matches("(?is)^\\s*CREATE\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException(label+" cannot create a database or schema; target an existing disposable schema");
@@ -148,9 +154,9 @@ final class MigrationPlans implements AutoCloseable {
             if(!change.isObject())throw new IllegalArgumentException("Each migration change must be an object");
             String action=required(change,"action",40),schema=scope.path("schema").asText();
             switch(action){
-                case "add_column"->{String table=required(change,"table",128),column=required(change,"column",128),type=engine.equals("sqlserver")?SqlServerDesigner.type(change.path("type").asText()):dataType(change.path("type").asText());out.add("ALTER TABLE "+qualified(engine,schema,table)+(engine.equals("sqlserver")?" ADD ":" ADD COLUMN ")+quote(engine,column)+" "+type+(change.path("nullable").asBoolean(true)?"":" NOT NULL"));}
-                case "create_table"->{String table=required(change,"table",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>256)throw new IllegalArgumentException("create_table columns must contain 1..256 entries");List<String> definitions=new ArrayList<>();for(JsonNode column:columns)definitions.add(quote(engine,required(column,"name",128))+" "+(engine.equals("sqlserver")?SqlServerDesigner.type(column.path("type").asText()):dataType(column.path("type").asText()))+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));out.add("CREATE TABLE "+qualified(engine,schema,table)+" ("+String.join(", ",definitions)+")");}
-                case "create_index"->{String table=required(change,"table",128),name=required(change,"name",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>32)throw new IllegalArgumentException("create_index columns must contain 1..32 names");List<String> names=new ArrayList<>();for(JsonNode column:columns)names.add(quote(engine,identifier(column.asText())));out.add("CREATE "+(change.path("unique").asBoolean()?"UNIQUE ":"")+"INDEX "+quote(engine,name)+" ON "+qualified(engine,schema,table)+" ("+String.join(", ",names)+")");}
+                case "add_column"->{String table=required(change,"table",128),column=required(change,"column",128),type=datatype(engine,change.path("type").asText());out.add("ALTER TABLE "+qualified(engine,schema,table)+(Set.of("sqlserver","oracle").contains(engine)?" ADD ":" ADD COLUMN ")+quote(engine,column)+" "+type+(change.path("nullable").asBoolean(true)?"":" NOT NULL"));}
+                case "create_table"->{String table=required(change,"table",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>256)throw new IllegalArgumentException("create_table columns must contain 1..256 entries");List<String> definitions=new ArrayList<>();for(JsonNode column:columns)definitions.add(quote(engine,required(column,"name",128))+" "+(datatype(engine,column.path("type").asText()))+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));out.add("CREATE TABLE "+qualified(engine,schema,table)+" ("+String.join(", ",definitions)+")");}
+                case "create_index"->{String table=required(change,"table",128),name=required(change,"name",128);JsonNode columns=change.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>32)throw new IllegalArgumentException("create_index columns must contain 1..32 names");List<String> names=new ArrayList<>();for(JsonNode column:columns)names.add(quote(engine,identifier(column.asText())));out.add("CREATE "+(change.path("unique").asBoolean()?"UNIQUE ":"")+"INDEX "+(engine.equals("oracle")?qualified(engine,schema,name):quote(engine,name))+" ON "+qualified(engine,schema,table)+" ("+String.join(", ",names)+")");}
                 case "create_view"->{String name=required(change,"name",128),query=change.path("query").asText();SqlReadGuard.validate(query);out.add("CREATE VIEW "+qualified(engine,schema,name)+" AS "+query);}
                 default->throw new IllegalArgumentException("Unsupported structured migration action: "+action);
             }
@@ -158,8 +164,9 @@ final class MigrationPlans implements AutoCloseable {
     }
     private static String required(JsonNode node,String key,int max){String value=node.path(key).asText();if(value.isBlank()||value.length()>max)throw new IllegalArgumentException(key+" is required and must be at most "+max+" characters");return key.equals("action")?value:identifier(value);}
     private static String identifier(String value){if(value==null||value.isBlank()||value.length()>128||value.indexOf(0)>=0)throw new IllegalArgumentException("Invalid identifier");return value;}
+    private static String datatype(String engine,String value){return switch(engine){case "sqlserver"->SqlServerDesigner.type(value);case "oracle"->OracleDesigner.type(value);default->dataType(value);};}
     private static String dataType(String value){if(value==null||!value.matches("[A-Za-z][A-Za-z0-9_ ]{0,60}(?:\\([0-9]{1,9}(?:,[0-9]{1,9})?\\))?"))throw new IllegalArgumentException("Use a supported literal datatype name with optional numeric length/precision");return value.toUpperCase(Locale.ROOT);}
-    private static String quote(String engine,String value){if(engine.equals("sqlserver"))return SqlServerDesigner.quote(value);String q=List.of("mysql","mariadb").contains(engine)?String.valueOf((char)96):"\"";return q+value.replace(q,q+q)+q;}
+    private static String quote(String engine,String value){if(engine.equals("oracle"))return OracleDialect.identifier(value);if(engine.equals("sqlserver"))return SqlServerDesigner.quote(value);String q=List.of("mysql","mariadb").contains(engine)?String.valueOf((char)96):"\"";return q+value.replace(q,q+q)+q;}
     private static String qualified(String engine,String schema,String name){return schema.isBlank()?quote(engine,name):quote(engine,schema)+"."+quote(engine,name);}
     private static String verb(String sql){String normalized=sql.replaceFirst("(?s)^\\s*(?:--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/\\s*)*","").trim();int end=0;while(end<normalized.length()&&Character.isLetter(normalized.charAt(end)))end++;return normalized.substring(0,end).toUpperCase(Locale.ROOT);}
     private static boolean destructive(String sql){return sql.matches("(?is)^\\s*(DROP\\b|ALTER\\s+TABLE\\b.*\\bDROP\\b).*");}

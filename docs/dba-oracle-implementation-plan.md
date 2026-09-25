@@ -89,6 +89,14 @@ the full non-Oracle builder browser suite passes geometry, lifecycle, typed join
 cancellation and failure retention.
 Oracle scoped agent reads now enforce ordinary-user read-only transactions with separate PDB/owner permissions, fixed filtered catalog inspection and revocation. Exact-review agent Explain also passes live Oracle validation. The 34 focused Java checks, Oracle SQL/permission-picker browser suite and shared read-permissions browser suite pass. Views, synonyms, custom functions and sequence access remain one-time-review operations.
 Oracle table Properties and New Table now use native incremental DDL, bounded Oracle types, new identity/virtual columns, constraints/indexes and complete native-definition conflict checks. Live tests verify invisible-column preservation, storage-change invalidation and partial commits; the focused eight Java checks and Oracle/H2 creation browser flows pass. The full 12-case Oracle integration suite also passed before the cancellation fixture was added. A further 16 focused checks verify JDBC-first cancellation, bounded interruption fallback, uncertain Oracle DDL outcomes, and designer regressions; the shared Compare browser suite passes. Server-side DDL can continue after cancellation, and is reported as unknown rather than not applied.
+Oracle tree actions now resolve the actual PDB and revalidate native definitions, including
+rename, truncate, object deletion and materialized-view refresh. The schema-wide Table Triggers
+routing bug is fixed. Oracle retained schema/migration workflows now support native datatypes,
+mixed SQL/PLSQL, exact one-time approval, owner-remapped disposable rehearsals, stale-definition
+checks, retained partial steps and compilation errors. The 28 focused Java checks pass, followed
+by nine checks covering the final compilation-error and distinct-rehearsal-target behavior.
+The expanded Oracle SQL browser suite also passes reviewed rename, truncate and delete,
+alongside the existing SQL, grid, designer, builder and permission flows.
 Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 

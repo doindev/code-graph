@@ -33,7 +33,7 @@ final class OracleCompareSql {
         }return out.toString();
     }
     private static boolean ignorable(String text){return text.isBlank()||text.startsWith("--")||text.startsWith("/*");}
-    private static List<Token> tokens(String sql){
+    static List<Token> tokens(String sql){
         var tokens=new ArrayList<Token>();for(int i=0;i<sql.length();){int start=i;char ch=sql.charAt(i);
             if(Character.isWhitespace(ch)){while(i<sql.length()&&Character.isWhitespace(sql.charAt(i)))i++;tokens.add(new Token(sql.substring(start,i),"",false));continue;}
             if(sql.startsWith("--",i)){int end=sql.indexOf('\n',i);i=end<0?sql.length():end;tokens.add(new Token(sql.substring(start,i),"",false));continue;}

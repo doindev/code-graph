@@ -84,7 +84,7 @@ class DiscoveryTest {
         var oracle=snapshot.deepCopy().put("engine","oracle");oracle.withObject("version").put("product","Oracle").put("major",19);
         var oracleOperations=DatabaseCapabilities.describe(profile,scope,oracle,true).path("operations");
         assertTrue(oracleOperations.path("estimatedPlan").path("mcpVendorSupported").asBoolean());
-        assertFalse(oracleOperations.path("migrationPreparation").path("available").asBoolean());
+        assertTrue(oracleOperations.path("migrationPreparation").path("available").asBoolean());
         oracle.withObject("version").put("major",18);assertFalse(DatabaseCapabilities.describe(profile,scope,oracle,true).path("operations").path("estimatedPlan").path("mcpVendorSupported").asBoolean());
         var unverified=snapshot.deepCopy().put("engine","cockroachdb");
         assertFalse(DatabaseCapabilities.describe(profile,scope,unverified,true).path("operations").path("migrationPreparation").path("available").asBoolean());

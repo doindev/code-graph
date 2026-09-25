@@ -112,7 +112,7 @@ final class CatalogScanner {
             String sql=null;Object[] args={};int column=1;
             switch(engine){
                 case "postgresql"->{if(kind.contains("view")){sql="SELECT pg_get_viewdef(c.oid,true) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=? AND c.relname=?";args=new Object[]{s,name};}}
-                case "oracle"->{String type=OracleMetadata.ddlType(kind);if(!type.isBlank()){sql="SELECT DBMS_METADATA.GET_DDL(?,?,?) FROM dual";args=new Object[]{type,name,s};}}
+                case "oracle"->{String type=OracleMetadata.ddlType(kind);if(!type.isBlank()){sql="SELECT SYS.DBMS_METADATA.GET_DDL(?,?,?) FROM SYS.DUAL";args=new Object[]{type,name,s};}}
                 case "mysql","mariadb","starrocks","clickhouse"->{
                     // Indexes, constraints and other supplemental objects are not tables.
                     if(Set.of("table","base_table","view","materialized_view","procedure","function").contains(kind)){

@@ -2,7 +2,7 @@
 
 The Oracle expansion is in progress; see [the implementation plan](dba-oracle-implementation-plan.md).
 The connection, SQL execution and native comparison foundations described here are implemented.
-Complete Oracle catalog coverage, data comparison and the administration workspace are still being developed.
+Broader Oracle catalog/compare variants and the administration workspace are still being developed.
 Oracle 19c and newer are the target; full standard 19c administration certification remains pending.
 
 ## Connections and targets
@@ -113,6 +113,31 @@ before retrying. The cancellation fixture explicitly disconnects its own sleepin
 during cleanup; it does not certify immediate server-side termination. Creating an identity
 column may require CREATE SEQUENCE in
 addition to CREATE TABLE on the tested server.
+
+## Object actions and migrations
+
+Tree actions use the resolved PDB, owner, object identity and native definition to revalidate
+reviewed changes. Tables, columns and indexes support native rename; supported schema objects
+support reviewed deletion, tables support truncate, and materialized views support refresh.
+Materialized-view action checks use bounded native catalog properties instead of expanding
+DBMS_METADATA XML. The schema-wide Table Triggers category is distinct from a table's own
+Triggers branch. Missing catalog/DDL privileges stop the operation explicitly.
+
+Oracle 19c+ schema captures record the resolved container and owner in their fingerprints.
+Migration preparation accepts native Oracle built-in types and mixed SQL/PLSQL, preserves
+slash-delimited routines, and requires complete bounded native observations. Capture limits
+or missing definition privileges prevent preparation. Available metadata does not prove that
+inaccessible objects are absent. Dynamic SQL, database links, and administration DDL require
+separate native or administration review.
+
+Application and rehearsal both require exact one-time approval. Rehearsal must resolve to a
+different database/container or owner; a second connection alias to the source is rejected.
+Owner identifiers are remapped structurally without changing SQL literals. Synthetic fixtures
+use explicit VALUES and bounded literal conversions, without reading application records.
+Plans record the observed server version and recheck the captured schema before executing.
+Oracle DDL is non-atomic: failures retain acknowledged steps, interruptions can leave unknown
+outcomes, and newly invalid compiled objects cause a failed result with the committed steps
+still reported. These workflows were tested on Free 23.26.3; standard 19c certification is pending.
 
 ## Scoped agent reads
 

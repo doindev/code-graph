@@ -344,6 +344,87 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test @Timeout(300) void oracleMigrationsReviewRehearsalStaleDefinitionsAndPartialCommits()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_MIG_S_"+suffix,destination="CG_MIG_D_"+suffix,password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){for(String user:java.util.List.of(source,destination)){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE VIEW,CREATE PROCEDURE TO "+user);}}
+            String from=profiles.put(null,draft(source,password)).path("id").asText(),to=profiles.put(null,draft(destination,password)).path("id").asText();
+            try{
+                try(var c=connections.open(from);var st=c.createStatement()){c.setAutoCommit(true);st.execute("CREATE TABLE ITEMS(ID NUMBER PRIMARY KEY)");}
+                var agents=new AgentAccess(directory);String principal=agents.trustedLocal(),owner="agent:"+principal;
+                try(var contexts=new ProjectContexts(profiles,connections,agents);var jobs=new QueryJobs(connections,new DbaConfig(directory,128L<<20,2,100,100,60),agents::alive);var plans=new MigrationPlans();var approvals=new ApprovalQueue(contexts,profiles,agents,jobs)){
+                    approvals.migrations(plans);approvals.reusable.sessions.register("migration",principal,System.currentTimeMillis()+300000);
+                    var sourceTarget=oracleMigrationTarget(profiles,from,source);var target=oracleMigrationTarget(profiles,to,destination);
+                    var baseline=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,sourceTarget,()->{}));assertEquals("FREEPDB1",baseline.result.path("resolvedTarget").path("database").asText());
+                    var preparation=Profiles.JSON.createObjectNode().put("snapshotId",baseline.id);preparation.putArray("changes").addObject().put("action","add_column").put("table","ITEMS").put("column","AMOUNT").put("type","NUMBER(38)");
+                    var plan=plans.require(owner,plans.prepare(owner,baseline,preparation,()->{}).path("id").asText());assertFalse(plan.value.path("transactional").asBoolean());assertTrue(plan.value.path("statements").get(0).asText().contains(" ADD \"AMOUNT\" NUMBER(38)"));
+                    var empty=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,target,()->{}));var rehearsal=Profiles.JSON.createObjectNode().put("planId",plan.id).put("rehearsalSnapshotId",empty.id).put("setupSql","CREATE TABLE ITEMS(ID NUMBER PRIMARY KEY)").put("fixtureSql","INSERT INTO ITEMS(ID) VALUES(1)");rehearsal.putArray("checks").add("SELECT ID,AMOUNT FROM ITEMS");
+                    var rehearsed=plans.require(owner,plans.prepareRehearsal(owner,plan,empty,rehearsal,()->{}).path("id").asText());assertTrue(rehearsed.value.path("statements").get(2).asText().contains(OracleDialect.identifier(destination)));assertFalse(rehearsed.value.path("statements").get(2).asText().contains(OracleDialect.identifier(source)));
+                    var completed=oracleApproveMigration(approvals,jobs,principal,rehearsed,"complete");assertTrue(completed.path("job").path("result").path("rehearsal").asBoolean());assertEquals("1",completed.path("job").path("result").path("validations").get(0).path("result").path("rows").get(0).get(0).asText());
+                    try(var c=connections.open(from);var st=c.createStatement();var rs=st.executeQuery("SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE TABLE_NAME='ITEMS' AND COLUMN_NAME='AMOUNT'")){assertTrue(rs.next());assertEquals(0,rs.getInt(1));}
+                    oracleApproveMigration(approvals,jobs,principal,plan,"complete");assertThrows(IllegalArgumentException.class,()->plans.require(owner,plan.id));
+                    var current=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,sourceTarget,()->{}));var ddl=Profiles.JSON.createObjectNode().put("snapshotId",current.id).put("sql","COMMENT ON TABLE ITEMS IS 'must not apply'");var stale=plans.require(owner,plans.prepare(owner,current,ddl,()->{}).path("id").asText());
+                    try(var c=connections.open(from);var st=c.createStatement()){st.execute("ALTER TABLE ITEMS PCTFREE 21");}
+                    var rejected=oracleApproveMigration(approvals,jobs,principal,stale,"failed");assertEquals("not_started",rejected.path("job").path("outcome").asText());assertTrue(rejected.path("job").path("error").asText().contains("changed"));
+                    current=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,sourceTarget,()->{}));ddl.put("snapshotId",current.id).put("sql","ALTER TABLE ITEMS ADD COMMITTED_STEP NUMBER; ALTER TABLE ITEMS ADD AMOUNT NUMBER;");var partial=plans.require(owner,plans.prepare(owner,current,ddl,()->{}).path("id").asText());var failed=oracleApproveMigration(approvals,jobs,principal,partial,"failed");assertEquals("partial_or_unknown",failed.path("job").path("outcome").asText());assertEquals(1,failed.path("job").path("result").path("steps").size(),failed.toString());
+                    try(var c=connections.open(from);var st=c.createStatement();var rs=st.executeQuery("SELECT COMMITTED_STEP FROM ITEMS")){assertEquals("COMMITTED_STEP",rs.getMetaData().getColumnName(1));}
+                    current=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,sourceTarget,()->{}));ddl.put("snapshotId",current.id).put("sql","CREATE OR REPLACE FUNCTION ANSWER RETURN VARCHAR2 IS BEGIN RETURN q'[semi; literal]'; END;\n/\nCOMMENT ON TABLE ITEMS IS 'created function';");var routine=plans.require(owner,plans.prepare(owner,current,ddl,()->{}).path("id").asText());assertEquals(2,routine.value.path("statements").size());oracleApproveMigration(approvals,jobs,principal,routine,"complete");
+                    try(var c=connections.open(from);var st=c.createStatement();var rs=st.executeQuery("SELECT ANSWER() FROM SYS.DUAL")){assertTrue(rs.next());assertEquals("semi; literal",rs.getString(1));}
+                    current=MigrationPlansTest.await(jobs,owner,jobs.captureSchema(owner,sourceTarget,()->{}));ddl.put("snapshotId",current.id).put("sql","CREATE OR REPLACE FUNCTION BROKEN RETURN NUMBER IS BEGIN RETURN UNKNOWN_VALUE; END;\n/\n");var invalid=plans.require(owner,plans.prepare(owner,current,ddl,()->{}).path("id").asText());var invalidResult=oracleApproveMigration(approvals,jobs,principal,invalid,"failed");assertTrue(invalidResult.path("job").path("result").path("message").asText().contains("invalid"),invalidResult.toString());assertEquals(1,invalidResult.path("job").path("result").path("steps").size());
+                    System.out.println("ORACLE_MIGRATION_REVIEW_REHEARSAL_VERIFIED");
+                }
+            }finally{connections.remove(from);connections.remove(to);try(var c=connections.open(admin);var st=c.createStatement()){for(String user:java.util.List.of(source,destination))st.execute("DROP USER "+user+" CASCADE");}}
+        }
+    }
+    private static WorkflowTargets.Target oracleMigrationTarget(Profiles profiles,String id,String schema){
+        var request=Profiles.JSON.createObjectNode().put("connectionId",id).put("connectionName",profiles.get(id).path("name").asText()).put("database","FREEPDB1").put("schema",schema);
+        return new WorkflowTargets.Target(profiles.get(id),ApprovalScope.resolve(profiles.get(id),Profiles.JSON.createObjectNode(),request),request,"Task-owned Oracle fixture");
+    }
+    private static JsonNode oracleApproveMigration(ApprovalQueue approvals,QueryJobs jobs,String principal,MigrationPlans.Plan plan,String expected)throws Exception{
+        var request=Profiles.JSON.createObjectNode().put("requestId",UUID.randomUUID().toString()).put("purpose","Validate the explicitly owned disposable Oracle migration fixture");
+        var pending=approvals.migration(principal,"migration",request,plan);assertEquals("awaiting_approval",pending.path("state").asText(),pending.toString());
+        approvals.decide("human",pending.path("id").asText(),"approve_once",true);long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(65);JsonNode result;
+        do{result=approvals.get(principal,pending.path("id").asText());if(java.util.Set.of("complete","failed","cancelled").contains(result.path("state").asText()))break;Thread.sleep(20);}while(System.nanoTime()<until);
+        assertEquals(expected,result.path("state").asText(),result.toString());jobs.remove("agent:"+principal,result.path("jobId").asText());return result;
+    }
+
+    @Test void oracleTreeActionsUseResolvedPdbAndRevalidateNativeObjects()throws Exception{
+        String user="CG_ACTION_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE VIEW,CREATE MATERIALIZED VIEW,CREATE SEQUENCE,CREATE PROCEDURE,CREATE TYPE,CREATE SYNONYM,CREATE TRIGGER TO "+user);}
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            try{
+                try(var c=connections.open(id);var st=c.createStatement()){
+                    c.setAutoCommit(true);st.execute("CREATE TABLE ITEMS(ID NUMBER, TITLE VARCHAR2(40))");st.execute("INSERT INTO ITEMS VALUES(1,'original')");st.execute("CREATE INDEX ITEM_INDEX ON ITEMS(ID)");
+                    st.execute("CREATE MATERIALIZED VIEW M_ITEMS REFRESH COMPLETE ON DEMAND AS SELECT * FROM ITEMS");st.execute("INSERT INTO ITEMS VALUES(2,'added')");
+                    st.execute("CREATE VIEW V_ITEMS AS SELECT * FROM ITEMS");st.execute("CREATE SEQUENCE COUNTER");st.execute("CREATE SYNONYM ALIAS_ITEMS FOR ITEMS");
+                    st.execute("CREATE FUNCTION SAMPLE_F RETURN NUMBER IS BEGIN RETURN 1; END;");st.execute("CREATE PROCEDURE SAMPLE_P IS BEGIN NULL; END;");
+                    st.execute("CREATE PACKAGE SAMPLE_PKG AS PROCEDURE RUN; END;");st.execute("CREATE PACKAGE BODY SAMPLE_PKG AS PROCEDURE RUN IS BEGIN NULL; END; END;");
+                    st.execute("CREATE TYPE SAMPLE_TYPE AS OBJECT(ID NUMBER)");st.execute("CREATE TRIGGER SAMPLE_TRIGGER BEFORE INSERT ON ITEMS BEGIN NULL; END;");
+                }
+                for(String[] object:new String[][]{{"materialized_views","M_ITEMS"},{"tables","ITEMS"}}){
+                    var selection=MetadataActionsTest.selection(jobs,id,Profiles.JSON.createObjectNode().put("kind",object[0]).put("database","FREEPDB1").put("schema",user),object[1]);
+                    var preview=MetadataActionsTest.preview(jobs,id,selection);assertEquals("FREEPDB1",preview.path("database").asText());assertEquals("FREEPDB1",preview.path("deleteCommandDetails").get(0).path("database").asText());
+                    if(object[0].equals("materialized_views")){assertTrue(preview.path("canRefresh").asBoolean());var refreshed=MetadataActionsTest.action(jobs,id,selection,"refresh","");assertEquals("complete",refreshed.path("state").asText(),refreshed.toString());try(var c=connections.open(id);var st=c.createStatement();var rs=st.executeQuery("SELECT COUNT(*) FROM M_ITEMS")){assertTrue(rs.next());assertEquals(2,rs.getInt(1));}}
+                    else{
+                        try(var c=connections.open(id);var st=c.createStatement()){st.execute("ALTER TABLE ITEMS PCTFREE 19");}
+                        var stale=selection.deepCopy().put("fingerprint",preview.path("fingerprint").asText()).put("action","truncate").put("confirmed",true);
+                        var rejected=HumanSqlTest.finish(jobs,"human",jobs.metadataObject("human",id,stale,true));assertEquals("failed",rejected.path("state").asText());assertTrue(rejected.path("error").asText().contains("changed"),rejected.toString());
+                        ((ObjectNode)stale.path("parent")).put("database","CDB$ROOT");var wrong=HumanSqlTest.finish(jobs,"human",jobs.metadataObject("human",id,stale,true));assertEquals("failed",wrong.path("state").asText());assertTrue(wrong.path("error").asText().contains("selected database"),wrong.toString());
+                        var truncated=MetadataActionsTest.action(jobs,id,selection,"truncate","");assertEquals("complete",truncated.path("state").asText(),truncated.toString());try(var c=connections.open(id);var st=c.createStatement();var rs=st.executeQuery("SELECT COUNT(*) FROM ITEMS")){assertTrue(rs.next());assertEquals(0,rs.getInt(1));}
+                    }
+                }
+                for(String[] rename:new String[][]{{"indexes","ITEM_INDEX","new index"},{"tables","ITEMS","new table"}}){var selected=MetadataActionsTest.selection(jobs,id,rename[0],user,rename[1]);assertTrue(MetadataActionsTest.preview(jobs,id,selected).path("canRename").asBoolean());var result=MetadataActionsTest.action(jobs,id,selected,"rename",rename[2]);assertEquals("complete",result.path("state").asText(),result.toString());}
+                var parent=Profiles.JSON.createObjectNode().put("kind","relation").put("schema",user).put("database","FREEPDB1").put("name","new table");
+                var column=MetadataActionsTest.selection(jobs,id,parent,"TITLE");var renamed=MetadataActionsTest.action(jobs,id,column,"rename","new title");assertEquals("complete",renamed.path("state").asText(),renamed.toString());
+                for(String[] object:new String[][]{{"views","V_ITEMS"},{"materialized_views","M_ITEMS"},{"sequences","COUNTER"},{"functions","SAMPLE_F"},{"procedures","SAMPLE_P"},{"packages","SAMPLE_PKG"},{"types","SAMPLE_TYPE"},{"synonyms","ALIAS_ITEMS"},{"table_triggers","SAMPLE_TRIGGER"},{"indexes","new index"},{"tables","new table"}}){var selected=MetadataActionsTest.selection(jobs,id,object[0],user,object[1]);var deleted=MetadataActionsTest.action(jobs,id,selected,"delete","");assertEquals("complete",deleted.path("state").asText(),deleted.toString());}
+            }catch(Throwable failure){System.out.println("ORACLE_ACTION_FAILURE "+failure);throw failure;}
+            finally{connections.remove(id);try(var c=connections.open(admin);var st=c.createStatement()){long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(35);for(;;)try{st.execute("DROP USER "+user+" CASCADE");break;}catch(SQLException e){if(e.getErrorCode()!=1940||System.nanoTime()>=until)throw e;Thread.sleep(100);}}}
+        }
+    }
+
     @Test void oracleReviewedTableCreationAndIncrementalEditing()throws Exception{
         String user="CG_DESIGN_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
