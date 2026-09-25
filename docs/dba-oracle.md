@@ -1,8 +1,7 @@
 # Oracle DBA support
 
-The Oracle expansion is in progress; see [the implementation plan](dba-oracle-implementation-plan.md).
-The connection, SQL execution and native comparison foundations described here are implemented.
-Broader Oracle catalog/compare variants are still being developed.
+Oracle connections, SQL/PLSQL, native catalogs and editors, comparison, and the Administration
+workspace are implemented within the capability boundaries below. See [the implementation plan](dba-oracle-implementation-plan.md).
 Oracle 19c and newer are the target; full standard 19c administration certification remains pending.
 
 ## Connections and targets
@@ -184,15 +183,16 @@ the selected query.
 Object properties include native definitions, status, compilation errors, incoming/outgoing
 catalog dependencies, grants and routine arguments. Packages and object types retain separate
 specification and body definitions. **Use definition as draft** selects Oracle-aware splitting
-when both units are present. Review and apply preserve native attributes; an invalid compilation
+when multiple units are present. Trigger definitions retain their separate enable/disable
+statements with native SQL terminators. Review and apply preserve native attributes; an invalid compilation
 reports its diagnostics and any committed DDL instead of reporting a successful save.
 
 Scoped scans verify the actual PDB and capture package/type bodies, catalog dependencies,
 grants and invalid-object diagnostics. Each optional catalog category reports unavailable
 privileges/provider metadata independently. Existing scan progress and current/last-run details
 remain available. External Java assets and database-link credentials are explicitly marked;
-they are not silently reconstructed. Scheduler and queue properties are captured, but complete
-restoration of those categories and Oracle comparison remain under development.
+they are not silently reconstructed. Scheduler and queue properties are captured. Supported
+scheduler comparison is described below; queues and advanced scheduler variants require native review.
 
 ## Native comparison
 
@@ -203,8 +203,9 @@ Oracle's metadata transforms generate destination CREATE/ALTER statements withou
 those statements. Generation revalidates captured definitions and resolved target identities.
 
 Tables, views, sequences, package/type specifications and bodies have live create/alter and
-repeat-comparison coverage. Native adapters also inspect indexes, materialized views, routines,
-triggers and synonyms; unsupported transformations, external assets, dynamic SQL, ambiguous
+repeat-comparison coverage. Generated indexes, materialized views, routines, disabled triggers
+and synonyms also execute successfully and produce identical repeat comparisons. Unsupported
+transformations, external assets, dynamic SQL, ambiguous
 identifier remapping and dependency cycles stop generation with an explicit reason. Owner-issued
 grants and supported stored-procedure scheduler objects are covered below. Unvalidated queues,
 database links, Java assets and advanced scheduler definitions are shown as blocked.
@@ -214,6 +215,14 @@ routine/query text. Ordinary and alternative-quoted literals remain unchanged. C
 catalog capture requires SELECT_CATALOG_ROLE (or SYS); an owner can capture its own metadata
 without that role. Destructive changes require visibility of incoming dependencies across
 owners. Destination owners must already exist.
+
+Column defaults referencing sequences participate in dependency ordering even when Oracle omits
+those references from ALL_DEPENDENCIES. Discovery reads expressions without evaluating them.
+Materialized-view storage tables and implicit indexes belong to the materialized view. Native
+trigger creation and enable/disable statements remain separate executable units. Owner-qualified
+SQL inside view queries, defaults and other supported metadata expressions is remapped before
+comparison; literal text is preserved. Oracle metadata diagnostics such as "cannot alter" are
+blockers, never accepted as executable script comments.
 
 Optional sequence synchronization advances ordinary non-cyclic sequences to an observed
 catalog/cache boundary and never consumes source NEXTVAL. Exact cached values are not claimed.
@@ -383,3 +392,32 @@ Active jobs, ambiguous/missing procedure signatures, job arguments, detached pro
 PL/SQL job blocks, external assets/credentials, custom job classes, events, lightweight jobs,
 chains and named calendar composition are blockers for separate review. These variants are
 still available in the catalog; the comparer does not silently approximate their definitions.
+
+
+### Final regression evidence (2026-09-24)
+
+The complete DBA/core Java run passed 547 tests, including all 24 live Oracle integration
+cases, with zero failures/errors and 71 environment-gated skips. Separate disposable vendor
+runs passed seven live checks: PostgreSQL 16.14 (three), MySQL 8.4.11 (two), and MariaDB 11.4.13
+(two). PostgreSQL-only scope cases are skipped on the other two engines. Generated scripts
+execute successfully and catalog scans finish; PostgreSQL also verifies a 151-table scope.
+All 35 Maven reactor modules compile with JDK 25.
+
+The final browser pass covers Oracle SQL/editors, Oracle comparison, Oracle Administration,
+shared comparison, the six-tab connection editor and embedded Maven download settings. All
+six suites pass. Embedded Maven's custom PEM and TLS-verification bypass also pass actual
+HTTPS tests, including strict-mode rejection, hostname verification and isolated trust settings.
+
+| Fixture | Image digest |
+| --- | --- |
+| Oracle Free 23.26.3 | `sha256:26d4e51430b185f7cc51f136b166df4766a288ba34d05d710ec0d96664f35660` |
+| PostgreSQL 16.14 | `sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b` |
+| MySQL 8.4.11 | `sha256:85b9bf2e29cf836ecb8c2a15a935d4ba0c606631dff1dd79531a11983c638f2a` |
+| MariaDB 11.4.13 | `sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b` |
+
+Owned containers and the newly pulled, unused Oracle/MariaDB images were removed after testing.
+All 55 pre-existing image IDs remain. Vendor fixtures run one engine at a time with one CPU
+and 1 GiB per container; Oracle used two CPUs and 3 GiB. Image identities are also recorded
+by the vendor harness in its private build evidence. No build artifacts are included in delivery.
+This validates the documented capability boundaries; standard Oracle 19c administration
+certification remains pending a suitable instance.

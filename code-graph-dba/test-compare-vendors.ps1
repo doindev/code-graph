@@ -10,11 +10,16 @@ try {
  foreach($vendor in $Vendors){
   $image=switch($vendor){'postgresql'{'postgres:16'} 'mysql'{'mysql:8.4'} 'mariadb'{'mariadb:11.4'} default{throw 'Unknown vendor'}}
   $imageId=Get-CgraphDockerImage -Scope $scope -Reference $image
+  $imageDetails=docker image inspect $imageId | ConvertFrom-Json
+  if($LASTEXITCODE -ne 0){throw 'Cannot record fixture image evidence'}
+  $evidenceDirectory=Join-Path $BuildRoot 'compare-evidence'
+  New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null
+  [ordered]@{vendor=$vendor;reference=$image;imageId=$imageId;repoDigests=@($imageDetails.RepoDigests);testedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $evidenceDirectory "$vendor-image.json") -Encoding utf8
   $port=if($vendor -eq 'postgresql'){5432}else{3306}
   $urls=@{}
   foreach($side in @('source','destination')){
    $name="$ownedRun-$vendor-$side"
-   $args=@('run','--detach','--name',$name,'--label',"codegraph.compare.owner=$ownedRun",'-p',('127.0.0.1::'+$port))
+   $args=@('run','--detach','--name',$name,'--label',"codegraph.compare.owner=$ownedRun",'--memory','1g','--cpus','1','-p',('127.0.0.1::'+$port))
    if($vendor -eq 'postgresql'){$args+=@('-e','POSTGRES_PASSWORD=compare-fixture-only','-e','POSTGRES_DB=compare_test')}
    elseif($vendor -eq 'mysql'){$args+=@('-e','MYSQL_ROOT_PASSWORD=compare-fixture-only','-e','MYSQL_DATABASE=compare_test')}
    else{$args+=@('-e','MARIADB_ROOT_PASSWORD=compare-fixture-only','-e','MARIADB_DATABASE=compare_test')}

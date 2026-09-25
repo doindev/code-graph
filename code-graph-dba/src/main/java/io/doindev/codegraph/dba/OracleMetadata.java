@@ -30,6 +30,7 @@ final class OracleMetadata {
         default->List.of();
     };}
     static String definition(QueryJobs.Job job,Connection c,String type,String owner,String name)throws Exception{
+        if(type.equals("TRIGGER"))return OracleDocuments.captureScript(job,c,type,owner,name);
         return query(job,c,"SELECT SYS.DBMS_METADATA.GET_DDL(?,?,?) AS ddl FROM SYS.DUAL",type,name,owner).path(0).path("ddl").asText("");
     }
     static String actionRevision(QueryJobs.Job job,Connection c,String kind,String owner,String name)throws Exception{
@@ -68,6 +69,7 @@ final class OracleMetadata {
         String nativeType=type;
         if(!type.isEmpty())optional(c,out,"Oracle native definition",()->{
             String ddl=definition(job,c,nativeType,owner,name);out.put("ddl",ddl).put("ddlComplete",!ddl.isBlank());
+            if(nativeType.equals("TRIGGER")&&!ddl.isBlank())out.put("nativeMultiUnit",SqlScript.extract(ddl,"oracle",OracleDocuments.MAX_CHARACTERS).size()>1);
             if(Set.of("packages","types").contains(kind)){
                 String bodyType=kind.equals("packages")?"PACKAGE BODY":"TYPE BODY";
                 boolean present=false;for(JsonNode object:out.path("details").path("Status"))if(object.path("object_type").asText().equals(bodyType))present=true;

@@ -14,6 +14,7 @@ module.exports=async(browser,base)=>{
   }
   await wizard.getByRole('button',{name:'Choose object types',exact:true}).click();await wizard.getByRole('heading',{name:'Object types',exact:true}).waitFor();
   assert.equal(await wizard.getByLabel('Default table data mode',{exact:true}).inputValue(),'none');
+  assert.deepEqual(await wizard.getByLabel('Default sequence mode',{exact:true}).locator('option').evaluateAll(options=>options.map(o=>o.value)),['advance']);
   await wizard.getByRole('button',{name:'Clear all',exact:true}).click();for(const name of ['Tables','Views','Sequences'])await wizard.getByRole('checkbox',{name,exact:true}).check();
   await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('upsert');await wizard.getByRole('button',{name:'Load objects and choose table data',exact:true}).click();
   await wizard.getByRole('checkbox',{name:'Include data',exact:true}).check();await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('none');assert.equal(await wizard.getByRole('checkbox',{name:'Include data',exact:true}).isDisabled(),true);

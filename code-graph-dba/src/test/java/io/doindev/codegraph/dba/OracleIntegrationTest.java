@@ -342,6 +342,39 @@ class OracleIntegrationTest {
             }finally{if(!from.isEmpty())connections.remove(from);if(!to.isEmpty())connections.remove(to);try(var c=connections.open(admin);var st=c.createStatement()){for(String owner:java.util.List.of(source,destination))st.execute("DROP USER "+owner+" CASCADE");}}
         }
     }
+    @Test @Timeout(1200) void oracleComparisonNativeObjectVariantsExecuteAndRepeat()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_VS_"+suffix,destination="CG_VD_"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),x->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,x->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText(),from="",to="";
+            try(var c=connections.open(admin);var st=c.createStatement()){for(String owner:java.util.List.of(source,destination)){st.execute("CREATE USER "+owner+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 20M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE VIEW,CREATE MATERIALIZED VIEW,CREATE PROCEDURE,CREATE TYPE,CREATE TRIGGER,CREATE SYNONYM,CREATE SEQUENCE,SELECT_CATALOG_ROLE TO "+owner);}}
+            try{
+                from=profiles.put(null,draft(source,password)).path("id").asText();to=profiles.put(null,draft(destination,password)).path("id").asText();
+                try(var c=connections.open(from);var st=c.createStatement()){
+                    st.execute("CREATE SEQUENCE AUTO_COUNTER NOCACHE");st.execute("CREATE TABLE ITEMS(id NUMBER DEFAULT "+OracleDialect.qualified(source,"AUTO_COUNTER")+".NEXTVAL,label VARCHAR2(30),CONSTRAINT items_pk PRIMARY KEY(id)) SEGMENT CREATION IMMEDIATE");st.execute("CREATE INDEX LABEL_INDEX ON ITEMS(label)");
+                    st.execute("CREATE VIEW ITEM_VIEW AS SELECT id,label FROM "+OracleDialect.qualified(source,"ITEMS"));st.execute("CREATE MATERIALIZED VIEW ITEM_MV BUILD DEFERRED REFRESH COMPLETE ON DEMAND AS SELECT id,label FROM "+OracleDialect.qualified(source,"ITEMS"));
+                    st.execute("CREATE SYNONYM ITEM_ALIAS FOR "+OracleDialect.qualified(source,"ITEMS"));
+                    st.execute("CREATE TYPE VALUE_TYPE AS OBJECT(n NUMBER,MEMBER FUNCTION amount RETURN NUMBER)");st.execute("CREATE TYPE BODY VALUE_TYPE AS MEMBER FUNCTION amount RETURN NUMBER IS BEGIN RETURN self.n+1; END; END;");
+                    st.execute("CREATE FUNCTION AMOUNT RETURN NUMBER AS n NUMBER; BEGIN SELECT COUNT(*) INTO n FROM "+OracleDialect.qualified(source,"ITEM_VIEW")+"; RETURN n; END;");
+                    st.execute("CREATE PROCEDURE WORK AS n NUMBER; BEGIN n:="+OracleDialect.qualified(source,"AMOUNT")+"(); END;");
+                    st.execute("CREATE TRIGGER ITEM_TRIGGER BEFORE INSERT ON ITEMS FOR EACH ROW BEGIN :new.label:=NVL(:new.label,'default label'); END;");st.execute("ALTER TRIGGER ITEM_TRIGGER DISABLE");
+                }
+                var trigger=ObjectDesignerTest.load(jobs,from,MetadataActionsTest.selection(jobs,from,"table_triggers",source,"ITEM_TRIGGER"));assertTrue(trigger.path("nativeMultiUnit").asBoolean(),trigger.toPrettyString());
+                var triggerUnits=ObjectDesigner.sqlCommands(Profiles.JSON.createObjectNode().put("sql",trigger.path("ddl").asText()).put("splitSql",true),"oracle");assertEquals(2,triggerUnits.size());try(var c=connections.open(from);var st=c.createStatement()){for(String unit:triggerUnits)st.execute(unit);}
+                var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,from,source)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,to,destination)).put("dataMode","none").put("syncSequences",false);
+                input.putArray("objectTypes").add("tables").add("views").add("materialized_views").add("indexes").add("types").add("functions").add("procedures").add("synonyms").add("table_triggers");
+                System.out.println("ORACLE_VARIANTS_COMPARE_START");String id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();var results=compare.results("human",id,0,100,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());assertTrue(results.path("objects").size()>=9,results.toPrettyString());
+                var selected=DatabaseCompareTest.select(compare,id).put("dataMode","none");System.out.println("ORACLE_VARIANTS_GENERATE_START");var artifact=compareFinished(jobs,compare.generate("human",id,selected));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertFalse(script.contains("\""+source+"\"."),script);assertTrue(script.contains("MATERIALIZED VIEW"),script);assertTrue(script.contains("TYPE BODY"),script);
+                try(var c=connections.open(to);var st=c.createStatement()){
+                    for(var unit:SqlScript.extract(script,"oracle",1<<20)){System.out.println("ORACLE_VARIANT_APPLY "+unit.sql().stripLeading().substring(0,Math.min(90,unit.sql().stripLeading().length())).replace((char)10,' '));st.execute(unit.sql());}
+                    try(var rows=st.executeQuery("SELECT name,type,line,text FROM SYS.USER_ERRORS ORDER BY name,type,sequence")){var errors=new java.util.ArrayList<String>();while(rows.next())errors.add(rows.getString(1)+" "+rows.getString(2)+":"+rows.getInt(3)+" "+rows.getString(4));assertTrue(errors.isEmpty(),errors.toString());}
+                    try(var rows=st.executeQuery("SELECT status FROM SYS.USER_TRIGGERS WHERE trigger_name='ITEM_TRIGGER'")){assertTrue(rows.next());assertEquals("DISABLED",rows.getString(1));}
+                    st.execute("BEGIN WORK; END;");try(var rows=st.executeQuery("SELECT t.v.amount() FROM (SELECT VALUE_TYPE(7) v FROM SYS.DUAL) t")){assertTrue(rows.next());assertEquals(8,rows.getInt(1));}
+                    try(var rows=st.executeQuery("SELECT table_owner,table_name FROM SYS.USER_SYNONYMS WHERE synonym_name='ITEM_ALIAS'")){assertTrue(rows.next());assertEquals(destination,rows.getString(1));assertEquals("ITEMS",rows.getString(2));}
+                }
+                compare.remove("human",id);System.out.println("ORACLE_VARIANTS_REPEAT_START");id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(results.path("objects").size(),results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);System.out.println("ORACLE_NATIVE_OBJECT_VARIANTS_VERIFIED");
+            }finally{if(!from.isEmpty())connections.remove(from);if(!to.isEmpty())connections.remove(to);try(var c=connections.open(admin);var st=c.createStatement()){for(String owner:java.util.List.of(source,destination))st.execute("DROP USER "+owner+" CASCADE");}}
+        }
+    }
     @Test void applicationCompareAcrossIndependentOwnersGeneratesAndRevalidates()throws Exception{
         String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),s->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,s->true)){
@@ -896,7 +929,7 @@ class OracleIntegrationTest {
     }
 
     private static ObjectNode compareAwait(QueryJobs jobs,ObjectNode submitted)throws Exception{
-        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(120);ObjectNode status;
+        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(Math.max(120,submitted.path("timeoutSeconds").asInt(120)+10));ObjectNode status;
         do{status=jobs.status("human",submitted.path("id").asText());if(status.path("finished").asLong()!=0)return status;Thread.sleep(100);}while(System.nanoTime()<deadline);
         throw new AssertionError("Oracle comparison did not finish: "+status);
     }

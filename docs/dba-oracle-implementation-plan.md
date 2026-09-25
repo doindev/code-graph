@@ -124,6 +124,6 @@ and executes through ALTER TABLE after table creation/changes. Live cached, desc
 new-generator cases pass, including late review enablement and identical repeat comparisons.
 Eighteen focused Java checks, five final sequence/data checks and the Oracle comparison browser
 suite pass; unsupported cyclic values remain unchecked under global synchronization.
-Broader object variants and final regressions remain in progress; this is not completed Oracle support.
+Native index, materialized-view, routine, synonym, disabled-trigger and type-body scripts now execute successfully and produce identical repeat comparisons. Sequence defaults retain their dependency ordering; native trigger editors retain separate state statements. XML expression remapping and non-executable metadata diagnostics have deterministic coverage. Final validation passed: 547 executed Java tests (including all 24 live Oracle integration cases), seven additional live PostgreSQL/MySQL/MariaDB checks, six browser suites, and compilation of all 35 reactor modules on JDK 25. The full Java run had 71 explicitly environment-gated skips; PostgreSQL-only scope cases were also skipped on MySQL/MariaDB. Task-owned Docker resources and newly pulled unused images were removed; all 55 pre-existing image IDs remain. Standard Oracle 19c administration certification and the documented environment-specific validations remain pending.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

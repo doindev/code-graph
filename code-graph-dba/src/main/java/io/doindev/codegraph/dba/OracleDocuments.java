@@ -29,18 +29,44 @@ final class OracleDocuments {
             try(var rows=statement.executeQuery()){if(!rows.next())throw new SQLException("Oracle metadata was not returned for "+owner+"."+name);return bounded(job,rows.getCharacterStream(1));}
         }finally{if(job!=null)job.statement=prior;}
     }
+    static String captureScript(QueryJobs.Job job,Connection c,String type,String owner,String name)throws Exception{
+        String block="""
+            DECLARE h NUMBER; t NUMBER; result CLOB;
+            BEGIN
+              h:=SYS.DBMS_METADATA.OPEN(?);
+              SYS.DBMS_METADATA.SET_FILTER(h,'NAME',?);
+              SYS.DBMS_METADATA.SET_FILTER(h,'SCHEMA',?);
+              t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,'DDL');
+              SYS.DBMS_METADATA.SET_TRANSFORM_PARAM(t,'SQLTERMINATOR',TRUE);
+              result:=SYS.DBMS_METADATA.FETCH_CLOB(h);
+              SYS.DBMS_METADATA.CLOSE(h);h:=NULL;?:=result;
+            EXCEPTION WHEN OTHERS THEN
+              IF h IS NOT NULL THEN SYS.DBMS_METADATA.CLOSE(h); END IF;
+              IF SYS.DBMS_LOB.ISTEMPORARY(result)=1 THEN SYS.DBMS_LOB.FREETEMPORARY(result); END IF;
+              RAISE;
+            END;
+            """;
+        return call(job,c,block,List.of(type,name,owner));
+    }
     static String remap(QueryJobs.Job job,Connection c,String type,String document,String from,String to,boolean sxml,boolean ddl)throws Exception{
         return transform(job,c,type,document,from,to,sxml?"MODIFYSXML":"MODIFY",ddl?(sxml?"SXMLDDL":"DDL"):"");
     }
     static String simplified(QueryJobs.Job job,Connection c,String type,String xml,String from,String to)throws Exception{return transform(job,c,type,xml,from,to,"MODIFY","SXML");}
+    static List<String> remapStatements(QueryJobs.Job job,Connection c,String type,String document,String from,String to,Map<String,String> mapping)throws Exception{
+        String script=transform(job,c,type,document,from,to,"MODIFY","DDL",true);
+        return SqlScript.extract(script,"oracle",MAX_CHARACTERS).stream().map(unit->OracleCompareSql.remap(unit.sql(),mapping)).toList();
+    }
     private static String transform(QueryJobs.Job job,Connection c,String type,String document,String from,String to,String modify,String output)throws Exception{
+        return transform(job,c,type,document,from,to,modify,output,false);
+    }
+    private static String transform(QueryJobs.Job job,Connection c,String type,String document,String from,String to,String modify,String output,boolean terminators)throws Exception{
         String block="""
             DECLARE h NUMBER; t NUMBER; result CLOB;
             BEGIN
               h:=SYS.DBMS_METADATA.OPENW(?);
               t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,?);
               SYS.DBMS_METADATA.SET_REMAP_PARAM(t,'REMAP_SCHEMA',?,?);
-            """+(!output.isEmpty()?"t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,'"+output+"');\n":"")+"""
+            """+(!output.isEmpty()?"t:=SYS.DBMS_METADATA.ADD_TRANSFORM(h,'"+output+"');\n":"")+(terminators?"SYS.DBMS_METADATA.SET_TRANSFORM_PARAM(t,'SQLTERMINATOR',TRUE);\n":"")+"""
               SYS.DBMS_LOB.CREATETEMPORARY(result,TRUE);
               SYS.DBMS_METADATA.CONVERT(h,?,result);
               SYS.DBMS_METADATA.CLOSE(h); h:=NULL; ?:=result;
@@ -105,8 +131,22 @@ final class OracleDocuments {
             if(values.getLength()==1&&!values.item(0).getTextContent().equals(start)){values.item(0).setTextContent(start);changed=true;}
         }
         if(!changed)return desired;
+        return serialize(next);
+    }
+    static String remapSqlExpressions(String xml,Map<String,String> mapping)throws Exception{
+        if(mapping.isEmpty())return xml;Document document=parse(xml);boolean changed=false;
+        for(String name:List.of("SUBQUERY","DEFAULT","VIRTUAL","CONDITION","DEFAULT_EXPRESSION")){
+            NodeList expressions=document.getElementsByTagNameNS("http://xmlns.oracle.com/ku",name);
+            for(int i=0;i<expressions.getLength();i++){
+                Element element=(Element)expressions.item(i);if(element.getElementsByTagName("*").getLength()!=0)throw new IllegalArgumentException("Unexpected nested Oracle SQL expression: "+name);
+                String value=element.getTextContent(),mapped=OracleCompareSql.remap(value,mapping);if(!mapped.equals(value)){element.setTextContent(mapped);changed=true;}
+            }
+        }
+        return changed?serialize(document):xml;
+    }
+    private static String serialize(Document document)throws Exception{
         var factory=javax.xml.transform.TransformerFactory.newInstance();factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,true);factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD,"");factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET,"");
-        var transformer=factory.newTransformer();transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION,"yes");var writer=new StringWriter();transformer.transform(new javax.xml.transform.dom.DOMSource(next),new javax.xml.transform.stream.StreamResult(writer));
+        var transformer=factory.newTransformer();transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION,"yes");var writer=new StringWriter();transformer.transform(new javax.xml.transform.dom.DOMSource(document),new javax.xml.transform.stream.StreamResult(writer));
         String result=writer.toString();if(result.length()>MAX_CHARACTERS)throw new IllegalArgumentException("Oracle metadata document exceeds 4 MiB");return result;
     }
     static List<Alter> alterations(String xml)throws Exception{
@@ -119,6 +159,10 @@ final class OracleDocuments {
             for(int j=0;j<parsed.getLength();j++){Element entry=(Element)parsed.item(j);attributes.put(text(entry,"ITEM"),text(entry,"VALUE"));}
             var sql=new ArrayList<String>();NodeList statements=item.getElementsByTagNameNS(ns,"SQL_LIST_ITEM");for(int j=0;j<statements.getLength();j++){String value=text((Element)statements.item(j),"TEXT");if(!value.isBlank())sql.add(value);}
             String blocker=text(item,"NOT_ALTERABLE");if(sql.isEmpty()&&blocker.isBlank())blocker="Oracle returned a change without executable SQL";
+            for(String statement:sql){
+                if(OracleCompareSql.canonical(statement).isBlank())blocker="Oracle returned a change without executable SQL";
+                for(var token:OracleCompareSql.tokens(statement))if(token.text().matches("(?s)--\\s*ORA-[0-9]+:.*")){String message=token.text().strip();blocker=message.substring(0,Math.min(1024,message.length()));}
+            }
             changes.add(new Alter(attributes.getOrDefault("CLAUSE_TYPE",""),attributes.getOrDefault("NAME",""),attributes.getOrDefault("COLUMN_ATTRIBUTE",""),List.copyOf(sql),blocker));
         }
         if(root.getElementsByTagNameNS(ns,"NOT_ALTERABLE").getLength()>0&&changes.stream().allMatch(a->a.blocker().isBlank()))changes.add(new Alter("","","",List.of(),"Oracle cannot alter this definition in place"));

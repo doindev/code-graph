@@ -239,10 +239,11 @@ Generation rechecks profile revisions, metadata fingerprints and selected row fi
 | H2 (embedded tests) | New ordinary tables/views/sequences; individual column/constraint/index changes; unique/check constraints and column comments; keyed data changes and replace mode; sequence and identity state | Special/generated definitions, triggers, unsafe conversions/backfills, dependency-preserving view rebuilds and unsupported codecs are blocked. |
 | MySQL (live tests: 8.4.11) | Native new table definitions, foreign keys, views, and all four data modes on ordinary tables | Existing table definition changes other than supported FK staging are blocked; routines require an additional script formatter. No standalone sequence-state adapter. |
 | MariaDB (live tests: 11.4.13) | Native new table definitions, foreign keys, views, and all four data modes on ordinary tables | Same existing-table/routine limits as MySQL; standalone sequence-state synchronization is unavailable. |
+| Oracle (live tests: Free 23.26.3) | Native definitions, dependencies, grants, supported scheduler objects, four data modes on eligible tables, ordinary/identity sequence advancement | See [Oracle support](dba-oracle.md) for explicit transformation, data, scheduler and privilege boundaries. Standard 19c administration certification is pending. |
 
 Safe data generation requires parent-table data to be included for referenced rows, and dependent-table data when deleting referenced rows. Conflicting alternate unique-key transitions are blocked. No-key tables require explicit Replace all. Unsupported data codecs, such as arrays and vendor object types, fail the comparison without publishing partial SQL. Fixed-width and unverified case/padding-sensitive matching keys are unavailable. Catalog and data changes after download remain outside a generation-only tool's control; the script documents maintenance/exclusive-access assumptions.
 
-Ownership, grants and server-level configuration are outside the current synchronization scope. Destination-only objects are preserved. The scanner-status follow-up is implemented as a separate catalog monitor; see the follow-up section below.
+Oracle owner-issued object/column grants are included within the documented Oracle boundaries. Account ownership and server-level configuration remain outside comparison synchronization. Destination-only objects are preserved. The scanner-status follow-up is implemented as a separate catalog monitor; see the follow-up section below.
 
 The PostgreSQL identity sequence-name syntax is based on the official [CREATE TABLE documentation](https://www.postgresql.org/docs/16/sql-createtable.html); cached-state handling follows the sequence references above.
 
@@ -287,10 +288,10 @@ The following remains the acceptance checklist for each enabled adapter; some co
    viewport/zoom geometry with no inaccessible controls.
 6. Every SQL template gets a capability/coverage matrix row. Every enabled
    engine/version/operation needs vendor-specific generation tests. The present
-   host's live evidence covers PostgreSQL, MySQL and embedded H2 infrastructure;
-   it does not certify Oracle, SQL Server, Snowflake or the other engines' future
-   generated scripts. Missing vendor fixtures do not justify enabling unverified
-   SQL or quietly claiming universal restore support.
+   host's live evidence covers PostgreSQL, MySQL, MariaDB, embedded H2 and the
+   documented Oracle Free capabilities. It does not certify standard Oracle 19c
+   administration, SQL Server, Snowflake or other untested engines' generated scripts.
+   Missing vendor fixtures do not justify enabling unverified SQL or quietly claiming universal restore support.
 
 ## Feature execution evidence
 
@@ -343,7 +344,7 @@ Generation uses the observed product/version, including PostgreSQL-compatible pr
 | MySQL (`mysql`) | Enabled within the operation boundary above |
 | Neo4j (`neo4j`) | Unavailable; metadata inspection only where supported by the driver |
 | OpenSearch (`opensearch`) | Unavailable; metadata inspection only where supported by the driver |
-| Oracle (`oracle`) | Unavailable; metadata inspection only where supported by the driver |
+| Oracle (`oracle`) | Enabled for Oracle 19c+ within the [Oracle capability boundaries](dba-oracle.md#native-comparison); live Oracle Free validation |
 | PostgreSQL (`postgresql`) | Enabled within the operation boundary above |
 | PrestoDB (`presto`) | Unavailable; metadata inspection only where supported by the driver |
 | Redis (Calcite adapter) (`redis`) | Unavailable; metadata inspection only where supported by the driver |

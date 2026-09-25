@@ -53,13 +53,16 @@ final class OracleCompare {
             for(JsonNode row:query(job,c,"SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name FROM "+(catalogReader?"SYS.DBA_DEPENDENCIES":"SYS.ALL_DEPENDENCIES")+" WHERE owner=? OR referenced_owner=? ORDER BY owner,name,type,referenced_owner,referenced_name",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
             for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name AS name,'TABLE' AS type,r.owner AS referenced_owner,r.table_name AS referenced_name,'TABLE' AS referenced_type FROM "+(catalogReader?"SYS.DBA_CONSTRAINTS":"SYS.ALL_CONSTRAINTS")+" c JOIN "+(catalogReader?"SYS.DBA_CONSTRAINTS":"SYS.ALL_CONSTRAINTS")+" r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name WHERE c.constraint_type='R' AND (c.owner=? OR r.owner=?)",owner,owner)){if(edges.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Oracle dependency scope exceeds 10,000 edges; narrow the comparison");edges.add(row);}
             for(JsonNode row:query(job,c,"SELECT index_name,table_owner,table_name FROM SYS.ALL_INDEXES WHERE owner=?",owner)){
-                var index=roster.get(key(owner,"indexes",str(row,"index_name")));if(index!=null)((ArrayNode)index.path("dependencies")).add(key(str(row,"table_owner"),"tables",str(row,"table_name")));
+                var index=roster.get(key(owner,"indexes",str(row,"index_name")));if(index!=null)((ArrayNode)index.path("dependencies")).add(identity(roster,str(row,"table_owner"),"TABLE",str(row,"table_name")));
             }
             for(JsonNode row:query(job,c,"SELECT index_owner,index_name FROM SYS.ALL_CONSTRAINTS WHERE owner=? AND constraint_type IN ('P','U') AND index_name IS NOT NULL",owner)){
-                var index=roster.get(key(str(row,"index_owner"),"indexes",str(row,"index_name")));if(index!=null)index.put("implicit",true);
+                String indexKey=key(str(row,"index_owner"),"indexes",str(row,"index_name"));var index=roster.get(indexKey);if(index!=null){
+                    index.put("implicit",true);for(JsonNode dependency:index.path("dependencies")){ObjectNode relation=roster.get(dependency.asText());if(relation!=null&&str(relation,"kind").equals("materialized_views"))roster.remove(indexKey);}
+                }
             }
         }
         for(String owner:inventory.schemas)OracleIdentitySequences.roster(job,c,owner,roster,identityAliases);
+        defaultDependencies(job,c,roster,catalogReader);
         OracleCompareScheduler.roster(job,c,inventory,roster,catalogReader);
         for(ObjectNode object:roster.values())object.set("oracleTarget",resolved.json());
         for(String owner:inventory.schemas)OracleCompareGrants.capture(job,c,owner,roster);
@@ -92,7 +95,19 @@ final class OracleCompare {
         }
         return inventory;
     }
-    private static String identity(Map<String,ObjectNode> roster,String owner,String type,String name){String kind=kind(type),key=key(owner,kind,name);if(type.equals("TRIGGER")&&!roster.containsKey(key))key=key(owner,"schema_triggers",name);return key;}
+    private static void defaultDependencies(QueryJobs.Job job,Connection c,Map<String,ObjectNode> roster,boolean catalogReader)throws Exception{
+        // Oracle does not publish sequence defaults in ALL_DEPENDENCIES. Inspect expressions,
+        // never evaluate them, and include visible incoming consumers in the same bounded pass.
+        for(JsonNode row:query(job,c,"SELECT c.owner,c.table_name,c.column_name,c.data_default FROM "+(catalogReader?"SYS.DBA_TAB_COLS":"SYS.ALL_TAB_COLS")+" c JOIN SYS.ALL_USERS u ON u.username=c.owner WHERE c.default_length>0 AND c.identity_column='NO' AND u.oracle_maintained='N' ORDER BY c.owner,c.table_name,c.column_id")){
+            String owner=str(row,"owner"),name=str(row,"table_name");ObjectNode table=roster.get(key(owner,"tables",name));
+            try{for(var reference:OracleCompareSql.sequenceReferences(str(row,"data_default"),owner)){
+                String dependency=key(reference.owner(),"sequences",reference.name());ObjectNode sequence=roster.get(dependency);
+                if(table!=null){if(sequence==null)table.withArray("blockers").add("Sequence default depends on an uncaptured or identity-managed generator: "+reference.owner()+"."+reference.name());else if(!CompareSql.contains(table.path("dependencies"),dependency))table.withArray("dependencies").add(dependency);}
+                else if(sequence!=null)sequence.withArray("outsideDependents").add(owner+"."+name+" (column default)");
+            }}catch(IllegalArgumentException failure){if(table!=null)table.withArray("blockers").add(failure.getMessage());else throw failure;}
+        }
+    }
+    private static String identity(Map<String,ObjectNode> roster,String owner,String type,String name){String kind=kind(type),key=key(owner,kind,name);if(type.equals("TRIGGER")&&!roster.containsKey(key))key=key(owner,"schema_triggers",name);if(type.equals("TABLE")&&!roster.containsKey(key)&&roster.containsKey(key(owner,"materialized_views",name)))key=key(owner,"materialized_views",name);return key;}
     private static void definition(QueryJobs.Job job,Connection c,Inventory inventory,ObjectNode object)throws Exception{
         String owner=str(object,"schema"),name=str(object,"name"),type=str(object,"oracleType"),kind=str(object,"kind");
         if(!str(object,"captureBlocker").isBlank())throw new IllegalArgumentException(str(object,"captureBlocker"));
@@ -140,23 +155,23 @@ final class OracleCompare {
                 else if(old==null){
                     var statements=new ArrayList<String>();
                     if(kind.equals("sequences"))statements.add(OracleCompareSql.remap(str(object,"ddl"),mapping));
-                    else statements.add(OracleCompareSql.remap(OracleDocuments.remap(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner,false,true),mapping));
-                    if(object.path("oracleBody").asBoolean())statements.add(OracleCompareSql.remap(OracleDocuments.remap(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,false,true),mapping));
+                    else statements.addAll(OracleDocuments.remapStatements(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner,mapping));
+                    if(object.path("oracleBody").asBoolean())statements.addAll(OracleDocuments.remapStatements(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,mapping));
                     change(changes,"CREATE",name,"",false,statements);
                 }else if(kind.equals("sequences")){
                     if(!object.path("fields").equals(old.path("fields")))change(changes,"ALTER_SEQUENCE",name,"",true,List.of(OracleCompareSql.remap(str(object,"ddl"),mapping).replaceFirst("(?i)CREATE\\s+SEQUENCE","ALTER SEQUENCE").replaceFirst("(?i)START WITH\\s+[-+]?\\d+","")));
                 }else if(!str(object,"oracleSxml").isBlank()){
-                    String desired=OracleDocuments.simplified(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner);
+                    String desired=OracleDocuments.remapSqlExpressions(OracleDocuments.simplified(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner),mapping);
                     if(kind.equals("tables"))desired=OracleDocuments.preserveIdentityStarts(str(old,"oracleSxml"),desired);
                     for(var alteration:OracleDocuments.changes(job,destination,type,str(old,"oracleSxml"),desired)){
                         if(!alteration.blocker().isBlank())throw new IllegalArgumentException(alteration.blocker());
                         change(changes,alteration.clause(),alteration.name(),alteration.attribute(),alteration.destructive(),alteration.statements().stream().map(sql->OracleCompareSql.remap(sql,mapping)).toList());
                     }
                 }else if(!OracleCompareSql.canonical(OracleCompareSql.remap(str(object,"ddl"),mapping)).equals(OracleCompareSql.canonical(str(old,"ddl")))){
-                    change(changes,"REPLACE",name,"",false,List.of(OracleCompareSql.remap(OracleDocuments.remap(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner,false,true),mapping)));
+                    change(changes,"REPLACE",name,"",false,OracleDocuments.remapStatements(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner,mapping));
                 }
                 if(old!=null&&object.path("oracleBody").asBoolean()&&!OracleCompareSql.canonical(OracleCompareSql.remap(str(object,"oracleBodyDdl"),mapping)).equals(OracleCompareSql.canonical(str(old,"oracleBodyDdl"))))
-                    change(changes,"REPLACE_BODY",name,"",false,List.of(OracleCompareSql.remap(OracleDocuments.remap(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,false,true),mapping)));
+                    change(changes,"REPLACE_BODY",name,"",false,OracleDocuments.remapStatements(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,mapping));
                 OracleCompareGrants.review(job,destination,object,old,owner,mapping,changes,kind.equals("scheduler")&&OracleCompareScheduler.hasDefinitionChange(changes));
                 if(!changes.isEmpty()&&!object.path("outsideDependents").isEmpty())throw new IllegalArgumentException("Incoming dependents outside the captured scope: "+object.path("outsideDependents"));
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;changes.removeAll();object.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Oracle cannot generate this change"));}

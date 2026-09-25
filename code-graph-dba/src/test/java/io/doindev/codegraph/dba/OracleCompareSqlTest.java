@@ -20,4 +20,11 @@ class OracleCompareSqlTest {
         assertEquals(OracleCompareSql.canonical("SELECT x FROM t"),OracleCompareSql.canonical("select \"X\" /*comment*/ from \"T\""));
         assertNotEquals(OracleCompareSql.canonical("select 'x' from t"),OracleCompareSql.canonical("select 'X' from t"));
     }
+    @org.junit.jupiter.api.Test void sequenceDefaultsAreDiscoveredWithoutEvaluatingSql(){
+        var references=OracleCompareSql.sequenceReferences("coalesce(\"Src\".\"Counter\".NEXTVAL,seq.CURRVAL) + length('hidden.NEXTVAL') /* ignored.NEXTVAL */","OWNER");
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.Set.of(new OracleCompareSql.SequenceReference("Src","Counter"),new OracleCompareSql.SequenceReference("OWNER","SEQ")),references);
+        org.junit.jupiter.api.Assertions.assertTrue(OracleCompareSql.sequenceReferences("pkg.nextval() + length(q'[x.nextval]')","OWNER").isEmpty());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,()->OracleCompareSql.sequenceReferences("seq.NEXTVAL@remote","OWNER"));
+    }
+
 }

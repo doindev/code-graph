@@ -17,6 +17,17 @@ final class OracleCompareSql {
             if(replacement!=null&&next<tokens.size()&&tokens.get(next).text().equals("."))output.append(OracleDialect.identifier(replacement));else output.append(token.text());
         }return output.toString();
     }
+    record SequenceReference(String owner,String name){}
+    static Set<SequenceReference> sequenceReferences(String expression,String owner){
+        List<Token> tokens=tokens(expression).stream().filter(token->!ignorable(token.text())).toList();var references=new LinkedHashSet<SequenceReference>();
+        for(int i=2;i<tokens.size();i++){
+            Token value=tokens.get(i);if(!value.identifier()||!Set.of("NEXTVAL","CURRVAL").contains(value.name())||!tokens.get(i-1).text().equals(".")||!tokens.get(i-2).identifier()||i+1<tokens.size()&&tokens.get(i+1).text().equals("("))continue;
+            if(tokens.stream().anyMatch(token->token.text().equals("@")))throw new IllegalArgumentException("Sequence defaults through database links require manual dependency review");
+            String schema=i>=4&&tokens.get(i-3).text().equals(".")&&tokens.get(i-4).identifier()?tokens.get(i-4).name():owner;
+            references.add(new SequenceReference(schema,tokens.get(i-2).name()));
+        }
+        return references;
+    }
     static boolean dynamic(String sql){
         List<String> names=tokens(sql).stream().filter(t->!ignorable(t.text())).map(t->t.identifier()?t.name():t.text()).toList();
         for(int i=0;i<names.size();i++){
