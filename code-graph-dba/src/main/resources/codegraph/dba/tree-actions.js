@@ -1,3 +1,15 @@
+/** Keep existing rows connected; only insert or move rows whose position changed. */
+export function placeTreeRows(container,rows,before=container.firstElementChild){
+  const focused=document.activeElement;
+  for(const row of rows){
+    if(row===before){before=before.nextElementSibling;continue;}
+    if(container.moveBefore&&row.parentElement===container)container.moveBefore(row,before);
+    else container.insertBefore(row,before);
+  }
+  // Older browsers implement moves as remove/insert, which can drop keyboard focus.
+  if(focused?.isConnected&&document.activeElement!==focused&&container.contains(focused))focused.focus({preventScroll:true});
+}
+
 /** Right-click uses the existing action button without toggling an already open menu. */
 export function bindTreeContextMenu(header,button){
   header.addEventListener('contextmenu',event=>{

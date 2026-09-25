@@ -55,9 +55,24 @@ clicking or double-clicking its name does not change expansion. Name clicks stil
 the owning connection, and keyboard Left/Right navigation remains available.
 Labels truncate visually, with their full text in a
 tooltip. Every node has a right-aligned actions menu with **Refresh**. Refresh reloads
-previously loaded pages and restores expanded descendants that still have the same catalog
-identity. Refreshing a leaf reloads its parent list. A failed refresh retains the previous
-children and displays a sanitized error; it is not reported as an empty database.
+previously loaded pages and compares incoming descriptors with the mounted nodes by stable
+catalog identity. Unchanged rows and their descendants stay mounted; refresh inserts or
+removes changed membership, patches changed labels/capabilities, and moves rows only when
+ordering changes. The connection-list refresh uses the same approach for saved profiles.
+Expanded branches remain visible while their metadata is refreshed, preserving keyboard
+focus, selection, and scroll position on unchanged refreshes. Collapsed branches keep their
+cached rows and load fresh metadata when reopened. Refreshing a leaf reloads its parent list.
+A failed refresh (including a later page) retains that branch's previous children and
+displays a sanitized error; it is not reported as an empty database. Removed branches cancel
+pending jobs and ignore late results. Retained descendants still count toward tree limits.
+
+`DBA_BROWSER_SUITE=tree-refresh` runs DOM-identity regressions for unchanged refreshes,
+additions/removals, changed labels and actions, focus/scroll, lazy branches, pagination,
+failures, resource limits and removal during a pending job. It also runs the Redis tree
+regressions: refresh still starts a new bounded SCAN while retaining the pattern controls.
+The shared renderer applies to JDBC and native database trees.
+Validated on 2026-09-25 with the incremental/Redis tree suites, tree context menus,
+H2 object-creation workflow, and core browser/sidebar regressions.
 
 Folders and leaves inside each database are alphabetical (case-insensitive primary ordering,
 with deterministic ties), including across pages. Root **connections** are the exception:

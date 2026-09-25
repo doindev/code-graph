@@ -1,5 +1,5 @@
 import {lucide} from './tree-icons.js';
-import {copyObjectName,bindTreeContextMenu} from './tree-actions.js';
+import {copyObjectName,bindTreeContextMenu,placeTreeRows} from './tree-actions.js';
 const iconNames={sql:'file-code',open:'folder-open',last:'clock',new:'file-plus',edit:'pencil',connect:'plug',reconnect:'refresh-cw',disconnect:'unplug',refresh:'refresh-cw',remove:'trash',copy:'copy',rename:'pencil',down:'chevron-down',up:'chevron-up',right:'chevron-right'};
 function icon(name){return lucide(iconNames[name]);}
 function control(label,name,action){const b=document.createElement('button');b.type='button';b.title=label;b.setAttribute('aria-label',label);if(name)b.append(icon(name));b.addEventListener('click',action);return b;}
@@ -22,8 +22,13 @@ export class ConnectionTree {
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&this.menu){e.preventDefault();this.closeMenu(true);}});
     window.addEventListener('resize',()=>this.closeMenu());this.host.addEventListener('scroll',()=>this.closeMenu(),{passive:true});
   }
-  render(profiles,selected){this.closeMenu();this.rows.clear();this.host.replaceChildren();for(const id of this.expanded)if(!profiles.some(p=>p.id===id))this.expanded.delete(id);
-    for(const p of profiles){const row=document.createElement('section');row.className='connection-row';row.dataset.connection=p.id;row.setAttribute('role','treeitem');row.setAttribute('aria-label',p.name);row.setAttribute('aria-expanded','false');
+  render(profiles,selected){
+    this.closeMenu();const ids=new Set(profiles.map(p=>p.id)),focused=document.activeElement;
+    for(const [id,entry] of this.rows)if(!ids.has(id)){entry.row.remove();this.rows.delete(id);this.expanded.delete(id);}
+    for(const p of profiles){
+      const existing=this.rows.get(p.id);
+      if(existing){existing.p=p;this.updateProfile(existing);continue;}
+      const row=document.createElement('section');row.className='connection-row';row.dataset.connection=p.id;row.setAttribute('role','treeitem');row.setAttribute('aria-label',p.name);row.setAttribute('aria-expanded','false');
       if(/^#[0-9a-f]{6}$/i.test(p.color??'')){row.classList.add('has-color');row.style.setProperty('--connection-tint',`color-mix(in srgb, ${p.color} 24%, transparent)`);}row.dataset.color=p.color??'transparent';
       const head=document.createElement('div');head.className='connection-title';const children=document.createElement('div');children.className='children';children.setAttribute('role','group');children.hidden=true;
       this.dragEvents(head,p.id,row);
@@ -35,17 +40,45 @@ export class ConnectionTree {
       const more=control('Actions for '+p.name,null,()=>this.openMenu(p.id,more));more.className='connection-more';more.setAttribute('aria-haspopup','menu');more.setAttribute('aria-expanded','false');
       bindTreeContextMenu(head,more);
       head.append(toggle,image,name,address,more);row.append(head,children);this.host.append(row);this.rows.set(p.id,{p,row,children,toggle,more,loaded:false,loading:false});this.updateState(p.id,p.connectionState??{});
-      if(this.expanded.has(p.id))this.toggle(p.id,true);
-    }this.select(selected);
+    }
+    this.rows=new Map(profiles.map(p=>[p.id,this.rows.get(p.id)]));
+    placeTreeRows(this.host,[...this.rows.values()].map(entry=>entry.row));this.select(selected);
+    if(focused&&!focused.isConnected)(this.rows.get(selected)??this.rows.values().next().value)?.row.querySelector('.connection-select')?.focus({preventScroll:true});
+    // Refresh visible roots without toggling them or changing the selected connection.
+    return Promise.all([...this.rows.keys()].map(id=>this.refresh(id)));
+  }
+  updateProfile(entry){
+    const {p,row,toggle,more}=entry,name=row.querySelector('.connection-select'),address=row.querySelector('.connection-address');
+    if(name.textContent!==p.name)name.textContent=p.name;
+    name.title=p.name+' · Drag to reorder; Alt+Up/Down also moves this connection';row.setAttribute('aria-label',p.name);
+    const location=connectionAddress(p);if(address.textContent!==location)address.textContent=location;address.title=location;
+    toggle.title=(entry.children.hidden?'Expand ':'Collapse ')+p.name;toggle.setAttribute('aria-label',toggle.title);
+    more.title='Actions for '+p.name;more.setAttribute('aria-label',more.title);
+    if(row.dataset.color!==(p.color??'transparent')){
+      row.dataset.color=p.color??'transparent';const colored=/^#[0-9a-f]{6}$/i.test(p.color??'');row.classList.toggle('has-color',colored);
+      if(colored)row.style.setProperty('--connection-tint',`color-mix(in srgb, ${p.color} 24%, transparent)`);else row.style.removeProperty('--connection-tint');
+    }
+    this.updateState(p.id,p.connectionState??{});
+  }
+  async refresh(id){const entry=this.rows.get(id);if(!entry)return;entry.loaded=false;if(!entry.children.hidden)return this.load(entry);}
+  load(entry){
+    if(entry.pending)return entry.pending;
+    entry.loading=true;entry.row.setAttribute('aria-busy','true');
+    entry.pending=(async()=>{try{
+      let profile;
+      do{profile=entry.p;entry.loaded=await this.cb.load(profile,entry.children)!==false;}
+      while(this.rows.get(profile.id)===entry&&!entry.children.hidden&&JSON.stringify(profile)!==JSON.stringify(entry.p));
+    }catch(error){this.cb.notice(error.message);}finally{entry.loading=false;entry.row.removeAttribute('aria-busy');if(this.rows.get(entry.p.id)===entry)await this.sync(entry.p.id);}})().finally(()=>{entry.pending=null;});
+    return entry.pending;
   }
   select(id){for(const [key,{row}] of this.rows){const selected=key===id;row.classList.toggle('selected',selected);row.setAttribute('aria-selected',String(selected));row.querySelector('.connection-select').setAttribute('aria-pressed',String(selected));}}
   clearDrag(){for(const {row} of this.rows.values())row.classList.remove('connection-dragging','connection-drop-before','connection-drop-after');this.dragged=null;}
   dragEvents(head,id,row){head.draggable=true;head.addEventListener('pointerdown',e=>{this.dragBlocked=!!e.target.closest('.connection-toggle,.connection-more');});head.addEventListener('dragstart',e=>{if(this.orderBusy||this.dragBlocked){e.preventDefault();return;}this.closeMenu();this.dragged=id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-dba-connection',id);row.classList.add('connection-dragging');});head.addEventListener('dragend',()=>this.clearDrag());head.addEventListener('dragover',e=>{if(!this.dragged||this.dragged===id||this.orderBusy)return;e.preventDefault();e.dataTransfer.dropEffect='move';for(const {row:r} of this.rows.values())r.classList.remove('connection-drop-before','connection-drop-after');row.classList.add(e.clientY<head.getBoundingClientRect().top+head.clientHeight/2?'connection-drop-before':'connection-drop-after');const bounds=this.host.getBoundingClientRect();if(e.clientY<bounds.top+30)this.host.scrollTop-=16;else if(e.clientY>bounds.bottom-30)this.host.scrollTop+=16;});head.addEventListener('drop',e=>{if(!this.dragged||this.orderBusy)return;e.preventDefault();const from=this.dragged,before=e.clientY<head.getBoundingClientRect().top+head.clientHeight/2;this.clearDrag();this.reorder(from,id,before);});}
   move(id,delta){const ids=[...this.rows.keys()],index=ids.indexOf(id),target=ids[index+delta];if(target)this.reorder(id,target,delta<0);}
-  async reorder(id,target,before){if(this.orderBusy||id===target||!this.rows.has(id)||!this.rows.has(target))return;const prior=[...this.rows.keys()],ids=prior.filter(key=>key!==id);ids.splice(ids.indexOf(target)+(before?0:1),0,id);if(ids.every((key,index)=>key===prior[index]))return;this.orderBusy=true;try{await this.cb.order(ids);if(ids.some(key=>!this.rows.has(key)))return;this.rows=new Map(ids.map(key=>[key,this.rows.get(key)]));for(const {row} of this.rows.values())this.host.append(row);this.rows.get(id).row.querySelector('.connection-select').focus();this.live.textContent=this.rows.get(id).p.name+' moved to position '+(ids.indexOf(id)+1)+' of '+ids.length;}catch(error){this.cb.notice(error.message+' Refresh the connection list before trying again.');}finally{this.orderBusy=false;}}
+  async reorder(id,target,before){if(this.orderBusy||id===target||!this.rows.has(id)||!this.rows.has(target))return;const prior=[...this.rows.keys()],ids=prior.filter(key=>key!==id);ids.splice(ids.indexOf(target)+(before?0:1),0,id);if(ids.every((key,index)=>key===prior[index]))return;this.orderBusy=true;try{await this.cb.order(ids);if(ids.some(key=>!this.rows.has(key)))return;this.rows=new Map(ids.map(key=>[key,this.rows.get(key)]));placeTreeRows(this.host,[...this.rows.values()].map(entry=>entry.row));this.rows.get(id).row.querySelector('.connection-select').focus();this.live.textContent=this.rows.get(id).p.name+' moved to position '+(ids.indexOf(id)+1)+' of '+ids.length;}catch(error){this.cb.notice(error.message+' Refresh the connection list before trying again.');}finally{this.orderBusy=false;}}
   updateState(id,state){const entry=this.rows.get(id);if(!entry)return;entry.state=state;entry.row.dataset.connected=String(!!state.connected);entry.row.querySelector('.connection-icon').title=state.connected?'Connected':'Disconnected';}
   async sync(id){try{const state=await this.cb.api('/connections/'+id+'/state');this.updateState(id,state);return state;}catch(e){this.cb.notice(e.message);return null;}}
-  async toggle(id,force){const e=this.rows.get(id);if(!e)return;const open=force??e.children.hidden;e.children.hidden=!open;e.row.setAttribute('aria-expanded',String(open));e.toggle.setAttribute('aria-expanded',String(open));e.toggle.title=(open?'Collapse ':'Expand ')+e.p.name;e.toggle.setAttribute('aria-label',e.toggle.title);e.toggle.replaceChildren(icon(open?'up':'down'));if(!open){this.expanded.delete(id);return;}this.expanded.add(id);this.cb.select(id);if(!e.loaded&&!e.loading){e.loading=true;e.row.setAttribute('aria-busy','true');try{await this.cb.load(e.p,e.children);e.loaded=true;}catch(error){this.cb.notice(error.message);}finally{e.loading=false;e.row.removeAttribute('aria-busy');await this.sync(id);}}}
+  async toggle(id,force){const e=this.rows.get(id);if(!e)return;const open=force??e.children.hidden;e.children.hidden=!open;e.row.setAttribute('aria-expanded',String(open));e.toggle.setAttribute('aria-expanded',String(open));e.toggle.title=(open?'Collapse ':'Expand ')+e.p.name;e.toggle.setAttribute('aria-label',e.toggle.title);e.toggle.replaceChildren(icon(open?'up':'down'));if(!open){this.expanded.delete(id);return;}this.expanded.add(id);this.cb.select(id);if(!e.loaded)await this.load(e);}
   closeMenu(focus=false){const anchor=this.anchor;this.menu?.remove();this.submenu?.remove();this.menu=null;this.submenu=null;this.anchor=null;anchor?.setAttribute('aria-expanded','false');if(focus)anchor?.focus();}
   position(menu,anchor,side=false){document.body.append(menu);const rect=anchor.getBoundingClientRect(),box=menu.getBoundingClientRect();let x=side?rect.right-2:rect.right-box.width;if(side&&x+box.width>innerWidth-8)x=rect.left-box.width+2;menu.style.left=Math.max(8,Math.min(x,innerWidth-box.width-8))+'px';menu.style.top=Math.max(8,Math.min(side?rect.top:rect.bottom+3,innerHeight-box.height-8))+'px';}
   menuKeys(menu){menu.addEventListener('keydown',e=>{const items=[...menu.querySelectorAll(':scope > button:not(:disabled)')],i=items.indexOf(document.activeElement);let next;if(e.key==='ArrowDown')next=(i+1)%items.length;else if(e.key==='ArrowUp')next=(i-1+items.length)%items.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=items.length-1;else if(e.key==='Tab'){this.closeMenu();return;}else return;e.preventDefault();items[next]?.focus();});}
@@ -60,7 +93,7 @@ export class ConnectionTree {
     this.item(menu,'Copy','copy',()=>copyObjectName(e.p.name));
     this.item(menu,'Delete','remove',()=>this.cb.remove(e.p),state.busy);
     this.item(menu,'Rename','rename',()=>this.cb.rename(e.p),state.busy);this.divider(menu);
-    this.item(menu,'Refresh','refresh',async()=>{e.loaded=false;if(!e.children.hidden)await this.toggle(id,true);else await this.sync(id);},state.busy);
+    this.item(menu,'Refresh','refresh',async()=>{await this.refresh(id);if(e.children.hidden)await this.sync(id);},state.busy);
     this.divider(menu);const order=[...this.rows.keys()],position=order.indexOf(id);this.item(menu,'Move up','up',()=>this.move(id,-1),this.orderBusy||position===0);this.item(menu,'Move down','down',()=>this.move(id,1),this.orderBusy||position===order.length-1);
     menu.addEventListener('pointerover',event=>{if(event.target.closest('button')!==sql){this.submenu?.remove();this.submenu=null;sql.setAttribute('aria-expanded','false');}});
     this.position(menu,anchor);menu.querySelector('button:not(:disabled)')?.focus();
