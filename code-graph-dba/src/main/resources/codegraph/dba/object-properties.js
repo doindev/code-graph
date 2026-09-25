@@ -1,3 +1,4 @@
+import {keyDialog,quoteIdentifier} from './schema-picker.js';
 import {TableProperties} from './table-properties.js';
 import {lucide} from './tree-icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -82,7 +83,9 @@ export class ObjectProperties extends TableProperties {
     input.setAttribute('aria-label',spec.label);input.disabled=(!spec.editable&&!(spec.id==='name'&&this.creation))||(this.draft.sqlMode&&spec.id!=='name');
     if(!spec.editable)input.title='Inspect here; use DDL for native changes where supported.';
     if(spec.choices&&input.tagName==='INPUT'){const list=el('datalist');list.id='object-choices-'+spec.id;for(const value of spec.choices){const option=el('option');option.value=value.name;list.append(option);}input.setAttribute('list',list.id);row.append(list);}
-    input.oninput=()=>{this.draft.fields[spec.id]=spec.type==='boolean'?input.checked:input.value;if(spec.id==='query')this.querySource='definition';this.update();};row.append(input);host.append(row);
+    let chooseColumns;
+    if(this.creation&&this.snapshot.kind==='indexes'&&spec.id==='table'&&!input.disabled)chooseColumns=button('Choose table and index columns','list-plus',()=>{this.picker=keyDialog({api:this.api,connectionId:this.target().connectionId,database:this.snapshot.database,schema:this.draft.fields.schema,engine:this.snapshot.engine,accept:({source,columns})=>{this.draft.fields.table=source.reference;this.draft.fields.columns=columns.map(c=>quoteIdentifier(c,source.quote||'"')).join(', ');this.update();this.render();}});});
+    input.oninput=()=>{this.draft.fields[spec.id]=spec.type==='boolean'?input.checked:input.value;if(spec.id==='query')this.querySource='definition';this.update();};if(chooseColumns){chooseColumns.setAttribute('aria-label','Choose table and index columns');const controls=el('div',undefined,'object-picker-field');controls.append(input,chooseColumns);row.append(controls);}else row.append(input);host.append(row);
   }
   refreshSchedule(host){
     const model=this.snapshot.refreshSchedule,config=this.draft.schedule,caps=model.capabilities??{};

@@ -734,7 +734,7 @@ public final class DbaRuntime implements AutoCloseable {
     }
     static void asset(HttpExchange x,String path)throws IOException {
         if(Set.of("/dba/grid-preferences.js","/dba/grid-settings-dialog.js","/dba/grid-settings-schema.json","/dba/grid-values.js","/dba/editor-client.js","/dba/grid-cell-editor.js","/dba/grid-state.js","/dba/grid-window.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
-                "/dba/compare.js","/dba/compare.css","/dba/oracle-admin.js","/dba/oracle-admin.css","/dba/relational-admin.js","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
+                "/dba/schema-picker.js","/dba/compare.js","/dba/compare.css","/dba/oracle-admin.js","/dba/oracle-admin.css","/dba/relational-admin.js","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
             String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
                 if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".json")?"application/json; charset=utf-8":name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
             }

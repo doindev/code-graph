@@ -4,7 +4,7 @@ if (-not $env:DBA_BROWSER_SUITE) {
     # Independent suites get independent runtimes, profiles and browser sessions.
     # A closed browser context must not require weakening production session limits.
     try {
-        foreach ($dbaSuite in @('connection-editor','compare','driver-downloads','native','yolo','tree-context','workspace-toolbar','script-selection','grid','grid-settings','grid-values','editable-grid','grid-scroll','grid-search','grid-cell','table-designer','view-query','query-builder','object-creation','object-designer','grid-edit','project-context','catalog','editor-pairing','approvals','approval-review','approval-settings','read-permissions','core')) {
+        foreach ($dbaSuite in @('connection-editor','compare','driver-downloads','native','yolo','tree-context','workspace-toolbar','script-selection','grid','grid-settings','grid-values','editable-grid','grid-scroll','grid-search','grid-cell','table-designer','schema-picker','view-query','query-builder','object-creation','object-designer','grid-edit','project-context','catalog','editor-pairing','approvals','approval-review','approval-settings','read-permissions','core')) {
             $env:DBA_BROWSER_SUITE = $dbaSuite
             & $PSCommandPath -NodeModules $NodeModules
         }

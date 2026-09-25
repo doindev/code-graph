@@ -315,3 +315,16 @@ dialog input,dialog textarea,.connection-editor input,.connection-editor textare
 .scan-status-footer{display:flex;gap:8px;padding-top:16px}
 
 .script-output{overflow:auto;padding:1rem;display:block}.script-output textarea{width:100%;min-height:12rem;resize:vertical;font-family:monospace}.script-output pre{white-space:pre-wrap;overflow-wrap:anywhere}.script-output table{width:100%;border-collapse:collapse}.script-output td,.script-output th{text-align:left;padding:.4rem}
+
+.schema-picker-dialog{width:calc(100vw - 48px);max-width:1400px;max-height:calc(100vh - 48px)}
+.schema-picker-dialog .designer-dialog-body{max-height:calc(100vh - 190px)}
+.schema-picker-dialog label,.schema-relations label{display:flex;flex-direction:column;gap:5px}
+.schema-relations{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.schema-relations>p{grid-column:1/-1}
+.schema-column-pair{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.schema-column-pair select{flex:1;min-width:180px;max-width:100%}
+.schema-picker-dialog input,.schema-picker-dialog select,.schema-picker-dialog textarea{box-sizing:border-box;max-width:100%}
+.schema-picker-dialog [hidden]{display:none}
+@media(max-width:700px){.schema-picker-dialog{width:calc(100vw - 16px)}.schema-relations{grid-template-columns:1fr}.schema-column-pair select{flex-basis:70%}}
+
+.object-picker-field{display:flex;flex-direction:column;gap:8px;min-width:0}.object-picker-field input{width:100%}

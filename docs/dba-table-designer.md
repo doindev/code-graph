@@ -141,3 +141,26 @@ atomic rollback, H2 partial commits, category actions, review cancellation, risk
 tab closure and grid refresh after Save. Test databases are disposable; user tables are not
 used. Other vendors, cancellation/connection-loss races, exhaustive concurrency/resource
 stress and all advanced editing combinations remain unverified release gates.
+
+## Guided index and constraint selection
+
+Table Properties offers ordered column selectors for indexes, UNIQUE constraints, and
+primary keys. Choose **Choose primary key** on Columns to select or reorder a composite
+key; removing every entry proposes removing the key in the existing SQL review. Selectors
+use the current draft, including renamed/new columns, and exclude deleted columns.
+
+**Add foreign keys** offers paged, filterable schema/table choices and explicit local-to-
+referenced column pairs with datatype labels. Changing the referenced object clears its
+column selections. PostgreSQL and Oracle use schemas; MySQL/MariaDB stay bound to the
+editor's current database. Foreign keys reference tables, and the database validates key
+eligibility and types at Apply. No table rows are fetched by column discovery.
+
+CHECK constraints offer a column selector that inserts a quoted identifier into the
+expression. Switching between CHECK and UNIQUE submits only the applicable settings.
+Every choice still enters the existing draft and reviewed SQL flow; selecting metadata
+never executes schema changes. Closing a selector cancels/releases its metadata jobs.
+
+`browser-schema-picker.cjs` covers ordered composite keys, quoted identifiers, draft
+renames/deletions, CHECK/UNIQUE switching, foreign-key pairing, paging, stale selections,
+metadata failure/retry, cancellation cleanup, MySQL database scoping, responsive layouts,
+and standalone index review/apply against a disposable H2 fixture.

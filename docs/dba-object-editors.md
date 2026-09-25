@@ -152,3 +152,14 @@ References: [JDBC metadata](https://docs.oracle.com/en/java/javase/25/docs/api/j
 [ALTER FUNCTION](https://www.postgresql.org/docs/current/sql-alterfunction.html),
 [ALTER MATERIALIZED VIEW](https://www.postgresql.org/docs/current/sql-altermaterializedview.html),
 [REFRESH MATERIALIZED VIEW](https://www.postgresql.org/docs/current/sql-refreshmaterializedview.html).
+
+### Index selection helper
+
+When creating an index through a supported property form, **Choose table and index
+columns** fills the qualified table and ordered key columns from verified metadata.
+PostgreSQL also offers materialized views. Ordinary views are not index targets in this
+helper. Paged schema/object choices can be filtered within loaded pages. Advanced
+expressions, included columns, access methods and predicates remain editable in the
+existing fields. Choosing a new relation replaces the helper's column selection; the
+editor draft is updated only when **Use selection** is accepted. Save still reviews the
+complete SQL before Apply.

@@ -63,6 +63,7 @@ const [base,jar,schema='']=process.argv.slice(2);
     if(process.env.DBA_BROWSER_SUITE==='object-creation'){await require('./browser-object-creation.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='query-types'){await require('./browser-query-types.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='query-builder'){await require('./browser-query-geometry.cjs')(browser,base);await require('./browser-query-builder.cjs')(browser,base,jar);await require('./browser-query-lifecycle.cjs')(browser,base);await require('./browser-query-types.cjs')(browser,base,jar);return;}
+    if(process.env.DBA_BROWSER_SUITE==='schema-picker'){await require('./browser-schema-picker.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE==='table-designer'){await require('./browser-table-designer.cjs')(browser,base,jar);return;}
     if(process.env.DBA_BROWSER_SUITE!=='core'){
     await require('./browser-tree-context.cjs')(browser,base);
