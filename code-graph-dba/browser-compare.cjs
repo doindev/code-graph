@@ -6,6 +6,13 @@ module.exports=async(browser,base)=>{
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/dba/'))requests.push([r.method(),r.url()]);});
  try{
   await page.goto(base+'/dba');await page.waitForFunction(()=>document.querySelector('#connection-count')?.textContent.includes('connection'));
+  await page.locator('#workspace-settings').click();await page.locator('#settings').click();await page.locator('#settings-dialog').waitFor({state:'visible'});
+  const metadataLimit=page.locator('#settings-form [name="compareMetadataMiB"]');
+  assert.equal(await metadataLimit.inputValue(),'');await metadataLimit.fill('32');
+  await page.locator('#settings-form button[type="submit"]').click();await page.locator('#settings-dialog').waitFor({state:'hidden'});
+  await page.reload();await page.locator('#workspace-settings').click();await page.locator('#settings').click();await page.locator('#settings-dialog').waitFor({state:'visible'});
+  assert.equal(await metadataLimit.inputValue(),'32');await metadataLimit.fill('');
+  await page.locator('#settings-form button[type="submit"]').click();await page.locator('#settings-dialog').waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Compare',exact:true}).click();
   const wizard=page.getByRole('region',{name:'Database Compare'});
   const source=wizard.getByLabel('source connection',{exact:true});await source.selectOption({label:'Context H2'});

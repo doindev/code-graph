@@ -19,6 +19,7 @@ final class QueryJobs implements AutoCloseable {
         volatile Set<String> participatingConnections=Set.of();
         int rowLimit;
         final int byteLimit;
+        long comparisonMetadataBytes=compareMetadataBytes;
         final long created=System.currentTimeMillis();
         volatile long started,finished,bytes;
         volatile long reservation=JOB_RESERVATION;
@@ -116,6 +117,9 @@ final class QueryJobs implements AutoCloseable {
     private final ThreadPoolExecutor workers;
     private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("dba-deadlines").factory());
     private volatile DbaConfig config;
+    private volatile long compareMetadataBytes=CompareCatalog.MAX_BYTES;
+    long comparisonMetadataBytes(){return compareMetadataBytes;}
+    synchronized void comparisonMetadataBytes(long value){compareMetadataBytes=value;}
     int statementTimeoutSeconds(){return config.timeoutSeconds();}
     GridResults grids;
     QueryJobs(Connections connections,DbaConfig config,Predicate<String> alive){this.connections=connections;this.config=config;this.alive=alive;
@@ -231,7 +235,7 @@ final class QueryJobs implements AutoCloseable {
             parent.comparisonProgress("Opening connection","destination","",0,0);return new ComparisonPair<>(left,destination.run(parent));
         }
         Job left=new Job(parent.owner,sourceId),right=new Job(parent.owner,destinationId);
-        for(Job child:List.of(left,right)){child.parentJob=parent;child.operation=parent.operation;child.overallTimeoutSeconds=parent.overallTimeoutSeconds;parent.children.add(child);}
+        for(Job child:List.of(left,right)){child.parentJob=parent;child.comparisonMetadataBytes=parent.comparisonMetadataBytes;child.operation=parent.operation;child.overallTimeoutSeconds=parent.overallTimeoutSeconds;parent.children.add(child);}
         try(var executor=Executors.newVirtualThreadPerTaskExecutor()){
             var completion=new ExecutorCompletionService<ComparisonSide<T>>(executor);
             var a=completion.submit(()->comparisonSide(parent,left,true,source));var b=completion.submit(()->comparisonSide(parent,right,false,destination));
@@ -258,6 +262,7 @@ final class QueryJobs implements AutoCloseable {
     }
     private synchronized ObjectNode local(String owner,String connection,LocalTask task,Runnable cleanup,int timeoutSeconds,String operation){
         long reservation=!connection.isEmpty()&&DatabaseTransport.of(connections.profile(connection))!=DatabaseTransport.JDBC?64L<<20:JOB_RESERVATION;
+        if(operation.equals("catalog"))reservation=Math.max(reservation,Math.multiplyExact(2L,compareMetadataBytes));
         reap();if(jobs.size()>=32||reservedBytes()+reservation>config.memoryBytes()){cleanup.run();throw new IllegalArgumentException("DBA allowance full; release completed jobs (native operations reserve 64 MiB including temporary decoding)");}
         Job job=new Job(owner,connection);job.operation=operation;job.overallTimeoutSeconds=timeoutSeconds;job.reservation=reservation;jobs.put(job.id,job);
         try{workers.execute(()->{

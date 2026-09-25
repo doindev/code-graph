@@ -19,8 +19,9 @@ final class DatabaseCompare implements AutoCloseable {
     record Receipt(String owner,Target target,long expires){}
     final class Comparison {
         final String id=UUID.randomUUID().toString(),owner;final Target from,to;final JsonNode options;final QueryJobs.RetainedReservation lease;
+        final long metadataBytes;
         final Set<String> jobIds=new HashSet<>();CompareDiff diff;CompareData data;long expires=System.currentTimeMillis()+TTL;boolean disposed,busy,ready;volatile QueryJobs.Job activeJob;
-        Comparison(String owner,Target from,Target to,JsonNode options,QueryJobs.RetainedReservation lease){this.owner=owner;this.from=from;this.to=to;this.options=options.deepCopy();this.lease=lease;}
+        Comparison(String owner,Target from,Target to,JsonNode options,QueryJobs.RetainedReservation lease,long metadataBytes){this.owner=owner;this.from=from;this.to=to;this.options=options.deepCopy();this.lease=lease;this.metadataBytes=metadataBytes;}
     }
     DatabaseCompare(Profiles profiles,Connections connections,QueryJobs jobs,Path root,Predicate<String> alive)throws IOException{
         this.profiles=profiles;this.connections=connections;this.jobs=jobs;this.alive=alive;artifacts=new CompareArtifacts(root,alive);
@@ -94,12 +95,11 @@ final class DatabaseCompare implements AutoCloseable {
         if(from.allSchemas()!=to.allSchemas())throw new IllegalArgumentException("Use the same scope mode for source and destination");
         if(!request.path("objectTypes").isArray()||request.path("objectTypes").isEmpty())throw new IllegalArgumentException("Select object types");
         if(comparisons.size()>=2)throw new IllegalArgumentException("Close another comparison before starting a new one (maximum two)");
-        QueryJobs.RetainedReservation lease=jobs.retainAllowance(80L<<20);Comparison comparison=new Comparison(owner,from,to,request,lease);comparisons.put(comparison.id,comparison);comparison.busy=true;
+        long metadataBytes=jobs.comparisonMetadataBytes();
+        QueryJobs.RetainedReservation lease=jobs.retainAllowance(Math.multiplyExact(5L,metadataBytes));Comparison comparison=new Comparison(owner,from,to,request,lease,metadataBytes);comparisons.put(comparison.id,comparison);comparison.busy=true;
         try{
             ObjectNode submitted=jobs.comparison(owner,new HashSet<>(List.of(from.connectionId(),to.connectionId())),job->{
-                comparison.activeJob=job;var captured=jobs.comparisonReads(job,from.connectionId(),to.connectionId(),
-                    side->read(side,from,c->{side.comparisonProgress("Inspecting definitions","source","",0,0);return capture(side,c,from,kinds(request),sequenceValues(request));}),
-                    side->read(side,to,c->{side.comparisonProgress("Inspecting definitions","destination","",0,0);return capture(side,c,to,kinds(request),sequenceValues(request));}));
+                comparison.activeJob=job;job.comparisonMetadataBytes=comparison.metadataBytes;var captured=capturePair(job,from,to,request,sequenceValues(request));
                 Inventory source=captured.source(),destination=captured.destination();
                 if(!source.engine.equals(destination.engine))throw new IllegalArgumentException("Source and destination must use the same engine");
                 if(source.engine.equals("oracle"))read(job,to,c->{OracleCompare.review(job,c,source,destination,from,to);return null;});
@@ -140,10 +140,9 @@ final class DatabaseCompare implements AutoCloseable {
         Comparison c=require(owner,id);request=effectiveRequest(c,request);CompareSql.Plan validated=c.diff.plan(request);final JsonNode generationRequest=request;CompareDataSql.validate(validated,c.data);c.busy=true;artifacts.discard(owner,id);
         try{
             ObjectNode job=jobs.comparison(owner,new HashSet<>(List.of(c.from.connectionId(),c.to.connectionId())),"generate",running->{
-                c.activeJob=running;
-                var captured=jobs.comparisonReads(running,c.from.connectionId(),c.to.connectionId(),
-                    side->read(side,c.from,connection->{side.comparisonProgress("Revalidating definitions","source","",0,0);return capture(side,connection,c.from,kinds(c.options),sequenceValues(generationRequest));}),
-                    side->read(side,c.to,connection->{side.comparisonProgress("Revalidating definitions","destination","",0,0);Inventory inventory=capture(side,connection,c.to,kinds(c.options),sequenceValues(generationRequest));preflightColumns(side,connection,validated);return inventory;}));
+                c.activeJob=running;running.comparisonMetadataBytes=c.metadataBytes;
+                var captured=capturePair(running,c.from,c.to,c.options,sequenceValues(generationRequest));
+                read(running,c.to,connection->{preflightColumns(running,connection,validated);return null;});
                 Inventory source=captured.source(),dest=captured.destination();
                 if(!source.fingerprint().equals(c.diff.source.fingerprint())||!dest.fingerprint().equals(c.diff.destination.fingerprint()))throw new IllegalArgumentException("Database definitions changed; compare again");
                 if(!validated.data.isEmpty())try(CompareData fresh=new CompareData(directory,dataBudget)){
@@ -164,6 +163,31 @@ final class DatabaseCompare implements AutoCloseable {
     static boolean structureOnly(JsonNode request){return request.path("dataMode").asText().equals("none");}
     static void validateDataMode(JsonNode request){if(request.has("dataMode")&&!structureOnly(request)&&!CompareSql.DATA_MODES.contains(request.path("dataMode").asText()))throw new IllegalArgumentException("Invalid comparison data mode");}
     static Set<String> kinds(JsonNode request){Set<String> kinds=new HashSet<>();request.path("objectTypes").forEach(n->kinds.add(n.asText()));return kinds;}
+    /** Agree the dependency scope on both targets before reading any full definitions. */
+    private QueryJobs.ComparisonPair<Inventory> capturePair(QueryJobs.Job job,Target from,Target to,JsonNode options,boolean values)throws Exception{
+        Set<String> seeds=objectIds(options),types=kinds(options);String identitySchema=from.allSchemas()?null:from.schema();
+        QueryJobs.ComparisonPair<Inventory> roster;
+        while(true){
+            check(job);Set<String> passSeeds=Set.copyOf(seeds),passTypes=Set.copyOf(types);
+            roster=jobs.comparisonReads(job,from.connectionId(),to.connectionId(),
+                side->read(side,from,c->capture(side,c,from,passTypes,values,passSeeds,identitySchema,false)),
+                side->read(side,to,c->capture(side,c,to,passTypes,values,passSeeds,identitySchema,false)));
+            if(roster.source().engine.equals("oracle")||roster.destination().engine.equals("oracle"))return roster;
+            Set<String> union=new HashSet<>();
+            for(Inventory inventory:List.of(roster.source(),roster.destination()))for(ObjectNode object:inventory.objects.values())
+                union.add(TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key(identitySchema==null?str(object,"schema"):identitySchema,str(object,"kind"),str(object,"name")))).substring(0,32));
+            if(union.isEmpty())return roster;
+            if(union.size()>MAX_OBJECTS)throw new IllegalArgumentException("Combined comparison dependency scope exceeds 10,000 objects");
+            if(union.equals(seeds))break;
+            if(!types.isEmpty()){types=Set.of();seeds=union;}
+            else{if(!union.containsAll(seeds))throw new IllegalArgumentException("Database object identities changed during discovery; compare again");seeds=union;}
+        }
+        Set<String> finalSeeds=Set.copyOf(seeds);
+        return jobs.comparisonReads(job,from.connectionId(),to.connectionId(),
+            side->read(side,from,c->capture(side,c,from,Set.of(),values,finalSeeds,identitySchema)),
+            side->read(side,to,c->capture(side,c,to,Set.of(),values,finalSeeds,identitySchema)));
+    }
+    static Set<String> objectIds(JsonNode request){Set<String> result=new HashSet<>();request.path("objectIds").forEach(n->result.add(n.asText()));return result;}
     static boolean sequenceValues(JsonNode request){
         if(!request.has("syncSequences"))return true; // Preserve older callers that choose sequence options during review.
         if(request.path("syncSequences").asBoolean())return true;

@@ -47,4 +47,32 @@ class CompareMetadataTest {
             }
         }
     }
+    @Test void comparisonTableCaptureBypassesColumnAndFieldEditorLimits()throws Exception{
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(root,128L<<20,2,100,100,30),owner->true)){
+            String id=profiles.put(null,new DbaTest().input()).path("id").asText();try(Connection c=connections.open(id);Statement st=c.createStatement()){
+                c.setAutoCommit(true);String columns=java.util.stream.IntStream.range(0,300).mapToObj(i->"C"+i+" INT").collect(java.util.stream.Collectors.joining(","));
+                st.execute("CREATE SCHEMA WIDE_META");st.execute("CREATE TABLE WIDE_META.WIDE("+columns+")");st.execute("COMMENT ON TABLE WIDE_META.WIDE IS '"+"x".repeat(12000)+"'");
+                var job=jobs.new Job("human",id);job.beginActiveBudget(30);var target=new CompareCatalog.Target(id,c.getCatalog(),"WIDE_META",false,"");
+                var inventory=CompareCatalog.capture(job,withoutEditorCatalogs(c),target,Set.of("tables"),false);
+                var table=inventory.objects.get(CompareCatalog.key("WIDE_META","tables","WIDE"));assertTrue(table.path("supported").asBoolean(),table.toString());assertEquals(300,table.path("columns").size());
+                var nodes=CompareCatalog.pages(job,c,"tables",c.getCatalog(),"WIDE_META");var selection=Profiles.JSON.createObjectNode();selection.putObject("parent").put("kind","tables").put("schema","WIDE_META");
+                assertThrows(IllegalArgumentException.class,()->TableDesigner.loadCatalogObject(job,c,selection,nodes.get(0)));
+                assertEquals(12000,CompareTableMetadata.capture(job,c,selection,nodes.get(0)).path("fields").path("comment").asText().length());
+            }
+        }
+    }
+    @Test void optionalBudgetIsCapturedByJobsAndInheritedByParallelReaders()throws Exception{
+        try(var profiles=new Profiles(root,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(root,192L<<20,2,100,100,30),owner->true)){
+            String a=profiles.put(null,new DbaTest().input().put("name","Source")).path("id").asText(),b=profiles.put(null,new DbaTest().input().put("name","Destination")).path("id").asText();
+            jobs.comparisonMetadataBytes(1L<<20);var old=jobs.new Job("human",a);old.beginActiveBudget(30);jobs.comparisonMetadataBytes(4L<<20);
+            try(Connection c=connections.open(a)){
+                assertThrows(CompareCatalog.MetadataLimitException.class,()->CompareCatalog.query(old,c,"SELECT REPEAT('x',600000) AS definition"));assertNull(old.statement);
+                var fresh=jobs.new Job("human",a);fresh.beginActiveBudget(30);assertEquals(600000,CompareCatalog.query(fresh,c,"SELECT REPEAT('x',600000) AS definition").get(0).path("definition").asText().length());
+                old.cancelled=true;assertThrows(java.util.concurrent.CancellationException.class,()->CompareCatalog.query(old,c,"SELECT REPEAT('x',600000) AS definition"));assertNull(old.statement);
+            }
+            var parent=jobs.new Job("human",a);parent.beginActiveBudget(30);jobs.comparisonMetadataBytes(8L<<20);
+            var pair=jobs.comparisonReads(parent,a,b,child->child.comparisonMetadataBytes,child->child.comparisonMetadataBytes);assertEquals(4L<<20,pair.source());assertEquals(4L<<20,pair.destination());
+        }
+    }
+
 }

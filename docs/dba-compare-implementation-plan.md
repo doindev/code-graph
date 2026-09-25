@@ -431,3 +431,55 @@ Validation passed: 29 focused Java checks, four live PostgreSQL checks, two MySQ
 and two MariaDB checks. The two PostgreSQL-only cases are skipped on each other engine.
 Owned test containers and the newly pulled MariaDB image were removed; all 55 existing
 Docker image IDs remain.
+
+
+## Scoped capture and saved comparison metadata allowance (2026-09-25)
+
+Comparison tables now use native comparison evidence instead of TableDesigner loading.
+The 256-column, 8 KiB field and 1 MiB table-editor limits remain editor constraints;
+comparison queries and inventory accumulation use their own admitted metadata budget.
+Non-table definitions continue to bypass datatype catalogs and editor choices.
+
+PostgreSQL discovers compact object identities and bulk dependency edges before loading
+full definitions. Foreign keys, owned indexes, constraint/trigger references, required
+objects and incoming dependents expand the evidence scope. Ownership/FK discovery edges
+are separate from the generator's ordering edges, preserving explicit FK staging.
+Implicit constraint indexes and relation/array types do not load duplicate definitions;
+the owning table/type carries their evidence. PostgreSQL and MySQL use native dependency
+catalogs; H2 and MariaDB additionally inspect view queries because their adapters do not
+have MySQL's view-usage catalogs. This compatibility fallback remains bounded.
+
+Source and destination agree their combined dependency scope before full capture, including
+counterparts that exist on only one side. Selected object IDs are mapped across schemas.
+Generation discovers and captures the same requested scope again: changes to unselected,
+unrelated definitions do not invalidate the review; changes to dependencies do. Definitions
+still use per-statement timeouts and the overall comparison deadline, with bounded virtual
+readers on independent connections. Discovery does not read table rows.
+
+DBA resource settings now include **Comparison metadata limit (MiB, optional)**. Blank/null
+uses 16 MiB; an integer from 1 to 256 overrides it. The setting is persisted atomically in
+`compare-settings.json`, is protected by existing browser authentication/CSRF, and survives
+restart. Invalid saved settings produce a warning and use the default. Existing comparisons
+retain their admitted limit through generation even if settings change. New comparisons
+reserve five times the per-side allowance plus their ordinary job reservations; increasing
+the metadata setting does not bypass the DBA accounted memory allowance. Data-option catalog
+jobs also reserve metadata working space. This is an application accounting limit, not a
+hard bound on driver or total JVM allocations.
+
+The setting governs bounded catalog text consumption, complete object evidence, aggregate
+inventories and Oracle comparison-review accumulation. It does not increase editor limits,
+the 10,000-object/entry caps, script/artifact limits, or Oracle native XML/document safety
+caps. Budget failures never silently truncate a definition. Table/data capabilities and
+existing unsupported-change blockers are unchanged.
+
+Validation includes settings restart/reset/CSRF, corrupt-file recovery, job/parallel-reader
+budget snapshots, memory-admission rejection, cancelled/rejected query cleanup, 300-column
+tables, long native constraints, independent source/destination dependency counterparts,
+and generation-time dependency revalidation. Disposable vendor tests execute generated
+scripts and repeat comparisons; the browser suite covers saved settings, navigation,
+connection errors, copy/save, viewport geometry and disposal. Concrete results and image
+versions are recorded with the PostgreSQL/MySQL delivery notes.
+
+MySQL dependency adapters follow the distinct catalog columns documented for
+[VIEW_TABLE_USAGE](https://dev.mysql.com/doc/refman/8.4/en/information-schema-view-table-usage-table.html)
+and [VIEW_ROUTINE_USAGE](https://dev.mysql.com/doc/refman/8.4/en/information-schema-view-routine-usage-table.html).

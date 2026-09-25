@@ -76,6 +76,26 @@ class CompareVendorIntegrationTest {
             }
         }
     }
+    @Test @Timeout(180) void wideTablesUseComparisonMetadataAndExecuteOnIndependentDestination()throws Exception{
+        String engine=System.getenv("DBA_COMPARE_VENDOR"),schema=engine.equals("postgresql")?"wide_cmp":"compare_test";
+        try(Profiles profiles=new Profiles(directory,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,30),o->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,directory,o->true)){
+            String source=profiles.put(null,profile(engine,"Wide source",System.getenv("DBA_COMPARE_SOURCE"))).path("id").asText(),destination=profiles.put(null,profile(engine,"Wide destination",System.getenv("DBA_COMPARE_DESTINATION"))).path("id").asText();
+            try(Connection a=connections.open(source);Connection b=connections.open(destination);Statement left=a.createStatement();Statement right=b.createStatement()){
+                a.setAutoCommit(true);b.setAutoCommit(true);if(engine.equals("postgresql")){left.execute("CREATE SCHEMA wide_cmp");right.execute("CREATE SCHEMA wide_cmp");}
+                String columns=java.util.stream.IntStream.range(0,300).mapToObj(n->"c"+n+" INT").collect(java.util.stream.Collectors.joining(","));
+                left.execute("CREATE TABLE "+schema+".wide_columns("+columns+")");left.execute("CREATE TABLE "+schema+".unselected_table(id INT)");
+                if(engine.equals("postgresql"))left.execute("ALTER TABLE wide_cmp.wide_columns ADD CONSTRAINT long_definition CHECK (c0::text <> '"+"x".repeat(12000)+"')");
+                var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,source,schema)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,destination,schema)).put("dataMode","none").put("syncSequences",false);
+                input.putArray("objectTypes").add("tables");input.putArray("objectIds").add(TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(CompareCatalog.key(schema,"tables","wide_columns"))).substring(0,32));
+                String id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();var selected=DatabaseCompareTest.select(compare,id);
+                assertEquals(1,selected.path("objects").size());left.execute("ALTER TABLE "+schema+".unselected_table ADD COLUMN harmless INT");
+                var artifact=DatabaseCompareTest.finish(jobs,compare.generate("human",id,selected));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertFalse(script.contains("unselected_table"));
+                if(engine.equals("postgresql"))right.execute(script);else for(String command:script.split(";\\s*(?:\\r?\\n|$)"))if(!command.isBlank())right.execute(command);
+                compare.remove("human",id);id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();var result=compare.results("human",id,0,200,"","");assertEquals("identical",result.path("objects").get(0).path("status").asText(),result.toPrettyString());compare.remove("human",id);
+                System.out.println("COMPARE_WIDE_METADATA_VERIFIED "+engine+" 300 columns; selected scope and repeat comparison");
+            }
+        }
+    }
     @Test @Timeout(180) void postgresStructureOnlyUsesScopedMetadataWithoutSequenceConsumerScans()throws Exception {
         Assumptions.assumeTrue("postgresql".equals(System.getenv("DBA_COMPARE_VENDOR")));
         try(Profiles profiles=new Profiles(directory,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,30),owner->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,directory,owner->true)){

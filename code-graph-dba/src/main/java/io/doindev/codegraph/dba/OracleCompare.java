@@ -22,7 +22,7 @@ final class OracleCompare {
     }
     static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
         var resolved=OracleDialect.target(job,c,job.remainingSeconds());if(!resolved.matches(target.database()))throw new SQLException("Oracle comparison targets a different service/PDB");
-        Inventory inventory=new Inventory("oracle",resolved.database(),c.getMetaData().getDatabaseProductVersion());inventory.sequenceValues=sequenceValues;
+        Inventory inventory=new Inventory("oracle",resolved.database(),c.getMetaData().getDatabaseProductVersion(),job.comparisonMetadataBytes);inventory.sequenceValues=sequenceValues;
         inventory.schemas.addAll(schemas(job,c,target));var roster=new TreeMap<String,ObjectNode>();var edges=new ArrayList<JsonNode>();var identityAliases=new HashMap<String,String>();
         boolean catalogReader=resolved.user().equals("SYS")||!query(job,c,"SELECT role FROM SYS.SESSION_ROLES WHERE role='SELECT_CATALOG_ROLE'").isEmpty();
         for(String owner:inventory.schemas)if(!owner.equals(resolved.user())&&!catalogReader)throw new IllegalArgumentException("Complete Oracle metadata for another owner requires SELECT_CATALOG_ROLE; select that owner's connection or grant catalog access: "+owner);
@@ -146,7 +146,7 @@ final class OracleCompare {
             check(job);String owner=mapping.getOrDefault(str(object,"schema"),str(object,"schema")),name=str(object,"name"),kind=str(object,"kind"),type=str(object,"oracleType");
             job.comparisonProgress("Preparing Oracle differences","destination",owner+"."+name,processed++,source.objects.size());
             ArrayNode changes=object.putArray("oracleChanges");if(!object.path("supported").asBoolean()||object.path("implicit").asBoolean()){
-                reviewBytes=reviewBudget(reviewBytes,object);continue;
+                reviewBytes=reviewBudget(reviewBytes,object,source.maxBytes);continue;
             }
             ObjectNode old=target.objects.get(key(owner,kind,name));
             try{
@@ -175,10 +175,10 @@ final class OracleCompare {
                 OracleCompareGrants.review(job,destination,object,old,owner,mapping,changes,kind.equals("scheduler")&&OracleCompareScheduler.hasDefinitionChange(changes));
                 if(!changes.isEmpty()&&!object.path("outsideDependents").isEmpty())throw new IllegalArgumentException("Incoming dependents outside the captured scope: "+object.path("outsideDependents"));
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;changes.removeAll();object.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Oracle cannot generate this change"));}
-            reviewBytes=reviewBudget(reviewBytes,object);
+            reviewBytes=reviewBudget(reviewBytes,object,source.maxBytes);
         }
         OracleCompareScheduler.incoming(source,target,mapping);
-        reviewBytes=0;for(ObjectNode object:source.objects.values())reviewBytes=reviewBudget(reviewBytes,object);
+        reviewBytes=0;for(ObjectNode object:source.objects.values())reviewBytes=reviewBudget(reviewBytes,object,source.maxBytes);
     }
     static void retainReviewScope(CompareDiff diff,Set<String> kinds,Set<String> ids){
         // Dependency and incoming-dependent objects must remain selectable in review.
@@ -197,8 +197,11 @@ final class OracleCompare {
         diff.objects.values().removeIf(object->{JsonNode value=object.source==null?object.destination:object.source;return !retained.contains(object.id)||value.path("implicit").asBoolean()&&!kinds.contains(str(value,"kind"));});
     }
     static long reviewBudget(long used,ObjectNode object)throws Exception{
+        return reviewBudget(used,object,MAX_BYTES);
+    }
+    static long reviewBudget(long used,ObjectNode object,long maxBytes)throws Exception{
         long next=used+Profiles.JSON.writeValueAsBytes(object).length*2L+512;
-        if(next>MAX_BYTES)throw new IllegalArgumentException("Oracle review exceeds its metadata allowance; narrow the scope");return next;
+        limit(next,maxBytes,"Oracle comparison review metadata");return next;
     }
     private static void change(ArrayNode changes,String clause,String name,String attribute,boolean destructive,List<String> statements){
         ObjectNode change=changes.addObject().put("clause",clause).put("name",name).put("attribute",attribute).put("destructive",destructive);ArrayNode sql=change.putArray("sql");statements.forEach(sql::add);

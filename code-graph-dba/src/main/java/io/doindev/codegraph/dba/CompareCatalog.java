@@ -19,12 +19,13 @@ final class CompareCatalog {
     }
     static final class Inventory {
         final String engine,database,version;final SortedMap<String,ObjectNode> objects=new TreeMap<>();final SortedSet<String> schemas=new TreeSet<>();
-        long bytes;boolean sequenceValues=true;
-        Inventory(String engine,String database,String version){this.engine=engine;this.database=database;this.version=version;}
+        long bytes;final long maxBytes;boolean sequenceValues=true;
+        Inventory(String engine,String database,String version){this(engine,database,version,MAX_BYTES);}
+        Inventory(String engine,String database,String version,long maxBytes){this.engine=engine;this.database=database;this.version=version;this.maxBytes=maxBytes;}
         void add(ObjectNode object)throws Exception{
             if(objects.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 objects; select a smaller scope");
             bytes+=Profiles.JSON.writeValueAsBytes(object).length*2L+512;
-            if(bytes>MAX_BYTES)throw new IllegalArgumentException("Comparison metadata exceeds 16 MiB; select a smaller scope");
+            limit(bytes,maxBytes,"Comparison metadata");
             String key=key(str(object,"schema"),str(object,"kind"),str(object,"name"));
             object.put("id",TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key)).substring(0,32));
             if(objects.put(key,object)!=null)throw new IllegalArgumentException("Ambiguous object identity: "+str(object,"name"));
@@ -62,13 +63,26 @@ final class CompareCatalog {
     record CatalogObject(ObjectNode object,ObjectNode selection,JsonNode node) {}
     static Inventory capture(QueryJobs.Job job,Connection c,Target target)throws Exception{return capture(job,c,target,Set.of(),true);}
     static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
-        String engine=engine(c);if(engine.equals("oracle"))return OracleCompare.capture(job,c,target,selectedKinds,sequenceValues);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion());inv.sequenceValues=sequenceValues;
+        return capture(job,c,target,selectedKinds,sequenceValues,Set.of(),target.allSchemas()?null:target.schema());
+    }
+    static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues,Set<String> selectedIds,String identitySchema)throws Exception{
+        return capture(job,c,target,selectedKinds,sequenceValues,selectedIds,identitySchema,true);
+    }
+    static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues,Set<String> selectedIds,String identitySchema,boolean definitions)throws Exception{
+        java.util.function.Predicate<CatalogObject> selected=entry->{
+            if(!selectedKinds.isEmpty()&&!selectedKinds.contains(str(entry.object(),"kind")))return false;
+            if(selectedIds.isEmpty())return true;
+            try{return selectedIds.contains(TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key(identitySchema==null?str(entry.object(),"schema"):identitySchema,str(entry.object(),"kind"),str(entry.object(),"name")))).substring(0,32));}
+            catch(Exception failure){throw new IllegalStateException(failure);}
+        };
+        String engine=engine(c);if(engine.equals("oracle"))return OracleCompare.capture(job,c,target,selectedKinds,sequenceValues);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion(),job.comparisonMetadataBytes);inv.sequenceValues=sequenceValues;
         if(target.allSchemas()){
             if(Set.of("mysql","mariadb").contains(engine))inv.schemas.add(inv.database);
             else for(JsonNode n:pages(job,c,"schemas",inv.database,"")){String schema=n.path("schema").asText(str(n,"name"));if(!system(schema))inv.schemas.add(schema);}
         }else inv.schemas.add(target.schema());
         Map<String,CatalogObject> catalog=new TreeMap<>();String side=job.comparisonProgress==null?"":job.comparisonProgress.path("side").asText();
-        for(String schema:inv.schemas)for(JsonNode category:pages(job,c,"schema",inv.database,schema)){
+        if(engine.equals("postgresql"))ComparePostgresScope.roster(job,c,inv,catalog);
+        else for(String schema:inv.schemas)for(JsonNode category:pages(job,c,"schema",inv.database,schema)){
             String kind=str(category,"kind");if(kind.equals("scheduled_jobs"))continue;
             job.comparisonProgress("Listing objects",side,schema+" / "+kind,catalog.size(),0);
             ArrayNode nodes;
@@ -81,26 +95,29 @@ final class CompareCatalog {
                 out.set("selection",selection);catalog.put(key(schema,kind,str(out,"name")),new CatalogObject(out,selection,node));
             }
         }
-        ComparePostgresScope dependencies=engine.equals("postgresql")?ComparePostgresScope.read(job,c,catalog):null;
-        Set<String> included=dependencies==null?catalog.keySet():dependencies.closure(catalog,selectedKinds);
+        ComparePostgresScope dependencies=engine.equals("postgresql")?ComparePostgresScope.read(job,c,catalog):CompareRelationalScope.read(job,c,inv,catalog);
+        Set<String> included=dependencies.closure(catalog,selected);
+        if(!definitions){for(String identity:included)inv.add(catalog.get(identity).object());dependencies.apply(inv);return inv;}
         int processed=0;boolean enabled=supported(c,engine);
         for(String identity:included){
             CatalogObject entry=catalog.get(identity);ObjectNode out=entry.object();String kind=str(out,"kind");check(job);
             job.comparisonProgress("Inspecting definitions",side,str(out,"schema")+"."+str(out,"name"),processed,included.size());
             Savepoint savepoint=engine.equals("postgresql")?c.setSavepoint():null;
             try{
-                if(!enabled)out.put("reason","Comparison generation is unavailable for "+engine+"; this connection remains available for browsing");
+                if(out.path("implicit").asBoolean()){} // Its complete definition is retained with the owning table/type.
+                else if(kind.equals("indexes")&&!engine.equals("postgresql"))out.put("implicit",true).put("reason","Indexes are managed with their table");
+                else if(!enabled)out.put("reason","Comparison generation is unavailable for "+engine+"; this connection remains available for browsing");
                 else if(kind.equals("tables"))table(job,c,inv,out,entry.selection(),entry.node());
                 else object(job,c,inv,out,entry.selection(),entry.node());
-            }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;if(savepoint!=null)c.rollback(savepoint);out.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Definition could not be inspected"));}
+            }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof MetadataLimitException||failure instanceof SQLException sql&&fatal(sql))throw failure;if(savepoint!=null)c.rollback(savepoint);out.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Definition could not be inspected"));}
             if(savepoint!=null)c.releaseSavepoint(savepoint);inv.add(out);processed++;
         }
-        if(dependencies!=null)dependencies.apply(inv);else viewDependencies(inv);
+        dependencies.apply(inv);if(!engine.equals("postgresql"))viewDependencies(inv);
         job.comparisonProgress("Definitions captured",side,"",processed,included.size());return inv;
     }
     static void table(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{table(job,c,inv,out,selection,null);}
     static void table(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection,JsonNode node)throws Exception{
-        ObjectNode snap=node==null?TableDesigner.load(job,c,selection,false):TableDesigner.loadCatalogObject(job,c,selection,node);out.set("columns",snap.path("columns"));out.put("oid",snap.path("objectIdentity").asText(str(out,"oid")));
+        ObjectNode snap=CompareTableMetadata.capture(job,c,selection,node);out.set("columns",snap.path("columns"));out.put("oid",snap.path("objectIdentity").asText(str(out,"oid")));
         String schema=str(out,"schema"),name=str(out,"name"),engine=inv.engine;DatabaseMetaData m=c.getMetaData();
         out.put("supported",true).put("reason","").put("dataSupported",true);
         ArrayNode external=out.putArray("externalDependents");
@@ -238,9 +255,31 @@ final class CompareCatalog {
             for(int i=0;i<args.length;i++)st.setObject(i+1,args[i]);
             try(ResultSet rs=st.executeQuery()){ResultSetMetaData m=rs.getMetaData();while(rs.next()){
                 check(job);if(out.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Catalog category exceeds 10,000 entries");
-                ObjectNode row=out.addObject();for(int i=1;i<=m.getColumnCount();i++){String value=rs.getString(i);bytes+=value==null?4:2L*value.length();if(bytes>MAX_BYTES)throw new IllegalArgumentException("Catalog category exceeds 16 MiB");row.put(m.getColumnLabel(i).toLowerCase(Locale.ROOT),value);}
+                bytes+=128;ObjectNode row=out.addObject();for(int i=1;i<=m.getColumnCount();i++){String label=m.getColumnLabel(i).toLowerCase(Locale.ROOT);bytes+=64L+2L*label.length();
+                    String value=read(job,rs,i,m.getColumnType(i),job.comparisonMetadataBytes-bytes);bytes+=value==null?4:2L*value.length();limit(bytes,job.comparisonMetadataBytes,"Comparison catalog category");row.put(m.getColumnLabel(i).toLowerCase(Locale.ROOT),value);}
             }}
         }finally{job.statement=null;}return out;
+    }
+    static final class MetadataLimitException extends IllegalArgumentException {
+        MetadataLimitException(String message){super(message);}
+    }
+    static void limit(long bytes,long maximum,String category){
+        if(bytes>maximum)throw new MetadataLimitException(category+" exceeds "+(maximum>>20)+" MiB; select fewer objects or increase the saved Comparison metadata limit in DBA settings");
+    }
+    static String read(QueryJobs.Job job,ResultSet rs,int column,int jdbcType,long available)throws Exception{
+        // JDBC only guarantees character-stream conversion for character/LOB columns.
+        // Native numeric, timestamp and boolean catalog values retain their driver conversion.
+        if(!Set.of(Types.CHAR,Types.VARCHAR,Types.LONGVARCHAR,Types.NCHAR,Types.NVARCHAR,Types.LONGNVARCHAR,Types.CLOB,Types.NCLOB).contains(jdbcType)){
+            String value=rs.getString(column);limit((value==null?4:2L*value.length())+job.comparisonMetadataBytes-available,job.comparisonMetadataBytes,"Comparison catalog category");return value;
+        }
+        try(java.io.Reader reader=rs.getCharacterStream(column)){
+            if(reader==null)return null;
+            StringBuilder value=new StringBuilder();char[] buffer=new char[4096];int count;
+            while((count=reader.read(buffer,0,(int)Math.min(buffer.length,Math.max(1,available/2-value.length()+1))))!=-1){
+                check(job);limit((value.length()+(long)count)*2L+job.comparisonMetadataBytes-available,job.comparisonMetadataBytes,"Comparison catalog category");value.append(buffer,0,count);
+            }
+            return value.toString();
+        }
     }
     static String pgClass(JsonNode o){return switch(str(o,"kind")){case "functions","procedures","aggregates"->"pg_proc";case "types","domains"->"pg_type";default->"pg_class";};}
     static void pgDependencies(QueryJobs.Job job,Connection c,Inventory inv)throws Exception{

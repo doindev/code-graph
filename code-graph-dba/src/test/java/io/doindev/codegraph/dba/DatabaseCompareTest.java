@@ -154,4 +154,31 @@ class DatabaseCompareTest {
         assertEquals("SELECT \"dst\".t, 'src.t' -- src.t",CompareSql.remap("SELECT src.t, 'src.t' -- src.t",Map.of("src","dst")));
         assertEquals("nextval('\"dst\".seq'::regclass)",CompareSql.remap("nextval('src.seq'::regclass)",Map.of("src","dst")));
     }
+    @Test void selectedObjectsRetainTheirBudgetAndOnlyRevalidateTheirDependencyClosure()throws Exception{
+        try(Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(root,192L<<20,2,100,100,30),o->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,root,o->true)){
+            String connection=profiles.put(null,new DbaTest().input()).path("id").asText();try(Connection c=connections.open(connection);Statement st=c.createStatement()){
+                c.setAutoCommit(true);st.execute("CREATE SCHEMA ONLY_SRC;CREATE SCHEMA ONLY_DST;CREATE TABLE ONLY_SRC.PARENT(ID INT PRIMARY KEY);CREATE TABLE ONLY_SRC.CHILD(ID INT PRIMARY KEY,PID INT REFERENCES ONLY_SRC.PARENT(ID));CREATE TABLE ONLY_SRC.UNRELATED(ID INT)");
+                var input=request(compare,jobs,connection,"ONLY_SRC","ONLY_DST").put("dataMode","none").put("syncSequences",false);input.putArray("objectTypes").add("tables");
+                String objectId=TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(CompareCatalog.key("ONLY_SRC","tables","PARENT"))).substring(0,32);input.putArray("objectIds").add(objectId);
+                jobs.comparisonMetadataBytes(2L<<20);String id=finish(jobs,compare.start("human",input)).path("comparisonId").asText();jobs.comparisonMetadataBytes(1L<<20);
+                st.execute("ALTER TABLE ONLY_SRC.UNRELATED ADD NOTE TEXT");var selected=select(compare,id);assertTrue(finish(jobs,compare.generate("human",id,selected)).has("artifactId"));
+                st.execute("ALTER TABLE ONLY_SRC.CHILD ADD NOTE TEXT");var stale=TableDesignerTest.waitRetained(jobs,"human",compare.generate("human",id,selected));assertEquals("failed",stale.path("state").asText());assertTrue(stale.path("error").asText().contains("definitions changed"),stale.toString());jobs.remove("human",stale.path("id").asText());compare.remove("human",id);
+                jobs.comparisonMetadataBytes(64L<<20);long before=jobs.telemetry().path("reservedBytes").asLong();assertThrows(IllegalArgumentException.class,()->compare.start("human",input));assertEquals(before,jobs.telemetry().path("reservedBytes").asLong());
+            }
+        }
+    }
+
+    @Test void dependencyCounterpartsAreCapturedBeforeDefinitionsAndBudgetSurvivesSettingsChange()throws Exception{
+        try(Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(root,192L<<20,2,100,100,30),o->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,root,o->true)){
+            String connection=profiles.put(null,new DbaTest().input()).path("id").asText();try(Connection c=connections.open(connection);Statement st=c.createStatement()){
+                c.setAutoCommit(true);st.execute("CREATE SCHEMA DEP_SRC;CREATE SCHEMA DEP_DST;CREATE TABLE DEP_SRC.BASE(ID INT);CREATE TABLE DEP_DST.BASE(ID INT)");
+                st.execute("CREATE VIEW DEP_SRC.LARGE_VIEW AS SELECT ID, '"+"x".repeat(600000)+"' AS NOTE FROM DEP_SRC.BASE");
+                var input=request(compare,jobs,connection,"DEP_SRC","DEP_DST").put("dataMode","none").put("syncSequences",false);input.putArray("objectTypes").add("views");
+                jobs.comparisonMetadataBytes(8L<<20);String id=finish(jobs,compare.start("human",input)).path("comparisonId").asText();jobs.comparisonMetadataBytes(1L<<20);
+                var artifact=finish(jobs,compare.generate("human",id,select(compare,id)));assertTrue(artifact.has("artifactId"));compare.remove("human",id);
+                var failed=TableDesignerTest.waitRetained(jobs,"human",compare.start("human",input));assertEquals("failed",failed.path("state").asText());assertTrue(failed.path("error").asText().contains("1 MiB"),failed.toPrettyString());jobs.remove("human",failed.path("id").asText());
+            }
+        }
+    }
+
 }

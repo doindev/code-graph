@@ -46,7 +46,7 @@ final class ObjectCatalog {
         }catch(SQLException|UnsupportedOperationException e){
             if(save!=null)c.rollback(save);
             warning(out,label+": "+e.getMessage());
-        }catch(IllegalArgumentException e){throw new IllegalArgumentException(label+": "+e.getMessage(),e);
+        }catch(IllegalArgumentException e){if(e instanceof CompareCatalog.MetadataLimitException)throw e;throw new IllegalArgumentException(label+": "+e.getMessage(),e);
         }finally{if(save!=null)try{c.releaseSavepoint(save);}catch(SQLException ignored){}}
     }
     static void populate(QueryJobs.Job job,Connection c,ObjectNode out,JsonNode node)throws Exception{
@@ -88,7 +88,7 @@ final class ObjectCatalog {
         if(engine.equals("postgresql"))postgres(job,c,out,node,query,false);
         else if(engine.equals("h2")||engine.equals("hsqldb"))embedded(job,c,out,node,query);
         else nativeVendor(job,c,out,node,query);
-        if(Profiles.JSON.writeValueAsBytes(out).length*2L>CompareCatalog.MAX_BYTES)throw new IllegalArgumentException("Comparison object metadata exceeds 16 MiB; select a smaller scope");
+        CompareCatalog.limit(Profiles.JSON.writeValueAsBytes(out).length*2L,job.comparisonMetadataBytes,"Comparison object metadata");
         return out;
     }
     static String pattern(DatabaseMetaData m,String s)throws SQLException{String e=m.getSearchStringEscape();if(e==null||e.isEmpty())return s;return s.replace(e,e+e).replace("_",e+"_").replace("%",e+"%");}

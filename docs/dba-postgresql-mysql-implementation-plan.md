@@ -4,7 +4,7 @@ Audit baseline: `cdb9d877` (2026-09-24). This document distinguishes implemented
 from proposed work. It does not certify features merely because their driver connects.
 Prioritize PostgreSQL and MySQL daily workflows and comparison before further Oracle expansion.
 Apply the same native-metadata, privilege, cancellation and live-execution validation standards
-used for the Oracle work. This audit changes documentation only.
+used for the Oracle work. The original audit changed documentation only; implementation delivery notes follow below.
 
 ## Confirmed baseline and gaps
 
@@ -14,7 +14,7 @@ used for the Oracle work. This audit changes documentation only.
 | MySQL comparison | Native new ordinary tables, foreign keys, views and four eligible-table data modes. | Existing table alterations are explicitly rejected; routine generation is explicitly unavailable. Add verified native changes and stored-program formatting, dependencies, triggers/events, grants and AUTO_INCREMENT state handling. |
 | Table designers | PostgreSQL ordinary tables support creation and reviewed incremental changes. MySQL is absent from the New Table adapter and is read-only in Table Properties. | A native MySQL designer preserving unexposed attributes. PostgreSQL specialized table support and capability-aware field/size limits. |
 | Object editors | PostgreSQL has native property forms for many categories. MySQL can expose native definitions but lacks equivalent property-form support. | Native MySQL definitions, parameters and reviewed edits with explicit SQL modes, definers and implicit-commit outcomes. |
-| Metadata isolation | Non-table comparison now bypasses datatype catalogs, form choices and editor limits. | Table comparison still calls TableDesigner; separate its evidence from editor constraints without losing constraints, triggers, row-security checks or attributes. Audit scans, previews and revalidation for the same coupling. |
+| Metadata isolation | Table and non-table comparison now use comparison-specific metadata limits; selected-object dependency scopes are aligned across source and destination before full definitions are captured. Optional metadata allowance persists across restarts. | Continue native capability and least-privilege coverage; H2/MariaDB view dependency discovery retains a bounded query-text fallback. |
 | SQL scripts | PostgreSQL dollar quoting is supported; Oracle has a dialect-specific PL/SQL extraction path. MySQL DELIMITER directives are explicitly rejected. | MySQL-aware lexical extraction for stored programs and client delimiter directives, mode-sensitive escaping and complete statement preservation. JDBC receives statements without client directives. |
 | Scans and operations | Shared current/last scan state, cancellation, bounded jobs, saved connections, migration reviews and scoped reads exist for these engines. PostgreSQL pg_cron and MySQL Event Scheduler have providers. | Validate each native category under limited privileges and large catalogs; test terminal outcomes, cleanup, scheduler state and partial failures on each engine. Extend existing providers rather than replacing them. |
 | Administration | The dedicated Administration workspace is Oracle-specific; some PostgreSQL/MySQL capabilities exist as tree actions, properties or scheduler operations. | Equivalent engine-aware administration using shared authentication, reviewed plans and asynchronous jobs. |
@@ -154,3 +154,43 @@ owned containers and unused images pulled for the tests. Publish capability limi
 the tested behavior. Commit and push each completed, validated slice so unrelated engine work
 does not delay a useful fix. Passing connection tests, a small schema or a shared-engine test does
 not justify marking all PostgreSQL/MySQL support complete.
+
+
+## Delivery notes: scoped comparison metadata (2026-09-25)
+
+The comparison capture/limits portion of delivery step 1 is implemented. Native table evidence
+no longer calls TableDesigner. PostgreSQL and MySQL capture full definitions only for the
+selected types/objects and their dependency scope, agree counterparts across targets, and
+repeat that scope during generation. Required dependencies and incoming dependents remain
+part of stale-state verification. Table-owned implicit definitions avoid duplicate loads.
+The optional persisted metadata allowance defaults to 16 MiB and supports 1-256 MiB with
+memory admission; editor and independent native safety limits are retained.
+
+This delivery does not mark the rest of this roadmap complete. Native MySQL designers and
+stored-program parsing, additional PostgreSQL/MySQL change families, the broader value-fidelity
+audit, and administration/backup work remain as described in steps 2-5. Existing unsupported
+operations remain explicitly blocked.
+
+
+Validation for this delivery:
+
+- Full offline reactor: 600 DBA tests, 0 failures/errors, 97 environment-dependent skips;
+  28 core tests, 0 failures/errors, 1 skip. The 59 focused capture/settings/comparison/editor/
+  Oracle-document tests also passed.
+- Independent live source/destination containers: PostgreSQL 16.14 (5 checks passed),
+  MySQL 8.4.11 (3 passed; 2 PostgreSQL-only checks skipped), and MariaDB 11.4.13
+  (3 passed; 2 PostgreSQL-only checks skipped). Drivers: PostgreSQL 42.7.13,
+  MySQL 9.7.0, MariaDB 3.5.7. Generated scripts were applied only by the test harness.
+- Browser comparison suite passed, including saved/reset metadata allowance, connection
+  failures, object/data options, review, copy/save, viewport geometry and artifact disposal.
+- All task-owned containers were removed. The newly pulled MariaDB image was removed when
+  unused; all 55 distinct pre-existing image IDs remained present. No existing containers
+  were started, stopped or removed by these tests.
+- Oracle SQL/document/compare unit regressions passed. This delivery does not add live Oracle
+  certification; standard Oracle 19c administration certification remains pending.
+
+| Fixture image | Tested digest |
+| --- | --- |
+| `postgres:16` | `sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b` |
+| `mysql:8.4` | `sha256:85b9bf2e29cf836ecb8c2a15a935d4ba0c606631dff1dd79531a11983c638f2a` |
+| `mariadb:11.4` | `sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b` |
