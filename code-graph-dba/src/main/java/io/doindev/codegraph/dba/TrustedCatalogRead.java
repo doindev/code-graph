@@ -9,10 +9,11 @@ final class TrustedCatalogRead {
     record Query(String sql, ArrayNode parameters) {}
     static Query prepare(String operation, JsonNode scope, JsonNode args) {
         String vendor=scope.path("vendor").asText(),database=scope.path("database").asText(),schema=scope.path("schema").asText();
-        if(!Set.of("postgresql","mysql","mariadb","h2","sqlserver","azure-sql").contains(vendor)||database.isBlank()||schema.isBlank())
+        if(!Set.of("postgresql","mysql","mariadb","h2","sqlserver","azure-sql","oracle").contains(vendor)||database.isBlank()||schema.isBlank())
             throw new IllegalArgumentException("Use an explicit supported database/schema for catalog reads");
         String object=args.path("object").asText("");
         if(object.length()>128||object.indexOf('\0')>=0)throw new IllegalArgumentException("Invalid object name");
+        if(vendor.equals("oracle"))return OracleReads.catalog(operation,scope,args);
         ArrayNode values=Profiles.JSON.createArrayNode();
         if(operation.equals("dba_get_metadata")) {
             String kind=args.path("kind").asText(object.isBlank()?"tables":"columns");

@@ -302,14 +302,15 @@ final class QueryJobs implements AutoCloseable {
                     // Set even when getSchema already matches: PostgreSQL may otherwise retain
                     // extra search_path entries and resolve unqualified names outside this scope.
                     if(Set.of("postgresql","h2").contains(scoped.path("vendor").asText()))c.setSchema(scoped.path("schema").asText());
-                    verifyReusableTarget(c,scoped);
+                    verifyReusableTarget(c,scoped,job);
                 }
-                if(verifiedRead){String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);if(!product.contains("postgresql")&&!product.equals("h2")&&!product.contains("mysql")&&!product.contains("mariadb"))throw new IllegalArgumentException("This driver has no verified read-only session implementation; request one-time review instead");try{c.setReadOnly(true);}catch(SQLException e){throw new IllegalArgumentException("The driver could not establish a verified read-only session");}if(!c.isReadOnly())throw new IllegalArgumentException("The driver did not confirm read-only session mode");}
+                if(verifiedRead&&scoped.path("vendor").asText().equals("oracle")){if(!request.has("reusableScope"))OracleReads.verifyTarget(job,c,scoped);}
+                else if(verifiedRead){String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);if(!product.contains("postgresql")&&!product.equals("h2")&&!product.contains("mysql")&&!product.contains("mariadb"))throw new IllegalArgumentException("This driver has no verified read-only session implementation; request one-time review instead");try{c.setReadOnly(true);}catch(SQLException e){throw new IllegalArgumentException("The driver could not establish a verified read-only session");}if(!c.isReadOnly())throw new IllegalArgumentException("The driver did not confirm read-only session mode");}
                 else if(transactions)try{c.setReadOnly(false);}catch(SQLFeatureNotSupportedException ignored){}if(transactions)c.setAutoCommit(autoCommit);
                 if(request.path("reusableRead").asBoolean())try(Statement st=c.createStatement()){
                     // Do not rely on JDBC's advisory flag or configurable readOnlyPropagatesToServer.
-                    st.execute("SET TRANSACTION READ ONLY");
-                }
+                    job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.execute("SET TRANSACTION READ ONLY");
+                }finally{job.statement=null;}
                 if(c.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))try(Statement st=c.createStatement()){st.execute((autoCommit?"SET ":"SET LOCAL ")+"statement_timeout = "+config.timeoutSeconds()*1000);st.execute((autoCommit?"SET ":"SET LOCAL ")+"lock_timeout = 3000");}
                 validate.run();if(job.cancelled||!alive.test(job.owner))throw new CancellationException();
                 if(request.has("readPermissionProof")){verifyReadReferences(c,request,job);if(scoped.path("vendor").asText().equals("postgresql"))try(Statement safePath=c.createStatement()){safePath.execute("SET LOCAL search_path = pg_catalog");}}else if(request.has("reusableScope"))verifyReusableReferences(c,request,job);
@@ -393,7 +394,7 @@ final class QueryJobs implements AutoCloseable {
     private static boolean safeAutoCommit(Connection connection){try{return connection.getAutoCommit();}catch(SQLException ignored){return true;}}
 
     private static void verifyReadReferences(Connection c,JsonNode request,Job job)throws SQLException{
-        JsonNode scope=request.path("reusableScope");if(!scope.path("vendor").asText().equals("postgresql"))return;
+        JsonNode scope=request.path("reusableScope");if(scope.path("vendor").asText().equals("oracle")){OracleReads.verifyReferences(job,c,request);return;}if(!scope.path("vendor").asText().equals("postgresql"))return;
         if(request.path("readFunctions").asBoolean())try(PreparedStatement check=c.prepareStatement("SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='pg_catalog' AND p.oid>=16384 AND p.proname IN ('count','sum','avg','min','max','abs','lower','upper','length','char_length')")){
             // Bootstrap built-ins use reserved OIDs below FirstNormalObjectId. A user-defined
             // overload in the system namespace must not inherit the built-in's permission.
@@ -431,10 +432,11 @@ final class QueryJobs implements AutoCloseable {
             }
         }
     }
-    private static void verifyReusableTarget(Connection c,JsonNode scope)throws SQLException{
+    private static void verifyReusableTarget(Connection c,JsonNode scope,Job job)throws SQLException{
         String product=c.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT),vendor=scope.path("vendor").asText();
-        boolean supported=switch(vendor){case "postgresql"->product.equals("postgresql");case "mysql"->product.contains("mysql");case "mariadb"->product.contains("mariadb")||product.contains("mysql");case "h2"->product.equals("h2");default->false;};
+        boolean supported=switch(vendor){case "postgresql"->product.equals("postgresql");case "mysql"->product.contains("mysql");case "mariadb"->product.contains("mariadb")||product.contains("mysql");case "h2"->product.equals("h2");case "oracle"->product.contains("oracle")&&c.getMetaData().getDatabaseMajorVersion()>=19;default->false;};
         if(!supported)throw new SecurityException("Actual database product does not match the reviewed reusable capability");
+        if(vendor.equals("oracle")){OracleReads.verifyTarget(job,c,scope);return;}
         if(!scope.path("database").asText().equals(Objects.toString(c.getCatalog(),"")))throw new SecurityException("Effective database differs from permission scope");
         String schema=(vendor.equals("mysql")||vendor.equals("mariadb"))?c.getCatalog():c.getSchema();
         if(!scope.path("schema").asText().equals(Objects.toString(schema,"")))throw new SecurityException("Effective schema differs from permission scope");

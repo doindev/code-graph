@@ -91,6 +91,22 @@ parameters and LOBs are excluded from those retained SELECT inputs. Explain uses
 statement identifier and rolls PLAN_TABLE writes back to its savepoint; it does not execute
 the query. Native PLAN_TABLE and DBMS_XPLAN privileges are still required.
 
+## Scoped agent reads
+
+The existing SELECT-permission dialog supports Oracle 19c+ connections with separate resolved
+PDB and owner targets. Reusable reads use Oracle `SET TRANSACTION READ ONLY`, not the JDBC
+advisory read-only flag. Ordinary accounts can read exact ordinary tables within their granted
+scope, including bounded joins, nonrecursive CTEs, aggregates and OFFSET/FETCH paging. SYS
+requires exact one-time review because Oracle does not enforce read-only transactions for SYS.
+
+Sequence pseudocolumns, database links, synonyms, views, custom functions, virtual/custom
+columns, external tables, domain indexes and row policies require exact one-time review.
+Fixed catalog reads use qualified SYS views and bound identifiers; returned metadata is
+filtered by the granted scope. Native DDL inspection uses DBMS_METADATA without executing
+its output. Session lifetime, profile revisions, revocation and result-access checks remain
+in force. One-time approved estimated plans use the native Oracle adapter and never execute
+the selected query.
+
 ## Native properties, definitions and scans
 
 Object properties include native definitions, status, compilation errors, incoming/outgoing
@@ -191,3 +207,9 @@ joins both sides before releasing their private snapshots.
 Builder validation also covers native view/materialized-view imports, joins, standalone and
 package overload signatures, defaulted/output arguments, nondefault NLS settings, nine-digit
 timestamps, typed grid paging and PLAN_TABLE cleanup without executing the selected query.
+
+Scoped-read validation covers ordinary-user reads, exact NUMBER values, CTEs and aggregates,
+filtered columns/keys/indexes/DDL, Oracle-enforced write rejection, unchanged source sequence
+state, custom function/synonym rejection, SYS exclusion, session separation and revoked-result
+access. Fixture setup waits for newly created tables to support a read-only snapshot;
+production SQL is never automatically replayed after ORA-01466.

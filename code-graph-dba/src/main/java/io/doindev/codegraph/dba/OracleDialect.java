@@ -19,7 +19,7 @@ final class OracleDialect {
     static Target target(Connection c,int timeout)throws SQLException{return target(null,c,timeout);}
     static Target target(QueryJobs.Job job,Connection c,int timeout)throws SQLException{
         if(!isOracle(c))throw new SQLException("Configured Oracle target is not an Oracle database");
-        String sql="SELECT SYS_CONTEXT('USERENV','DB_UNIQUE_NAME'),SYS_CONTEXT('USERENV','DB_NAME'),SYS_CONTEXT('USERENV','CON_NAME'),SYS_CONTEXT('USERENV','CON_ID'),SYS_CONTEXT('USERENV','SERVICE_NAME'),SYS_CONTEXT('USERENV','SESSION_USER'),SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM dual";
+        String sql="SELECT SYS_CONTEXT('USERENV','DB_UNIQUE_NAME'),SYS_CONTEXT('USERENV','DB_NAME'),SYS_CONTEXT('USERENV','CON_NAME'),SYS_CONTEXT('USERENV','CON_ID'),SYS_CONTEXT('USERENV','SERVICE_NAME'),SYS_CONTEXT('USERENV','SESSION_USER'),SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM SYS.DUAL";
         try(Statement statement=c.createStatement()){
             if(job!=null)job.statement=statement;statement.setQueryTimeout(job==null?Math.max(1,timeout):job.remainingSeconds());statement.setMaxRows(1);
             try(ResultSet result=statement.executeQuery(sql)){

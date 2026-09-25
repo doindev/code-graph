@@ -103,4 +103,15 @@ class ReadPermissionsTest {
         var result=Profiles.JSON.createObjectNode();result.putArray("columns").add("table_schema").add("table_name");result.putArray("rows").addArray().add("app").add("a");result.withArray("rows").addArray().add("app").add("b");
         reads.filterMetadata(agent,"session",scope(one),Profiles.JSON.createObjectNode(),reads.catalogMatch(agent,"session",scope(one),""),result);assertEquals(1,result.path("rows").size());
     }
+    @Test void oraclePermissionsKeepPdbAndOwnerSeparate()throws Exception{
+        String id=profiles.put(null,new DbaTest().input().put("name","Oracle scope").put("templateId","oracle").put("url","jdbc:oracle:thin:@//localhost:1521/PDB1")).path("id").asText();
+        var target=ApprovalScope.resolve(profiles.get(id),Profiles.JSON.createObjectNode(),Profiles.JSON.createObjectNode().put("database","PDB1").put("schema","APP"));
+        save(grant("until_revoked",selector(id,"object","PDB1","APP","ITEMS")));
+        assertNotNull(reads.match(agent,"session",target,List.of(new ReadQueries.Relation("PDB1","APP","ITEMS"))));
+        assertNull(reads.match(agent,"session",target,List.of(new ReadQueries.Relation("PDB2","APP","ITEMS"))));
+        assertNull(reads.match(agent,"session",target,List.of(new ReadQueries.Relation("PDB1","OTHER","ITEMS"))));
+        var result=Profiles.JSON.createObjectNode();result.putArray("columns").add("table_schema").add("table_name");result.putArray("rows").addArray().add("APP").add("ITEMS");result.withArray("rows").addArray().add("OTHER").add("ITEMS");
+        reads.filterMetadata(agent,"session",target,Profiles.JSON.createObjectNode(),reads.catalogMatch(agent,"session",target,""),result);assertEquals(1,result.path("rows").size());
+    }
+
 }

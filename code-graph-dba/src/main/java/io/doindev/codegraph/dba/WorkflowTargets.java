@@ -32,7 +32,7 @@ final class WorkflowTargets {
                 reads.require(principal,session,proof);if(recordAudit)reads.used(principal,proof,operation);scope.set("readPermissionProof",proof);
                 return new Target(profile,scope,request,"Scoped SELECT metadata permission",row->{
                     reads.require(principal,session,proof);String sn=row.path("schema").asText(scope.path("schema").asText()),name=ReadPermissions.metadataObject(row);
-                    String db=scope.path("vendor").asText().equals("postgresql")?scope.path("database").asText():sn;
+                    String db=java.util.Set.of("postgresql","oracle").contains(scope.path("vendor").asText())?scope.path("database").asText():sn;
                     return reads.coveredByProof(principal,session,scope,proof,new ReadQueries.Relation(db,sn,name));
                 });
             }

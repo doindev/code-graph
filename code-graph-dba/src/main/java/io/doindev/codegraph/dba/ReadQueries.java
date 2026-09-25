@@ -11,11 +11,11 @@ import java.util.*;
 
 /** Version two read grammar. Legacy approval grammar deliberately does not call this class. */
 final class ReadQueries {
-    static final Set<String> VENDORS=Set.of("postgresql","mysql","mariadb");
+    static final Set<String> VENDORS=Set.of("postgresql","mysql","mariadb","oracle");
     private static final Set<String> FUNCTIONS=Set.of("COUNT","SUM","AVG","MIN","MAX","COALESCE","NULLIF","ABS","LOWER","UPPER","LENGTH","CHAR_LENGTH");
     private static final Set<String> NODES=Set.of("PlainSelect","Values","SelectItem","ParenthesedSelect","SetOperationList","UnionOp",
         "Table","Column","Database","Alias","LongValue","DoubleValue","StringValue","NullValue","BooleanValue","JdbcParameter",
-        "AllColumns","AllTableColumns","Join","OrderByElement","Limit","Offset","Distinct","GroupByElement","Function",
+        "AllColumns","AllTableColumns","Join","OrderByElement","Limit","Offset","Fetch","Distinct","GroupByElement","Function",
         "CaseExpression","WhenClause","EqualsTo","NotEqualsTo","GreaterThan","GreaterThanEquals","MinorThan","MinorThanEquals",
         "AndExpression","OrExpression","NotExpression","Between","InExpression","IsNullExpression","LikeExpression","Addition",
         "Subtraction","Multiplication","Division","Modulo","SignedExpression","ExistsExpression","ParenthesedExpressionList",
@@ -28,7 +28,7 @@ final class ReadQueries {
     }
     static Analysis analyze(String sql,JsonNode scope){
         String vendor=scope.path("vendor").asText();
-        if(!VENDORS.contains(vendor))throw new IllegalArgumentException("SELECT permissions require PostgreSQL, MySQL or MariaDB read-only transactions");
+        if(!VENDORS.contains(vendor))throw new IllegalArgumentException("SELECT permissions require a verified PostgreSQL, MySQL, MariaDB or Oracle read-only transaction adapter");
         if(scope.path("database").asText().isBlank()||scope.path("schema").asText().isBlank())throw new IllegalArgumentException("Select an explicit database and schema");
         if(sql==null||sql.isBlank()||sql.length()>16384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
         // Dialect escapes and executable comments must never bypass the positive AST grammar.
@@ -57,7 +57,7 @@ final class ReadQueries {
         if(raw.length()>1&&((raw.startsWith("\"")&&raw.endsWith("\""))||(raw.startsWith("`")&&raw.endsWith("`")))){
             String q=raw.substring(0,1);return raw.substring(1,raw.length()-1).replace(q+q,q);
         }
-        return vendor.equals("postgresql")?raw.toLowerCase(Locale.ROOT):raw;
+        return vendor.equals("postgresql")?raw.toLowerCase(Locale.ROOT):vendor.equals("oracle")?raw.toUpperCase(Locale.ROOT):raw;
     }
     private static final class Walker {
         final JsonNode scope;final String vendor;final Set<Relation> relations=new LinkedHashSet<>();
@@ -85,21 +85,24 @@ final class ReadQueries {
                     ctes=local;
                 }
             }
-            if(value instanceof Column)return; // Column qualifiers are aliases, not relation reads.
+            if(value instanceof Column column){
+                if(vendor.equals("oracle")&&Set.of("NEXTVAL","CURRVAL").contains(identifier(column.getColumnName(),vendor).toUpperCase(Locale.ROOT)))throw new IllegalArgumentException("Oracle sequence pseudocolumns require one-time review");
+                return; // Column qualifiers are aliases, not relation reads.
+            }
             if(value instanceof Table t){
                 String object=identifier(t.getName(),vendor),schema=identifier(t.getSchemaName(),vendor);
                 if(schema.isEmpty()&&ctes.contains(object))return;
                 if(t.getDatabase()!=null&&t.getDatabase().getDatabaseName()!=null)throw new IllegalArgumentException("Three-part and remote relation names require one-time review");
                 if(schema.isEmpty())schema=scope.path("schema").asText();
-                String database=vendor.equals("postgresql")?scope.path("database").asText():schema;
+                String database=Set.of("postgresql","oracle").contains(vendor)?scope.path("database").asText():schema;
                 if(relations.size()>=256)throw new IllegalArgumentException("At most 256 referenced relations are supported");
                 relations.add(new Relation(database,schema,object));
-                String quote=Character.toString(vendor.equals("postgresql")?34:96);t.setSchemaName(quote+schema.replace(quote,quote+quote)+quote);
+                String quote=Character.toString(Set.of("postgresql","oracle").contains(vendor)?34:96);t.setSchemaName(quote+schema.replace(quote,quote+quote)+quote);
             }
             if(value instanceof Function f){
                 String name=f.getName();String canonical=name.toUpperCase(Locale.ROOT);
                 if(canonical.startsWith("PG_CATALOG.")&&vendor.equals("postgresql"))canonical=canonical.substring(11);
-                if(!FUNCTIONS.contains(canonical))throw new IllegalArgumentException("Unverified function requires one-time review: "+name);
+                if(!FUNCTIONS.contains(canonical)||vendor.equals("oracle")&&canonical.equals("CHAR_LENGTH"))throw new IllegalArgumentException("Unverified function requires one-time review: "+name);
                 int arguments=f.getParameters()==null?0:f.getParameters().size();
                 if(canonical.equals("COALESCE")?arguments<1:canonical.equals("NULLIF")?arguments!=2:arguments!=1)
                     throw new IllegalArgumentException("Unverified function signature requires one-time review: "+name);

@@ -51,6 +51,9 @@ class OracleIntegrationTest {
             assertFalse(schemas.path("items").isEmpty());
             var admin=draft("SYS",System.getenv("DBA_ORACLE_PASSWORD"));admin.putObject("properties").put("internal_logon","sysdba");
             var adminTest=complete(jobs,setup.operation("browser","draft-test",admin));assertEquals("SYS",adminTest.path("oracle").path("target").path("user").asText());
+            String sys=profiles.put(null,admin).path("id").asText();try(var c=connections.open(sys)){
+                assertTrue(assertThrows(IllegalArgumentException.class,()->OracleReads.verifyTarget(null,c,Profiles.JSON.createObjectNode().put("database","FREEPDB1").put("schema","SYS"))).getMessage().contains("SYS"));
+            }
             admin.withObject("properties").put("internal_logon","invented_role");assertThrows(IllegalArgumentException.class,()->ConnectionDraft.create(admin,Profiles.JSON.createObjectNode()));
         }
     }
@@ -308,6 +311,73 @@ class OracleIntegrationTest {
                 try(var rows=st.executeQuery("SELECT p.id,c.parent_id FROM "+OracleDialect.qualified(destination,"PARENT")+" p JOIN "+OracleDialect.qualified(destination,"CHILD")+" c ON c.parent_id=p.id")){assertTrue(rows.next());assertEquals(2,rows.getInt(1));assertEquals(2,rows.getInt(2));assertFalse(rows.next());}
                 try(var rows=st.executeQuery("SELECT status,validated FROM all_constraints WHERE owner='"+destination+"' AND constraint_name='CHILD_PARENT'")){assertTrue(rows.next());assertEquals("ENABLED",rows.getString(1));assertEquals("VALIDATED",rows.getString(2));}
             }
+        }
+    }
+
+    @Test void oracleScopedReadPermissionsCatalogsAndTransactionEnforcement()throws Exception{
+        String user="CG_READ_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE SYNONYM, CREATE SEQUENCE TO "+user);}
+            String id=profiles.put(null,draft(user,password).put("name","Read permission fixture")).path("id").asText();
+            try{
+                try(var c=connections.open(id);var st=c.createStatement()){
+                    c.setAutoCommit(true);st.execute("CREATE TABLE ITEMS(ID NUMBER PRIMARY KEY,LABEL VARCHAR2(40),AMOUNT NUMBER(38))");st.execute("INSERT INTO ITEMS VALUES (1,'Unicode Ω漢字',12345678901234567890123456789012345678)");
+                    st.execute("CREATE TABLE SECRET(ID NUMBER)");st.execute("CREATE VIEW V_ITEMS AS SELECT * FROM ITEMS");st.execute("CREATE SYNONYM ALIAS_ITEMS FOR ITEMS");st.execute("CREATE TABLE VIRTUAL_ITEMS(ID NUMBER,DERIVED NUMBER GENERATED ALWAYS AS (ID+1) VIRTUAL)");st.execute("CREATE SEQUENCE SEQ_ITEMS START WITH 100 NOCACHE");
+                    // Oracle can briefly reject a read-only snapshot of freshly created tables with ORA-01466.
+                    // Finish fixture readiness before testing the production approval path; never retry user SQL.
+                    c.setAutoCommit(false);long readyBy=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
+                    for(;;){
+                        c.rollback();st.execute("SET TRANSACTION READ ONLY");
+                        try(var rs=st.executeQuery("SELECT COUNT(*) FROM ITEMS")){assertTrue(rs.next());assertEquals(1,rs.getInt(1));break;}
+                        catch(java.sql.SQLException e){if(e.getErrorCode()!=1466||System.nanoTime()>=readyBy)throw e;Thread.sleep(250);}
+                        finally{c.rollback();}
+                    }
+                }
+                var agents=new AgentAccess(directory);String agent=agents.trustedLocal();
+                try(var contexts=new ProjectContexts(profiles,connections,agents);var jobs=new QueryJobs(connections,new DbaConfig(directory,64L<<20,2,100,100,30),agents::alive);var q=new ApprovalQueue(contexts,profiles,agents,jobs)){
+                    q.reusable.sessions.register("one",agent,System.currentTimeMillis()+120000);q.reusable.sessions.register("two",agent,System.currentTimeMillis()+120000);
+                    var helper=new ReadPermissionVendorIntegrationTest();helper.activeJobs=jobs;
+                    var pending=q.request(agent,"one",ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,"SELECT COUNT(*) FROM items"));assertTrue(pending.path("selectPermission").path("eligible").asBoolean(),pending.toString());
+                    var grant=Profiles.JSON.createObjectNode().put("lifetime","mcp_session");grant.putArray("selectors").addObject().put("connectionId",id).put("level","object").put("database","FREEPDB1").put("schema",user).put("object","ITEMS");var options=Profiles.JSON.createObjectNode();options.set("readGrant",grant);
+                    q.decide("human",pending.path("id").asText(),ReadPermissions.ACTION,true,options);var result=helper.finish(q,agent,pending);assertEquals("1",result.path("job").path("result").path("results").get(0).path("rows").get(0).get(0).asText());
+                    for(String sql:java.util.List.of("SELECT amount FROM items WHERE id=?","WITH chosen AS (SELECT id FROM items) SELECT * FROM chosen UNION ALL SELECT id FROM items","SELECT LENGTH(label),SUM(amount) FROM items GROUP BY label OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY")){
+                        var request=ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,sql);if(sql.contains("?"))request.putArray("parameters").add(1);helper.finish(q,agent,q.request(agent,"one",request));
+                    }
+                    for(String sql:java.util.List.of("SELECT * FROM secret","SELECT seq_items.NEXTVAL FROM items","SELECT seq_items.\"NEXTVAL\" FROM items","UPDATE items SET id=2")){
+                        var unapproved=q.request(agent,"one",ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,sql));assertEquals("awaiting_approval",unapproved.path("state").asText(),unapproved.toString());q.cancel(agent,unapproved.path("id").asText());
+                    }
+                    var scope=ApprovalScope.resolve(profiles.get(id),Profiles.JSON.createObjectNode(),Profiles.JSON.createObjectNode().put("database","FREEPDB1").put("schema",user));
+                    for(String kind:java.util.List.of("tables","columns","keys","indexes")){
+                        var args=Profiles.JSON.createObjectNode().put("kind",kind);if(!kind.equals("tables"))args.put("object","ITEMS");var query=TrustedCatalogRead.prepare("dba_get_metadata",scope,args);
+                        var request=ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,query.sql());request.set("parameters",query.parameters());request.set("catalogArguments",args);var read=helper.finish(q,agent,q.trustedCatalog(agent,"one",request));
+                        assertFalse(read.path("job").path("result").path("results").get(0).path("rows").isEmpty(),read.toString());if(kind.equals("tables")){var rows=read.path("job").path("result").path("results").get(0).path("rows");assertEquals(1,rows.size());assertEquals("ITEMS",rows.get(0).get(2).asText());}
+                    }
+                    var ddlArgs=Profiles.JSON.createObjectNode().put("object","ITEMS").put("objectType","table");var ddl=TrustedCatalogRead.prepare("dba_get_object_ddl",scope,ddlArgs);var inspection=ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,ddl.sql());inspection.set("parameters",ddl.parameters());inspection.set("catalogArguments",ddlArgs);assertTrue(helper.finish(q,agent,q.trustedCatalog(agent,"one",inspection)).toString().contains("CREATE TABLE"));
+                    var explain=q.planTool(agent,"one",ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,"SELECT ID FROM ITEMS WHERE ID=1"),true,true);
+                    assertEquals("awaiting_approval",explain.path("state").asText(),explain.toString());q.decide("human",explain.path("id").asText(),"approve_once",true);
+                    var plan=helper.finish(q,agent,explain).path("job").path("result");assertFalse(plan.path("executed").asBoolean());assertTrue(plan.path("analysisIncluded").asBoolean());assertFalse(plan.path("rows").isEmpty(),plan.toString());
+                    // Even an internal caller bypassing the positive SQL grammar cannot write in the verified read transaction.
+                    var denied=Profiles.JSON.createObjectNode().put("connectionId",id).put("sql","UPDATE "+user+".ITEMS SET ID=2").put("reusableRead",true);denied.set("reusableScope",scope);denied.putArray("parameters");
+                    var rejected=HumanSqlTest.finish(jobs,"agent:"+agent,jobs.approved(agent,denied,()->{},()->{}));assertEquals("failed",rejected.path("state").asText(),rejected.toString());assertTrue(rejected.path("exception").toString().contains("1456"),rejected.toString());
+                    try(var c=connections.open(id)){
+                        var job=jobs.new Job("agent:"+agent,id);var request=Profiles.JSON.createObjectNode();request.set("reusableScope",scope);
+                        for(String object:java.util.List.of("V_ITEMS","ALIAS_ITEMS","VIRTUAL_ITEMS")){request.putArray("readRelations").addObject().put("database","FREEPDB1").put("schema",user).put("object",object);assertThrows(IllegalArgumentException.class,()->OracleReads.verifyReferences(job,c,request),object);}
+                        try(var st=c.createStatement()){
+                            st.execute("CREATE FUNCTION LOWER(v VARCHAR2) RETURN VARCHAR2 IS BEGIN RAISE_APPLICATION_ERROR(-20001,'Custom function must never run'); END;");
+                            request.remove("readRelations");request.put("readFunctions",true);
+                            assertThrows(IllegalArgumentException.class,()->OracleReads.verifyReferences(job,c,request));
+                            st.execute("DROP FUNCTION LOWER");
+                            st.execute("CREATE SYNONYM LENGTH FOR V_ITEMS");
+                            assertThrows(IllegalArgumentException.class,()->OracleReads.verifyReferences(job,c,request));
+                            st.execute("DROP SYNONYM LENGTH");
+                        }
+                        try(var st=c.createStatement();var rs=st.executeQuery("SELECT LAST_NUMBER FROM USER_SEQUENCES WHERE SEQUENCE_NAME='SEQ_ITEMS'")){assertTrue(rs.next());assertEquals(100,rs.getInt(1));}
+                    }
+                    var second=q.request(agent,"two",ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,"SELECT id FROM items"));assertEquals("awaiting_approval",second.path("state").asText());q.cancel(agent,second.path("id").asText());
+                    var retained=helper.finish(q,agent,q.request(agent,"one",ReadPermissionVendorIntegrationTest.request(id,"FREEPDB1",user,"SELECT id FROM items")),true);for(JsonNode policy:q.reusable.list(agent))q.reusable.change(agent,policy.path("id").asText(),null);assertThrows(SecurityException.class,()->jobs.status("agent:"+agent,retained.path("jobId").asText()));
+                }
+            }finally{connections.remove(id);try(var c=connections.open(admin);var st=c.createStatement()){st.execute("DROP USER "+user+" CASCADE");}}
         }
     }
 

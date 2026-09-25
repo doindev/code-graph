@@ -87,6 +87,7 @@ builder/plan test; all ten live Oracle integration cases also pass after the par
 plans and package-function selection. Shared canvas redraw retains focused join controls;
 the full non-Oracle builder browser suite passes geometry, lifecycle, typed joins, recovery,
 cancellation and failure retention.
+Oracle scoped agent reads now enforce ordinary-user read-only transactions with separate PDB/owner permissions, fixed filtered catalog inspection and revocation. Exact-review agent Explain also passes live Oracle validation. The 34 focused Java checks, Oracle SQL/permission-picker browser suite and shared read-permissions browser suite pass. Views, synonyms, custom functions and sequence access remain one-time-review operations.
 Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 

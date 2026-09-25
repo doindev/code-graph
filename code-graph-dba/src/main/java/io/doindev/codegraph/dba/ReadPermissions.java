@@ -33,7 +33,7 @@ final class ReadPermissions {
             ObjectNode v=Profiles.JSON.createObjectNode().put("connectionId",connection).put("level",level).put("profileRevision",ProjectContexts.profileRevision(profile));
             if(!level.equals("connection"))v.put("database",name(s,"database"));else if(s.has("database"))throw new IllegalArgumentException("Connection scope must not include a database");
             if(Set.of("schema","object").contains(level)){
-                String schema=name(s,"schema");if(!vendor.equals("postgresql")&&!schema.equals(v.path("database").asText()))throw new IllegalArgumentException("MySQL/MariaDB schema must equal database");v.put("schema",schema);
+                String schema=name(s,"schema");if(Set.of("mysql","mariadb").contains(vendor)&&!schema.equals(v.path("database").asText()))throw new IllegalArgumentException("MySQL/MariaDB schema must equal database");v.put("schema",schema);
             }else if(s.has("schema"))throw new IllegalArgumentException("This scope must not include a schema");
             if(level.equals("object"))v.put("object",name(s,"object"));else if(s.has("object"))throw new IllegalArgumentException("This scope must not include an object");
             if(!unique.add(v.toString()))throw new IllegalArgumentException("Duplicate permission target");checked.add(v);
@@ -130,7 +130,7 @@ final class ReadPermissions {
         if(table<0&&databaseColumn<0&&schema<0)throw new SecurityException("Metadata projection cannot be safely filtered");
         ArrayNode rows=(ArrayNode)result.path("rows");int removed=0;int fetched=rows.size();
         for(int i=rows.size()-1;i>=0;i--){JsonNode row=rows.get(i);String sn=schema<0?scope.path("schema").asText():row.path(schema).asText();
-            String db=databaseColumn>=0?row.path(databaseColumn).asText():scope.path("vendor").asText().equals("postgresql")?scope.path("database").asText():sn;
+            String db=databaseColumn>=0?row.path(databaseColumn).asText():Set.of("postgresql","oracle").contains(scope.path("vendor").asText())?scope.path("database").asText():sn;
             if(!(table<0?parentCovered(principal,session,scope,proof,db,schema<0?"":sn):coveredByProof(principal,session,scope,proof,new ReadQueries.Relation(db,sn,row.path(table).asText())))){rows.remove(i);removed++;}
         }
         result.put("rowCount",rows.size()).put("permissionFiltered",true).put("nextOffset",catalog.path("offset").asInt()+fetched);if(removed>0)result.put("coverage","Only objects covered by active SELECT permissions; server result limits still apply");

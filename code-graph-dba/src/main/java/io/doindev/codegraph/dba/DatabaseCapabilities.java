@@ -34,10 +34,11 @@ final class DatabaseCapabilities {
         else out.put("nextStep","For a bound target, use dba_refresh_catalog after catalog permission is granted. Standalone targets have no cached catalog until explicitly observed; configuration is not evidence of the actual server version.");
         var operations=out.putObject("operations");
         operations.putObject("cachedCatalog").put("available",observed).put("coverage",snapshot.path("coverage").asText("unknown"));
+        boolean oracle=observed&&engine.equals("oracle")&&snapshot.path("version").path("major").asInt()>=19;
         var adapter=ExplainPlans.REGISTRY.get(engine);
         var explain=operations.putObject("estimatedPlan").put("adapterObserved",adapter!=null&&observed)
-                .put("mcpVendorSupported",observed&&Set.of("postgresql","mysql","mariadb","h2").contains(engine))
-                .put("requiresPermission",true).put("verification","Existing adapter; not a workflow-expansion live-test certification");
+                .put("mcpVendorSupported",observed&&(Set.of("postgresql","mysql","mariadb","h2").contains(engine)||oracle))
+                .put("requiresPermission",true).put("verification",oracle?"Oracle exact-review agent plan tested on Free 23.26.3; standard 19c certification pending":"Existing adapter; not a workflow-expansion live-test certification");
         if(adapter!=null)explain.put("protocol",adapter.protocol()).put("restriction",adapter.reason());
         // Advertise only delivered workflows. JDBC connectivity must never enable migration syntax.
         operations.putObject("schemaCapture").put("available",true).put("requiresPermission",true).put("coverage","Bounded JDBC/native observation; 100 objects/metadata rows maximum; incomplete inventories cannot prove removal")

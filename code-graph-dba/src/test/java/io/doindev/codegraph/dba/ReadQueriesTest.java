@@ -56,4 +56,14 @@ class ReadQueriesTest {
             assertFalse(ReusableOperation.classify(sql,ReusableOperationTest.scope("mysql")).eligible());
         }
     }
+    @Test void oracleOwnerScopesPagingAndSequencePseudocolumns(){
+        var scope=Profiles.JSON.createObjectNode().put("vendor","oracle").put("database","PDB1").put("schema","APP");
+        var query=ReadQueries.analyze("SELECT a.id FROM items a JOIN other.items b ON a.id=b.id OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY",scope);
+        assertEquals(Set.of(new ReadQueries.Relation("PDB1","APP","ITEMS"),new ReadQueries.Relation("PDB1","OTHER","ITEMS")),Set.copyOf(query.relations()));
+        assertTrue(query.sql().contains("\"APP\".items"),query.sql());
+        assertEquals(List.of(new ReadQueries.Relation("PDB1","Odd.Owner","Odd.Table")),ReadQueries.analyze("SELECT * FROM \"Odd.Owner\".\"Odd.Table\"",scope).relations());
+        for(String sql:List.of("SELECT s.NEXTVAL FROM items","SELECT s.\"NEXTVAL\" FROM items","SELECT s.CURRVAL FROM items","SELECT * FROM items@remote","SELECT pkg.f(id) FROM items","SELECT * FROM items FOR UPDATE"))assertThrows(IllegalArgumentException.class,()->ReadQueries.analyze(sql,scope),sql);
+        var cte=ReadQueries.analyze("WITH chosen AS (SELECT id FROM items) SELECT * FROM chosen UNION ALL SELECT id FROM items",scope);assertEquals(1,cte.relations().size());
+    }
+
 }
