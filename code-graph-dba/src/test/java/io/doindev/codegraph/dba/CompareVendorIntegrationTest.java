@@ -113,5 +113,36 @@ class CompareVendorIntegrationTest {
             }
         }
     }
+    @Test @Timeout(180) void postgresSingleSequenceIgnoresOversizedDatatypeCatalogOnBothSides()throws Exception{
+        Assumptions.assumeTrue("postgresql".equals(System.getenv("DBA_COMPARE_VENDOR")));
+        try(Profiles profiles=new Profiles(directory,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,30),owner->true);DatabaseCompare compare=new DatabaseCompare(profiles,connections,jobs,directory,owner->true)){
+            String source=profiles.put(null,profile("postgresql","Source large types",System.getenv("DBA_COMPARE_SOURCE"))).path("id").asText(),destination=profiles.put(null,profile("postgresql","Destination large types",System.getenv("DBA_COMPARE_DESTINATION"))).path("id").asText();
+            try(Connection a=connections.open(source);Connection b=connections.open(destination);Statement left=a.createStatement();Statement right=b.createStatement()){
+                a.setAutoCommit(true);b.setAutoCommit(true);
+                for(Connection connection:List.of(a,b))try(Statement st=connection.createStatement()){
+                    st.execute("CREATE SCHEMA seq_only;CREATE SCHEMA datatype_noise");
+                    for(int i=0;i<650;i++)st.execute("CREATE TYPE datatype_noise.unrelated_long_named_application_datatype_for_regression_"+i+" AS ENUM ('value')");
+                    var job=jobs.new Job("human",source);job.beginActiveBudget(30);
+                    try(ResultSet types=connection.getMetaData().getTypeInfo()){
+                        var failure=assertThrows(IllegalArgumentException.class,()->ObjectCatalog.rows(job,types));assertTrue(failure.getMessage().contains("1 MiB editor limit"),failure.getMessage());
+                    }
+                }
+                left.execute("CREATE SEQUENCE seq_only.counter START WITH 17 INCREMENT BY 3 CACHE 4");
+                for(String id:List.of(source,destination)){
+                    var target=compare.target(Profiles.JSON.createObjectNode().put("connectionId",id).put("schema","seq_only"));
+                    DatabaseCompareTest.finish(jobs,jobs.comparison("human",Set.of(id),job->compare.read(job,target,c->{var inventory=CompareCatalog.capture(job,CompareMetadataTest.withoutEditorCatalogs(c),target,Set.of("sequences"),false);for(var object:inventory.objects.values())assertTrue(object.path("supported").asBoolean(),object.toString());return Profiles.JSON.createObjectNode();}),()->{}));
+                }
+                var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,source,"seq_only")).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,destination,"seq_only")).put("dataMode","none");input.putArray("objectTypes").add("sequences");
+                String id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();var results=compare.results("human",id,0,100,"","");assertEquals(1,results.path("objects").size());assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());
+                var selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");
+                left.execute("ALTER SEQUENCE seq_only.counter CACHE 8");var failed=TableDesignerTest.waitRetained(jobs,"human",compare.generate("human",id,selection));assertEquals("failed",failed.path("state").asText(),failed.toString());assertTrue(failed.path("error").asText().contains("definitions changed"),failed.toString());jobs.remove("human",failed.path("id").asText());compare.remove("human",id);
+                id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");var artifact=DatabaseCompareTest.finish(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertFalse(script.contains("datatype_noise"));right.execute(script);compare.remove("human",id);
+                id=DatabaseCompareTest.finish(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(1,results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);
+                System.out.println("COMPARE_LARGE_DATATYPE_CATALOG_VERIFIED both connections, sequence DDL, stale definition rejection, generated script and identical repeat comparison");
+            }finally{
+                for(String id:List.of(source,destination))try(Connection c=connections.open(id);Statement st=c.createStatement()){c.setAutoCommit(true);st.execute("DROP SCHEMA IF EXISTS seq_only CASCADE;DROP SCHEMA IF EXISTS datatype_noise CASCADE");}
+            }
+        }
+    }
     static ObjectNode profile(String engine,String name,String url){return Profiles.JSON.createObjectNode().put("name",name).put("templateId",engine).put("driverClass",DatabaseCatalog.get(engine).driver()).put("jar",System.getenv("DBA_COMPARE_JAR")).put("url",url).put("username",System.getenv("DBA_COMPARE_USER")).put("password","compare-fixture-only").put("readOnly",false);}
 }

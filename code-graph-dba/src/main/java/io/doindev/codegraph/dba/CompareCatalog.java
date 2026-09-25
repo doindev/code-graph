@@ -182,7 +182,7 @@ final class CompareCatalog {
     static void object(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection,JsonNode node)throws Exception{
         String kind=str(out,"kind");if(!Set.of("views","materialized_views","sequences","indexes","functions","procedures","types","domains").contains(kind))return;
         if(kind.equals("indexes")&&!inv.engine.equals("postgresql")){out.put("implicit",true).put("reason","Indexes are managed with their table");return;}
-        ObjectNode snap=node==null?ObjectDesigner.load(job,c,selection,false):ObjectDesigner.loadCatalogObject(job,c,selection,node);out.set("fields",snap.path("fields"));out.put("ddl",str(snap,"ddl")).put("routineIdentity",str(snap,"routineIdentity"));
+        ObjectNode snap=ObjectCatalog.comparison(job,c,inv.engine,selection,node);out.set("fields",snap.path("fields"));out.put("ddl",str(snap,"ddl")).put("routineIdentity",str(snap,"routineIdentity"));
         if(kind.equals("views")||kind.equals("materialized_views")){
             ArrayNode signature=out.putArray("columnSignature");try(ResultSet cols=c.getMetaData().getColumns(c.getCatalog(),str(out,"schema"),str(out,"name"),"%")){while(cols.next())signature.addObject().put("name",cols.getString("COLUMN_NAME")).put("type",cols.getString("TYPE_NAME")).put("length",cols.getInt("COLUMN_SIZE")).put("scale",cols.getInt("DECIMAL_DIGITS"));}
             String query=str(snap.path("fields"),"query");if(query.isBlank())query=str(snap.path("fields"),"definition");

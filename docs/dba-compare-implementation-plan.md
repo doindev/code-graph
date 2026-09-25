@@ -404,3 +404,30 @@ scripts and checking a 151-table scoped comparison. The existing postgres:16 ima
 was reused and the test-owned containers were removed. The browser comparison suite
 passed automatic connection failure/retry, retained selections, structure-only output,
 independent sequence synchronization, review, copy/save, viewport, and disposal checks.
+
+
+## PostgreSQL sequence metadata-limit fix (2026-09-24)
+
+Comparison previously routed non-table objects through the general object editor. Even a
+single sequence therefore loaded JDBC's complete datatype catalog and editor choice lists.
+A large unrelated datatype catalog could exceed the editor's 1 MiB category allowance before
+the selected sequence definition was read, on either source or destination.
+
+Object comparison now captures native definition evidence directly, without datatype catalogs,
+form choices, UI controls, refresh-schedule editors or redundant per-object dependency display
+queries. PostgreSQL retains its bulk dependency scope; generation still recaptures the same
+scope and rejects changed definitions. Native queries use the existing comparison allowance
+of 10,000 entries and 16 MiB per category, plus the overall inventory budget. Editor limits
+remain unchanged, and editor category-limit errors now identify the failing category.
+
+A live PostgreSQL 16.14 regression creates 650 unrelated enum types on each connection and
+reproduces the exact original 1 MiB error in the editor reader. Sequence comparison, generation,
+script execution and identical repeat comparison all succeed through the dedicated comparison
+path; an intervening sequence alteration still blocks generation. Guarded connections assert
+that comparison does not request datatype catalogs or editor choice/dependency lists.
+Focused tests also cover definitions beyond the editor's 64 KiB field limit, comparison-budget
+rejection and cleanup. Comparison and object-editor browser regressions pass.
+Validation passed: 29 focused Java checks, four live PostgreSQL checks, two MySQL checks,
+and two MariaDB checks. The two PostgreSQL-only cases are skipped on each other engine.
+Owned test containers and the newly pulled MariaDB image were removed; all 55 existing
+Docker image IDs remain.
