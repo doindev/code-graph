@@ -16,7 +16,7 @@ public final class BrowserFixture {
             try(var s=fixture.createStatement()){s.execute("CREATE SCHEMA "+schema);s.execute("CREATE TABLE "+schema+".items AS SELECT n AS id FROM generate_series(1,1000) n");s.execute("CREATE TABLE "+schema+".menu_target(id int)");s.execute("CREATE VIEW "+schema+".menu_view AS SELECT * FROM "+schema+".menu_target");}
             try(var profiles=new Profiles(root,vault)){profiles.put(null,Profiles.JSON.createObjectNode().put("name","Browser PostgreSQL").put("driverClass","org.postgresql.Driver").put("jar",Path.of(org.postgresql.Driver.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toString()).put("url",System.getenv("DBA_TEST_URL")).put("username","postgres").put("password",System.getenv("DBA_TEST_PASSWORD")));}
         }
-        if("oracle-sql".equals(System.getenv("DBA_BROWSER_SUITE"))){
+        if(java.util.Set.of("oracle-sql","oracle-admin").contains(java.util.Objects.toString(System.getenv("DBA_BROWSER_SUITE"),""))){
             if(!java.util.Objects.toString(System.getenv("DBA_ORACLE_OWNER"),"").matches("code-graph-oracle-[a-f0-9]+"))throw new IllegalArgumentException("Oracle browser tests require a task-owned disposable container");
             try(var profiles=new Profiles(root,vault)){profiles.put(null,Profiles.JSON.createObjectNode().put("name","Browser Oracle").put("templateId","oracle").put("driverClass","oracle.jdbc.OracleDriver").put("jar",System.getenv("DBA_ORACLE_JAR")).put("url",System.getenv("DBA_ORACLE_URL")).put("username","SYSTEM").put("password",System.getenv("DBA_ORACLE_PASSWORD")));}
         }

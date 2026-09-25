@@ -28,6 +28,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final ProjectContexts contexts;
     private final ApprovalQueue approvals;
     private final MigrationPlans migrations;
+    private final OracleAdministration oracleAdministration;
     private final AgentRequests agentRequests;
     private final ApprovalBroker broker;
     private final ApprovalReviewServer reviewServer;
@@ -52,6 +53,7 @@ public final class DbaRuntime implements AutoCloseable {
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         compare=new DatabaseCompare(profiles,connections,jobs,config.directory(),this::ownerAlive);
+        oracleAdministration=new OracleAdministration(connections,jobs);
         gridSettings=new GridSettings(profiles.directory());
         approvalSettings=new ApprovalSettings(profiles.directory());
         mcpSessionSettings=new McpSessionSettings(profiles.directory());
@@ -351,6 +353,9 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/table-properties/apply")&&method.equals("POST")){json(x,202,jobs.applyTableProperties(session.id(),body(x)));return;}
             if(Set.of("/api/dba/object-properties/load","/api/dba/object-properties/prepare").contains(path)&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.objectProperties(session.id(),Profiles.text(b,"connectionId",36),b,path.endsWith("/prepare")));return;}
             if(path.equals("/api/dba/object-properties/apply")&&method.equals("POST")){json(x,202,jobs.applyObjectProperties(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/oracle/admin/read")&&method.equals("POST")){json(x,202,oracleAdministration.read(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/oracle/admin/prepare")&&method.equals("POST")){json(x,202,oracleAdministration.prepare(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/oracle/admin/apply")&&method.equals("POST")){json(x,202,oracleAdministration.apply(session.id(),body(x)));return;}
             if(path.equals("/api/dba/objects/prepare")&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.prepareCreation(session.id(),Profiles.text(b,"connectionId",36),b));return;}
             if(path.equals("/api/dba/objects/apply")&&method.equals("POST")){json(x,202,jobs.applyCreation(session.id(),body(x)));return;}
             if(path.equals("/api/dba/table-properties/category")&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.tablePropertyDetails(session.id(),Profiles.text(b,"connectionId",36),b));return;}
@@ -719,7 +724,7 @@ public final class DbaRuntime implements AutoCloseable {
     }
     static void asset(HttpExchange x,String path)throws IOException {
         if(Set.of("/dba/grid-preferences.js","/dba/grid-settings-dialog.js","/dba/grid-settings-schema.json","/dba/grid-values.js","/dba/editor-client.js","/dba/grid-cell-editor.js","/dba/grid-state.js","/dba/grid-window.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
-                "/dba/compare.js","/dba/compare.css","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
+                "/dba/compare.js","/dba/compare.css","/dba/oracle-admin.js","/dba/oracle-admin.css","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
             String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
                 if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".json")?"application/json; charset=utf-8":name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
             }

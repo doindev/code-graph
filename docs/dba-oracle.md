@@ -2,7 +2,7 @@
 
 The Oracle expansion is in progress; see [the implementation plan](dba-oracle-implementation-plan.md).
 The connection, SQL execution and native comparison foundations described here are implemented.
-Broader Oracle catalog/compare variants and the administration workspace are still being developed.
+Broader Oracle catalog/compare variants and Data Pump/RMAN lifecycle support are still being developed.
 Oracle 19c and newer are the target; full standard 19c administration certification remains pending.
 
 ## Connections and targets
@@ -226,6 +226,25 @@ requires selecting all reviewed native table changes. Replace/mirror on existing
 destination SELECT_CATALOG_ROLE to verify incoming foreign keys across owners. These limits do not disable native
 structure review for otherwise supported objects.
 
+## Administration
+
+Open **Workspace settings > Oracle Administration** for a viewport-sized workspace. The resolved
+service, container, user, edition and server version remain visible. Catalog pages are bounded
+and filtered, and report unavailable dictionary privileges explicitly. Users, roles, profiles,
+grants, quotas, tablespaces/files, sessions/locks/active SQL, diagnostics, compilation, statistics,
+directories and the Data Pump job roster are available.
+
+Typed actions first generate a five-minute, single-use SQL review bound to the target, connection
+revision, privileges and selected catalog state. Applying a stale review fails before mutation.
+Account passwords are supplied only at Apply and excluded from retained plans and results.
+Reviewed operations cover account/role/profile management, grants, quotas, storage files,
+exact-session disconnection/termination and exact-SQL cancellation, compilation and statistics.
+DDL commits implicitly; cancellation during execution is reported as uncertain. Acknowledged
+steps, start/end times, compilation diagnostics and failures remain visible in the workspace.
+Oracle-maintained/common accounts and system/undo storage require separate native review.
+
+Data Pump execution/stop/resume and downloadable RMAN scripts are still in progress.
+
 ## Validation
 
 Tested using Oracle Free 23.26.3 full, JDBC ojdbc17 23.26.3.0.0 and JDK 25.
@@ -261,3 +280,10 @@ filtered columns/keys/indexes/DDL, Oracle-enforced write rejection, unchanged so
 state, custom function/synonym rejection, SYS exclusion, session separation and revoked-result
 access. Fixture setup waits for newly created tables to support a read-only snapshot;
 production SQL is never automatically replayed after ORA-01466.
+
+Administration validation covers all 15 catalog pages, ordinary-user privilege failures,
+password exclusion, single-use/stale plans, account/role/profile/grant changes, compilation,
+statistics, and disposable tablespace/file operations. Live session tests verify cancellation
+leaves the connection usable, while reviewed disconnection/termination closes the exact session.
+The `oracle-admin` browser suite checks account creation/deletion, review invalidation, password
+clearing, catalog selection/filtering, last results and desktop/mobile viewport layouts.

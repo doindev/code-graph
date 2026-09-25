@@ -97,7 +97,10 @@ checks, retained partial steps and compilation errors. The 28 focused Java check
 by nine checks covering the final compilation-error and distinct-rehearsal-target behavior.
 The expanded Oracle SQL browser suite also passes reviewed rename, truncate and delete,
 alongside the existing SQL, grid, designer, builder and permission flows.
-Catalog completion, identities, broader object variants, grants/scheduler
-generation and administration remain in progress; this is not completed Oracle support.
+The Oracle Administration workspace now provides bounded catalog pages and typed, expiring,
+single-use mutation reviews for accounts, roles, profiles, grants, quotas, storage, sessions,
+compilation and statistics. Live ordinary/admin tests and the desktop/mobile browser suite pass.
+Catalog completion, identities, broader object variants, grants/scheduler generation,
+Data Pump lifecycle and RMAN scripts remain in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

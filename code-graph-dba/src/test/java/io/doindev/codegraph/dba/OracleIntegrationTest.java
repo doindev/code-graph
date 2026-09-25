@@ -344,6 +344,74 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test @Timeout(120) void oracleAdministrationTargetsExactSessionsAndActiveSql()throws Exception{
+        String marker="CG_ADM_SESSION_"+UUID.randomUUID().toString().replace("-","").substring(0,16);
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();var service=new OracleAdministration(connections,jobs);
+            try(var executor=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()){
+                for(String operation:java.util.List.of("cancel_sql","disconnect_session","kill_session")){
+                    // A separate connection profile keeps the controlled session out of the administration pool.
+                    String victim=profiles.put(null,systemDraft().put("name",marker+operation)).path("id").asText();boolean intentionallyClosed=false;
+                    try(var c=connections.open(victim);var st=c.createStatement()){
+                        c.setAutoCommit(true);st.execute("BEGIN SYS.DBMS_SESSION.SET_IDENTIFIER('"+marker+operation+"'); END;");
+                        java.util.concurrent.Future<Integer> sleeping=operation.equals("cancel_sql")?executor.submit(()->{try{st.execute("BEGIN SYS.DBMS_SESSION.SLEEP(30); END;");return 0;}catch(SQLException e){return e.getErrorCode();}}):null;
+                        int sid=0,serial=0;String sqlId="";long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+                        try(var observer=connections.open(admin);var query=observer.prepareStatement("SELECT s.SID,s.SERIAL#,s.SQL_ID,q.SQL_TEXT FROM SYS.V_$SESSION s LEFT JOIN SYS.V_$SQL q ON q.SQL_ID=s.SQL_ID AND q.CHILD_NUMBER=s.SQL_CHILD_NUMBER WHERE s.CLIENT_IDENTIFIER=?")){
+                            query.setString(1,marker+operation);query.setQueryTimeout(10);
+                            while(System.nanoTime()<until){try(var rows=query.executeQuery()){if(rows.next()&&(!operation.equals("cancel_sql")||java.util.Objects.toString(rows.getString(4),"").contains("DBMS_SESSION.SLEEP"))){sid=rows.getInt(1);serial=rows.getInt(2);sqlId=java.util.Objects.toString(rows.getString(3),"");break;}}Thread.sleep(20);}
+                        }assertTrue(sid>0,"Controlled session must become observable");
+                        var request=Profiles.JSON.createObjectNode().put("action",operation).put("sid",sid).put("serial",serial);
+                        if(operation.equals("cancel_sql"))request.put("sqlId",sqlId);if(operation.equals("disconnect_session"))request.put("mode","IMMEDIATE");
+                        adminApply(service,jobs,admin,request);
+                        if(sleeping!=null){assertEquals(1013,sleeping.get(10,java.util.concurrent.TimeUnit.SECONDS));try(var check=c.createStatement();var rows=check.executeQuery("SELECT 1 FROM SYS.DUAL")){assertTrue(rows.next());}}
+                        else {assertThrows(SQLException.class,()->st.execute("SELECT 1 FROM SYS.DUAL"));intentionallyClosed=true;}
+                    }catch(SQLException closed){if(!intentionallyClosed||closed.getErrorCode()!=17008)throw closed;}finally{connections.remove(victim);}
+                }
+            }System.out.println("ORACLE_ADMINISTRATION_SESSIONS_VERIFIED");
+        }
+    }
+    @Test @Timeout(300) void oracleAdministrationCatalogsReviewedChangesAndPrivilegeFailures()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),user="CG_ADM_"+suffix,role="CG_ROLE_"+suffix,profile="CG_PROFILE_"+suffix,tablespace="CG_TS_"+suffix,password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,128L<<20,2,100,100,60),s->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();var service=new OracleAdministration(connections,jobs);String limited="";
+            try{
+                var overview=HumanSqlTest.finish(jobs,"human",service.read("human",Profiles.JSON.createObjectNode().put("connectionId",admin)));assertEquals("complete",overview.path("state").asText(),overview.toString());assertEquals("FREEPDB1",overview.path("result").path("target").path("database").asText());assertTrue(overview.path("result").path("actions").size()>25);
+                for(var category:OracleAdministration.CATALOGS){var page=HumanSqlTest.finish(jobs,"human",service.read("human",Profiles.JSON.createObjectNode().put("connectionId",admin).put("category",category.id())));assertEquals("complete",page.path("state").asText(),page.toString());assertTrue(page.path("result").path("available").asBoolean(),page.toString());assertTrue(page.path("result").path("rows").size()<=100);}
+                var create=Profiles.JSON.createObjectNode().put("connectionId",admin).put("database","FREEPDB1").put("action","create_user").put("name",user).put("tablespace","USERS").put("temporaryTablespace","TEMP").put("profile","DEFAULT");
+                var review=TableDesignerTest.waitRetained(jobs,"human",service.prepare("human",create));assertEquals("complete",review.path("state").asText(),review.toString());assertFalse(review.toString().contains(password));
+                var apply=Profiles.JSON.createObjectNode().put("planId",review.path("id").asText()).put("confirmed",true);assertThrows(IllegalArgumentException.class,()->service.apply("human",apply));apply.put("password",password);var created=HumanSqlTest.finish(jobs,"human",service.apply("human",apply));assertEquals("success",created.path("result").path("status").asText(),created.toString());assertFalse(created.toString().contains(password));assertThrows(IllegalArgumentException.class,()->service.apply("human",apply));jobs.remove("human",review.path("id").asText());
+                for(String privilege:java.util.List.of("CREATE SESSION","CREATE TABLE","CREATE PROCEDURE"))adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","grant_system").put("name",user).put("privilege",privilege));
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","quota").put("name",user).put("tablespace","USERS").put("quotaMB",10));
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","create_role").put("name",role));adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","grant_role").put("name",user).put("role",role));
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","create_profile").put("name",profile).put("resource","FAILED_LOGIN_ATTEMPTS").put("limit","8"));adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","user_profile").put("name",user).put("profile",profile));adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","alter_profile").put("name",profile).put("resource","FAILED_LOGIN_ATTEMPTS").put("limit","7"));
+                limited=profiles.put(null,draft(user,password)).path("id").asText();try(var c=connections.open(limited);var st=c.createStatement()){c.setAutoCommit(true);st.execute("CREATE TABLE ITEMS(ID NUMBER)");st.execute("INSERT INTO ITEMS VALUES(1)");st.execute("CREATE FUNCTION ANSWER RETURN NUMBER IS BEGIN RETURN 42; END;");}
+                var denied=HumanSqlTest.finish(jobs,"human",service.read("human",Profiles.JSON.createObjectNode().put("connectionId",limited).put("category","users")));assertFalse(denied.path("result").path("available").asBoolean());assertTrue(denied.path("result").path("message").asText().contains("privileges"));
+                var forbidden=HumanSqlTest.finish(jobs,"human",service.prepare("human",Profiles.JSON.createObjectNode().put("connectionId",limited).put("action","create_role").put("name","NOT_CREATED")));assertEquals("failed",forbidden.path("state").asText());assertTrue(forbidden.path("error").asText().contains("CREATE ROLE"));
+                for(String operation:java.util.List.of("gather_statistics","lock_statistics","unlock_statistics"))adminApply(service,jobs,limited,Profiles.JSON.createObjectNode().put("action",operation).put("owner",user).put("name","ITEMS"));
+                adminApply(service,jobs,limited,Profiles.JSON.createObjectNode().put("action","compile").put("owner",user).put("name","ANSWER").put("objectType","FUNCTION"));
+                for(String operation:java.util.List.of("grant_object","revoke_object"))adminApply(service,jobs,limited,Profiles.JSON.createObjectNode().put("action",operation).put("name",role).put("owner",user).put("object","ITEMS").put("privilege","SELECT"));
+                var lock=Profiles.JSON.createObjectNode().put("connectionId",admin).put("action","user_lock").put("name",user);review=TableDesignerTest.waitRetained(jobs,"human",service.prepare("human",lock));assertEquals("complete",review.path("state").asText(),review.toString());
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","user_profile").put("name",user).put("profile","DEFAULT"));var stale=HumanSqlTest.finish(jobs,"human",service.apply("human",Profiles.JSON.createObjectNode().put("planId",review.path("id").asText()).put("confirmed",true)));assertEquals("not_applied",stale.path("result").path("outcome").asText());assertTrue(stale.path("result").path("message").asText().contains("changed"));jobs.remove("human",review.path("id").asText());
+                adminApply(service,jobs,admin,lock);adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","user_unlock").put("name",user));
+                String file="/opt/oracle/oradata/FREE/FREEPDB1/"+tablespace.toLowerCase()+".dbf";adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","create_tablespace").put("name",tablespace).put("fileName",file).put("sizeMB",10).put("maxMB",20));
+                int fileId;try(var c=connections.open(admin);var st=c.prepareStatement("SELECT FILE_ID FROM SYS.DBA_DATA_FILES WHERE TABLESPACE_NAME=?")){st.setString(1,tablespace);try(var rs=st.executeQuery()){assertTrue(rs.next());fileId=rs.getInt(1);}}
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","file_resize").put("fileId",fileId).put("kind","DATAFILE").put("sizeMB",15));adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","file_autoextend").put("fileId",fileId).put("kind","DATAFILE").put("maxMB",30));
+                for(String state:java.util.List.of("READ ONLY","READ WRITE"))adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","tablespace_status").put("name",tablespace).put("status",state));
+                adminApply(service,jobs,admin,Profiles.JSON.createObjectNode().put("action","drop_tablespace").put("name",tablespace).put("includingContents",true).put("deleteFiles",true));
+                System.out.println("ORACLE_ADMINISTRATION_REVIEW_VERIFIED");
+            }finally{
+                if(!limited.isEmpty())connections.remove(limited);
+                try(var c=connections.open(admin);var st=c.createStatement()){
+                    for(String sql:java.util.List.of("DROP USER "+user+" CASCADE","DROP ROLE "+role,"DROP PROFILE "+profile+" CASCADE","DROP TABLESPACE "+tablespace+" INCLUDING CONTENTS AND DATAFILES"))try{st.execute(sql);}catch(SQLException e){if(!java.util.Set.of(1918,1919,2380,959).contains(e.getErrorCode()))throw e;}
+                }
+            }
+        }
+    }
+    private static JsonNode adminApply(OracleAdministration service,QueryJobs jobs,String connection,ObjectNode request)throws Exception{
+        request.put("connectionId",connection).put("database","FREEPDB1");var plan=TableDesignerTest.waitRetained(jobs,"human",service.prepare("human",request));assertEquals("complete",plan.path("state").asText(),plan.toString());
+        var result=HumanSqlTest.finish(jobs,"human",service.apply("human",Profiles.JSON.createObjectNode().put("planId",plan.path("id").asText()).put("confirmed",true)));assertEquals("success",result.path("result").path("status").asText(),result.toString());jobs.remove("human",plan.path("id").asText());return result;
+    }
+
     @Test @Timeout(300) void oracleMigrationsReviewRehearsalStaleDefinitionsAndPartialCommits()throws Exception{
         String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_MIG_S_"+suffix,destination="CG_MIG_D_"+suffix,password="Cg_"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles)){

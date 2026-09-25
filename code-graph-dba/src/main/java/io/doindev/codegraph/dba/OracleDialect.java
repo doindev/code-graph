@@ -52,8 +52,8 @@ final class OracleDialect {
             .put("minorVersion",metadata.getDatabaseMinorVersion()).put("edition",edition).put("supportedVersion",metadata.getDatabaseMajorVersion()>=19)
             .put("ddlImplicitCommit",true).put("transactionalDdl",false).put("emptyStringIsNull",true);
         result.set("target",target.json());ArrayNode privileges=result.putArray("sessionPrivileges"),roles=result.putArray("sessionRoles");
-        readNames(job,c,"SELECT privilege FROM session_privs ORDER BY privilege",privileges);
-        readNames(job,c,"SELECT role FROM session_roles ORDER BY role",roles);
+        readNames(job,c,"SELECT privilege FROM SYS.SESSION_PRIVS ORDER BY privilege",privileges);
+        readNames(job,c,"SELECT role FROM SYS.SESSION_ROLES ORDER BY role",roles);
         return result;
     }
     private static void readNames(QueryJobs.Job job,Connection c,String sql,ArrayNode names)throws SQLException{
