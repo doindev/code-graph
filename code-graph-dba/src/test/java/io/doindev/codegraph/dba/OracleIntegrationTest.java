@@ -314,6 +314,79 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test void oracleTableDdlCancellationKeepsOutcomeUncertain()throws Exception{
+        String user="CG_CANCEL_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE TRIGGER TO "+user);}
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            try{
+                try(var c=connections.open(id);var st=c.createStatement()){st.execute("CREATE TRIGGER DELAY_CREATION AFTER CREATE ON SCHEMA BEGIN IF ORA_DICT_OBJ_NAME='DELAYED' THEN DBMS_APPLICATION_INFO.SET_ACTION('CG_DDL_DELAY'); DBMS_SESSION.SLEEP(60); END IF; END;");}
+                var request=TableCreationTest.input(user);((ObjectNode)request.path("target")).put("database","FREEPDB1");var baseline=HumanSqlTest.finish(jobs,"human",jobs.tableProperties("human",id,request,false));assertEquals("complete",baseline.path("state").asText(),baseline.toString());
+                var snapshot=(ObjectNode)baseline.path("result");var draft=TableDesignerTest.draft(snapshot);((ObjectNode)draft.path("fields")).put("name","DELAYED");((com.fasterxml.jackson.databind.node.ArrayNode)draft.path("columns")).addObject().put("id","new:id").put("name","ID").put("type","NUMBER").put("pk",0).put("nullable",true);request.put("fingerprint",snapshot.path("fingerprint").asText());request.set("draft",draft);
+                var review=TableDesignerTest.waitRetained(jobs,"human",jobs.tableProperties("human",id,request,true));assertEquals("complete",review.path("state").asText(),review.toString());
+                var active=jobs.applyTableProperties("human",Profiles.JSON.createObjectNode().put("planId",review.path("id").asText()).put("confirmed",true));
+                try(var c=connections.open(admin);var st=c.prepareStatement("SELECT COUNT(*) FROM SYS.V_$SESSION WHERE USERNAME=? AND ACTION='CG_DDL_DELAY'")){
+                    st.setString(1,user);st.setQueryTimeout(5);boolean started=false;long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(8);
+                    while(System.nanoTime()<until){try(var rs=st.executeQuery()){assertTrue(rs.next());if(rs.getInt(1)>0){started=true;break;}}Thread.sleep(20);}assertTrue(started,"DDL must reach the server-side delay before cancellation");
+                }
+                jobs.cancel(jobs.require("human",active.path("id").asText()));var result=HumanSqlTest.finish(jobs,"human",active);assertEquals("cancelled",result.path("state").asText(),result.toString());assertEquals("unknown",result.path("result").path("outcome").asText(),result.toString());assertTrue(result.path("result").path("steps").isEmpty());System.out.println("ORACLE_DDL_CANCEL_OUTCOME_VERIFIED");jobs.remove("human",review.path("id").asText());
+            }finally{
+                connections.remove(id);
+                // A cancelled client does not prove Oracle stopped its DDL trigger. Only this
+                // ownership-gated fixture administratively disconnects its own sleeping sessions.
+                try(var c=connections.open(admin);var select=c.prepareStatement("SELECT SID,SERIAL# FROM SYS.V_$SESSION WHERE USERNAME=?");var st=c.createStatement()){
+                    select.setString(1,user);select.setQueryTimeout(5);var sessions=new java.util.ArrayList<String>();try(var rs=select.executeQuery()){while(rs.next())sessions.add(rs.getLong(1)+","+rs.getLong(2));}
+                    for(String session:sessions)try{st.execute("ALTER SYSTEM DISCONNECT SESSION '"+session+"' IMMEDIATE");}catch(SQLException e){if(e.getErrorCode()!=30&&e.getErrorCode()!=31)throw e;}
+                    long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(10);for(;;)try{st.execute("DROP USER "+user+" CASCADE");break;}catch(SQLException e){if(e.getErrorCode()!=1940||System.nanoTime()>=until)throw e;Thread.sleep(100);}
+                }
+            }
+        }
+    }
+
+    @Test void oracleReviewedTableCreationAndIncrementalEditing()throws Exception{
+        String user="CG_DESIGN_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();
+            try(var c=connections.open(admin);var st=c.createStatement()){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE SEQUENCE TO "+user);}
+            String id=profiles.put(null,draft(user,password)).path("id").asText();
+            try{
+                var request=TableCreationTest.input(user);((ObjectNode)request.path("target")).put("database","FREEPDB1");
+                var baseline=HumanSqlTest.finish(jobs,"human",jobs.tableProperties("human",id,request,false));assertEquals("complete",baseline.path("state").asText(),baseline.toString());
+                var snapshot=(ObjectNode)baseline.path("result");assertEquals("FREEPDB1",snapshot.path("database").asText());var draft=TableDesignerTest.draft(snapshot);request.put("fingerprint",snapshot.path("fingerprint").asText());request.set("draft",draft);((ObjectNode)draft.path("fields")).put("name","ITEMS").put("comment","Created Ω漢字");
+                var columns=(com.fasterxml.jackson.databind.node.ArrayNode)draft.path("columns");
+                columns.addObject().put("id","new:id").put("name","ID").put("type","NUMBER").put("pk",1).put("nullable",false).put("identity","a");
+                columns.addObject().put("id","new:amount").put("name","AMOUNT").put("type","NUMBER(38)").put("pk",0).put("nullable",false).put("default","12345678901234567890123456789012345678").put("comment","Precise");
+                columns.addObject().put("id","new:label").put("name","LABEL").put("type","NVARCHAR2(40)").put("pk",0).put("nullable",true);
+                columns.addObject().put("id","new:derived").put("name","DERIVED").put("type","NUMBER").put("pk",0).put("nullable",true).put("generated","AMOUNT+1");
+                var review=TableDesignerTest.waitRetained(jobs,"human",jobs.tableProperties("human",id,request,true));assertEquals("complete",review.path("state").asText(),review.toString());assertFalse(review.path("result").path("atomic").asBoolean());assertTrue(review.path("result").path("risky").asBoolean());
+                var apply=Profiles.JSON.createObjectNode().put("planId",review.path("id").asText()).put("confirmed",true);
+                var created=HumanSqlTest.finish(jobs,"human",jobs.applyTableProperties("human",apply));assertEquals("success",created.path("result").path("status").asText(),created+" review="+review.path("result"));assertThrows(IllegalArgumentException.class,()->jobs.applyTableProperties("human",apply));jobs.remove("human",review.path("id").asText());
+                try(var c=connections.open(id);var st=c.createStatement()){
+                    c.setAutoCommit(true);st.execute("INSERT INTO ITEMS(LABEL) VALUES(N'Unicode Ω漢字')");
+                    try(var rs=st.executeQuery("SELECT ID,AMOUNT,DERIVED,LABEL FROM ITEMS")){assertTrue(rs.next());assertEquals(1,rs.getInt(1));assertEquals("12345678901234567890123456789012345678",rs.getString(2));assertEquals("12345678901234567890123456789012345679",rs.getString(3));assertEquals("Unicode Ω漢字",rs.getNString(4));}
+                    st.execute("ALTER TABLE ITEMS ADD (HIDDEN_TEXT VARCHAR2(20) INVISIBLE)");
+                }
+                var selection=MetadataActionsTest.selection(jobs,id,"tables",user,"ITEMS");
+                var loaded=HumanSqlTest.finish(jobs,"human",jobs.tableProperties("human",id,selection,false));assertEquals("complete",loaded.path("state").asText(),loaded.toString());snapshot=(ObjectNode)loaded.path("result");assertTrue(snapshot.path("editable").asBoolean(),snapshot.toString());assertEquals("a",snapshot.path("columns").get(0).path("identity").asText());assertTrue(snapshot.path("ddl").asText().contains("INVISIBLE"));
+                draft=TableDesignerTest.draft(snapshot);((ObjectNode)draft.path("fields")).put("comment","Changed comment");for(JsonNode col:draft.path("columns"))if(col.path("name").asText().equals("LABEL"))((ObjectNode)col).put("type","NVARCHAR2(80)").put("comment","Expanded");
+                var changes=(com.fasterxml.jackson.databind.node.ArrayNode)draft.path("objects");changes.addObject().put("category","Indexes").put("action","add").put("name","ITEM_LABEL").putArray("columns").add("LABEL");
+                var modify=selection.deepCopy().put("fingerprint",snapshot.path("fingerprint").asText());modify.set("draft",draft);
+                review=TableDesignerTest.waitRetained(jobs,"human",jobs.tableProperties("human",id,modify,true));assertEquals("complete",review.path("state").asText(),review.toString());apply.put("planId",review.path("id").asText());
+                var updated=HumanSqlTest.finish(jobs,"human",jobs.applyTableProperties("human",apply));assertEquals("success",updated.path("result").path("status").asText(),updated.toString());jobs.remove("human",review.path("id").asText());
+                try(var c=connections.open(id);var st=c.createStatement();var rs=st.executeQuery("SELECT HIDDEN_COLUMN FROM USER_TAB_COLS WHERE TABLE_NAME='ITEMS' AND COLUMN_NAME='HIDDEN_TEXT'")){assertTrue(rs.next());assertEquals("YES",rs.getString(1));}
+                loaded=HumanSqlTest.finish(jobs,"human",jobs.tableProperties("human",id,selection,false));snapshot=(ObjectNode)loaded.path("result");draft=TableDesignerTest.draft(snapshot);((ObjectNode)draft.path("fields")).put("comment","Must not apply");modify.put("fingerprint",snapshot.path("fingerprint").asText());modify.set("draft",draft);
+                review=TableDesignerTest.waitRetained(jobs,"human",jobs.tableProperties("human",id,modify,true));assertEquals("complete",review.path("state").asText(),review.toString());
+                try(var c=connections.open(id);var st=c.createStatement()){st.execute("ALTER TABLE ITEMS PCTFREE 17");}
+                apply.put("planId",review.path("id").asText());var stale=HumanSqlTest.finish(jobs,"human",jobs.applyTableProperties("human",apply));assertEquals("failed",stale.path("result").path("status").asText(),stale.toString());assertTrue(stale.path("result").path("message").asText().contains("changed"));jobs.remove("human",review.path("id").asText());
+                loaded=HumanSqlTest.finish(jobs,"human",jobs.tableProperties("human",id,selection,false));snapshot=(ObjectNode)loaded.path("result");draft=TableDesignerTest.draft(snapshot);((com.fasterxml.jackson.databind.node.ArrayNode)draft.path("columns")).addObject().put("id","new:partial").put("name","ACKNOWLEDGED").put("type","NUMBER").put("pk",0).put("nullable",true);
+                ((com.fasterxml.jackson.databind.node.ArrayNode)draft.path("objects")).addObject().put("category","Constraints").put("action","add").put("kind","CHECK").put("name","FAIL_EXISTING_ROWS").put("expression","AMOUNT<0");modify.put("fingerprint",snapshot.path("fingerprint").asText());modify.set("draft",draft);
+                review=TableDesignerTest.waitRetained(jobs,"human",jobs.tableProperties("human",id,modify,true));assertEquals("complete",review.path("state").asText(),review.toString());apply.put("planId",review.path("id").asText());var partial=HumanSqlTest.finish(jobs,"human",jobs.applyTableProperties("human",apply));assertEquals("partial",partial.path("result").path("outcome").asText(),partial.toString());assertEquals("committed",partial.path("result").path("steps").get(0).path("status").asText());jobs.remove("human",review.path("id").asText());
+                try(var c=connections.open(id);var st=c.createStatement();var rs=st.executeQuery("SELECT ACKNOWLEDGED FROM ITEMS")){assertTrue(rs.next());assertNull(rs.getString(1));}
+            }finally{connections.remove(id);try(var c=connections.open(admin);var st=c.createStatement()){st.execute("DROP USER "+user+" CASCADE");}}
+        }
+    }
+
     @Test void oracleScopedReadPermissionsCatalogsAndTransactionEnforcement()throws Exception{
         String user="CG_READ_"+UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),password="Cg_"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles)){

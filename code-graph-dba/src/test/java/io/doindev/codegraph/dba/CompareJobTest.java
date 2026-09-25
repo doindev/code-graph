@@ -76,6 +76,22 @@ class CompareJobTest {
 
         }
     }
+    @Test void jdbcCancellationPrecedesInterruptAndUnresponsiveDriverHasBoundedFallback()throws Exception{
+        try(Profiles profiles=new Profiles(root,new DbaTest.MemoryVault());Connections connections=new Connections(profiles);QueryJobs jobs=new QueryJobs(connections,new DbaConfig(root,128L<<20,2,100,100,10),s->true)){
+            String connection=profiles.put(null,new DbaTest().input()).path("id").asText();
+            for(boolean cooperative:new boolean[]{true,false}){
+                var entered=new CountDownLatch(1);var returned=new CountDownLatch(1);var driverStarted=new CountDownLatch(1);var releaseDriver=new CountDownLatch(1);var interruptedFirst=new java.util.concurrent.atomic.AtomicBoolean();var cleaned=new AtomicInteger();
+                var submitted=jobs.local("human",connection,job->{Thread worker=Thread.currentThread();
+                    job.statement=(java.sql.Statement)java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),new Class<?>[]{java.sql.Statement.class},(proxy,method,args)->{
+                        if(method.getName().equals("cancel")){interruptedFirst.set(worker.isInterrupted());driverStarted.countDown();if(cooperative)returned.countDown();else releaseDriver.await();return null;}throw new UnsupportedOperationException(method.getName());
+                    });entered.countDown();try{returned.await();return Profiles.JSON.createObjectNode();}finally{cleaned.incrementAndGet();}
+                },()->{});
+                try{assertTrue(entered.await(5,TimeUnit.SECONDS));jobs.cancel(jobs.require("human",submitted.path("id").asText()));assertTrue(driverStarted.await(5,TimeUnit.SECONDS));
+                    var result=TableDesignerTest.waitRetained(jobs,"human",submitted);assertEquals("cancelled",result.path("state").asText());assertFalse(interruptedFirst.get());assertEquals(1,cleaned.get());jobs.remove("human",submitted.path("id").asText());
+                }finally{releaseDriver.countDown();}
+            }
+        }
+    }
     @Test void comparisonTimeoutConfigurationHasIndependentBounds(){
         assertEquals(900,DbaConfig.parse(new String[]{"--dba"}).orElseThrow().compareTimeoutSeconds());
         var configured=DbaConfig.parse(new String[]{"--dba","--dba-timeout","2","--dba-compare-timeout","60"}).orElseThrow();assertEquals(2,configured.timeoutSeconds());assertEquals(60,configured.compareTimeoutSeconds());

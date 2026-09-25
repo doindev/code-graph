@@ -622,15 +622,11 @@ final class QueryJobs implements AutoCloseable {
         }
         String id=preview.connection;
         return local(owner,id,job->{
-            Connection c=null;Connections.DatabaseConnection external=null;boolean committing=false;
+            Connection c=null;Connections.Target selected=null;boolean committing=false;
             ObjectNode report=Profiles.JSON.createObjectNode();
             try{
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
-                c=connections.open(id);String database=plan.path("database").asText();
-                if(!database.isBlank()&&!database.equals(c.getCatalog())){
-                    if(!plan.path("engine").asText().equals("postgresql"))throw new SQLFeatureNotSupportedException("Use a connection targeting this database for creation");
-                    c.close();c=null;external=connections.openDatabase(id,database,config.timeoutSeconds());c=external.connection();
-                }
+                selected=connections.target(id,plan.path("database").asText());c=selected.connection();
                 c.setReadOnly(false);c.setAutoCommit(!plan.path("atomic").asBoolean());
                 ObjectNode checked=ObjectCreation.prepare(c,plan.path("draft"),connections.genericOnly(id));
                 if(!checked.path("sql").equals(plan.path("sql"))||!checked.path("engine").equals(plan.path("engine"))||!checked.path("targetFingerprint").equals(plan.path("targetFingerprint")))throw new IllegalArgumentException("Target configuration changed; review again");
@@ -647,7 +643,7 @@ final class QueryJobs implements AutoCloseable {
                 String outcome="unknown";
                 if(c!=null&&plan.path("atomic").asBoolean()&&!committing)try{c.rollback();outcome="rolled_back";}catch(SQLException ignored){}
                 report.put("status","failed").put("outcome",outcome).put("message",connections.humanError(id,e)+" Refresh metadata before retrying if the outcome is uncertain.");
-            }finally{job.statement=null;if(external!=null)try{external.close();}catch(Exception ignored){}else if(c!=null)try{connections.discard(id,c);c.close();}catch(Exception ignored){}}
+            }finally{job.statement=null;if(selected!=null)try{selected.close();}catch(Exception ignored){}}
             return report;
         },()->{});
     }
@@ -833,7 +829,7 @@ final class QueryJobs implements AutoCloseable {
         return local(owner,id,job->{
             ObjectNode snapshot=(ObjectNode)plan.path("snapshot"),selection=plan.path("createTable").asBoolean()?null:(ObjectNode)snapshot.path("selection");boolean creating=plan.path("createTable").asBoolean();
             String lockKey=id+snapshot.path("database")+snapshot.path("schema")+snapshot.path("name");var lock=DESIGNER_LOCKS[Math.floorMod(lockKey.hashCode(),DESIGNER_LOCKS.length)];
-            Connection c=null;Connections.Target selected=null;boolean locked=false,committing=false;int completed=0;
+            Connection c=null;Connections.Target selected=null;boolean locked=false,committing=false,executing=false;int completed=0;
             ObjectNode report=Profiles.JSON.createObjectNode().put("status","failed").put("atomic",plan.path("atomic").asBoolean());ArrayNode steps=report.putArray("steps");job.result=report;
             try{
                 if(!lock.tryLock(config.timeoutSeconds(),TimeUnit.SECONDS))throw new IllegalArgumentException("Another schema operation is active for this table");locked=true;
@@ -846,7 +842,7 @@ final class QueryJobs implements AutoCloseable {
                 for(JsonNode command:plan.path("commands")){
                     if(job.cancelled||!alive.test(owner))throw new CancellationException();
                     job.progress="Applying schema operation "+(completed+1)+" of "+plan.path("commands").size();
-                    try(var st=c.createStatement()){job.statement=st;st.setQueryTimeout(config.timeoutSeconds());st.execute(command.path("sql").asText());}finally{job.statement=null;}
+                    try(var st=c.createStatement()){job.statement=st;st.setQueryTimeout(config.timeoutSeconds());executing=true;st.execute(command.path("sql").asText());executing=false;}finally{job.statement=null;}
                     completed++;steps.addObject().put("index",completed).put("status",plan.path("atomic").asBoolean()?"executed_pending_commit":"committed");
                 }
                 if(job.cancelled||!alive.test(owner))throw new CancellationException();
@@ -857,7 +853,9 @@ final class QueryJobs implements AutoCloseable {
                 String outcome=committing?"unknown":plan.path("atomic").asBoolean()?"rolled_back":completed>0?"partial":"not_applied";
                 if(c!=null&&plan.path("atomic").asBoolean()&&!committing)try{c.rollback();}catch(SQLException failed){outcome="unknown";}
                 if(e instanceof SQLException sql&&sql.getSQLState()!=null&&sql.getSQLState().startsWith("08"))outcome="unknown";
-                report.put("status","failed").put("outcome",outcome).put("message",connections.humanError(id,e));for(JsonNode step:steps)if(plan.path("atomic").asBoolean())((ObjectNode)step).put("status",outcome);
+                if(!plan.path("atomic").asBoolean()&&executing&&(job.cancelled||e instanceof SQLTimeoutException||e instanceof CancellationException||e instanceof SQLException sql&&sql.getErrorCode()==1013))outcome="unknown";
+                String message=connections.humanError(id,e);if(outcome.equals("unknown")&&!plan.path("atomic").asBoolean())message+=" The database may still be executing DDL or may have committed it. Inspect the destination before retrying.";
+                report.put("status","failed").put("outcome",outcome).put("message",message);for(JsonNode step:steps)if(plan.path("atomic").asBoolean())((ObjectNode)step).put("status",outcome);
             }finally{
                 job.statement=null;if(c!=null)try{connections.discard(id,c);}catch(Exception ignored){}if(selected!=null)try{selected.close();}catch(Exception ignored){}
                 if(locked)lock.unlock();
@@ -1009,7 +1007,16 @@ final class QueryJobs implements AutoCloseable {
     void decision(String owner,String id,String decisionId,String action){if(!Set.of("cancel","continue","skip_similar").contains(action))throw new IllegalArgumentException("Unknown SQL error decision");require(owner,id).decide(decisionId,action);}
     synchronized void remove(String owner,String id){Job job=require(owner,id);if(job.finished==0&&job.permissionDiscovery){job.releaseOnFinish=true;cancel(job);return;}if(job.finished==0)throw new IllegalArgumentException("Cancel and wait for completion before releasing this job");if(job.retainedUses>0)throw new IllegalArgumentException("Result is in use by a workflow; wait for it to finish before releasing");jobs.remove(id);}
     void cancel(Job job){cancel(job,"user_cancelled");}
-    private void cancel(Job job,String reason){synchronized(job){if(job.cancelled||job.finished!=0||job.state.equals("complete"))return;job.cancellationReason=reason;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}for(Job child:job.children)cancel(child,reason);Thread thread=job.thread;if(thread!=null)thread.interrupt();Statement s=job.statement;if(s!=null)Thread.startVirtualThread(()->{try{s.cancel();}catch(SQLException ignored){}});}
+    private void cancel(Job job,String reason){
+        synchronized(job){if(job.cancelled||job.finished!=0||job.state.equals("complete"))return;job.cancellationReason=reason;job.cancelled=true;if(job.activeDeadline!=null)job.activeDeadline.cancel(false);job.notifyAll();}
+        for(Job child:job.children)cancel(child,reason);Thread thread=job.thread;Statement statement=job.statement;
+        if(statement==null){if(thread!=null)thread.interrupt();return;}
+        // Give JDBC cancellation a chance to reach the server before interrupting a socket read.
+        // Interrupting Oracle first can close its socket while the server continues executing DDL.
+        if(thread!=null)try{timer.schedule(()->{if(job.thread==thread&&job.finished==0&&!job.state.equals("complete"))thread.interrupt();},500,TimeUnit.MILLISECONDS);}
+        catch(RejectedExecutionException stopping){thread.interrupt();}
+        Thread.startVirtualThread(()->{try{statement.cancel();}catch(SQLException ignored){}});
+    }
     synchronized void cancelOwner(String owner){jobs.values().stream().filter(j->j.owner.equals(owner)).forEach(this::cancel);}
     synchronized boolean activeConnection(String id){return jobs.values().stream().anyMatch(j->(j.connection.equals(id)||j.participatingConnections.contains(id))&&j.finished==0);}
     synchronized ObjectNode connectionState(String id){return Profiles.JSON.createObjectNode().put("connected",connections.connected(id)).put("busy",activeConnection(id));}

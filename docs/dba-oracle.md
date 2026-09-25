@@ -91,6 +91,29 @@ parameters and LOBs are excluded from those retained SELECT inputs. Explain uses
 statement identifier and rolls PLAN_TABLE writes back to its savepoint; it does not execute
 the query. Native PLAN_TABLE and DBMS_XPLAN privileges are still required.
 
+## Table properties and creation
+
+New Table and table Properties support Oracle 19c+ ordinary heap tables through the existing
+review-and-apply workflow. Columns use bounded Oracle types, exact numeric declarations,
+identity/virtual definitions for new columns, defaults, nullability and comments. Reviewed
+constraint/index additions, index rename/removal and table/column renames use native Oracle
+syntax. Existing identity/virtual settings and primary-key storage/constraint attributes
+require native DDL review when changing them. Owner and tablespace changes are not silently
+reconstructed from the form.
+
+The native table definition participates in stale-plan detection and appears in the DDL tab.
+Unchanged invisible columns and storage settings are preserved. Partitioned, temporary,
+index-organized, nested, external, materialized, custom-type, domain-index and row-policy
+objects require native DDL review. Missing native-definition privileges disable structured
+editing explicitly. Oracle DDL is non-atomic: apply stops at the first failure and reports
+acknowledged committed steps. Cancellation first requests JDBC cancellation with a bounded
+worker-interruption fallback. Interrupted non-atomic DDL reports an unknown outcome: Oracle
+can keep running a server-side DDL trigger after the client disconnects. Check the destination
+before retrying. The cancellation fixture explicitly disconnects its own sleeping session
+during cleanup; it does not certify immediate server-side termination. Creating an identity
+column may require CREATE SEQUENCE in
+addition to CREATE TABLE on the tested server.
+
 ## Scoped agent reads
 
 The existing SELECT-permission dialog supports Oracle 19c+ connections with separate resolved

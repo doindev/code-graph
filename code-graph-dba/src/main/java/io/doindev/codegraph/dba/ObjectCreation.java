@@ -8,7 +8,7 @@ import java.util.*;
 /** Deliberately small native CREATE adapter. Catalog visibility is not DDL permission. */
 final class ObjectCreation {
     static String engine(Connection c)throws SQLException {String p=c.getMetaData().getDatabaseProductName();return p.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(p);}
-    static boolean supports(String engine,String kind){return engine.equals("sqlserver")&&kind.equals("tables")||Set.of("postgresql","h2").contains(engine)&&(Set.of("schemas","tables","views","sequences","indexes").contains(kind)||engine.equals("postgresql")&&kind.equals("materialized_views"));}
+    static boolean supports(String engine,String kind){return Set.of("sqlserver","oracle").contains(engine)&&kind.equals("tables")||Set.of("postgresql","h2").contains(engine)&&(Set.of("schemas","tables","views","sequences","indexes").contains(kind)||engine.equals("postgresql")&&kind.equals("materialized_views"));}
     static ObjectNode annotate(Connection c,ObjectNode result,boolean generic)throws SQLException {
         String engine=engine(c);
         for(JsonNode node:result.path("nodes"))if(!generic&&node.path("branch").asBoolean()&&supports(engine,node.path("kind").asText()))((ObjectNode)node).put("canCreate",true);
@@ -30,7 +30,7 @@ final class ObjectCreation {
             case "tables" -> {
                 JsonNode columns=input.path("columns");if(!columns.isArray()||columns.isEmpty()||columns.size()>128)throw new IllegalArgumentException("Specify 1–128 columns");
                 List<String> defs=new ArrayList<>();Set<String> names=new HashSet<>();
-                for(JsonNode column:columns){String n=Profiles.text(column,"name",128);if(!names.add(n))throw new IllegalArgumentException("Duplicate column name: "+n);defs.add(TableDesigner.q(n)+" "+TableDesigner.type(Profiles.text(column,"type",128))+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));}
+                for(JsonNode column:columns){String n=Profiles.text(column,"name",128);if(!names.add(n))throw new IllegalArgumentException("Duplicate column name: "+n);defs.add(TableDesigner.q(n)+" "+(engine.equals("oracle")?OracleDesigner.type(Profiles.text(column,"type",128)):TableDesigner.type(Profiles.text(column,"type",128)))+(column.path("nullable").asBoolean(true)?"":" NOT NULL"));}
                 sql="CREATE TABLE "+target+" (\n  "+String.join(",\n  ",defs)+"\n)";
             }
             case "views","materialized_views" -> {
@@ -44,8 +44,9 @@ final class ObjectCreation {
             }
             default -> throw new IllegalArgumentException("Unsupported category");
         }
-        ObjectNode out=Profiles.JSON.createObjectNode().put("creationPlan",true).put("engine",engine).put("database",c.getCatalog()).put("schema",schema).put("name",name).put("kind",kind).put("sql",sql).put("expiresAt",System.currentTimeMillis()+300000).put("atomic",engine.equals("postgresql"));
-        String identity=c.getMetaData().getURL()+"\n"+c.getMetaData().getUserName()+"\n"+c.getCatalog();
+        OracleDialect.Target oracle=engine.equals("oracle")?OracleDialect.target(c,30):null;if(oracle!=null&&(c.getMetaData().getDatabaseMajorVersion()<19||!oracle.matches(input.path("database").asText())))throw new IllegalArgumentException("Oracle creation requires a matching Oracle 19c+ target");
+        ObjectNode out=Profiles.JSON.createObjectNode().put("creationPlan",true).put("engine",engine).put("database",oracle==null?c.getCatalog():oracle.database()).put("schema",schema).put("name",name).put("kind",kind).put("sql",sql).put("expiresAt",System.currentTimeMillis()+300000).put("atomic",engine.equals("postgresql"));
+        String identity=c.getMetaData().getURL()+"\n"+c.getMetaData().getUserName()+"\n"+c.getCatalog()+(oracle==null?"":"\n"+oracle.json());
         out.put("targetFingerprint",HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
         out.set("draft",input.deepCopy());return out;
     }

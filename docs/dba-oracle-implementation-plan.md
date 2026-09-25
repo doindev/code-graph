@@ -88,6 +88,7 @@ plans and package-function selection. Shared canvas redraw retains focused join 
 the full non-Oracle builder browser suite passes geometry, lifecycle, typed joins, recovery,
 cancellation and failure retention.
 Oracle scoped agent reads now enforce ordinary-user read-only transactions with separate PDB/owner permissions, fixed filtered catalog inspection and revocation. Exact-review agent Explain also passes live Oracle validation. The 34 focused Java checks, Oracle SQL/permission-picker browser suite and shared read-permissions browser suite pass. Views, synonyms, custom functions and sequence access remain one-time-review operations.
+Oracle table Properties and New Table now use native incremental DDL, bounded Oracle types, new identity/virtual columns, constraints/indexes and complete native-definition conflict checks. Live tests verify invisible-column preservation, storage-change invalidation and partial commits; the focused eight Java checks and Oracle/H2 creation browser flows pass. The full 12-case Oracle integration suite also passed before the cancellation fixture was added. A further 16 focused checks verify JDBC-first cancellation, bounded interruption fallback, uncertain Oracle DDL outcomes, and designer regressions; the shared Compare browser suite passes. Server-side DDL can continue after cancellation, and is reported as unknown rather than not applied.
 Catalog completion, identities, broader object variants, grants/scheduler
 generation and administration remain in progress; this is not completed Oracle support.
 

@@ -36,6 +36,7 @@ final class TableDesigner {
         ObjectNode out=identity.deepCopy();out.put("engine",engine);out.set("selection",selection.deepCopy());out.put("editable",Set.of("postgresql","h2").contains(engine));out.put("reason","Editing is enabled only for validated PostgreSQL/H2 operations. Other drivers and unsupported fields remain read-only.");
         ArrayNode categories=out.putArray("categories");TableMetadata.categories(engine,c.getMetaData().getDatabaseMajorVersion()).forEach(categories::add);categories.add("Statistics").add("Permissions").add("DDL").add("Virtual");
         if(engine.equals("sqlserver")&&c.getMetaData().getDatabaseMajorVersion()>=16)return SqlServerDesigner.load(job,c,out);
+        if(engine.equals("oracle")&&c.getMetaData().getDatabaseMajorVersion()>=19)return OracleDesigner.load(job,c,out);
         ObjectNode fields=out.putObject("fields");fields.put("name",name).put("schema",schema).put("owner","").put("comment","").put("tablespace","");
         ArrayNode columns=out.putArray("columns");String pkName="";Map<String,Integer> pk=new HashMap<>();
         try(var rs=c.getMetaData().getPrimaryKeys(c.getCatalog(),schema,name)){while(rs.next()){pk.put(rs.getString("COLUMN_NAME"),rs.getInt("KEY_SEQ"));pkName=Objects.toString(rs.getString("PK_NAME"),"");}}
@@ -72,6 +73,7 @@ final class TableDesigner {
         if(!str(current,"fingerprint").equals(str(request,"fingerprint")))throw new IllegalArgumentException("Table changed since it was loaded. Refresh and reapply your draft.");
         JsonNode draft=request.path("draft"),fields=draft.path("fields");if(!fields.isObject()||!draft.path("columns").isArray())throw new IllegalArgumentException("Table fields and columns are required");
         if(str(current,"engine").equals("sqlserver"))return SqlServerDesigner.prepare(current,request);
+        if(str(current,"engine").equals("oracle"))return OracleDesigner.prepare(current,request);
         ObjectNode plan=Profiles.JSON.createObjectNode();plan.set("snapshot",current);plan.set("draft",draft.deepCopy());ArrayNode commands=plan.putArray("commands");String engine=str(current,"engine"),target=target(current);boolean pg=engine.equals("postgresql");
         if(pg){for(String key:List.of("name","schema","owner","tablespace"))pgIdentifier(str(fields,key));for(JsonNode col:draft.path("columns"))pgIdentifier(str(col,"name"));for(JsonNode object:draft.path("objects")){for(String key:List.of("name","role","schema","table","functionSchema","functionName"))pgIdentifier(str(object,key));for(String key:List.of("columns","references"))for(JsonNode value:object.path(key))pgIdentifier(value.asText());}}
         var original=new LinkedHashMap<String,JsonNode>();current.path("columns").forEach(c->original.put(str(c,"id"),c));var desired=new LinkedHashMap<String,JsonNode>();Set<String> names=new HashSet<>();
