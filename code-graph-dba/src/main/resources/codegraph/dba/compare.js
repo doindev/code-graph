@@ -116,34 +116,38 @@ export class DatabaseCompare {
     const summary=el('div',undefined,'compare-summary');for(const [status,count]of Object.entries(this.counts??{}))summary.append(el('span',labels[status]+': '+count));
     const tools=el('div',undefined,'compare-result-tools'),search=el('input');search.type='search';search.placeholder='Find an object…';search.value=this.search??'';search.setAttribute('aria-label','Search comparison objects');
     const filter=select([['','All results'],...Object.entries(labels)],this.filter??'','Result status');filter.onchange=()=>{this.filter=filter.value;this.resultOffset=0;this.render();};search.oninput=()=>{this.search=search.value;this.resultOffset=0;this.populateTree();};
-    tools.append(search,filter,checkbox('Allow destructive schema changes',this.settings.destructiveSchema,v=>{this.settings.destructiveSchema=v;this.render();}));
+    tools.append(search,filter,checkbox('Allow destructive schema changes',this.settings.destructiveSchema,v=>{this.settings.destructiveSchema=v;if(!v)for(const object of this.objects){const chosen=this.selection.get(object.id);for(const change of object.changes)if(change.destructive)chosen?.delete(change.id);}this.invalidateScript();this.render();}));
     const layout=el('div',undefined,'compare-review'),tree=el('div',undefined,'compare-tree');tree.setAttribute('aria-label','Comparison differences');this.tree=tree;
     const divider=el('div',undefined,'compare-divider');divider.tabIndex=0;divider.setAttribute('role','separator');divider.setAttribute('aria-label','Resize comparison object tree');divider.setAttribute('aria-orientation','vertical');
     const resize=x=>{const box=layout.getBoundingClientRect();layout.style.setProperty('--compare-tree-width',Math.max(200,Math.min(box.width*.65,x-box.left))+'px');};
     divider.onpointerdown=e=>divider.setPointerCapture(e.pointerId);divider.onpointermove=e=>{if(divider.hasPointerCapture(e.pointerId))resize(e.clientX);};divider.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();resize(divider.getBoundingClientRect().left+(e.key==='ArrowLeft'?-20:20));}};
     this.details=el('section',undefined,'compare-details');this.details.append(el('p','Select an object to inspect its differences.'));layout.append(tree,divider,this.details);
-    this.body.append(summary,el('p','Review definition and data changes below. Destination-only objects are preserved; ownership, grants and server configuration are outside this comparison.','compare-note'),tools,layout);this.populateTree();
-    this.footer.append(el('span',this.request().objects.reduce((n,o)=>n+o.changes.length,0)+' selected changes'),button('Compare again',this.act(()=>this.compare())),button('Generate script',this.act(()=>this.generate()),true));if(this.busy)for(const b of this.footer.querySelectorAll('button'))b.disabled=true;
+    this.body.append(summary,el('p','Review definition and data changes below. Destination-only objects are preserved; ownership, grants and server configuration are outside this comparison.','compare-note'),el('p','Object-type checkboxes select definition changes for all matching children, including other pages. Data and sequence-value options remain separate.','compare-note'),tools,layout);this.populateTree();
+    this.selectionCount=el('span',this.request().objects.reduce((n,o)=>n+o.changes.length,0)+' selected changes');this.selectionCount.setAttribute('role','status');this.footer.append(this.selectionCount,button('Compare again',this.act(()=>this.compare())),button('Generate script',this.act(()=>this.generate()),true));if(this.busy)for(const b of this.footer.querySelectorAll('button'))b.disabled=true;
   }
   populateTree(){
-    if(!this.tree)return;this.tree.replaceChildren();const matching=this.objects.filter(o=>(!this.filter||o.status===this.filter)&&(!this.search||(o.schema+'.'+o.name).toLowerCase().includes(this.search.toLowerCase()))),offset=this.resultOffset??0,visible=new Set(matching.slice(offset,offset+250).map(o=>o.id));
+    if(!this.tree)return;const expanded=new Map([...this.tree.querySelectorAll('details[data-selection-group]')].map(n=>[n.dataset.selectionGroup,n.open])),scroll=this.tree.scrollTop;this.tree.replaceChildren();const matching=this.objects.filter(o=>(!this.filter||o.status===this.filter)&&(!this.search||(o.schema+'.'+o.name).toLowerCase().includes(this.search.toLowerCase()))),offset=this.resultOffset??0,visible=new Set(matching.slice(offset,offset+250).map(o=>o.id));
     if(matching.length>250){const pages=el('div',undefined,'compare-tree-pages');if(offset>0)pages.append(button('Previous objects',()=>{this.resultOffset=offset-250;this.populateTree();}));pages.append(el('span',(offset+1)+'–'+Math.min(offset+250,matching.length)+' of '+matching.length));if(offset+250<matching.length)pages.append(button('Next objects',()=>{this.resultOffset=offset+250;this.populateTree();}));this.tree.append(pages);}
     for(const status of Object.keys(labels)){
       if(this.filter&&this.filter!==status)continue;
       const objects=this.objects.filter(o=>visible.has(o.id)&&o.status===status&&(!this.search||(o.schema+'.'+o.name).toLowerCase().includes(this.search.toLowerCase())));if(!objects.length)continue;
-      const group=el('details');group.open=status!=='identical';group.append(el('summary',labels[status]+' ('+objects.length+')'));
+      const group=el('details');group.dataset.selectionGroup=status;group.open=expanded.get(status)??status!=='identical';group.append(el('summary',labels[status]+' ('+objects.length+')'));
       for(const kind of [...new Set(objects.map(o=>o.kind))]){
-        const category=el('details');category.open=true;category.append(el('summary',kind.replaceAll('_',' ')));
+        const members=matching.filter(o=>o.status===status&&o.kind===kind),category=el('details'),summary=el('summary',undefined,'compare-type-summary'),all=el('input'),name=kind.replaceAll('_',' '),label='Include all '+name+' ('+labels[status]+')';category.dataset.selectionGroup=status+':'+kind;category.open=expanded.get(category.dataset.selectionGroup)??true;
+        all.type='checkbox';all.setAttribute('aria-label',label);all.title='Select or deselect eligible definition changes for all '+members.length+' matching '+name+' objects across all pages.';this.selectionState(all,members);all.onclick=event=>event.stopPropagation();all.onchange=()=>{this.setSelection(members,all.checked);[...this.tree.querySelectorAll('input')].find(n=>n.getAttribute('aria-label')===label)?.focus();};summary.append(all,el('span',name+' ('+members.length+')'));category.append(summary);
         for(const object of objects.filter(o=>o.kind===kind)){
-          const row=el('div',undefined,'compare-object-row'),chosen=this.selection.get(object.id)??new Set();
-          const check=el('input');check.type='checkbox';check.setAttribute('aria-label','Include '+object.schema+'.'+object.name);check.checked=object.changes.length>0&&object.changes.every(c=>chosen.has(c.id));check.indeterminate=chosen.size>0&&!check.checked;check.disabled=!object.supported||!object.changes.length;
-          check.onchange=()=>{this.selection.set(object.id,new Set(check.checked?object.changes.filter(c=>this.settings.destructiveSchema||!c.destructive).map(c=>c.id):[]));this.invalidateScript();this.populateTree();this.showObject(object.id);};
+          const row=el('div',undefined,'compare-object-row');
+          const check=el('input');check.type='checkbox';check.setAttribute('aria-label','Include '+object.schema+'.'+object.name);this.selectionState(check,[object]);
+          check.onchange=this.act(async()=>{this.setSelection([object],check.checked);[...this.tree.querySelectorAll('input')].find(n=>n.getAttribute('aria-label')===check.getAttribute('aria-label'))?.focus();await this.showObject(object.id);});
           const open=button(object.schema+'.'+object.name,this.act(()=>this.showObject(object.id)));open.title=object.reason||labels[object.status];row.append(check,open);if(object.dependencyOnly)row.append(el('span','Dependency','compare-badge'));if(object.data)row.append(el('span','Data','compare-badge'));category.append(row);
         }group.append(category);
       }this.tree.append(group);
-    }
+    }this.tree.scrollTop=scroll;
   }
-  invalidateScript(){if(this.artifact)this.api('/compare/artifacts/'+this.artifact.artifactId,'DELETE').catch(()=>{});this.artifact=null;}
+  eligibleChanges(object){return object.supported&&object.status!=='destination_only'?object.changes.filter(c=>this.settings.destructiveSchema||!c.destructive):[];}
+  selectionState(input,objects){let total=0,chosen=0;for(const object of objects)for(const change of this.eligibleChanges(object)){total++;if(this.selection.get(object.id)?.has(change.id))chosen++;}input.disabled=total===0;input.checked=total>0&&chosen===total;input.indeterminate=chosen>0&&chosen<total;}
+  setSelection(objects,include){for(const object of objects)this.selection.set(object.id,new Set(include?this.eligibleChanges(object).map(c=>c.id):[]));this.invalidateScript();this.populateTree();if(objects.some(o=>o.id===this.currentObject?.id)){const tab=this.details?.querySelector('[aria-selected=true]');if(['Details','Planned changes'].includes(tab?.textContent))tab.click();}}
+  invalidateScript(){if(this.artifact)this.api('/compare/artifacts/'+this.artifact.artifactId,'DELETE').catch(()=>{});this.artifact=null;if(this.selectionCount)this.selectionCount.textContent=this.request().objects.reduce((n,o)=>n+o.changes.length,0)+' selected changes';}
   async showObject(id){
     const token=++this.detailToken;const object=await this.api('/compare/'+this.id+'/objects/'+id);if(this.closed||token!==this.detailToken)return;this.currentObject=object;this.details.replaceChildren();this.details.append(el('h3',object.schema+'.'+object.name));
     if(object.reason)this.details.append(el('p',object.reason,'compare-note'));

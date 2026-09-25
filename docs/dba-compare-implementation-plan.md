@@ -483,3 +483,14 @@ versions are recorded with the PostgreSQL/MySQL delivery notes.
 MySQL dependency adapters follow the distinct catalog columns documented for
 [VIEW_TABLE_USAGE](https://dev.mysql.com/doc/refman/8.4/en/information-schema-view-table-usage-table.html)
 and [VIEW_ROUTINE_USAGE](https://dev.mysql.com/doc/refman/8.4/en/information-schema-view-routine-usage-table.html).
+
+### Review selection by object type
+
+Each object-type heading in Review differences has a checkbox to select/deselect its
+children. A mixed state indicates partial selection. The action applies to all objects
+matching the current search and result-status group, including subsequent pages. Other
+object types and filtered-out objects retain their selections. Unsupported, destination-only,
+and currently disallowed destructive changes cannot be selected through these controls.
+Turning off destructive schema changes removes any previously selected destructive changes.
+Table-data and sequence-value settings remain independent. Selection changes refresh the
+selected-change count and dispose of any previously generated script.
