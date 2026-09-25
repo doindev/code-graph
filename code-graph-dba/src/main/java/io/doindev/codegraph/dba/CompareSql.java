@@ -14,7 +14,7 @@ final class CompareSql {
     static final class Plan {
         final Inventory source,destination;final Target from,to;final String engine;
         final LinkedHashMap<String,Choice> selected=new LinkedHashMap<>();
-        final List<String> before=new ArrayList<>(),after=new ArrayList<>(),state=new ArrayList<>();
+        final List<String> before=new ArrayList<>(),after=new ArrayList<>(),state=new ArrayList<>(),finish=new ArrayList<>();
         final List<Choice> data=new ArrayList<>();final List<String> warnings=new ArrayList<>();
         final boolean destructive;final String dataMode,sequenceMode;final boolean sync;
         Plan(Inventory source,Inventory destination,Target from,Target to,JsonNode request){
@@ -38,7 +38,7 @@ final class CompareSql {
             if(engine.equals("oracle")&&!data.isEmpty())w.write("-- Oracle data literals use the Gregorian calendar. Staging tables need CREATE TABLE privilege.\nALTER SESSION SET NLS_CALENDAR='GREGORIAN';\nALTER SESSION SET TIME_ZONE='+00:00';\n");
             w.write("\n");for(String warning:warnings)w.write("-- "+comment(warning)+"\n");emit(w,before);
         }
-        void footer(Writer w)throws Exception{emit(w,after);emit(w,state);if(engine.equals("postgresql"))w.write("COMMIT;\n");}
+        void footer(Writer w)throws Exception{emit(w,after);emit(w,state);emit(w,finish);if(engine.equals("postgresql"))w.write("COMMIT;\n");}
     }
     static Plan prepare(Inventory source,Inventory destination,Target from,Target to,JsonNode request)throws Exception{
         if(!source.engine.equals(destination.engine))throw new IllegalArgumentException("Choose source and destination on the same database engine");

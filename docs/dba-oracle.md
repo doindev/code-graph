@@ -323,3 +323,24 @@ REFERENCES revocation, delegated grant chains, and common/inherited container gr
 blocked for separate dependency review. Grant changes invalidate captured comparison state.
 Live validation covers table creation, role/user and column grants, stale grants, reviewed
 revocation, and an identical repeat comparison after applying the generated script.
+
+### Scheduler comparison
+
+Comparison supports native stored-procedure programs and regular jobs callable without job
+arguments, plus one-time and calendaring schedules. Native attributes, comments and NLS
+settings are retained. Typed scheduler names and procedure references are remapped separately
+from ordinary text literals. Procedures/packages and their dependencies remain visible and
+selectable in review even when only Scheduler was selected in the preceding step.
+
+Replacing a program or schedule requires reviewing recreation of its incoming jobs, with
+destructive changes enabled. Destination-only dependents block replacement. Program grants
+are restored after recreation. Jobs are created disabled; programs and jobs are enabled in
+dependency order only after definitions, data, constraints and sequence changes are complete.
+Run generated scripts during an exclusive maintenance window with scheduler activity paused.
+Enabled jobs may start as soon as the script enables them. The comparison service never runs
+the generated script or invokes a job action.
+
+Active jobs, ambiguous/missing procedure signatures, job arguments, detached programs,
+PL/SQL job blocks, external assets/credentials, custom job classes, events, lightweight jobs,
+chains and named calendar composition are blockers for separate review. These variants are
+still available in the catalog; the comparer does not silently approximate their definitions.

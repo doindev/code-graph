@@ -108,7 +108,13 @@ Owner-issued object and column grants now participate in comparison, stale-state
 and generated scripts. Live checks verify role/user grants, grant options, destructive revocation
 and a repeat comparison after execution. Trusted metadata packages and catalog reads are
 SYS-qualified so owner-local objects cannot shadow them.
-Catalog completion, identities, broader object variants and scheduler generation remain
+Native stored-procedure programs, regular jobs and calendar schedules now participate in
+comparison with typed identifier remapping, dependency-aware recreation, preserved grants
+and deferred enablement. Dependency objects remain selectable in the review screen.
+Twenty focused Java checks and the Oracle comparison browser flow pass. The final ten-check
+run also verifies package procedures, inline/disabled jobs, scheduler-only target evidence,
+per-object catalog names, stale scheduler state and destination-only dependent blockers.
+Catalog completion, identities and broader object variants remain
 in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

@@ -234,6 +234,42 @@ class OracleIntegrationTest {
             }
         }
     }
+    @Test @Timeout(300) void oracleSchedulerCompareDependenciesRecreationAndDeferredEnable()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_SS_"+suffix,destination="CG_SD_"+suffix,reader="CG_SR_"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),x->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,x->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText(),from="",to="";
+            try(var c=connections.open(admin);var st=c.createStatement()){
+                for(String owner:java.util.List.of(source,destination)){st.execute("CREATE USER "+owner+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE,CREATE PROCEDURE,CREATE JOB,SELECT_CATALOG_ROLE TO "+owner);}st.execute("CREATE USER "+reader+" NO AUTHENTICATION");
+            }
+            try{
+                from=profiles.put(null,draft(source,password)).path("id").asText();to=profiles.put(null,draft(destination,password)).path("id").asText();
+                try(var c=connections.open(from);var st=c.createStatement()){
+                    st.execute("CREATE TABLE TICKS(n NUMBER)");st.execute("CREATE PROCEDURE WORK AS BEGIN INSERT INTO TICKS VALUES(1); END;");
+                    st.execute("CREATE PACKAGE TASK_API AS PROCEDURE RUN_JOB; END;");st.execute("CREATE PACKAGE BODY TASK_API AS PROCEDURE RUN_JOB IS BEGIN WORK; END; END;");
+                    st.execute("BEGIN SYS.DBMS_SCHEDULER.CREATE_PROGRAM('PROG','STORED_PROCEDURE','TASK_API.RUN_JOB',0,true,'initial');SYS.DBMS_SCHEDULER.CREATE_SCHEDULE('CAL',TO_TIMESTAMP_TZ('2099-01-01 00:00:00 +00:00','YYYY-MM-DD HH24:MI:SS TZH:TZM'),'FREQ=DAILY');SYS.DBMS_SCHEDULER.CREATE_JOB(job_name=>'JOB_ONE',program_name=>'PROG',schedule_name=>'CAL',enabled=>true,auto_drop=>false); END;");
+                    st.execute("BEGIN SYS.DBMS_SCHEDULER.CREATE_JOB(job_name=>'JOB_INLINE',job_type=>'STORED_PROCEDURE',job_action=>'WORK',start_date=>TO_TIMESTAMP_TZ('2099-01-01 00:00:00 +00:00','YYYY-MM-DD HH24:MI:SS TZH:TZM'),repeat_interval=>'FREQ=DAILY',enabled=>false,auto_drop=>false); END;");
+                    st.execute("GRANT EXECUTE ON PROG TO "+reader);
+                }
+                var input=Profiles.JSON.createObjectNode().put("sourceReceipt",DatabaseCompareTest.receipt(compare,jobs,from,source)).put("destinationReceipt",DatabaseCompareTest.receipt(compare,jobs,to,destination)).put("dataMode","none");input.putArray("objectTypes").add("scheduler");
+                var catalog=compareFinished(jobs,compare.catalog("human",input));assertEquals(4,catalog.path("objects").size(),catalog.toString());for(JsonNode entry:catalog.path("objects"))assertTrue(entry.path("name").asText().contains(" / "),entry.toString());
+                String id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();var results=compare.results("human",id,0,100,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());assertEquals(7,results.path("counts").path("source_only").asInt(),results.toPrettyString());
+                var selection=DatabaseCompareTest.select(compare,id).put("dataMode","none");var artifact=compareFinished(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertTrue(script.contains("GRANT EXECUTE"),script);assertTrue(script.indexOf("CREATE TABLE")<script.indexOf("CREATE_PROGRAM"),script);assertTrue(script.indexOf("CREATE_PROGRAM")<script.indexOf("CREATE_JOB("+OracleCompareScheduler.literal(OracleDialect.qualified(destination,"JOB_ONE"))),script);assertTrue(script.lastIndexOf(".ENABLE(")>script.indexOf("CREATE_JOB"),script);assertFalse(script.contains("ENABLED=>TRUE"));
+                try(var c=connections.open(to);var st=c.createStatement()){for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());}
+                compare.remove("human",id);id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(7,results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);
+                try(var c=connections.open(from);var st=c.createStatement()){st.execute("BEGIN SYS.DBMS_SCHEDULER.SET_ATTRIBUTE('PROG','COMMENTS','changed');SYS.DBMS_SCHEDULER.SET_ATTRIBUTE('CAL','REPEAT_INTERVAL','FREQ=WEEKLY'); END;");}
+                id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(0,results.path("counts").path("unsupported").asInt(),results.toPrettyString());selection=DatabaseCompareTest.select(compare,id).put("dataMode","none").put("destructiveSchema",true);artifact=compareFinished(jobs,compare.generate("human",id,selection));script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();assertTrue(script.indexOf("DROP_JOB")<script.indexOf("DROP_PROGRAM"),script);assertTrue(script.indexOf("DROP_JOB")<script.indexOf("DROP_SCHEDULE"),script);assertTrue(script.contains("GRANT EXECUTE"),script);
+                try(var c=connections.open(to);var st=c.createStatement()){for(var unit:SqlScript.extract(script,"oracle",1<<20))st.execute(unit.sql());try(var rows=st.executeQuery("SELECT COUNT(*) FROM TICKS")){assertTrue(rows.next());assertEquals(0,rows.getInt(1));}}
+                compare.remove("human",id);id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertEquals(7,results.path("counts").path("identical").asInt(),results.toPrettyString());compare.remove("human",id);
+                try(var c=connections.open(from);var st=c.createStatement()){st.execute("BEGIN SYS.DBMS_SCHEDULER.SET_ATTRIBUTE('PROG','COMMENTS','next revision'); END;");}
+                id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();selection=DatabaseCompareTest.select(compare,id).put("dataMode","none").put("destructiveSchema",true);
+                try(var c=connections.open(to);var st=c.createStatement()){st.execute("BEGIN SYS.DBMS_SCHEDULER.CREATE_JOB(job_name=>'EXTRA_JOB',program_name=>'PROG',schedule_name=>'CAL',enabled=>false,auto_drop=>false); END;");}
+                var stale=compareAwait(jobs,compare.generate("human",id,selection));assertEquals("failed",stale.path("state").asText(),stale.toString());assertTrue(stale.path("error").asText().contains("changed"),stale.toString());compare.remove("human",id);
+                id=compareFinished(jobs,compare.start("human",input)).path("comparisonId").asText();results=compare.results("human",id,0,100,"","");assertTrue(results.path("counts").path("unsupported").asInt()>0,results.toPrettyString());assertTrue(results.toString().contains("Destination-only incoming Scheduler dependent"),results.toPrettyString());compare.remove("human",id);System.out.println("ORACLE_SCHEDULER_COMPARE_VERIFIED");
+            }finally{
+                if(!from.isEmpty())connections.remove(from);if(!to.isEmpty())connections.remove(to);try(var c=connections.open(admin);var st=c.createStatement()){for(String owner:java.util.List.of(source,destination,reader))st.execute("DROP USER "+owner+" CASCADE");}
+            }
+        }
+    }
     @Test void applicationCompareAcrossIndependentOwnersGeneratesAndRevalidates()throws Exception{
         String suffix=UUID.randomUUID().toString().replace("-","").substring(0,12).toUpperCase(),source="CGS"+suffix,destination="CGD"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,384L<<20,2,100,100,120),s->true);var compare=new DatabaseCompare(profiles,connections,jobs,directory,s->true)){

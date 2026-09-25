@@ -13,6 +13,7 @@ final class OracleCompareGrants {
         for(ObjectNode object:roster.values())if(str(object,"schema").equals(owner))object.putArray("oracleGrants");
         for(JsonNode row:query(job,c,"SELECT table_name,grantor,grantee,privilege,grantable,hierarchy,type,common,inherited FROM SYS.ALL_TAB_PRIVS WHERE table_schema=? ORDER BY table_name,type,grantee,privilege,grantor",owner)){
             String kind=OracleCompare.kind(str(row,"type"));ObjectNode object=roster.get(key(owner,kind,str(row,"table_name")));
+            if(object==null)object=roster.get(key(owner,"scheduler","programs / "+str(row,"table_name")));
             if(object==null&&kind.equals("tables"))object=roster.get(key(owner,"materialized_views",str(row,"table_name")));
             if(object!=null){ObjectNode grant=((ObjectNode)row).deepCopy();grant.remove(List.of("table_name","type"));grant.put("column","");object.withArray("oracleGrants").add(grant);}
         }
@@ -33,7 +34,10 @@ final class OracleCompareGrants {
         for(var entry:result.entrySet()){var sorted=new ArrayList<JsonNode>();entry.getValue().forEach(sorted::add);sorted.sort(Comparator.comparing(row->str(row,"column")));entry.getValue().removeAll().addAll(sorted);}return result;
     }
     static void review(QueryJobs.Job job,Connection c,ObjectNode source,ObjectNode destination,String owner,Map<String,String> owners,ArrayNode changes)throws Exception{
-        var desired=groups(source,owners);var old=groups(destination,Map.of());var keys=new TreeSet<String>();keys.addAll(desired.keySet());keys.addAll(old.keySet());
+        review(job,c,source,destination,owner,owners,changes,false);
+    }
+    static void review(QueryJobs.Job job,Connection c,ObjectNode source,ObjectNode destination,String owner,Map<String,String> owners,ArrayNode changes,boolean recreated)throws Exception{
+        var desired=groups(source,owners);var old=groups(destination,Map.of());if(recreated)old.clear();var keys=new TreeSet<String>();keys.addAll(desired.keySet());keys.addAll(old.keySet());
         for(String key:keys){ArrayNode wanted=desired.getOrDefault(key,Profiles.JSON.createArrayNode()),current=old.getOrDefault(key,Profiles.JSON.createArrayNode());if(wanted.equals(current))continue;
             JsonNode sample=wanted.isEmpty()?current.get(0):wanted.get(0);String grantee=str(sample,"grantee"),privilege=str(sample,"privilege");
             if(!wanted.isEmpty()&&!grantee.equals("PUBLIC")){
@@ -45,7 +49,7 @@ final class OracleCompareGrants {
                 if(next==null||str(held,"grantable").equals("YES")&&!str(next,"grantable").equals("YES")||str(held,"hierarchy").equals("YES")&&!str(next,"hierarchy").equals("YES"))revoke=true;
             }
             if(revoke&&privilege.equals("REFERENCES"))throw new IllegalArgumentException("Revoking REFERENCES can remove foreign keys; review the dependent constraints manually");
-            ArrayNode sql=Profiles.JSON.createArrayNode();String qualified=OracleDialect.qualified(owner,str(source,"name")),recipient=grantee.equals("PUBLIC")?"PUBLIC":OracleDialect.identifier(grantee);
+            ArrayNode sql=Profiles.JSON.createArrayNode();String qualified=OracleDialect.qualified(owner,source.path("objectName").asText(str(source,"name"))),recipient=grantee.equals("PUBLIC")?"PUBLIC":OracleDialect.identifier(grantee);
             if(revoke)sql.add("REVOKE "+privilege+" ON "+qualified+" FROM "+recipient);
             for(JsonNode grant:wanted){if(!revoke&&contains(current,grant))continue;String column=str(grant,"column");if(!column.isEmpty()&&!Set.of("INSERT","UPDATE","REFERENCES").contains(privilege))throw new IllegalArgumentException("Unsupported Oracle column privilege "+privilege);
                 sql.add("GRANT "+privilege+(column.isEmpty()?"":" ("+OracleDialect.identifier(column)+")")+" ON "+qualified+" TO "+recipient+(str(grant,"hierarchy").equals("YES")?" WITH HIERARCHY OPTION":"")+(str(grant,"grantable").equals("YES")?" WITH GRANT OPTION":""));

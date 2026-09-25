@@ -38,10 +38,10 @@ final class OracleCompare {
                 if(!str(row,"status").equals("VALID"))object.put("invalid",true);
                 if(!str(row,"edition_name").isBlank())object.put("edition",str(row,"edition_name"));
             }
-            for(String[] category:List.of(new String[]{"queues","SYS.ALL_QUEUES","name","owner"},new String[]{"database_links","SYS.ALL_DB_LINKS","db_link","owner"},new String[]{"jobs","SYS.ALL_JOBS","TO_CHAR(job)","schema_user"},new String[]{"scheduler","SYS.ALL_SCHEDULER_JOBS","job_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_PROGRAMS","program_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_SCHEDULES","schedule_name","owner"},new String[]{"scheduler","SYS.ALL_SCHEDULER_CHAINS","chain_name","owner"})){
+            for(String[] category:List.of(new String[]{"queues","SYS.ALL_QUEUES","name","owner"},new String[]{"database_links","SYS.ALL_DB_LINKS","db_link","owner"},new String[]{"jobs","SYS.ALL_JOBS","TO_CHAR(job)","schema_user"})){
                 if(!selectedKinds.isEmpty()&&!selectedKinds.contains(category[0]))continue;
                 for(JsonNode row:query(job,c,"SELECT "+category[2]+" AS name FROM "+category[1]+" WHERE "+category[3]+"=?",owner)){
-                    String name=(category[0].equals("scheduler")?category[1].substring(category[1].lastIndexOf("_")+1).toLowerCase(java.util.Locale.ROOT)+" / ":"")+str(row,"name");
+                    String name=str(row,"name");
                     ObjectNode object=item(owner,category[0],name).put("oracleType","").put("captureBlocker",category[0].equals("database_links")?"Database-link credentials and network assets require independent destination configuration":"Native generation for this Oracle object category is not yet validated");
                     object.set("oracleTarget",resolved.json());roster.put(key(owner,category[0],name),object);
                     if(roster.size()>MAX_OBJECTS)throw new IllegalArgumentException("Comparison exceeds 10,000 Oracle objects; narrow the scope");
@@ -58,8 +58,10 @@ final class OracleCompare {
             for(JsonNode row:query(job,c,"SELECT index_owner,index_name FROM SYS.ALL_CONSTRAINTS WHERE owner=? AND constraint_type IN ('P','U') AND index_name IS NOT NULL",owner)){
                 var index=roster.get(key(str(row,"index_owner"),"indexes",str(row,"index_name")));if(index!=null)index.put("implicit",true);
             }
-            OracleCompareGrants.capture(job,c,owner,roster);
         }
+        OracleCompareScheduler.roster(job,c,inventory,roster,catalogReader);
+        for(ObjectNode object:roster.values())object.set("oracleTarget",resolved.json());
+        for(String owner:inventory.schemas)OracleCompareGrants.capture(job,c,owner,roster);
         Set<String> maintained=new HashSet<>();for(JsonNode row:query(job,c,"SELECT username FROM SYS.ALL_USERS WHERE oracle_maintained='Y'"))maintained.add(str(row,"username"));
         for(JsonNode edge:edges){
             String from=identity(roster,str(edge,"owner"),str(edge,"type"),str(edge,"name")),to=identity(roster,str(edge,"referenced_owner"),str(edge,"referenced_type"),str(edge,"referenced_name"));
@@ -88,6 +90,7 @@ final class OracleCompare {
         if(!str(object,"captureBlocker").isBlank())throw new IllegalArgumentException(str(object,"captureBlocker"));
         if(object.path("invalid").asBoolean())throw new IllegalArgumentException("Source/destination object is invalid; resolve its compilation diagnostics first");
         if(!object.path("blockers").isEmpty())throw new IllegalArgumentException(object.path("blockers").toString());
+        if(kind.equals("scheduler")){OracleCompareScheduler.definition(job,c,object);return;}
         if(kind.equals("java"))throw new IllegalArgumentException("Java definitions require independent external asset validation");
         if(kind.equals("tables")&&!query(job,c,"SELECT table_name FROM SYS.ALL_EXTERNAL_TABLES WHERE owner=? AND table_name=?",owner,name).isEmpty())throw new IllegalArgumentException("External table assets must be supplied and validated independently");
         if(object.path("implicit").asBoolean()){object.put("supported",true).put("reason","Index is managed by its table constraint");return;}
@@ -123,7 +126,8 @@ final class OracleCompare {
             ObjectNode old=target.objects.get(key(owner,kind,name));
             try{
                 if(old!=null&&!old.path("supported").asBoolean())throw new IllegalArgumentException("Destination metadata is blocked: "+str(old,"reason"));
-                if(old==null){
+                if(kind.equals("scheduler"))OracleCompareScheduler.review(object,old,owner,mapping,changes);
+                else if(old==null){
                     var statements=new ArrayList<String>();
                     if(kind.equals("sequences"))statements.add(OracleCompareSql.remap(str(object,"ddl"),mapping));
                     else statements.add(OracleCompareSql.remap(OracleDocuments.remap(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner,false,true),mapping));
@@ -142,11 +146,29 @@ final class OracleCompare {
                 }
                 if(old!=null&&object.path("oracleBody").asBoolean()&&!OracleCompareSql.canonical(OracleCompareSql.remap(str(object,"oracleBodyDdl"),mapping)).equals(OracleCompareSql.canonical(str(old,"oracleBodyDdl"))))
                     change(changes,"REPLACE_BODY",name,"",false,List.of(OracleCompareSql.remap(OracleDocuments.remap(job,destination,kind.equals("packages")?"PACKAGE_BODY":"TYPE_BODY",str(object,"oracleBodyXml"),str(object,"schema"),owner,false,true),mapping)));
-                OracleCompareGrants.review(job,destination,object,old,owner,mapping,changes);
+                OracleCompareGrants.review(job,destination,object,old,owner,mapping,changes,kind.equals("scheduler")&&OracleCompareScheduler.hasDefinitionChange(changes));
                 if(!changes.isEmpty()&&!object.path("outsideDependents").isEmpty())throw new IllegalArgumentException("Incoming dependents outside the captured scope: "+object.path("outsideDependents"));
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof SQLException sql&&fatal(sql))throw failure;changes.removeAll();object.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Oracle cannot generate this change"));}
             reviewBytes=reviewBudget(reviewBytes,object);
         }
+        OracleCompareScheduler.incoming(source,target,mapping);
+        reviewBytes=0;for(ObjectNode object:source.objects.values())reviewBytes=reviewBudget(reviewBytes,object);
+    }
+    static void retainReviewScope(CompareDiff diff,Set<String> kinds,Set<String> ids){
+        // Dependency and incoming-dependent objects must remain selectable in review.
+        var retained=new HashSet<String>();var sourceIds=new HashMap<String,String>();var destinationIds=new HashMap<String,String>();
+        for(var object:diff.objects.values()){
+            JsonNode display=object.source==null?object.destination:object.source;
+            if(kinds.contains(str(display,"kind"))&&(ids.isEmpty()||object.source==null||ids.contains(object.id)))retained.add(object.id);
+            if(object.source!=null)sourceIds.put(key(str(object.source,"schema"),str(object.source,"kind"),str(object.source,"name")),object.id);
+            if(object.destination!=null)destinationIds.put(key(str(object.destination,"schema"),str(object.destination,"kind"),str(object.destination,"name")),object.id);
+        }
+        boolean changed;do{changed=false;for(var object:diff.objects.values()){
+            for(boolean sourceSide:List.of(true,false)){JsonNode value=sourceSide?object.source:object.destination;if(value==null)continue;var index=sourceSide?sourceIds:destinationIds;
+                for(JsonNode dependency:value.path("dependencies")){String other=index.get(dependency.asText());if(other==null)continue;if(retained.contains(object.id))changed|=retained.add(other);if(retained.contains(other))changed|=retained.add(object.id);}
+            }
+        }}while(changed);
+        diff.objects.values().removeIf(object->{JsonNode value=object.source==null?object.destination:object.source;return !retained.contains(object.id)||value.path("implicit").asBoolean()&&!kinds.contains(str(value,"kind"));});
     }
     static long reviewBudget(long used,ObjectNode object)throws Exception{
         long next=used+Profiles.JSON.writeValueAsBytes(object).length*2L+512;
@@ -161,6 +183,7 @@ final class OracleCompare {
         for(String schema:plan.source.schemas)if(!plan.destination.schemas.contains(plan.schema(schema)))throw new IllegalArgumentException("Create and authorize the destination Oracle owner before comparison: "+plan.schema(schema));
         var ordered=new ArrayList<CompareSql.Choice>();var visited=new HashSet<String>();var active=new HashSet<String>();
         for(String key:plan.selected.keySet())order(plan,key,visited,active,ordered);
+        OracleCompareScheduler.prepare(plan,ordered);
         var recompile=new LinkedHashMap<String,ObjectNode>();
         for(var choice:ordered){
             JsonNode source=choice.source();

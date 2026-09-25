@@ -73,7 +73,7 @@ final class DatabaseCompare implements AutoCloseable {
             ArrayNode objects=Profiles.JSON.createArrayNode();List<String> schemas=new ArrayList<>();
             if(target.allSchemas()){if(Set.of("mysql","mariadb").contains(ExplainPlans.engine(c.getMetaData())))schemas.add(target.database());else for(JsonNode n:pages(job,c,"schemas",target.database(),""))if(!system(str(n,"schema")))schemas.add(str(n,"schema"));}
             else schemas.add(target.schema());
-            for(String schema:schemas)for(JsonNode kind:request.path("objectTypes"))for(JsonNode n:pages(job,c,kind.asText(),target.database(),schema)){
+            for(String schema:schemas)for(JsonNode kind:request.path("objectTypes"))for(JsonNode n:kind.asText().equals("scheduler")&&OracleDialect.isOracle(c)?OracleCompareScheduler.catalog(job,c,schema):pages(job,c,kind.asText(),target.database(),schema)){
                 if(objects.size()>=MAX_OBJECTS)throw new IllegalArgumentException("Catalog exceeds 10,000 objects");String name=n.path("objectName").asText(str(n,"name"));
                 job.comparisonProgress("Loading object data options","source",schema+"."+name,objects.size(),0);
                 ObjectNode listed=objects.addObject().put("id",TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key(schema,kind.asText(),name))).substring(0,32)).put("name",name).put("schema",schema).put("kind",kind.asText());
@@ -107,7 +107,8 @@ final class DatabaseCompare implements AutoCloseable {
                 synchronized(this){if(comparison.disposed){data.close();throw new IllegalArgumentException("Comparison closed");}comparison.diff=diff;comparison.data=data;}
                 Set<String> types=new HashSet<>();request.path("objectTypes").forEach(n->types.add(n.asText()));
                 Set<String> included=new HashSet<>();request.path("objectIds").forEach(n->included.add(n.asText()));
-                diff.objects.values().removeIf(o->!types.contains(str(o.source==null?o.destination:o.source,"kind"))||!included.isEmpty()&&!included.contains(o.id)&&o.source!=null);
+                if(source.engine.equals("oracle"))OracleCompare.retainReviewScope(diff,types,included);
+                else diff.objects.values().removeIf(o->!types.contains(str(o.source==null?o.destination:o.source,"kind"))||!included.isEmpty()&&!included.contains(o.id)&&o.source!=null);
                 for(JsonNode option:request.path("tableData"))if(!structureOnly(request)&&option.path("includeData").asBoolean()){
                     CompareDiff.ObjectDiff object=diff.objects.get(str(option,"id"));if(object==null||object.source==null||!str(object.source,"kind").equals("tables")||!object.source.path("dataSupported").asBoolean())throw new IllegalArgumentException("Table data is unavailable for selected object");
                     data.table(object,option);
@@ -133,7 +134,7 @@ final class DatabaseCompare implements AutoCloseable {
     synchronized ObjectNode rows(String owner,String id,String objectId,int offset,int limit,String status)throws Exception{return require(owner,id).data.page(objectId,offset,limit,status);}
     synchronized ObjectNode plan(String owner,String id,JsonNode request)throws Exception{
         Comparison c=require(owner,id);CompareSql.Plan plan=c.diff.plan(effectiveRequest(c,request));CompareDataSql.validate(plan,c.data);ObjectNode result=Profiles.JSON.createObjectNode().put("revision",c.diff.revision);
-        ArrayNode statements=result.putArray("statements");for(String sql:plan.before)statements.add(sql);for(var d:plan.data)statements.add("-- Data: "+str(d.source(),"name")+" · "+plan.mode(d));for(String sql:plan.after)statements.add(sql);for(String sql:plan.state)statements.add(sql);return result;
+        ArrayNode statements=result.putArray("statements");for(String sql:plan.before)statements.add(sql);for(var d:plan.data)statements.add("-- Data: "+str(d.source(),"name")+" · "+plan.mode(d));for(String sql:plan.after)statements.add(sql);for(String sql:plan.state)statements.add(sql);for(String sql:plan.finish)statements.add(sql);return result;
     }
     synchronized ObjectNode generate(String owner,String id,JsonNode request)throws Exception{
         Comparison c=require(owner,id);request=effectiveRequest(c,request);CompareSql.Plan validated=c.diff.plan(request);final JsonNode generationRequest=request;CompareDataSql.validate(validated,c.data);c.busy=true;artifacts.discard(owner,id);
