@@ -23,7 +23,7 @@ final class OracleCompare {
     static Inventory capture(QueryJobs.Job job,Connection c,Target target,Set<String> selectedKinds,boolean sequenceValues)throws Exception{
         var resolved=OracleDialect.target(job,c,job.remainingSeconds());if(!resolved.matches(target.database()))throw new SQLException("Oracle comparison targets a different service/PDB");
         Inventory inventory=new Inventory("oracle",resolved.database(),c.getMetaData().getDatabaseProductVersion());inventory.sequenceValues=sequenceValues;
-        inventory.schemas.addAll(schemas(job,c,target));var roster=new TreeMap<String,ObjectNode>();var edges=new ArrayList<JsonNode>();
+        inventory.schemas.addAll(schemas(job,c,target));var roster=new TreeMap<String,ObjectNode>();var edges=new ArrayList<JsonNode>();var identityAliases=new HashMap<String,String>();
         boolean catalogReader=resolved.user().equals("SYS")||!query(job,c,"SELECT role FROM SYS.SESSION_ROLES WHERE role='SELECT_CATALOG_ROLE'").isEmpty();
         for(String owner:inventory.schemas)if(!owner.equals(resolved.user())&&!catalogReader)throw new IllegalArgumentException("Complete Oracle metadata for another owner requires SELECT_CATALOG_ROLE; select that owner's connection or grant catalog access: "+owner);
         String side=job.comparisonProgress==null?"":job.comparisonProgress.path("side").asText();
@@ -59,12 +59,20 @@ final class OracleCompare {
                 var index=roster.get(key(str(row,"index_owner"),"indexes",str(row,"index_name")));if(index!=null)index.put("implicit",true);
             }
         }
+        for(String owner:inventory.schemas)OracleIdentitySequences.roster(job,c,owner,roster,identityAliases);
         OracleCompareScheduler.roster(job,c,inventory,roster,catalogReader);
         for(ObjectNode object:roster.values())object.set("oracleTarget",resolved.json());
         for(String owner:inventory.schemas)OracleCompareGrants.capture(job,c,owner,roster);
         Set<String> maintained=new HashSet<>();for(JsonNode row:query(job,c,"SELECT username FROM SYS.ALL_USERS WHERE oracle_maintained='Y'"))maintained.add(str(row,"username"));
         for(JsonNode edge:edges){
             String from=identity(roster,str(edge,"owner"),str(edge,"type"),str(edge,"name")),to=identity(roster,str(edge,"referenced_owner"),str(edge,"referenced_type"),str(edge,"referenced_name"));
+            from=identityAliases.getOrDefault(from,from);
+            if(identityAliases.containsKey(to)){
+                ObjectNode generator=roster.get(identityAliases.get(to));JsonNode ownership=generator.path("ownership");
+                if(from.equals(key(str(ownership,"schema"),"tables",str(ownership,"table"))))continue;
+                if(roster.containsKey(from))roster.get(from).withArray("blockers").add("Explicit reference to a system-generated identity sequence requires manual remapping: "+str(edge,"referenced_name"));
+                to=identityAliases.get(to);
+            }
             ObjectNode object=roster.get(from);if(object==null){if(roster.containsKey(to)&&!maintained.contains(str(edge,"owner")))roster.get(to).withArray("outsideDependents").add(str(edge,"owner")+"."+str(edge,"name"));continue;}
             if(!str(edge,"referenced_link_name").isBlank()){object.withArray("blockers").add("Remote dependency requires database link "+str(edge,"referenced_link_name"));continue;}
             if(maintained.contains(str(edge,"referenced_owner"))||from.equals(to))continue;
@@ -93,16 +101,18 @@ final class OracleCompare {
         if(kind.equals("scheduler")){OracleCompareScheduler.definition(job,c,object);return;}
         if(kind.equals("java"))throw new IllegalArgumentException("Java definitions require independent external asset validation");
         if(kind.equals("tables")&&!query(job,c,"SELECT table_name FROM SYS.ALL_EXTERNAL_TABLES WHERE owner=? AND table_name=?",owner,name).isEmpty())throw new IllegalArgumentException("External table assets must be supplied and validated independently");
+        if(object.path("identity").asBoolean()){OracleIdentitySequences.capture(job,c,inventory,object);return;}
         if(object.path("implicit").asBoolean()){object.put("supported",true).put("reason","Index is managed by its table constraint");return;}
         String ddl=OracleDocuments.capture(job,c,type,owner,name,"DDL");
         if(OracleCompareSql.dynamic(ddl))throw new IllegalArgumentException("Dynamic SQL requires manual dependency and identifier review");
         if(kind.equals("sequences")){
             ObjectNode fields=query(job,c,"SELECT min_value, max_value, increment_by, cycle_flag, order_flag, cache_size, last_number, scale_flag, extend_flag, sharded_flag, session_flag, keep_value FROM SYS.ALL_SEQUENCES WHERE sequence_owner=? AND sequence_name=?",owner,name).path(0).deepCopy();
             JsonNode boundary=fields.remove("last_number");object.set("fields",fields);String initial=CompareSql.integer(str(fields,"increment_by")).signum()>0?str(fields,"min_value"):str(fields,"max_value");object.put("ddl",ddl.replaceFirst("(?i)START WITH\\s+[-+]?\\d+","START WITH "+initial));
-            if(inventory.sequenceValues){object.putObject("state").set("value",boundary);object.withObject("state").put("observation",fields.path("cache_size").asInt()==0?"uncached_catalog_boundary":"cache_boundary");}
+            // LAST_NUMBER is already returned by this catalog read; retain it so review can enable synchronization.
+            object.putObject("state").set("value",boundary);object.withObject("state").put("observation",fields.path("cache_size").asInt()==0?"uncached_catalog_boundary":"cache_boundary");
             boolean ordinary=str(fields,"cycle_flag").equals("N")&&str(fields,"scale_flag").equals("N")&&str(fields,"sharded_flag").equals("N")&&str(fields,"session_flag").equals("N");
             ArrayNode modes=object.putArray("stateModes");if(ordinary)modes.add("advance");object.put("stateReason",ordinary?"Sync advances to a catalog boundary; cached source values may remain unused":"Cyclic, scalable, sharded or session sequence values need manual synchronization");
-            if(!query(job,c,"SELECT table_name,column_name FROM SYS.ALL_TAB_IDENTITY_COLS WHERE owner=? AND sequence_name=?",owner,name).isEmpty()){object.put("implicit",true).put("identity",true);modes.removeAll();object.put("supported",false).put("reason","Identity-owned sequences are managed through the owning table").put("stateReason","Identity-owned sequence values are managed through the owning table");return;}
+
         }else{
             object.put("ddl",ddl);object.put("oracleXml",OracleDocuments.capture(job,c,type,owner,name,"XML"));
             if(Set.of("tables","indexes","views","materialized_views","types").contains(kind))object.put("oracleSxml",OracleDocuments.capture(job,c,type,owner,name,"SXML"));
@@ -137,6 +147,7 @@ final class OracleCompare {
                     if(!object.path("fields").equals(old.path("fields")))change(changes,"ALTER_SEQUENCE",name,"",true,List.of(OracleCompareSql.remap(str(object,"ddl"),mapping).replaceFirst("(?i)CREATE\\s+SEQUENCE","ALTER SEQUENCE").replaceFirst("(?i)START WITH\\s+[-+]?\\d+","")));
                 }else if(!str(object,"oracleSxml").isBlank()){
                     String desired=OracleDocuments.simplified(job,destination,type,str(object,"oracleXml"),str(object,"schema"),owner);
+                    if(kind.equals("tables"))desired=OracleDocuments.preserveIdentityStarts(str(old,"oracleSxml"),desired);
                     for(var alteration:OracleDocuments.changes(job,destination,type,str(old,"oracleSxml"),desired)){
                         if(!alteration.blocker().isBlank())throw new IllegalArgumentException(alteration.blocker());
                         change(changes,alteration.clause(),alteration.name(),alteration.attribute(),alteration.destructive(),alteration.statements().stream().map(sql->OracleCompareSql.remap(sql,mapping)).toList());
@@ -229,7 +240,7 @@ final class OracleCompare {
         if(destination!=null){if(!CompareSql.contains(destination.path("stateModes"),"advance"))throw new IllegalArgumentException("Destination sequence cannot be safely advanced");next=CompareSql.advance(next,CompareSql.integer(str(destination.path("state"),"value")),increment);}
         if(next.compareTo(CompareSql.integer(str(source.path("fields"),"min_value")))<0||next.compareTo(CompareSql.integer(str(source.path("fields"),"max_value")))>0)throw new IllegalArgumentException("Sequence synchronization would exceed its bounds");
         plan.warnings.add(str(source,"name")+": value synchronization advances to an observed catalog/cache boundary; source NEXTVAL was never evaluated. Cached unused values may be skipped.");
-        plan.state.add("ALTER SEQUENCE "+plan.target(source)+" RESTART START WITH "+next);
+        plan.state.add(source.path("identity").asBoolean()?OracleIdentitySequences.advance(plan,choice,next):"ALTER SEQUENCE "+plan.target(source)+" RESTART START WITH "+next);
     }
 
 }

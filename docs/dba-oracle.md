@@ -205,9 +205,9 @@ those statements. Generation revalidates captured definitions and resolved targe
 Tables, views, sequences, package/type specifications and bodies have live create/alter and
 repeat-comparison coverage. Native adapters also inspect indexes, materialized views, routines,
 triggers and synonyms; unsupported transformations, external assets, dynamic SQL, ambiguous
-identifier remapping and dependency cycles stop generation with an explicit reason. Complete
-scheduler/grant generation and broader Oracle data variants remain in progress.
-Unvalidated queue, database-link, Java and scheduler definitions are shown as blocked.
+identifier remapping and dependency cycles stop generation with an explicit reason. Owner-issued
+grants and supported stored-procedure scheduler objects are covered below. Unvalidated queues,
+database links, Java assets and advanced scheduler definitions are shown as blocked.
 
 Schema remapping uses Oracle metadata transforms plus Oracle-aware identifier tokens for
 routine/query text. Ordinary and alternative-quoted literals remain unchanged. Cross-owner
@@ -217,9 +217,24 @@ owners. Destination owners must already exist.
 
 Optional sequence synchronization advances ordinary non-cyclic sequences to an observed
 catalog/cache boundary and never consumes source NEXTVAL. Exact cached values are not claimed.
-Scalable, sharded, session and identity-owned sequence state is blocked pending dedicated
-validation. With synchronization off, a new sequence starts at its initial bound. DDL commits
+Scalable, sharded, session and cyclic sequence state remains blocked. The global synchronization
+option leaves unsupported value controls unchecked. With synchronization off, a new ordinary
+sequence starts at its initial bound. DDL commits
 implicitly; copy/save/cancel remain the only actions in the generated-script screen.
+
+Identity-owned generators appear as **Identity "table"."column"** under Sequences. They match
+across owners using the owning column rather than Oracle's generated sequence name. Their
+definition belongs to the table; optional value advancement uses ALTER TABLE and preserves
+generation mode, increment, bounds, cache, ordering and replay retention. New owning tables and
+all reviewed identity-definition changes must be included before advancing their generators.
+Existing START WITH differences are treated as state, so a repeat structure comparison does
+not reset an advanced destination. Explicit routine references to generated sequence names
+require manual remapping. A real sequence colliding with the identity review name is rejected.
+
+Live tests execute scripts for cached, descending, ahead-of-source and newly created identity
+generators, including enabling synchronization during review. They verify unchanged source
+boundaries, preserved BY DEFAULT ON NULL/ALWAYS behavior and an identical repeat comparison.
+This value synchronization is separate from the current table-data restriction on identity columns.
 
 ## Optional table data
 

@@ -95,6 +95,20 @@ final class OracleDocuments {
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD,"");factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA,"");factory.setAttribute("http://www.oracle.com/xml/jaxp/properties/maxElementDepth",128);factory.setXIncludeAware(false);factory.setExpandEntityReferences(false);
         return factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
     }
+    static String preserveIdentityStarts(String before,String desired)throws Exception{
+        Document previous=parse(before),next=parse(desired);String ns="http://xmlns.oracle.com/ku";
+        var starts=new HashMap<String,String>();NodeList old=previous.getElementsByTagNameNS(ns,"COL_LIST_ITEM");
+        for(int i=0;i<old.getLength();i++){Element column=(Element)old.item(i);NodeList identity=column.getElementsByTagNameNS(ns,"IDENTITY_COLUMN");if(identity.getLength()==1)starts.put(text(column,"NAME"),text((Element)identity.item(0),"START_WITH"));}
+        boolean changed=false;NodeList columns=next.getElementsByTagNameNS(ns,"COL_LIST_ITEM");
+        for(int i=0;i<columns.getLength();i++){Element column=(Element)columns.item(i);String start=starts.get(text(column,"NAME"));if(start==null||start.isBlank())continue;
+            NodeList identity=column.getElementsByTagNameNS(ns,"IDENTITY_COLUMN");if(identity.getLength()!=1)continue;NodeList values=((Element)identity.item(0)).getElementsByTagNameNS(ns,"START_WITH");
+            if(values.getLength()==1&&!values.item(0).getTextContent().equals(start)){values.item(0).setTextContent(start);changed=true;}
+        }
+        if(!changed)return desired;
+        var factory=javax.xml.transform.TransformerFactory.newInstance();factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,true);factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD,"");factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET,"");
+        var transformer=factory.newTransformer();transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION,"yes");var writer=new StringWriter();transformer.transform(new javax.xml.transform.dom.DOMSource(next),new javax.xml.transform.stream.StreamResult(writer));
+        String result=writer.toString();if(result.length()>MAX_CHARACTERS)throw new IllegalArgumentException("Oracle metadata document exceeds 4 MiB");return result;
+    }
     static List<Alter> alterations(String xml)throws Exception{
         Document document=parse(xml);Element root=document.getDocumentElement();String ns="http://xmlns.oracle.com/ku";
         if(!root.getLocalName().equals("ALTER_XML")||!ns.equals(root.getNamespaceURI()))throw new IllegalArgumentException("Unexpected Oracle alteration document");

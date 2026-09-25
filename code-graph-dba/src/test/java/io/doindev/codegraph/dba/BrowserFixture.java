@@ -33,6 +33,7 @@ public final class BrowserFixture {
                         if(side.equals("source")){
                             st.execute("CREATE TABLE "+OracleDialect.qualified(owner,"ITEMS")+" (id NUMBER PRIMARY KEY,label VARCHAR2(100))");
                             st.execute("CREATE SEQUENCE "+OracleDialect.qualified(owner,"COUNTER")+" START WITH 13 INCREMENT BY 3 CACHE 10");
+                            st.execute("CREATE SEQUENCE "+OracleDialect.qualified(owner,"CYCLIC_COUNTER")+" MINVALUE 1 MAXVALUE 100 START WITH 1 INCREMENT BY 1 NOCACHE CYCLE");
                             st.execute("CREATE VIEW "+OracleDialect.qualified(owner,"ITEM_VIEW")+" AS SELECT id FROM "+OracleDialect.qualified(owner,"ITEMS"));
                             st.execute("INSERT INTO "+OracleDialect.qualified(owner,"ITEMS")+" VALUES(1,'source row')");c.commit();
                         }

@@ -119,7 +119,11 @@ including scheduler arguments, chain steps/rules, column grants and owner privil
 Scans honor the configured statement timeout while retaining the overall deadline. Chain DDL
 and ANYDATA limitations are explicitly labeled. Three scan lifecycle/budget checks and the
 20 existing scheduler/standalone-catalog checks also pass.
-Identity sequence synchronization and broader object variants remain
-in progress; this is not completed Oracle support.
+Identity-owned sequence advancement now matches by owning column, preserves generator attributes,
+and executes through ALTER TABLE after table creation/changes. Live cached, descending, ahead and
+new-generator cases pass, including late review enablement and identical repeat comparisons.
+Eighteen focused Java checks, five final sequence/data checks and the Oracle comparison browser
+suite pass; unsupported cyclic values remain unchecked under global synchronization.
+Broader object variants and final regressions remain in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.

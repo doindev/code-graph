@@ -18,6 +18,7 @@ module.exports=async(browser,base)=>{
   await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('upsert');await wizard.getByRole('button',{name:'Load objects and choose table data',exact:true}).click();
   await wizard.getByRole('checkbox',{name:'Include data',exact:true}).check();await wizard.getByLabel('Default table data mode',{exact:true}).selectOption('none');assert.equal(await wizard.getByRole('checkbox',{name:'Include data',exact:true}).isDisabled(),true);
   await wizard.getByRole('checkbox',{name:'Sync sequence values',exact:true}).check();await wizard.getByRole('button',{name:'Compare',exact:true}).click();
+  await wizard.getByRole('button',{name:owners.source+'.CYCLIC_COUNTER',exact:true}).click();await wizard.getByRole('tab',{name:'Details',exact:true}).click();const unsupportedSync=wizard.getByRole('checkbox',{name:'Sync sequence values',exact:true});assert.equal(await unsupportedSync.isDisabled(),true);assert.equal(await unsupportedSync.isChecked(),false);
   await wizard.getByRole('button',{name:owners.source+'.ITEMS',exact:true}).click();await wizard.getByRole('tab',{name:'Source / Destination',exact:true}).click();
   assert.match(await wizard.locator('.compare-code-pair').innerText(),/CREATE TABLE/);await wizard.getByRole('button',{name:'Expand',exact:true}).click();
   const box=await wizard.boundingBox();assert.ok(box.width>1300&&box.height>850,JSON.stringify(box));

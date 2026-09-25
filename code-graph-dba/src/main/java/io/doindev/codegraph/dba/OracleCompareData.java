@@ -15,7 +15,7 @@ final class OracleCompareData {
         String owner=str(object,"schema"),table=str(object,"name");
         object.put("dataSupported",true).put("dataReason","");
         ArrayNode columns=object.putArray("columns"),keys=object.putArray("keys"),indexes=object.putArray("indexes"),foreign=object.putArray("foreignKeys");
-        for(JsonNode row:query(job,connection,"SELECT column_name,data_type,data_type_owner,data_length,data_precision,data_scale,char_length,char_used,nullable,virtual_column,identity_column,collation FROM all_tab_cols WHERE owner=? AND table_name=? AND (hidden_column='NO' OR user_generated='YES') ORDER BY internal_column_id",owner,table)){
+        for(JsonNode row:query(job,connection,"SELECT column_name,data_type,data_type_owner,data_length,data_precision,data_scale,char_length,char_used,nullable,virtual_column,identity_column,collation FROM SYS.all_tab_cols WHERE owner=? AND table_name=? AND (hidden_column='NO' OR user_generated='YES') ORDER BY internal_column_id",owner,table)){
             ObjectNode col=columns.addObject().put("name",str(row,"column_name")).put("type",str(row,"data_type")).put("nullable",str(row,"nullable").equals("Y"))
                 .put("generated",str(row,"virtual_column").equals("YES")?"virtual":"").put("identity",str(row,"identity_column").equals("YES")?"identity":"");
             for(String field:List.of("data_length","data_precision","data_scale","char_length","char_used","collation"))col.set(field,row.path(field));
@@ -25,7 +25,7 @@ final class OracleCompareData {
         }
         if(columns.isEmpty())block(object,"Column metadata is unavailable");
         var constraints=new LinkedHashMap<String,ObjectNode>();
-        for(JsonNode row:query(job,connection,"SELECT c.constraint_name,c.constraint_type,c.status,c.validated,c.deferrable,k.column_name,k.position,r.owner AS reference_owner,r.table_name AS reference_table,rk.column_name AS reference_column FROM all_constraints c JOIN all_cons_columns k ON k.owner=c.owner AND k.constraint_name=c.constraint_name LEFT JOIN all_constraints r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name LEFT JOIN all_cons_columns rk ON rk.owner=r.owner AND rk.constraint_name=r.constraint_name AND rk.position=k.position WHERE c.owner=? AND c.table_name=? AND c.constraint_type IN ('P','U','R') ORDER BY c.constraint_name,k.position",owner,table)){
+        for(JsonNode row:query(job,connection,"SELECT c.constraint_name,c.constraint_type,c.status,c.validated,c.deferrable,k.column_name,k.position,r.owner AS reference_owner,r.table_name AS reference_table,rk.column_name AS reference_column FROM SYS.all_constraints c JOIN SYS.all_cons_columns k ON k.owner=c.owner AND k.constraint_name=c.constraint_name LEFT JOIN SYS.all_constraints r ON r.owner=c.r_owner AND r.constraint_name=c.r_constraint_name LEFT JOIN SYS.all_cons_columns rk ON rk.owner=r.owner AND rk.constraint_name=r.constraint_name AND rk.position=k.position WHERE c.owner=? AND c.table_name=? AND c.constraint_type IN ('P','U','R') ORDER BY c.constraint_name,k.position",owner,table)){
             String name=str(row,"constraint_name");ObjectNode constraint=constraints.computeIfAbsent(name,n->{ObjectNode out=Profiles.JSON.createObjectNode().put("name",n).put("kind",str(row,"constraint_type")).put("primary",str(row,"constraint_type").equals("P"));out.putArray("columns");out.putArray("references");return out;});
             constraint.withArray("columns").add(str(row,"column_name"));constraint.withArray("references").add(str(row,"reference_column"));constraint.put("schema",str(row,"reference_owner")).put("table",str(row,"reference_table"));
             if(!str(row,"status").equals("ENABLED")||!str(row,"validated").equals("VALIDATED")||!str(row,"deferrable").equals("NOT DEFERRABLE"))block(object,"Disabled, unvalidated or deferrable constraints require a dedicated data transition");
@@ -38,15 +38,15 @@ final class OracleCompareData {
         }
         // Unique indexes, including those without a constraint, participate in conflict checks.
         var byIndex=new LinkedHashMap<String,ObjectNode>();
-        for(JsonNode row:query(job,connection,"SELECT i.index_name,i.uniqueness,i.index_type,k.column_name,k.column_position FROM all_indexes i JOIN all_ind_columns k ON k.index_owner=i.owner AND k.index_name=i.index_name WHERE i.table_owner=? AND i.table_name=? ORDER BY i.index_name,k.column_position",owner,table)){
+        for(JsonNode row:query(job,connection,"SELECT i.index_name,i.uniqueness,i.index_type,k.column_name,k.column_position FROM SYS.all_indexes i JOIN SYS.all_ind_columns k ON k.index_owner=i.owner AND k.index_name=i.index_name WHERE i.table_owner=? AND i.table_name=? ORDER BY i.index_name,k.column_position",owner,table)){
             ObjectNode index=byIndex.computeIfAbsent(str(row,"index_name"),n->{ObjectNode out=Profiles.JSON.createObjectNode().put("name",n).put("unique",str(row,"uniqueness").equals("UNIQUE"));out.putArray("columns");return out;});index.withArray("columns").add(str(row,"column_name"));
             if(index.path("unique").asBoolean()&&!str(byName.getOrDefault(str(row,"column_name"),Profiles.JSON.createObjectNode()),"generated").isEmpty())block(object,"Unique virtual columns require a dedicated data transition");
             if(!Set.of("NORMAL","NORMAL/REV","BITMAP").contains(str(row,"index_type")))block(object,"Function, domain and specialized indexes require dedicated data validation");
         }
         byIndex.values().forEach(indexes::add);
-        if(!query(job,connection,"SELECT trigger_name FROM all_triggers WHERE table_owner=? AND table_name=? AND status='ENABLED'",owner,table).isEmpty())block(object,"Enabled triggers can change copied rows or external state");
-        if(!query(job,connection,"SELECT policy_name FROM all_policies WHERE object_owner=? AND object_name=? AND enable='YES'",owner,table).isEmpty())block(object,"Row security policies prevent complete row comparison");
-        if(!query(job,connection,"SELECT table_name FROM all_tables WHERE owner=? AND table_name=? AND (temporary='Y' OR nested='YES' OR secondary='Y')",owner,table).isEmpty())block(object,"Temporary, nested and secondary tables need a dedicated data adapter");
+        if(!query(job,connection,"SELECT trigger_name FROM SYS.all_triggers WHERE table_owner=? AND table_name=? AND status='ENABLED'",owner,table).isEmpty())block(object,"Enabled triggers can change copied rows or external state");
+        if(!query(job,connection,"SELECT policy_name FROM SYS.all_policies WHERE object_owner=? AND object_name=? AND enable='YES'",owner,table).isEmpty())block(object,"Row security policies prevent complete row comparison");
+        if(!query(job,connection,"SELECT table_name FROM SYS.all_tables WHERE owner=? AND table_name=? AND (temporary='Y' OR nested='YES' OR secondary='Y')",owner,table).isEmpty())block(object,"Temporary, nested and secondary tables need a dedicated data adapter");
     }
     static void block(ObjectNode object,String reason){object.put("dataSupported",false);String prior=str(object,"dataReason");object.put("dataReason",prior.isBlank()?reason:prior+"; "+reason);}
     static boolean supported(String type){return Set.of("NUMBER","FLOAT","BINARY_FLOAT","BINARY_DOUBLE","VARCHAR2","NVARCHAR2","CHAR","NCHAR","DATE","RAW","BLOB","CLOB","NCLOB").contains(type)||type.startsWith("TIMESTAMP")||type.startsWith("INTERVAL");}
