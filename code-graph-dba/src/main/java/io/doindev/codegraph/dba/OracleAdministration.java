@@ -8,8 +8,10 @@ import java.util.concurrent.CancellationException;
 
 /** Browser-owned Oracle administration. Every mutation starts from an expiring reviewed job. */
 final class OracleAdministration {
-    private final Connections connections;private final QueryJobs jobs;
-    OracleAdministration(Connections connections,QueryJobs jobs){this.connections=connections;this.jobs=jobs;}
+    private final Connections connections;private final QueryJobs jobs;private final OracleDataPumpHistory history;
+    OracleAdministration(Connections connections,QueryJobs jobs){this.connections=connections;this.jobs=jobs;this.history=new OracleDataPumpHistory();}
+    OracleAdministration(Connections connections,QueryJobs jobs,java.nio.file.Path directory)throws java.io.IOException{this.connections=connections;this.jobs=jobs;this.history=new OracleDataPumpHistory(directory);}
+
     record Catalog(String id,String label,String sql,String filter,String order){}
     static final List<Catalog> CATALOGS=List.of(
         new Catalog("users","Users","SELECT USERNAME,USER_ID,ACCOUNT_STATUS,LOCK_DATE,EXPIRY_DATE,DEFAULT_TABLESPACE,TEMPORARY_TABLESPACE,PROFILE,AUTHENTICATION_TYPE,COMMON,ORACLE_MAINTAINED FROM SYS.DBA_USERS","USERNAME","USERNAME"),
@@ -25,7 +27,7 @@ final class OracleAdministration {
         new Catalog("diagnostics","Diagnostics","SELECT NAME,VALUE FROM SYS.V_$DIAG_INFO","NAME","NAME"),
         new Catalog("compilation","Compilation","SELECT OWNER,NAME,TYPE,SEQUENCE,LINE,POSITION,ATTRIBUTE,MESSAGE_NUMBER,TEXT FROM SYS.ALL_ERRORS","OWNER","OWNER,NAME,TYPE,SEQUENCE"),
         new Catalog("statistics","Statistics","SELECT OWNER,TABLE_NAME,PARTITION_NAME,OBJECT_TYPE,NUM_ROWS,BLOCKS,AVG_ROW_LEN,LAST_ANALYZED,STALE_STATS,STATTYPE_LOCKED FROM SYS.ALL_TAB_STATISTICS","OWNER","OWNER,TABLE_NAME,OBJECT_TYPE,PARTITION_NAME"),
-        new Catalog("datapump","Data Pump","SELECT OWNER_NAME,JOB_NAME,OPERATION,JOB_MODE,STATE,DEGREE,ATTACHED_SESSIONS,DATAPUMP_SESSIONS FROM SYS.DBA_DATAPUMP_JOBS","OWNER_NAME","OWNER_NAME,JOB_NAME"),
+        new Catalog("datapump","Data Pump","SELECT OWNER_NAME,JOB_NAME,TRIM(OPERATION) AS OPERATION,TRIM(JOB_MODE) AS JOB_MODE,STATE,DEGREE,ATTACHED_SESSIONS,DATAPUMP_SESSIONS FROM SYS.DBA_DATAPUMP_JOBS","OWNER_NAME","OWNER_NAME,JOB_NAME"),
         new Catalog("directories","Directories","SELECT OWNER,DIRECTORY_NAME,DIRECTORY_PATH FROM SYS.ALL_DIRECTORIES","DIRECTORY_NAME","DIRECTORY_NAME")
     );
     static ArrayNode categories(){var result=Profiles.JSON.createArrayNode();CATALOGS.forEach(c->result.addObject().put("id",c.id()).put("label",c.label()));return result;}
@@ -41,9 +43,15 @@ final class OracleAdministration {
             Catalog spec=CATALOGS.stream().filter(v->v.id().equals(category)).findFirst().orElseThrow(()->new IllegalArgumentException("Unknown Oracle administration category"));
             int offset=number(request,"offset",0,0,100000),limit=Math.min(100,Math.max(1,job.rowLimit));String filter=request.path("filter").asText();if(filter.length()>128)throw new IllegalArgumentException("Filter exceeds 128 characters");
             var result=Profiles.JSON.createObjectNode().put("category",category).put("label",spec.label()).put("offset",offset).put("pageSize",limit).put("observedAt",System.currentTimeMillis());result.set("target",target.json());
-            try{var rows=ObjectCatalog.query(job,c,"SELECT * FROM ("+spec.sql()+") WHERE (? IS NULL OR INSTR(UPPER("+spec.filter()+"),UPPER(?))>0) ORDER BY "+spec.order()+" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",filter,filter,offset,limit+1);boolean more=rows.size()>limit;if(more)rows.remove(rows.size()-1);result.set("rows",rows);return result.put("available",true).put("hasMore",more);}
+            try{ArrayNode rows;if(category.equals("datapump")){var page=OracleDataPump.page(job,c,filter,offset,limit+1);rows=page.rows();if(page.ownOnly())result.put("scopeNotice","Showing this account's Data Pump jobs; DBA_DATAPUMP_JOBS is not accessible.");}else rows=ObjectCatalog.query(job,c,"SELECT * FROM ("+spec.sql()+") WHERE (? IS NULL OR INSTR(UPPER("+spec.filter()+"),UPPER(?))>0) ORDER BY "+spec.order()+" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",filter,filter,offset,limit+1);boolean more=rows.size()>limit;if(more)rows.remove(rows.size()-1);result.set("rows",rows);return result.put("available",true).put("hasMore",more);}
             catch(SQLException unavailable){return result.put("available",false).put("hasMore",false).put("message","Oracle could not read "+spec.label()+". Verify catalog privileges on the required SYS views (SQLSTATE "+Objects.toString(unavailable.getSQLState(),"unknown")+", Oracle "+unavailable.getErrorCode()+").");}
         }
+    },()->{});}
+    ObjectNode rmanScript(String owner,JsonNode input){String id=connection(owner,input);JsonNode request=input.deepCopy();return jobs.local(owner,id,job->{
+        try(var selected=connections.target(id,request.path("database").asText())){var target=target(job,selected.connection(),request);job.progress="Generating manual RMAN script";var result=OracleBackupScripts.generate(target,request);result.set("target",target.json());return result;}
+    },()->{});}
+    ObjectNode dataPumpStatus(String owner,JsonNode input){String id=connection(owner,input);JsonNode request=input.deepCopy();return jobs.local(owner,id,job->{
+        try(var selected=connections.target(id,request.path("database").asText())){job.progress="Reading Oracle Data Pump job status";return history.observe(id,OracleDataPump.status(job,selected.connection(),request));}
     },()->{});}
     ObjectNode prepare(String owner,JsonNode input){String id=connection(owner,input);ObjectNode request=OracleAdminPlans.request(input);return jobs.local(owner,id,job->{
         try(var selected=connections.target(id,request.path("database").asText())){var c=selected.connection();target(job,c,request);job.progress="Preparing Oracle administration review";var plan=OracleAdminPlans.prepare(job,c,request);plan.put("profileRevision",ProjectContexts.profileRevision(connections.profile(id)));return plan;}
@@ -62,19 +70,20 @@ final class OracleAdministration {
                 for(JsonNode command:plan.path("commands")){
                     if(job.cancelled)throw new CancellationException();job.progress="Applying Oracle administration step "+(steps.size()+1)+" of "+plan.path("commands").size();
                     String sql=command.has("secretPrefix")?command.path("secretPrefix").asText()+OracleDialect.identifier(password)+command.path("secretSuffix").asText():command.path("sql").asText();
-                    try(Statement statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());executing=true;statement.execute(sql);executing=false;}finally{job.statement=null;}
-                    steps.addObject().put("index",steps.size()).put("status","acknowledged");
+                    try(Statement statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());executing=true;statement.execute(sql);executing=false;int index=steps.size()+1;steps.addObject().put("index",index).put("status","acknowledged");}finally{job.statement=null;}
                 }
                 if(plan.path("action").asText().equals("compile")){
                     var request=plan.path("request");var errors=ObjectCatalog.query(job,c,"SELECT TYPE,LINE,POSITION,ATTRIBUTE,TEXT FROM SYS.ALL_ERRORS WHERE OWNER=? AND NAME=? ORDER BY TYPE,SEQUENCE",request.path("owner").asText(),request.path("name").asText());report.set("compilationErrors",errors);
                     if(!errors.isEmpty()){job.outcome="steps_acknowledged";return report.put("outcome",job.outcome).put("message","Oracle completed compilation with diagnostics. The object may still be invalid; inspect its errors.");}
                 }
                 report.put("status","success").put("outcome","steps_acknowledged").put("message","Oracle acknowledged the reviewed operation. DDL commits implicitly.");job.outcome="steps_acknowledged";
+                if(plan.path("action").asText().startsWith("datapump_")){var request=plan.path("request");String action=plan.path("action").asText();report.put("message","Oracle acknowledged the Data Pump request. Workers may continue independently; inspect job status to determine completion.");report.putObject("dataPump").put("name",request.path("name").asText()).put("owner",action.equals("datapump_export")||action.equals("datapump_import")?plan.path("target").path("user").asText():request.path("owner").asText());}
+
             }catch(Exception failure){
-                boolean uncertain=executing&&(job.cancelled||failure instanceof CancellationException||failure instanceof SQLTimeoutException||failure instanceof SQLException e&&(e.getErrorCode()==1013||Objects.toString(e.getSQLState(),"").startsWith("08")));
+                boolean uncertain=executing&&(plan.path("action").asText().startsWith("datapump_")||job.cancelled||failure instanceof CancellationException||failure instanceof SQLTimeoutException||failure instanceof SQLException e&&(e.getErrorCode()==1013||Objects.toString(e.getSQLState(),"").startsWith("08")));
                 job.outcome=uncertain?"unknown":steps.isEmpty()?"not_applied":"partial";
                 String message=password.isEmpty()?connections.humanError(id,failure):"Oracle rejected the password operation. Check account policy, connection and privileges; the password was not retained in the plan.";
-                report.put("status","failed").put("outcome",job.outcome).put("message",message+(uncertain?" The server may still be executing the operation; inspect Oracle before retrying.":""));
+                report.put("status","failed").put("outcome",job.outcome).put("message",message+(uncertain?" Oracle may have changed state or still be executing; inspect the target and Data Pump jobs before retrying.":""));
             }finally{job.statement=null;}return report;
         },()->{});
     }

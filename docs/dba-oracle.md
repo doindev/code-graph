@@ -2,7 +2,7 @@
 
 The Oracle expansion is in progress; see [the implementation plan](dba-oracle-implementation-plan.md).
 The connection, SQL execution and native comparison foundations described here are implemented.
-Broader Oracle catalog/compare variants and Data Pump/RMAN lifecycle support are still being developed.
+Broader Oracle catalog/compare variants are still being developed.
 Oracle 19c and newer are the target; full standard 19c administration certification remains pending.
 
 ## Connections and targets
@@ -243,7 +243,26 @@ DDL commits implicitly; cancellation during execution is reported as uncertain. 
 steps, start/end times, compilation diagnostics and failures remain visible in the workspace.
 Oracle-maintained/common accounts and system/undo storage require separate native review.
 
-Data Pump execution/stop/resume and downloadable RMAN scripts are still in progress.
+Data Pump supports reviewed schema export/import, content selection, owner remapping, existing-table
+handling, and stop/resume. Directory READ/WRITE grants and input/output file existence are checked
+before applying. Dump files are never overwritten. Jobs use one worker across editions and retain
+Oracle's master table for restart; resume requires the original job owner. Missing catalog access
+falls back to the account's own jobs. Opening the workspace rediscovers Oracle jobs after restart.
+Select a job to inspect its start time, state, data progress, phase, errors and restart count, or
+refresh status every three seconds while the workspace remains open. Closing the window stops
+application polling; Oracle continues until completed or explicitly stopped. Cancelling an
+application request does not imply cancelling the Data Pump workers.
+
+The latest status observation for up to 200 jobs is stored privately (at most 2 MiB), scoped to
+the connection and resolved target. A missing/inaccessible job remains unknown even if a previous
+observation exists. Oracle log files remain authoritative when terminal status was not observed.
+Data Pump diagnostic text containing credential markers is omitted from retained observations.
+
+**RMAN scripts** generates backup, database-file validation, and restore-backup validation scripts
+for the resolved PDB or database. Scripts contain no credentials and have copy/save controls;
+the application has no RMAN execution path. A PDB script instructs the operator to connect RMAN
+to the matching CDB root. Backup directory prerequisites and the database-wide control-file
+backup are explicit; shared archived logs are optional.
 
 ## Validation
 
@@ -287,3 +306,10 @@ statistics, and disposable tablespace/file operations. Live session tests verify
 leaves the connection usable, while reviewed disconnection/termination closes the exact session.
 The `oracle-admin` browser suite checks account creation/deletion, review invalidation, password
 clearing, catalog selection/filtering, last results and desktop/mobile viewport layouts.
+
+Data Pump tests execute export/stop/rediscovery/resume/import and verify 100 destination rows.
+A separate ordinary-user test verifies schema isolation, directory permissions, catalog fallback,
+and private observation history after an application restart. RMAN tests verify scope and paths;
+Oracle's syntax-only RMAN checker accepts the exact browser-downloaded backup script. Browser
+checks also cover deterministic Data Pump status polling, retained observations, terminal-state
+handling and complete RMAN copy/save. Standard Oracle 19c certification remains pending.

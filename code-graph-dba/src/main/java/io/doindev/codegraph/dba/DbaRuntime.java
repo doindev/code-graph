@@ -53,7 +53,7 @@ public final class DbaRuntime implements AutoCloseable {
         connections=new Connections(profiles);jobs=new QueryJobs(connections,config,this::ownerAlive);
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         compare=new DatabaseCompare(profiles,connections,jobs,config.directory(),this::ownerAlive);
-        oracleAdministration=new OracleAdministration(connections,jobs);
+        oracleAdministration=new OracleAdministration(connections,jobs,config.directory());
         gridSettings=new GridSettings(profiles.directory());
         approvalSettings=new ApprovalSettings(profiles.directory());
         mcpSessionSettings=new McpSessionSettings(profiles.directory());
@@ -353,6 +353,8 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/table-properties/apply")&&method.equals("POST")){json(x,202,jobs.applyTableProperties(session.id(),body(x)));return;}
             if(Set.of("/api/dba/object-properties/load","/api/dba/object-properties/prepare").contains(path)&&method.equals("POST")){JsonNode b=body(x);json(x,202,jobs.objectProperties(session.id(),Profiles.text(b,"connectionId",36),b,path.endsWith("/prepare")));return;}
             if(path.equals("/api/dba/object-properties/apply")&&method.equals("POST")){json(x,202,jobs.applyObjectProperties(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/oracle/rman/script")&&method.equals("POST")){json(x,202,oracleAdministration.rmanScript(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/oracle/datapump/status")&&method.equals("POST")){json(x,202,oracleAdministration.dataPumpStatus(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/read")&&method.equals("POST")){json(x,202,oracleAdministration.read(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/prepare")&&method.equals("POST")){json(x,202,oracleAdministration.prepare(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/apply")&&method.equals("POST")){json(x,202,oracleAdministration.apply(session.id(),body(x)));return;}

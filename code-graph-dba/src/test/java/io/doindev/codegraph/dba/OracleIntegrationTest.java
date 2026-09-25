@@ -344,6 +344,65 @@ class OracleIntegrationTest {
         }
     }
 
+    @Test @Timeout(180) void oracleDataPumpLeastPrivilegeOwnSchemaAndPrivateHistory()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),user="CG_DPL_"+suffix,name="CG_DP_LONG_IDENTIFIER_FOR_ORACLE19_"+suffix,password="Cg"+UUID.randomUUID().toString().replace("-","");
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,128L<<20,2,100,100,120),x->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText(),limited="";
+            try(var c=connections.open(admin);var st=c.createStatement()){st.execute("CREATE USER "+user+" IDENTIFIED BY "+OracleDialect.identifier(password)+" QUOTA 10M ON USERS");st.execute("GRANT CREATE SESSION,CREATE TABLE TO "+user);st.execute("GRANT READ,WRITE ON DIRECTORY DATA_PUMP_DIR TO "+user);}
+            try{
+                limited=profiles.put(null,draft(user,password)).path("id").asText();try(var c=connections.open(limited);var st=c.createStatement()){st.execute("CREATE TABLE ITEMS(id NUMBER)");}
+                var service=new OracleAdministration(connections,jobs,directory);var catalog=dataPumpJob(jobs,service.read("human",Profiles.JSON.createObjectNode().put("connectionId",limited).put("category","datapump")));assertTrue(catalog.path("result").path("available").asBoolean(),catalog.toString());assertTrue(catalog.path("result").has("scopeNotice"));jobs.remove("human",catalog.path("id").asText());
+                var request=Profiles.JSON.createObjectNode().put("connectionId",limited).put("action","datapump_export").put("owner","SYSTEM").put("name",name).put("directory","DATA_PUMP_DIR").put("dumpFile",name+".dmp").put("logFile",name+".log");
+                var denied=dataPumpJob(jobs,service.prepare("human",request));assertEquals("failed",denied.path("state").asText());assertTrue(denied.path("error").asText().contains("DATAPUMP_EXP_FULL_DATABASE"));jobs.remove("human",denied.path("id").asText());
+                request.put("owner",user);dataPumpApply(service,jobs,request);var status=Profiles.JSON.createObjectNode().put("connectionId",limited).put("owner",user).put("name",name);awaitDataPumpComplete(service,jobs,status);
+                var restarted=new OracleAdministration(connections,jobs,directory);var observed=dataPumpJob(jobs,restarted.dataPumpStatus("human",status));assertEquals("COMPLETED",observed.path("result").path("previousObservation").path("state").asText(),observed.toString());jobs.remove("human",observed.path("id").asText());assertFalse(java.nio.file.Files.readString(directory.resolve("oracle-datapump-observations.json")).contains(password));
+                System.out.println("ORACLE_DATAPUMP_LEAST_PRIVILEGE_VERIFIED");
+            }finally{
+                if(!limited.isEmpty())connections.remove(limited);try(var c=connections.open(admin);var st=c.createStatement()){
+                    try{st.execute("DECLARE h NUMBER; BEGIN h:=SYS.DBMS_DATAPUMP.ATTACH('"+name+"','"+user+"'); SYS.DBMS_DATAPUMP.STOP_JOB(h,1,0,0); END;");}catch(SQLException ignored){}
+                    for(String file:java.util.List.of(name+".dmp",name+".log"))try{st.execute("BEGIN SYS.UTL_FILE.FREMOVE('DATA_PUMP_DIR','"+file+"'); END;");}catch(SQLException ignored){}
+                    st.execute("DROP USER "+user+" CASCADE");
+                }
+            }
+        }
+    }
+    @Test @Timeout(300) void oracleDataPumpExportImportStopResumeAndRestartDiscovery()throws Exception{
+        String suffix=UUID.randomUUID().toString().replace("-","").substring(0,10).toUpperCase(),source="CG_DPS_"+suffix,destination="CG_DPD_"+suffix,export="CG_EXP_"+suffix,importJob="CG_IMP_"+suffix;
+        try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=new QueryJobs(connections,new DbaConfig(directory,128L<<20,2,100,100,120),x->true)){
+            String admin=profiles.put(null,systemDraft()).path("id").asText();var service=new OracleAdministration(connections,jobs);
+            try(var c=connections.open(admin);var st=c.createStatement()){c.setAutoCommit(true);for(String user:java.util.List.of(source,destination))st.execute("CREATE USER "+user+" NO AUTHENTICATION QUOTA 10M ON USERS");st.execute("CREATE TABLE "+source+".ITEMS(id NUMBER PRIMARY KEY,label VARCHAR2(50))");st.execute("INSERT INTO "+source+".ITEMS SELECT LEVEL,'row '||LEVEL FROM SYS.DUAL CONNECT BY LEVEL<=100");}
+            try{
+                var request=Profiles.JSON.createObjectNode().put("connectionId",admin).put("action","datapump_export").put("name",export).put("owner",source).put("directory","DATA_PUMP_DIR").put("dumpFile",export+".dmp").put("logFile",export+".log");
+                dataPumpApply(service,jobs,request);dataPumpApply(service,jobs,Profiles.JSON.createObjectNode().put("connectionId",admin).put("action","datapump_stop").put("name",export).put("owner","SYSTEM"));var statusRequest=Profiles.JSON.createObjectNode().put("connectionId",admin).put("owner","SYSTEM").put("name",export);
+                var restarted=new OracleAdministration(connections,jobs);var discovery=dataPumpJob(jobs,restarted.read("human",Profiles.JSON.createObjectNode().put("connectionId",admin).put("category","datapump").put("filter","SYSTEM")));assertTrue(discovery.path("result").path("rows").toString().contains(export),discovery.toString());
+                var stopped=dataPumpJob(jobs,restarted.dataPumpStatus("human",statusRequest));assertEquals("complete",stopped.path("state").asText(),stopped.toString());assertTrue(stopped.path("result").path("available").asBoolean(),stopped.toString());
+                dataPumpApply(restarted,jobs,Profiles.JSON.createObjectNode().put("connectionId",admin).put("action","datapump_resume").put("name",export).put("owner","SYSTEM"));
+                awaitDataPumpComplete(restarted,jobs,statusRequest);
+                request.put("action","datapump_import").put("name",importJob).put("destinationOwner",destination).put("logFile",importJob+".log");
+                dataPumpApply(restarted,jobs,request);statusRequest.put("name",importJob);awaitDataPumpComplete(restarted,jobs,statusRequest);
+                try(var c=connections.open(admin);var st=c.createStatement();var rows=st.executeQuery("SELECT COUNT(*),MAX(label) FROM "+destination+".ITEMS")){assertTrue(rows.next());assertEquals(100,rows.getInt(1));assertEquals("row 99",rows.getString(2));}
+                statusRequest.put("name","CG_MISSING_"+suffix);var missing=dataPumpJob(jobs,restarted.dataPumpStatus("human",statusRequest));assertEquals("UNKNOWN",missing.path("result").path("state").asText());assertFalse(missing.path("result").path("available").asBoolean());
+                System.out.println("ORACLE_DATAPUMP_LIFECYCLE_VERIFIED");
+            }finally{
+                try(var c=connections.open(admin);var st=c.createStatement()){
+                    // Only unique task-owned jobs/files/users. A stopped job is intentionally discarded during fixture cleanup.
+                    for(String name:java.util.List.of(export,importJob)){try{st.execute("DECLARE h NUMBER; BEGIN h:=SYS.DBMS_DATAPUMP.ATTACH('"+name+"','SYSTEM'); SYS.DBMS_DATAPUMP.STOP_JOB(h,1,0,0); END;");}catch(SQLException ignored){}try{st.execute("DROP TABLE SYSTEM."+name+" PURGE");}catch(SQLException e){if(e.getErrorCode()!=942)throw e;}}
+                    for(String file:java.util.List.of(export+".dmp",export+".log",importJob+".log"))try{st.execute("BEGIN SYS.UTL_FILE.FREMOVE('DATA_PUMP_DIR','"+file+"'); END;");}catch(SQLException ignored){}
+                    for(String user:java.util.List.of(source,destination))st.execute("DROP USER "+user+" CASCADE");
+                }
+            }
+        }
+    }
+    private static JsonNode dataPumpJob(QueryJobs jobs,JsonNode submitted)throws Exception{
+        long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(130);for(;;){var state=jobs.status("human",submitted.path("id").asText());if(state.path("finished").asLong()>0)return state;if(System.nanoTime()>until)throw new AssertionError("Data Pump application operation did not finish: "+state);Thread.sleep(50);}
+    }
+    private static JsonNode dataPumpApply(OracleAdministration service,QueryJobs jobs,ObjectNode request)throws Exception{
+        var review=dataPumpJob(jobs,service.prepare("human",request));assertEquals("complete",review.path("state").asText(),review.toString());String id=review.path("id").asText();
+        try{var result=dataPumpJob(jobs,service.apply("human",Profiles.JSON.createObjectNode().put("planId",id).put("confirmed",true)));assertEquals("success",result.path("result").path("status").asText(),result.toString());jobs.remove("human",result.path("id").asText());return result;}finally{jobs.remove("human",id);}
+    }
+    private static void awaitDataPumpComplete(OracleAdministration service,QueryJobs jobs,ObjectNode request)throws Exception{
+        long until=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(100);JsonNode last=null;while(System.nanoTime()<until){last=dataPumpJob(jobs,service.dataPumpStatus("human",request));jobs.remove("human",last.path("id").asText());var result=last.path("result");if(result.path("state").asText().equals("COMPLETED")){assertEquals(0,result.path("errorCount").asInt(),last.toString());return;}Thread.sleep(250);}throw new AssertionError("Data Pump completion was not observed: "+last);
+    }
     @Test @Timeout(120) void oracleAdministrationTargetsExactSessionsAndActiveSql()throws Exception{
         String marker="CG_ADM_SESSION_"+UUID.randomUUID().toString().replace("-","").substring(0,16);
         try(var profiles=new Profiles(directory,new DbaTest.MemoryVault());var connections=new Connections(profiles);var jobs=jobs(connections)){

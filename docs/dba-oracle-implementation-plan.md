@@ -100,7 +100,11 @@ alongside the existing SQL, grid, designer, builder and permission flows.
 The Oracle Administration workspace now provides bounded catalog pages and typed, expiring,
 single-use mutation reviews for accounts, roles, profiles, grants, quotas, storage, sessions,
 compilation and statistics. Live ordinary/admin tests and the desktop/mobile browser suite pass.
-Catalog completion, identities, broader object variants, grants/scheduler generation,
-Data Pump lifecycle and RMAN scripts remain in progress; this is not completed Oracle support.
+Data Pump schema export/import, reviewed stop/resume, native restart discovery, ordinary-user
+catalog fallback and bounded private observation history now pass live lifecycle checks. Manual
+RMAN backup/validation artifacts have complete copy/save controls; the downloaded backup passes
+Oracle's syntax-only checker. Browser tests cover status monitoring and artifact disposal.
+Catalog completion, identities, broader object variants and grants/scheduler generation remain
+in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.
