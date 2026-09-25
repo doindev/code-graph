@@ -14,7 +14,7 @@ final class TableDesigner {
     static String str(JsonNode n,String key){return n.path(key).asText("");}
     static String literal(String s){return "'"+s.replace("'","''")+"'";}
     static String hash(JsonNode n)throws Exception{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Profiles.JSON.writeValueAsBytes(n)));}
-    static String target(JsonNode snapshot){if(str(snapshot,"engine").equals("sqlserver"))return SqlServerDesigner.target(snapshot);return q(str(snapshot,"schema"))+"."+q(str(snapshot,"name"));}
+    static String target(JsonNode snapshot){if(MysqlDialect.supports(str(snapshot,"engine")))return MysqlDesigner.target(snapshot);if(str(snapshot,"engine").equals("sqlserver"))return SqlServerDesigner.target(snapshot);return q(str(snapshot,"schema"))+"."+q(str(snapshot,"name"));}
     static ArrayNode query(QueryJobs.Job job,Connection c,String sql,Object... params)throws Exception{
         ArrayNode out=Profiles.JSON.createArrayNode();
         try(var st=c.prepareStatement(sql)){job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.setMaxRows(1001);for(int i=0;i<params.length;i++)st.setObject(i+1,params[i]);
@@ -35,6 +35,7 @@ final class TableDesigner {
         String schema=str(identity,"schema"),name=str(identity,"name"),product=c.getMetaData().getDatabaseProductName(),engine=generic?"jdbc":product.equalsIgnoreCase("PostgreSQL")?"postgresql":VendorMetadata.engine(product);
         ObjectNode out=identity.deepCopy();out.put("engine",engine);out.set("selection",selection.deepCopy());out.put("editable",Set.of("postgresql","h2").contains(engine));out.put("reason","Editing is enabled only for validated PostgreSQL/H2 operations. Other drivers and unsupported fields remain read-only.");
         ArrayNode categories=out.putArray("categories");TableMetadata.categories(engine,c.getMetaData().getDatabaseMajorVersion()).forEach(categories::add);categories.add("Statistics").add("Permissions").add("DDL").add("Virtual");
+        if(MysqlDialect.supports(engine))return MysqlDesigner.load(job,c,out);
         if(engine.equals("sqlserver")&&c.getMetaData().getDatabaseMajorVersion()>=16)return SqlServerDesigner.load(job,c,out);
         if(engine.equals("oracle")&&c.getMetaData().getDatabaseMajorVersion()>=19)return OracleDesigner.load(job,c,out);
         ObjectNode fields=out.putObject("fields");fields.put("name",name).put("schema",schema).put("owner","").put("comment","").put("tablespace","");
@@ -72,6 +73,7 @@ final class TableDesigner {
         if(!current.path("editable").asBoolean())throw new IllegalArgumentException(str(current,"reason"));
         if(!str(current,"fingerprint").equals(str(request,"fingerprint")))throw new IllegalArgumentException("Table changed since it was loaded. Refresh and reapply your draft.");
         JsonNode draft=request.path("draft"),fields=draft.path("fields");if(!fields.isObject()||!draft.path("columns").isArray())throw new IllegalArgumentException("Table fields and columns are required");
+        if(MysqlDialect.supports(str(current,"engine")))return MysqlDesigner.prepare(current,request);
         if(str(current,"engine").equals("sqlserver"))return SqlServerDesigner.prepare(current,request);
         if(str(current,"engine").equals("oracle"))return OracleDesigner.prepare(current,request);
         ObjectNode plan=Profiles.JSON.createObjectNode();plan.set("snapshot",current);plan.set("draft",draft.deepCopy());ArrayNode commands=plan.putArray("commands");String engine=str(current,"engine"),target=target(current);boolean pg=engine.equals("postgresql");

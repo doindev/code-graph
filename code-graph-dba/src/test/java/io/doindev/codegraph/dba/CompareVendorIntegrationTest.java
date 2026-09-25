@@ -127,7 +127,7 @@ class CompareVendorIntegrationTest {
                 left.execute("CREATE OR REPLACE VIEW src_scope.unrelated_view AS SELECT 2 AS untouched");
                 ObjectNode selection=DatabaseCompareTest.select(compare,id).put("dataMode","none").put("syncSequences",false);
                 JsonNode artifact=DatabaseCompareTest.finish(jobs,compare.generate("human",id,selection));String script=compare.artifacts.preview("human",artifact.path("artifactId").asText()).path("sql").asText();
-                assertFalse(script.contains("unrelated_view"));assertFalse(script.matches("(?s).*\\b(INSERT INTO|UPDATE |DELETE FROM|MERGE INTO|TRUNCATE )\\b.*"));right.execute(script);
+                assertFalse(script.contains("unrelated_view"));for(String statement:script.split(";"))assertFalse(statement.replaceAll("(?m)--[^\\r\\n]*", "").stripLeading().matches("(?is)^(INSERT|UPDATE|DELETE|MERGE|TRUNCATE)\\b.*"));right.execute(script);
                 try(ResultSet rows=right.executeQuery("SELECT count(*) FROM information_schema.tables WHERE table_schema='dst_scope' AND table_type='BASE TABLE'")){assertTrue(rows.next());assertEquals(151,rows.getInt(1));}
                 System.out.println("COMPARE_SCOPED_STRUCTURE_VERIFIED 151 tables, bulk dependencies, no consumer scans; elapsedMs="+java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started));
             }

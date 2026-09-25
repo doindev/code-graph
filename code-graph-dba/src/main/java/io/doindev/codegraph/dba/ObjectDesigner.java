@@ -60,6 +60,7 @@ final class ObjectDesigner {
             out.set("node",node);values.put("name",node.path("objectName").asText(str(node,"name")));
         }
         ObjectCatalog.populate(job,c,out,node);
+        if(MysqlDialect.supports(engine))out.put("mysqlSqlMode",MysqlDialect.mode(job,c));
         ObjectForms.configure(c,out);
         MaterializedViewSchedules.populate(job,c,out);
         category(out,"DDL");
@@ -76,7 +77,7 @@ final class ObjectDesigner {
         ObjectNode identity=Profiles.JSON.createObjectNode().put("engine",str(out,"engine")).put("database",str(out,"database"));
         if(out.has("oracleTarget"))identity.set("oracleTarget",out.path("oracleTarget"));
         identity.set("target",out.path("target"));identity.set("fields",out.path("fields"));identity.put("ddl",str(out,"ddl"));
-        for(String key:List.of("schedulerConfig","schedulerFunctions","schedulerSteps","schedulerSchedules","mysqlNoBackslashEscapes"))if(out.has(key))identity.set(key,out.path(key));
+        for(String key:List.of("schedulerConfig","schedulerFunctions","schedulerSteps","schedulerSchedules","mysqlNoBackslashEscapes","mysqlSqlMode"))if(out.has(key))identity.set(key,out.path(key));
         if(out.has("refreshSchedule"))identity.set("refreshSchedule",MaterializedViewSchedules.stable(out.path("refreshSchedule")));
         if(out.path("details").has("Permissions"))identity.set("permissions",out.path("details").path("Permissions"));
         if(out.has("node"))identity.set("node",out.path("node"));if(out.has("replacement"))identity.set("replacement",out.path("replacement"));
@@ -93,7 +94,7 @@ final class ObjectDesigner {
         JsonNode draft=input.path("draft");if(!draft.isObject())throw new IllegalArgumentException("Object draft is required");
         boolean sqlMode=draft.path("sqlMode").asBoolean();
         List<String> objectCommands;
-        if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft,str(snapshot,"engine"));}
+        if(sqlMode){String source=str(draft,"sql");objectCommands=source.isBlank()&&!snapshot.path("creation").asBoolean()?List.of():sqlCommands(draft,str(snapshot,"engine"),str(snapshot,"mysqlSqlMode"));}
         else objectCommands=snapshot.has("scheduler")?ScheduledJobEditor.compile(snapshot,draft):ObjectForms.compile(snapshot,draft);
         List<MaterializedViewSchedules.Command> scheduleCommands=MaterializedViewSchedules.compile(snapshot,draft);
         if(objectCommands.isEmpty()&&scheduleCommands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
@@ -108,15 +109,20 @@ final class ObjectDesigner {
         for(MaterializedViewSchedules.Command command:scheduleCommands)sql.addObject().put("sql",command.sql()).put("database",command.database()).put("phase",command.phase()).put("purpose",command.purpose());
         List<String> commands=new ArrayList<>();for(JsonNode command:sql)commands.add(command.path("sql").asText());out.put("sql",String.join(";\n\n",commands)+";");
         out.put("warning",sqlMode?"Execute the reviewed SQL on the displayed connection/database. Custom SQL can affect objects beyond this tab.":"Review the exact object and refresh-schedule changes. Definitions can run database code and acquire locks.");
+        if(MysqlDialect.supports(str(snapshot,"engine")))out.put("partialCommitWarning","MySQL DDL commits implicitly. A later failure cannot roll back acknowledged statements; inspect the reported outcome before retrying.");
         if(!oneDatabase||!atomic&&!objectCommands.isEmpty()&&!scheduleCommands.isEmpty())out.put("partialCommitWarning","Object definition and scheduler configuration cannot be atomic. If scheduling fails after object creation, the object remains and the Refresh page can retry only its schedule.");
         if(snapshot.has("scheduler")){out.put("warning","Review the scheduled job changes and their execution identity. Enabled schedules may start due work immediately. Native calls may also start or cancel work according to the displayed command.");if(!atomic)out.put("partialCommitWarning","This scheduler may commit each operation separately. A failure can leave some reviewed changes applied; inspect the reported outcome before retrying.");}
         return out;
     }
     static List<String> sqlCommands(JsonNode draft){return sqlCommands(draft,"");}
-    static List<String> sqlCommands(JsonNode draft,String engine){
+    static List<String> sqlCommands(JsonNode draft,String engine){return sqlCommands(draft,engine,"");}
+    static List<String> sqlCommands(JsonNode draft,String engine,String mode){
         String sql=str(draft,"sql");if(sql.isBlank()||sql.length()>65536)throw new IllegalArgumentException("Enter 1–65536 characters of SQL in DDL");
         // A single JDBC unit preserves vendor routine bodies containing semicolons. Multiple units
         // are opt-in and use the same bounded lexical extraction as the Script editor.
+        if(MysqlDialect.supports(engine)){
+            return (draft.path("splitSql").asBoolean()||sql.stripLeading().toUpperCase(Locale.ROOT).startsWith("DELIMITER ")?MysqlScript.extract(sql,65536,MysqlScript.Mode.parse(mode)):MysqlScript.single(sql,65536,MysqlScript.Mode.parse(mode))).stream().map(SqlScript.Unit::sql).toList();
+        }
         if(engine.equals("oracle")){
             List<String> units=SqlScript.extract(sql,"oracle",65536).stream().map(SqlScript.Unit::sql).toList();
             if(units.size()>1&&!draft.path("splitSql").asBoolean())throw new IllegalArgumentException("Enable Split multiple statements for the Oracle definition and its body");

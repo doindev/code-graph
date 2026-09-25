@@ -19,7 +19,7 @@ final class CompareCatalog {
     }
     static final class Inventory {
         final String engine,database,version;final SortedMap<String,ObjectNode> objects=new TreeMap<>();final SortedSet<String> schemas=new TreeSet<>();
-        long bytes;final long maxBytes;boolean sequenceValues=true;
+        long bytes;final long maxBytes;boolean sequenceValues=true;String mysqlSqlMode="",mysqlPrincipal="",mysqlDatabaseCollation="";
         Inventory(String engine,String database,String version){this(engine,database,version,MAX_BYTES);}
         Inventory(String engine,String database,String version,long maxBytes){this.engine=engine;this.database=database;this.version=version;this.maxBytes=maxBytes;}
         void add(ObjectNode object)throws Exception{
@@ -37,6 +37,7 @@ final class CompareCatalog {
     static ObjectNode definition(ObjectNode object){
         ObjectNode n=object.deepCopy();if(n.has("oracleType"))n.remove(List.of("oracleXml","oracleBodyXml","oracleChanges","oracleSelectedChanges","supported","reason"));n.remove(List.of("id","oid","selection","state","stateModes","stateReason","base","identityBase","dependencies"));
         if(n.path("columns").isArray())for(JsonNode column:n.path("columns"))((ObjectNode)column).remove(List.of("id","identityBase"));
+        if(n.has("nativeDdl"))n.put("nativeDdl",CompareSql.normalizeMysql(str(n,"nativeDdl"),MysqlCompare.mode(n)));
         return n;
     }
     static ObjectNode item(String schema,String kind,String name){
@@ -75,7 +76,7 @@ final class CompareCatalog {
             try{return selectedIds.contains(TableDesigner.hash(Profiles.JSON.getNodeFactory().textNode(key(identitySchema==null?str(entry.object(),"schema"):identitySchema,str(entry.object(),"kind"),str(entry.object(),"name")))).substring(0,32));}
             catch(Exception failure){throw new IllegalStateException(failure);}
         };
-        String engine=engine(c);if(engine.equals("oracle"))return OracleCompare.capture(job,c,target,selectedKinds,sequenceValues);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion(),job.comparisonMetadataBytes);inv.sequenceValues=sequenceValues;
+        String engine=engine(c);if(engine.equals("oracle"))return OracleCompare.capture(job,c,target,selectedKinds,sequenceValues);Inventory inv=new Inventory(engine,Objects.toString(c.getCatalog(),target.database()),c.getMetaData().getDatabaseProductVersion(),job.comparisonMetadataBytes);inv.sequenceValues=sequenceValues;if(MysqlDialect.supports(engine)){inv.mysqlSqlMode=MysqlDialect.mode(job,c);var nativeTarget=query(job,c,"SELECT CURRENT_USER() AS principal,@@collation_database AS collation").path(0);inv.mysqlPrincipal=str(nativeTarget,"principal");inv.mysqlDatabaseCollation=str(nativeTarget,"collation");}
         if(target.allSchemas()){
             if(Set.of("mysql","mariadb").contains(engine))inv.schemas.add(inv.database);
             else for(JsonNode n:pages(job,c,"schemas",inv.database,"")){String schema=n.path("schema").asText(str(n,"name"));if(!system(schema))inv.schemas.add(schema);}
@@ -95,8 +96,10 @@ final class CompareCatalog {
                 out.set("selection",selection);catalog.put(key(schema,kind,str(out,"name")),new CatalogObject(out,selection,node));
             }
         }
-        ComparePostgresScope dependencies=engine.equals("postgresql")?ComparePostgresScope.read(job,c,catalog):CompareRelationalScope.read(job,c,inv,catalog);
+        ComparePostgresScope dependencies=engine.equals("postgresql")?ComparePostgresScope.read(job,c,catalog):CompareRelationalScope.read(job,c,inv,catalog,selected);
         Set<String> included=dependencies.closure(catalog,selected);
+        if(MysqlDialect.supports(engine)){var unknown=Profiles.JSON.createArrayNode();for(var candidate:catalog.entrySet())if(!included.contains(candidate.getKey())&&Set.of("functions","procedures","events").contains(str(candidate.getValue().object(),"kind")))unknown.add(candidate.getKey());String evidence=unknown.isEmpty()?"":TableDesigner.hash(unknown);for(String identity:included){var object=catalog.get(identity).object();if(Set.of("tables","functions","procedures","views").contains(str(object,"kind")))object.put("uninspectedPrograms",evidence);}}
+
         if(!definitions){for(String identity:included)inv.add(catalog.get(identity).object());dependencies.apply(inv);return inv;}
         int processed=0;boolean enabled=supported(c,engine);
         for(String identity:included){
@@ -109,6 +112,8 @@ final class CompareCatalog {
                 else if(!enabled)out.put("reason","Comparison generation is unavailable for "+engine+"; this connection remains available for browsing");
                 else if(kind.equals("tables"))table(job,c,inv,out,entry.selection(),entry.node());
                 else object(job,c,inv,out,entry.selection(),entry.node());
+                if(engine.equals("postgresql")&&!out.path("implicit").asBoolean())PostgresCompare.capture(job,c,out);
+                if(MysqlDialect.supports(engine)&&!out.path("implicit").asBoolean()){MysqlProgram.capture(job,c,inv,out);MysqlGrants.capture(job,c,out);}
             }catch(SQLException|IllegalArgumentException failure){check(job);if(failure instanceof MetadataLimitException||failure instanceof SQLException sql&&fatal(sql))throw failure;if(savepoint!=null)c.rollback(savepoint);out.put("supported",false).put("reason",Objects.toString(failure.getMessage(),"Definition could not be inspected"));}
             if(savepoint!=null)c.releaseSavepoint(savepoint);inv.add(out);processed++;
         }
@@ -155,13 +160,13 @@ final class CompareCatalog {
         }
         if(engine.equals("postgresql")){
             if(!snap.path("editable").asBoolean())throw new IllegalArgumentException(str(snap,"reason"));
-            if(!query(job,c,"SELECT 1 FROM pg_class WHERE oid=?::oid AND (relpersistence<>'p' OR reloptions IS NOT NULL OR reltablespace<>0)",str(out,"oid")).isEmpty())throw new IllegalArgumentException("Custom table storage requires a dedicated comparison adapter");
+            if(!query(job,c,"SELECT 1 FROM pg_class WHERE oid=?::oid AND relpersistence NOT IN ('p','u')",str(out,"oid")).isEmpty())throw new IllegalArgumentException("Temporary table storage is outside comparison scope");
             if(!query(job,c,"SELECT 1 FROM pg_attribute a JOIN pg_type t ON t.oid=a.atttypid WHERE a.attrelid=?::oid AND a.attnum>0 AND NOT a.attisdropped AND a.attcollation<>t.typcollation",str(out,"oid")).isEmpty())throw new IllegalArgumentException("Explicit column collations require a dedicated comparison adapter");
             for(JsonNode constraint:snap.path("constraints")){ObjectNode cp=constraint.deepCopy();cp.remove("id");if(str(cp,"kind").equals("f")){for(JsonNode fk:fks)if(str(fk,"name").equals(str(cp,"name")))((ObjectNode)fk).put("definition",str(cp,"definition"));}else constraints.add(cp);}
             for(JsonNode index:indexes)for(JsonNode nativeIndex:snap.path("indexes"))if(str(index,"name").equals(str(nativeIndex,"name"))){((ObjectNode)index).put("ddl",str(nativeIndex,"definition")).put("implicit",truth(nativeIndex.path("constrained")));}
             out.set("triggers",snap.path("triggers"));out.set("rules",snap.path("rules"));out.set("policies",snap.path("policies"));
-            if(truth(snap.path("acl").path(0).path("rowsecurity"))||truth(snap.path("acl").path(0).path("forced")))throw new IllegalArgumentException("Tables using row security require a dedicated comparison adapter");
-            if(!snap.path("rules").isEmpty()||!snap.path("policies").isEmpty())throw new IllegalArgumentException("Table rules and policies require a dedicated comparison adapter");
+
+
             for(JsonNode column:out.path("columns"))if(!str(column,"identity").isEmpty()){
                 JsonNode seq=query(job,c,"SELECT n.nspname AS schema,s.relname AS name,q.seqstart::text AS start,q.seqincrement::text AS increment,q.seqmin::text AS minimum,q.seqmax::text AS maximum,q.seqcache::text AS cache,q.seqcycle AS cycle FROM pg_depend d JOIN pg_class s ON s.oid=d.objid JOIN pg_namespace n ON n.oid=s.relnamespace JOIN pg_sequence q ON q.seqrelid=s.oid JOIN pg_attribute a ON a.attrelid=d.refobjid AND a.attnum=d.refobjsubid WHERE d.refobjid=?::oid AND a.attname=? AND d.deptype='i' AND d.classid='pg_class'::regclass",str(out,"oid"),str(column,"name")).path(0);
                 if(seq.isMissingNode())throw new IllegalArgumentException("Identity sequence definition is unavailable");((ObjectNode)column).set("identityOptions",seq);
@@ -187,12 +192,16 @@ final class CompareCatalog {
             ArrayNode rows=query(job,c,"SHOW CREATE TABLE "+CompareSql.qualified(engine,schema,name));
             if(rows.isEmpty())throw new IllegalArgumentException("Native table definition unavailable");
             String ddl=str(rows.get(0),"create table");if(ddl.isEmpty())throw new IllegalArgumentException("Native table definition unavailable");
-            out.put("nativeDdl",ddl);
+            out.put("nativeDdl",ddl).put("mysqlSqlMode",inv.mysqlSqlMode);
+            if(java.util.stream.StreamSupport.stream(out.path("columns").spliterator(),false).anyMatch(column->!str(column,"identity").isEmpty())){
+                var counter=(ObjectNode)query(job,c,"SELECT @@SESSION.auto_increment_increment AS increment,@@SESSION.auto_increment_offset AS `offset`").path(0);counter.put("next",MysqlCompare.nextAutoIncrement(ddl,MysqlScript.Mode.parse(inv.mysqlSqlMode).noBackslashEscapes()));out.put("autoIncrementSupported",true);out.set("state",counter);
+            }
+
             out.set("triggers",query(job,c,"SELECT TRIGGER_NAME AS name FROM INFORMATION_SCHEMA.TRIGGERS WHERE EVENT_OBJECT_SCHEMA=? AND EVENT_OBJECT_TABLE=?",schema,name));
             for(JsonNode row:query(job,c,"SELECT COLUMN_NAME AS name,COLUMN_TYPE AS type,EXTRA AS extra,GENERATION_EXPRESSION AS expression,COLLATION_NAME AS collation FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? ORDER BY ORDINAL_POSITION",schema,name))
                 for(JsonNode column:out.path("columns"))if(str(column,"name").equals(str(row,"name"))){((ObjectNode)column).put("type",str(row,"type")).put("extra",str(row,"extra")).put("collation",str(row,"collation"));}
         }
-        for(JsonNode column:out.path("columns"))if(!str(column,"generated").isEmpty())throw new IllegalArgumentException("Generated columns require a dedicated comparison adapter");
+        for(JsonNode column:out.path("columns"))if(!str(column,"generated").isEmpty()){if(!MysqlDialect.supports(engine))throw new IllegalArgumentException("Generated columns require a dedicated comparison adapter");out.put("dataSupported",false).put("dataReason","Generated-column data requires a verified generated-value codec");}
         if(out.path("triggers").size()>0)out.put("dataSupported",false).put("dataReason","Data comparison with table triggers is unavailable");
     }
     static void object(QueryJobs.Job job,Connection c,Inventory inv,ObjectNode out,ObjectNode selection)throws Exception{object(job,c,inv,out,selection,null);}
@@ -216,9 +225,11 @@ final class CompareCatalog {
         }else if(snap.path("ddlComplete").asBoolean()){out.put("supported",true).put("reason","");}
         if(inv.engine.equals("postgresql")&&Set.of("functions","procedures").contains(kind)){
             out.set("signature",query(job,c,"SELECT pg_get_function_identity_arguments(oid) AS arguments,pg_get_function_result(oid) AS result,proargnames::text AS names FROM pg_proc WHERE oid=?::oid",str(out,"oid")).path(0));
+            String body=str(out.path("fields"),"body");
+            if(body.matches("(?is).*\\b(?:EXECUTE|dblink|postgres_fdw)\\b.*"))out.put("supported",false).put("reason","Dynamic SQL or external routine dependencies require a separately reviewed migration");
             if(!Set.of("sql","plpgsql").contains(str(out.path("fields"),"language")))out.put("supported",false).put("reason","This routine language requires an environment-specific comparison adapter");
         }
-        if(kind.equals("materialized_views")&&!str(out.path("fields"),"tablespace").isBlank())out.put("supported",false).put("reason","Materialized-view storage requires a dedicated comparison adapter");
+
         if(inv.engine.equals("postgresql")&&kind.equals("types")){
             JsonNode props=snap.path("details").path("Advanced");if(Set.of("c","b").contains(str(props,"typtype"))||!str(props,"typelem").equals("0")){out.put("implicit",true).put("supported",false).put("reason","Implicit relation or array type is managed with its owning object");}
         }

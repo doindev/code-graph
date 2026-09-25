@@ -6,7 +6,7 @@ import java.util.*;
 import static io.doindev.codegraph.dba.CompareCatalog.*;
 
 final class CompareRelationalScope {
-    static ComparePostgresScope read(QueryJobs.Job job,Connection c,Inventory inventory,Map<String,CatalogObject> catalog)throws Exception{
+    static ComparePostgresScope read(QueryJobs.Job job,Connection c,Inventory inventory,Map<String,CatalogObject> catalog,java.util.function.Predicate<CatalogObject> selected)throws Exception{
         var scope=new ComparePostgresScope();
         boolean mysql=Set.of("mysql","mariadb").contains(inventory.engine);
         for(String schema:inventory.schemas){
@@ -52,6 +52,19 @@ final class CompareRelationalScope {
                 edge(scope,catalog,key(schema,"indexes",str(row,"name")),key(schema,"tables",str(row,"target")),schema);
             for(JsonNode row:query(job,c,"SELECT TRIGGER_NAME AS name,EVENT_OBJECT_TABLE AS target FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA=?",schema))
                 edge(scope,catalog,key(schema,"triggers",str(row,"name")),key(schema,"tables",str(row,"target")),schema);
+        }
+        if(mysql){
+            Set<String> inspected=new HashSet<>();boolean changed=true;
+            while(changed){changed=false;for(String identity:scope.closure(catalog,selected)){
+                var entry=catalog.get(identity);String kind=str(entry.object(),"kind");if(!Set.of("functions","procedures","triggers","events").contains(kind)||!inspected.add(identity))continue;changed=true;String schema=str(entry.object(),"schema"),name=str(entry.object(),"name");
+                String sql=switch(kind){case "functions","procedures"->"SELECT ROUTINE_DEFINITION AS body,SQL_MODE AS mode FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA=? AND ROUTINE_NAME=?";case "triggers"->"SELECT ACTION_STATEMENT AS body,SQL_MODE AS mode FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=? AND TRIGGER_NAME=?";default->"SELECT EVENT_DEFINITION AS body,SQL_MODE AS mode FROM information_schema.EVENTS WHERE EVENT_SCHEMA=? AND EVENT_NAME=?";};var rows=query(job,c,sql,schema,name);if(rows.size()!=1||str(rows.path(0),"body").isBlank()){scope.outside.put(identity,"stored-program body hidden by privileges");continue;}
+                var tokens=MysqlTableDefinition.tokens(str(rows.path(0),"body"),MysqlScript.Mode.parse(str(rows.path(0),"mode")));for(int i=0;i<tokens.size();i++){
+                    var token=tokens.get(i);if(Set.of("PREPARE","EXECUTE").contains(token.word())){scope.outside.put(identity,"dynamic SQL references");continue;}
+                    boolean relation=Set.of("FROM","JOIN","UPDATE","INTO","REFERENCES").contains(token.word()),call=token.word().equals("CALL");int at=relation||call?i+1:i;if(at>=tokens.size())continue;var first=tokens.get(at);if(first.text().equals("("))continue;String refSchema=schema,refName=MysqlProgram.identifier(first);int end=at;if(at+2<tokens.size()&&tokens.get(at+1).text().equals(".")){refSchema=refName;refName=MysqlProgram.identifier(tokens.get(at+2));end=at+2;}
+                    boolean function=!relation&&!call&&end+1<tokens.size()&&tokens.get(end+1).text().equals("(");String ref=key(refSchema,call?"procedures":function?"functions":"tables",refName);if(relation&&!catalog.containsKey(ref))ref=key(refSchema,"views",refName);
+                    if(relation||call||function&&(catalog.containsKey(ref)||!refSchema.equals(schema))){if(relation&&(Set.of("NEW","OLD").contains(refSchema.toUpperCase(Locale.ROOT))||refName.equalsIgnoreCase("DUAL")))continue;edge(scope,catalog,identity,ref,refSchema);}
+                }
+            }}
         }
         return scope;
     }

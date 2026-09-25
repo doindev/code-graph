@@ -3,3 +3,5 @@
 .oracle-admin [hidden]{display:none!important}.oracle-admin-pump,.oracle-admin-rman{display:flex;flex-direction:column;gap:12px}.oracle-admin-pump pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:250px;overflow:auto}.oracle-admin-rman textarea{width:100%;box-sizing:border-box;height:320px;min-height:200px;resize:vertical;font-family:monospace}
 
 .oracle-admin input[type=checkbox]{width:16px;height:16px;flex:none;margin:0}.oracle-admin textarea{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:12px;font:13px/1.55 Consolas,monospace}
+
+.oracle-admin>header{height:auto;min-height:58px;padding:8px 12px;flex-shrink:0}.oracle-admin>.oracle-admin-target{flex-shrink:0;max-height:96px;overflow:auto}.oracle-admin>.oracle-admin-error{flex-shrink:0;max-height:96px;overflow:auto}

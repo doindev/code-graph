@@ -12,6 +12,7 @@ final class SchemaSnapshots {
         out.set("target",ApprovalScope.display(scope));
         ArrayNode objects=out.putArray("objects");var metadata=connection.getMetaData();
         out.put("engine",ExplainPlans.engine(metadata));
+        if(MysqlDialect.supports(out.path("engine").asText()))out.put("mysqlSqlMode",MysqlDialect.mode(job,connection));
         out.putObject("version").put("product",metadata.getDatabaseProductName()).put("server",metadata.getDatabaseProductVersion()).put("driver",metadata.getDriverVersion()).put("major",metadata.getDatabaseMajorVersion());
         if(OracleDialect.isOracle(connection)){var target=OracleDialect.target(job,connection,job.remainingSeconds());if(!target.matches(scope.path("database").asText()))throw new IllegalArgumentException("Oracle schema capture targets a different service/PDB");ObjectNode identity=target.json();identity.remove("schema");identity.put("owner",scope.path("schema").asText());out.set("resolvedTarget",identity);}
         long[] bytes={0};boolean[] stopped={false};int maxBytes=Math.min(512*1024,job.byteLimit/2);
@@ -26,7 +27,7 @@ final class SchemaSnapshots {
         // Accessible JDBC inventories do not prove absence of inaccessible/vendor-specific objects.
         out.put("inventoryComplete",false).put("absenceProvesRemoval",false);
         var fingerprints=new TreeMap<String,String>();for(JsonNode object:objects)fingerprints.put(object.path("id").asText(),object.path("objectHash").asText());
-        out.put("fingerprint",CatalogScanner.hash(fingerprints.toString()+(out.has("resolvedTarget")?"\n"+out.path("resolvedTarget"):"")));
+        out.put("fingerprint",CatalogScanner.hash(fingerprints.toString()+out.path("mysqlSqlMode").asText()+(out.has("resolvedTarget")?"\n"+out.path("resolvedTarget"):"")));
         out.put("consistency","Metadata observation, not a schema lock; concurrent DDL and privilege filtering can affect coverage");
         return out;
     }

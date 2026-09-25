@@ -100,7 +100,7 @@ class ReadPermissionVendorIntegrationTest {
                     try{
                         var running=q.request(agent,"two",request(id,database,schema,"SELECT COUNT(*) FROM "+items));String runningId=running.path("jobId").asText();assertFalse(runningId.isEmpty(),running.toString());
                         var active=jobs.require("agent:"+agent,runningId);long start=System.nanoTime();while(active.statement==null&&active.finished==0&&System.nanoTime()-start<3_000_000_000L)Thread.sleep(10);
-                        q.reusable.change(agent,broadPolicy.path("id").asText(),null);q.readPermissionsChanged(agent);
+                        assertEquals(0,active.finished,"Locked read must remain active before revocation: "+active.error);q.reusable.change(agent,broadPolicy.path("id").asText(),null);q.readPermissionsChanged(agent);
                         assertTrue(active.cancelled,"Revocation must request cancellation");assertThrows(SecurityException.class,()->jobs.status("agent:"+agent,runningId));
                         long cancelUntil=System.nanoTime()+8_000_000_000L;while(active.finished==0&&System.nanoTime()<cancelUntil)Thread.sleep(10);assertTrue(active.finished>0,"Revocation must stop the dependent read");
                     }finally{if(vendor.equals("postgresql"))blocker.rollback();else lock.execute("UNLOCK TABLES");}

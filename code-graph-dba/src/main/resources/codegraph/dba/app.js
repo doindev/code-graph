@@ -7,6 +7,7 @@ import {installProjectContext} from './project-context.js';
 import {connectionEditor} from './connection-editor.js';
 import {installDriverDownloadSettings} from './driver-download-settings.js';
 import {installOracleAdministration} from './oracle-admin.js';
+import {installRelationalAdministration} from './relational-admin.js';
 import {VisualQueryBuilder} from './query-builder.js';
 import {lucide} from './tree-icons.js';
 import {ObjectProperties} from './object-properties.js';
@@ -212,7 +213,7 @@ function showAuthorizationMode(session){
   $('yolo-settings-warning').textContent=session.yolo?session.warning:'';
   const approvals=$('agent-approvals');if(approvals)approvals.hidden=!!session.yolo;
 }
-async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await initializeGridPreferences(api);await collaboration.register();await refresh();await restoreWorkspace();connectEditorEvents();await collaboration.start();for(const region of startupRegions){region.inert=false;region.removeAttribute('aria-busy');}}
+async function initialize(){workspaceReady=false;const session=await api('/bootstrap','POST',{});csrf=session.csrf;showAuthorizationMode(session);await initializeGridPreferences(api);await collaboration.register();await refresh();await restoreWorkspace();connectEditorEvents();await collaboration.start();for(const region of startupRegions){region.inert=false;region.removeAttribute('aria-busy');}if(active&&isScript(tabs.find(t=>t.id===active))&&!document.querySelector('dialog[open]'))$('sql').focus();}
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(b.dataset.close==='agents-dialog'){$('agent-token').value='';$('agent-token-label').hidden=true;}$(b.dataset.close).close();});
 const editor=connectionEditor({api,toast,saved:refresh,csrf:()=>csrf});
 const treeActions=new TreeActions({api,wait:waitJob,notice:toast});
@@ -375,6 +376,7 @@ $('sql').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='/'){
 const settingsToggle=$('workspace-settings'),settingsMenu=$('workspace-settings-menu');
 installDriverDownloadSettings({api,toast});
 installOracleAdministration({api,profiles:()=>profiles,notify:toast});
+installRelationalAdministration({api,profiles:()=>profiles,notify:toast});
 settingsToggle.append(lucide('settings'));$('settings').prepend(lucide('cpu'));$('agents').prepend(lucide('key-round'));$('editor-pairing').prepend(lucide('panel-top-open'));
 function closeWorkspaceSettings(focus=false){settingsMenu.hidden=true;settingsToggle.setAttribute('aria-expanded','false');if(focus)settingsToggle.focus();}
 function showWorkspaceSettings(last=false){
@@ -446,7 +448,7 @@ function renderScriptOutput(tab){
   if(tab.outputView==='sqlVariables'){
     append('label','SQL parameters (JSON array, in marker order)').htmlFor='script-parameters';
     const input=append('textarea','');input.id='script-parameters';input.setAttribute('aria-label','SQL parameters');input.value=tab.params||'[]';input.spellcheck=false;
-    append('p','Use values for IN parameters. Oracle example: [42, {"mode":"out","type":"REF_CURSOR"}, {"mode":"inout","type":"NUMBER","value":"12345678901234567890"}]. Values stay in this tab until it is closed.');
+    append('p','Use values for IN parameters. PostgreSQL/MySQL exact decimal or procedure output: {"mode":"inout","type":"DECIMAL","value":"12345678901234567890.1234"}. Oracle example: [42, {"mode":"out","type":"REF_CURSOR"}, {"mode":"inout","type":"NUMBER","value":"12345678901234567890"}]. Values stay in this tab until it is closed.');
     const apply=append('button','Apply parameters');apply.disabled=!!tab.job;apply.onclick=safe(()=>{if(input.value.length>16384)throw Error('Parameters exceed 16,384 characters.');const values=JSON.parse(input.value);if(!Array.isArray(values)||values.length>128)throw Error('Use an array of at most 128 parameters.');tab.params=JSON.stringify(values);toast('SQL parameters updated.');});
     if(tab.result?.outputParameters?.length){append('h3','Output parameters');const table=append('table',''),header=document.createElement('tr');for(const label of ['Parameter','Type','Value']){const cell=document.createElement('th');cell.textContent=label;header.append(cell);}table.append(header);for(const value of tab.result.outputParameters){const row=document.createElement('tr');for(const text of [value.parameterIndex,value.type??'REF_CURSOR',value.value===null?'NULL':String(value.value)+(value.truncated?' (truncated)':'')]){const cell=document.createElement('td');cell.textContent=text;row.append(cell);}table.append(row);}}return;
   }

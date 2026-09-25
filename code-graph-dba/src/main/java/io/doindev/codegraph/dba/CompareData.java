@@ -43,6 +43,13 @@ final class CompareData implements AutoCloseable {
         Table table=new Table(object.id,object.source,object.destination,List.copyOf(columns),List.copyOf(key));tables.put(table.id,table);return table;
     }
     Snapshot capture(QueryJobs.Job job,Connection c,String engine,Table table,boolean source)throws Exception{
+        if(!MysqlDialect.supports(engine))return captureRows(job,c,engine,table,source);
+        String previous=CompareCatalog.query(job,c,"SELECT @@SESSION.time_zone AS zone").path(0).path("zone").asText();
+        if(!previous.matches("[A-Za-z0-9_/:+.-]{1,64}"))throw new IllegalArgumentException("Unrecognized MySQL session time zone");
+        try(var statement=c.createStatement()){job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.execute("SET SESSION time_zone='+00:00'");}finally{job.statement=null;}
+        try{return captureRows(job,c,engine,table,source);}finally{try(var statement=c.createStatement()){statement.setQueryTimeout(5);statement.execute("SET SESSION time_zone='"+previous+"'");}}
+    }
+    private Snapshot captureRows(QueryJobs.Job job,Connection c,String engine,Table table,boolean source)throws Exception{
         ObjectNode object=source?table.source:table.destination;Path output=path();if(object==null){Files.createFile(output);return new Snapshot(output,0,hash(""));}Profiles.protect(output.getParent());
         Map<String,JsonNode> available=CompareSql.byName(object.path("columns"));List<String> selected=table.columns.stream().filter(available::containsKey).toList();
         if(!available.keySet().containsAll(table.key))throw new IllegalArgumentException("Matching key is missing from the destination");
@@ -110,12 +117,22 @@ final class CompareData implements AutoCloseable {
     }
     static JsonNode read(BufferedReader reader)throws IOException{String line=reader.readLine();return line==null?null:Profiles.JSON.readTree(line);}
     static String hash(String value)throws Exception{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}
+    static void validateTemporal(String value,int type,String engine){
+        if(value.length()>128)throw new IllegalArgumentException("Temporal value exceeds the native scalar allowance");
+        if(MysqlDialect.supports(engine)&&Set.of(Types.DATE,Types.TIMESTAMP,Types.TIMESTAMP_WITH_TIMEZONE).contains(type))try{if(value.length()<10||value.startsWith("0000-"))throw new java.time.DateTimeException("Zero date");java.time.LocalDate.parse(value.substring(0,10));}catch(java.time.DateTimeException invalid){throw new IllegalArgumentException("Zero or invalid native dates require an explicit SQL-mode/data conversion before comparison",invalid);}
+    }
     static ObjectNode cell(ResultSet rs,int index,int type,String typeName,String engine)throws Exception{
         ObjectNode out=Profiles.JSON.createObjectNode();String value,sql,kind;
+        if(type==Types.BIT&&MysqlDialect.supports(engine)&&rs.getMetaData().getPrecision(index)>1){int width=rs.getMetaData().getPrecision(index);if(width>64)throw new IllegalArgumentException("MySQL BIT width exceeds 64");byte[] bytes=rs.getBytes(index);if(bytes==null)return out.put("type","null").putNull("value").put("sql","NULL");String bits=new java.math.BigInteger(1,bytes).toString(2);bits="0".repeat(Math.max(0,width-bits.length()))+bits;return out.put("type","bits").put("value",bits).put("sql","b'"+bits+"'");}
+        if(type==Types.ARRAY&&engine.equals("postgresql")){
+            if(!typeName.matches("_(?:int2|int4|int8|numeric|float4|float8|bool|text|varchar|bpchar|date|timestamp|timestamptz|uuid|json|jsonb)"))throw new IllegalArgumentException("Unsupported array element codec: "+typeName);
+            try(Reader reader=rs.getCharacterStream(index)){if(reader==null)return out.put("type","null").putNull("value").put("sql","NULL");StringBuilder text=new StringBuilder();char[] buffer=new char[4096];int n;while((n=reader.read(buffer))!=-1){if(text.length()+n>1<<19)throw new IllegalArgumentException("Array value exceeds 512 KiB");text.append(buffer,0,n);}return out.put("type","array").put("value",text.toString()).put("sql",literal(text.toString(),engine));}
+        }
         switch(type){
             case Types.BINARY,Types.VARBINARY,Types.LONGVARBINARY,Types.BLOB->{try(InputStream stream=rs.getBinaryStream(index)){if(stream==null)return out.put("type","null").putNull("value").put("sql","NULL");byte[] bytes=stream.readNBytes(1<<20);if(stream.read()!=-1)throw new IllegalArgumentException("Binary value exceeds 1 MiB");value=HexFormat.of().formatHex(bytes);sql=engine.equals("postgresql")?"decode('"+value+"','hex')":"X'"+value+"'";kind="binary";}}
             case Types.BOOLEAN,Types.BIT->{boolean b=rs.getBoolean(index);if(rs.wasNull())return out.put("type","null").putNull("value").put("sql","NULL");value=Boolean.toString(b);sql=value.toUpperCase(Locale.ROOT);kind="boolean";}
             case Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT,Types.DECIMAL,Types.NUMERIC,Types.REAL,Types.FLOAT,Types.DOUBLE->{value=rs.getString(index);if(value==null)return out.put("type","null").putNull("value").put("sql","NULL");try{value=new java.math.BigDecimal(value).stripTrailingZeros().toPlainString();}catch(NumberFormatException failure){throw new IllegalArgumentException("Non-finite numeric data is unavailable");}sql=value;kind="number";}
+            case Types.DATE,Types.TIME,Types.TIME_WITH_TIMEZONE,Types.TIMESTAMP,Types.TIMESTAMP_WITH_TIMEZONE->{value=rs.getString(index);if(value==null)return out.put("type","null").putNull("value").put("sql","NULL");validateTemporal(value,type,engine);sql=literal(value,engine);kind=type==Types.DATE?"date":"temporal";}
             case Types.ARRAY,Types.STRUCT,Types.JAVA_OBJECT,Types.REF,Types.ROWID,Types.SQLXML->throw new IllegalArgumentException("Unsupported data codec: "+typeName);
             default->{
                 try(Reader reader=rs.getCharacterStream(index)){if(reader==null)return out.put("type","null").putNull("value").put("sql","NULL");StringBuilder text=new StringBuilder();char[] buffer=new char[4096];int n;while((n=reader.read(buffer))!=-1){if(text.length()+n>1<<19)throw new IllegalArgumentException("Text value exceeds 512 KiB");text.append(buffer,0,n);}value=text.toString();}

@@ -144,6 +144,7 @@ final class GridExports implements AutoCloseable {
         static String literal(String value,int type,String engine){
             if(value==null)return "NULL";
             if(Set.of(Types.TINYINT,Types.SMALLINT,Types.INTEGER,Types.BIGINT,Types.NUMERIC,Types.DECIMAL).contains(type))return new java.math.BigDecimal(value).toPlainString();
+            if((type==Types.BOOLEAN||type==Types.BIT)&&!Set.of("true","false","1","0").contains(value.toLowerCase(Locale.ROOT)))throw new IllegalArgumentException("Multibit SQL export requires a native bit-string codec; use CSV/TSV/XLSX to preserve the displayed value");
             if(type==Types.BOOLEAN||type==Types.BIT)return value.equalsIgnoreCase("true")||value.equals("1")?engine.equals("postgresql")||engine.equals("h2")?"TRUE":"1":engine.equals("postgresql")||engine.equals("h2")?"FALSE":"0";
             if(engine.equals("oracle")){
                 if(type==Types.DATE||type==Types.TIMESTAMP){

@@ -41,13 +41,13 @@ final class MigrationPlans implements AutoCloseable {
         String engine=snapshot.result.path("engine").asText();
         if(!List.of("postgresql","mysql","mariadb","h2","sqlserver","oracle").contains(engine))throw new IllegalArgumentException("Migration planning is not verified for engine "+engine);
         if(engine.equals("oracle"))OracleMigrations.snapshot(snapshot.result);
-        List<String> statements=structured?generate(engine,snapshot.schemaScope,input.path("changes")):supplied(input.path("sql").asText(),engine);
+        List<String> statements=structured?generate(engine,snapshot.schemaScope,input.path("changes")):supplied(input.path("sql").asText(),engine,snapshot.result.path("mysqlSqlMode").asText());
         if(engine.equals("oracle"))OracleMigrations.statements(statements,snapshot.schemaScope.path("schema").asText());
         ObjectNode plan=Profiles.JSON.createObjectNode().put("format","codegraph-migration-v1").put("name",input.path("name").asText("Migration"))
                 .put("purpose",input.path("purpose").asText("")).put("engine",engine).put("sourceSnapshotId",snapshot.id)
                 .put("schemaFingerprint",snapshot.result.path("fingerprint").asText()).put("transactional",engine.equals("postgresql"))
                 .put("crossEngine",false).put("rehearsed",false).put("syntheticFixturesOnly",true);
-        if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
+        if(MysqlDialect.supports(engine))plan.put("mysqlSqlMode",snapshot.result.path("mysqlSqlMode").asText());if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
         plan.set("target",ApprovalScope.display(snapshot.schemaScope));
         ArrayNode sql=plan.putArray("statements"),steps=plan.putObject("manifest").putArray("steps"),risks=plan.putArray("risks");
         int index=0;for(String statement:statements){String action=verb(statement);sql.add(statement);steps.addObject().put("index",++index).put("action",action).put("sql",statement).put("expectedPostcondition","Statement succeeds and subsequent schema fingerprint changes as reviewed");if(destructive(statement))risks.add("Step "+index+" is destructive and can permanently remove schema objects or dependent data.");}
@@ -75,8 +75,9 @@ final class MigrationPlans implements AutoCloseable {
         String engine=snapshot.result.path("engine").asText();
         if(!engine.equals(source.value.path("engine").asText()))throw new IllegalArgumentException("Rehearsal target engine must match the migration engine; version differences remain disclosed separately");
         if(engine.equals("oracle")){OracleMigrations.snapshot(snapshot.result);OracleMigrations.distinct(source.value.path("resolvedTarget"),snapshot.result.path("resolvedTarget"));}
-        List<String> setup=restricted(input.path("setupSql").asText(""),Set.of("CREATE","COMMENT"),"Rehearsal setup",engine);
-        List<String> fixtures=restricted(input.path("fixtureSql").asText(""),Set.of("INSERT"),"Synthetic fixture",engine);
+        if(MysqlDialect.supports(engine)&&!source.value.path("mysqlSqlMode").asText().equals(snapshot.result.path("mysqlSqlMode").asText()))throw new IllegalArgumentException("Rehearsal SQL mode must match the reviewed migration session mode");
+        List<String> setup=restricted(input.path("setupSql").asText(""),Set.of("CREATE","COMMENT"),"Rehearsal setup",engine,snapshot.result.path("mysqlSqlMode").asText());
+        List<String> fixtures=restricted(input.path("fixtureSql").asText(""),Set.of("INSERT"),"Synthetic fixture",engine,snapshot.result.path("mysqlSqlMode").asText());
         List<String> migration=Profiles.JSON.convertValue(source.value.path("statements"),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
         if(engine.equals("oracle")){OracleMigrations.statements(setup,snapshot.schemaScope.path("schema").asText());for(String fixture:fixtures)OracleMigrations.fixture(fixture,snapshot.schemaScope.path("schema").asText());migration=OracleMigrations.remap(migration,source.sourceScope.path("schema").asText(),snapshot.schemaScope.path("schema").asText());}
         if(setup.size()+fixtures.size()+migration.size()>MAX_STATEMENTS)throw new IllegalArgumentException("Setup, synthetic fixtures and migration together may contain at most 32 statements");
@@ -91,7 +92,7 @@ final class MigrationPlans implements AutoCloseable {
                 .put("sourceMigrationPlanHash",source.value.path("planHash").asText()).put("schemaFingerprint",snapshot.result.path("fingerprint").asText())
                 .put("transactional",engine.equals("postgresql")).put("crossEngine",false).put("rehearsed",false)
                 .put("rehearsal",true).put("syntheticFixturesOnly",true).put("disposableTargetRequiresHumanConfirmation",true);
-        if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
+        if(MysqlDialect.supports(engine))plan.put("mysqlSqlMode",snapshot.result.path("mysqlSqlMode").asText());if(engine.equals("oracle"))plan.set("resolvedTarget",snapshot.result.path("resolvedTarget").deepCopy());plan.set("observedVersion",snapshot.result.path("version").deepCopy());
         plan.set("target",ApprovalScope.display(snapshot.schemaScope));plan.set("checks",checks);
         ArrayNode statements=plan.putArray("statements"),steps=plan.putObject("manifest").putArray("steps"),risks=plan.putArray("risks");
         int index=0;for(var phase:List.of(Map.entry("setup",setup),Map.entry("synthetic_fixture",fixtures),Map.entry("migration",migration)))for(String statement:phase.getValue()){
@@ -133,15 +134,16 @@ final class MigrationPlans implements AutoCloseable {
     synchronized long retainedBytes(){long bytes=0;for(Plan plan:plans.values())bytes+=safeSize(plan.value);return bytes;}
     public synchronized void close(){plans.values().forEach(plan->plan.release.run());plans.clear();}
 
-    private static List<String> supplied(String source,String engine){
+    private static List<String> supplied(String source,String engine){return supplied(source,engine,"");}
+    private static List<String> supplied(String source,String engine,String mode){
         if(source==null||source.isBlank()||source.length()>MAX_SQL)throw new IllegalArgumentException("Migration SQL must contain 1..65536 characters");
-        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source,engine,MAX_SQL)){String statement=unit.sql().trim();if(unit.parameters()!=0)throw new IllegalArgumentException("Migration SQL cannot contain prepared parameter markers");String verb=verb(statement);if(!List.of("CREATE","ALTER","DROP","COMMENT","RENAME").contains(verb))throw new IllegalArgumentException("Migration step "+unit.index()+" is not supported; use explicit CREATE, ALTER, DROP, COMMENT or RENAME DDL");if(statement.matches("(?is)^\\s*DROP\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException("DROP DATABASE and DROP SCHEMA are not accepted in migration plans");out.add(statement);}
+        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:MysqlDialect.supports(engine)?MysqlScript.extract(source,MAX_SQL,MysqlScript.Mode.parse(mode)):SqlScript.extract(source,engine,MAX_SQL)){String statement=unit.sql().trim();if(unit.parameters()!=0)throw new IllegalArgumentException("Migration SQL cannot contain prepared parameter markers");String verb=verb(statement);if(!List.of("CREATE","ALTER","DROP","COMMENT","RENAME").contains(verb))throw new IllegalArgumentException("Migration step "+unit.index()+" is not supported; use explicit CREATE, ALTER, DROP, COMMENT or RENAME DDL");if(statement.matches("(?is)^\\s*DROP\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException("DROP DATABASE and DROP SCHEMA are not accepted in migration plans");out.add(statement);}
         if(out.isEmpty()||out.size()>MAX_STATEMENTS)throw new IllegalArgumentException("Migration must contain 1..32 statements");return out;
     }
-    private static List<String> restricted(String source,Set<String> allowed,String label,String engine){
+    private static List<String> restricted(String source,Set<String> allowed,String label,String engine,String mode){
         if(source==null||source.isBlank())return List.of();
         if(source.length()>MAX_SQL)throw new IllegalArgumentException(label+" SQL exceeds 65536 characters");
-        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:SqlScript.extract(source,engine,MAX_SQL)){
+        List<String> out=new ArrayList<>();for(SqlScript.Unit unit:MysqlDialect.supports(engine)?MysqlScript.extract(source,MAX_SQL,MysqlScript.Mode.parse(mode)):SqlScript.extract(source,engine,MAX_SQL)){
             if(unit.parameters()!=0)throw new IllegalArgumentException(label+" SQL cannot contain prepared parameter markers");
             String statement=unit.sql().trim(),action=verb(statement);if(!allowed.contains(action))throw new IllegalArgumentException(label+" statement "+unit.index()+" must be one of "+allowed);
             if(statement.matches("(?is)^\\s*CREATE\\s+(DATABASE|SCHEMA)\\b.*"))throw new IllegalArgumentException(label+" cannot create a database or schema; target an existing disposable schema");

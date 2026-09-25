@@ -475,7 +475,7 @@ final class QueryJobs implements AutoCloseable {
     ObjectNode humanQuery(String owner,String id,String sql,JsonNode parameters,boolean autoCommit,JsonNode rowLimit,boolean serverOutput){
         if(owner.startsWith("agent:"))throw new SecurityException("Human SQL is not available to agents");
         if(sql==null||sql.isBlank()||sql.length()>16384)throw new IllegalArgumentException("SQL must contain 1..16384 characters");
-        OracleSql.checkParameters(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
+        NativeParameters.shape(parameters);JsonNode values=parameters.deepCopy();int requested=browserRowLimit(rowLimit);
         return submit(owner,id,(job,c)->{
             job.rowLimit=Math.min(requested,config.uiRows());
             ObjectNode result=OracleDialect.isOracle(c)?OracleSql.execute(job,c,sql,values,config.decisionTimeoutSeconds(),e->connections.humanError(id,e),serverOutput)

@@ -41,7 +41,7 @@ successful catalog. Missing/incomplete native DDL is explicitly identified.
 form. It requires review and explicit acknowledgement and may affect objects beyond the
 tab. It runs as one JDBC statement by default to preserve routine bodies with semicolons.
 Optional splitting uses the Script editor's bounded lexical parser (16 KiB/32 units).
-Native single statements support 64 KiB; no database client DELIMITER commands are added.
+Native single statements support 64 KiB. MySQL/MariaDB definitions use mode-aware stored-program extraction; the Script editor and migration plans also accept DELIMITER directives outside strings/comments and remove them before JDBC execution. See [native workflows](dba-relational.md).
 Native SQL is not automatically rewritten into ALTER or CREATE OR REPLACE.
 
 ## Preservation and review

@@ -1,10 +1,10 @@
-param([Parameter(Mandatory)][string]$BuildRoot,[string[]]$Vendors=@('postgresql','mysql','mariadb'))
+param([Parameter(Mandatory)][string]$BuildRoot,[string[]]$Vendors=@('postgresql','mysql','mariadb'),[switch]$Browser,[string]$Tests='CompareVendorIntegrationTest,CatalogScanVendorIntegrationTest,MysqlWorkflowVendorTest,RelationalAdminVendorTest,PostgresTransitionsVendorTest,RelationalValuesVendorTest,GridVendorTest,WorkflowVendorIntegrationTest,ReadPermissionVendorIntegrationTest,ReusableVendorIntegrationTest')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'test-docker-resources.ps1')
 $ownedRun='cgraph-compare-qa-'+[guid]::NewGuid().ToString('N')
 $scope=New-CgraphDockerScope -Owner $ownedRun -Label 'codegraph.compare.owner'
 $previous=@{}
-$keys=@('DBA_COMPARE_DISPOSABLE','DBA_COMPARE_VENDOR','DBA_COMPARE_SOURCE','DBA_COMPARE_DESTINATION','DBA_COMPARE_USER','DBA_COMPARE_JAR','DBA_COMPARE_EVIDENCE')
+$keys=@('DBA_COMPARE_DISPOSABLE','DBA_COMPARE_VENDOR','DBA_COMPARE_SOURCE','DBA_COMPARE_DESTINATION','DBA_COMPARE_USER','DBA_COMPARE_JAR','DBA_COMPARE_EVIDENCE','DBA_GRID_OWNER','DBA_GRID_VENDOR','DBA_GRID_URL','DBA_GRID_USER','DBA_GRID_PASSWORD','DBA_GRID_JAR','DBA_GRID_DRIVER','DBA_REUSABLE_DISPOSABLE','DBA_REUSABLE_VENDOR','DBA_REUSABLE_URL','DBA_REUSABLE_REHEARSAL_URL','DBA_REUSABLE_USER','DBA_REUSABLE_PASSWORD','DBA_REUSABLE_JAR')
 foreach($key in $keys){$previous[$key]=[Environment]::GetEnvironmentVariable($key)}
 try {
  foreach($vendor in $Vendors){
@@ -47,9 +47,29 @@ try {
   $env:DBA_COMPARE_JAR=Join-Path $env:USERPROFILE ".m2/repository/$jar"
   if(!(Test-Path -LiteralPath $env:DBA_COMPARE_JAR)){throw "Missing test driver $jar"}
   $env:DBA_COMPARE_EVIDENCE=Join-Path $BuildRoot 'compare-evidence'
-  mvn -o -B -f (Join-Path $BuildRoot 'pom.xml') -pl code-graph-dba -am test '-Dtest=CompareVendorIntegrationTest,CatalogScanVendorIntegrationTest' '-Dsurefire.failIfNoSpecifiedTests=false'
+  foreach($side in @('source','destination')){
+   $fixtureContainer="$ownedRun-$vendor-$side"
+   foreach($fixtureDatabase in @('approval_test','grid_test')){
+    if($vendor -eq 'postgresql'){docker exec $fixtureContainer psql -U postgres -d compare_test -c "CREATE DATABASE $fixtureDatabase" | Out-Null}
+    else{$client=if($vendor -eq 'mysql'){'mysql'}else{'mariadb'};docker exec $fixtureContainer $client -uroot -pcompare-fixture-only -e "CREATE DATABASE $fixtureDatabase" | Out-Null}
+    if($LASTEXITCODE -ne 0){throw "Cannot create owned workflow database $fixtureDatabase"}
+   }
+  }
+  $env:DBA_GRID_OWNER=$ownedRun.Replace('cgraph-compare-qa-','cgraph-grid-qa-');$env:DBA_GRID_VENDOR=$vendor
+  $env:DBA_GRID_URL=$urls.destination.Replace('/compare_test','/grid_test');$env:DBA_GRID_USER=$env:DBA_COMPARE_USER;$env:DBA_GRID_PASSWORD='compare-fixture-only';$env:DBA_GRID_JAR=$env:DBA_COMPARE_JAR
+  $env:DBA_GRID_DRIVER=switch($vendor){'postgresql'{'org.postgresql.Driver'} 'mysql'{'com.mysql.cj.jdbc.Driver'} 'mariadb'{'org.mariadb.jdbc.Driver'}}
+  $env:DBA_REUSABLE_DISPOSABLE=$ownedRun.Replace('cgraph-compare-qa-','cgraph-reusable-qa-');$env:DBA_REUSABLE_VENDOR=$vendor
+  $env:DBA_REUSABLE_URL=$urls.source.Replace('/compare_test','/approval_test');$env:DBA_REUSABLE_REHEARSAL_URL=$urls.destination.Replace('/compare_test','/approval_test');$env:DBA_REUSABLE_USER=$env:DBA_COMPARE_USER;$env:DBA_REUSABLE_PASSWORD='compare-fixture-only';$env:DBA_REUSABLE_JAR=$env:DBA_COMPARE_JAR
+  mvn -o -B -f (Join-Path $BuildRoot 'pom.xml') -pl code-graph-dba -am test "-Dtest=$Tests" '-Dsurefire.failIfNoSpecifiedTests=false'
   if($LASTEXITCODE -ne 0){throw "Comparison/catalog tests failed for $vendor"}
-  Copy-Item -LiteralPath (Join-Path $BuildRoot 'code-graph-dba/target/surefire-reports/io.doindev.codegraph.dba.CompareVendorIntegrationTest.txt') -Destination (Join-Path $env:DBA_COMPARE_EVIDENCE "$vendor-results.txt")
+  if($Browser){
+   $priorSuite=$env:DBA_BROWSER_SUITE
+   $env:DBA_BROWSER_SUITE='relational-admin'
+   Push-Location -LiteralPath $BuildRoot
+   try { & ./code-graph-dba/test-browser.ps1 -NodeModules "$env:USERPROFILE/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules"; if($LASTEXITCODE -ne 0){throw "Administration browser tests failed for $vendor"} }
+   finally { Pop-Location; $env:DBA_BROWSER_SUITE=$priorSuite }
+  }
+  if($Tests.Split(',') -contains 'CompareVendorIntegrationTest'){Copy-Item -LiteralPath (Join-Path $BuildRoot 'code-graph-dba/target/surefire-reports/io.doindev.codegraph.dba.CompareVendorIntegrationTest.txt') -Destination (Join-Path $env:DBA_COMPARE_EVIDENCE "$vendor-results.txt")}
  }
 }finally{
  Remove-CgraphDockerResources -Scope $scope

@@ -20,6 +20,10 @@ public final class BrowserFixture {
             if(!java.util.Objects.toString(System.getenv("DBA_ORACLE_OWNER"),"").matches("code-graph-oracle-[a-f0-9]+"))throw new IllegalArgumentException("Oracle browser tests require a task-owned disposable container");
             try(var profiles=new Profiles(root,vault)){profiles.put(null,Profiles.JSON.createObjectNode().put("name","Browser Oracle").put("templateId","oracle").put("driverClass","oracle.jdbc.OracleDriver").put("jar",System.getenv("DBA_ORACLE_JAR")).put("url",System.getenv("DBA_ORACLE_URL")).put("username","SYSTEM").put("password",System.getenv("DBA_ORACLE_PASSWORD")));}
         }
+        if("relational-admin".equals(System.getenv("DBA_BROWSER_SUITE"))){
+            if(!java.util.Objects.toString(System.getenv("DBA_COMPARE_DISPOSABLE"),"").matches("cgraph-compare-qa-[a-f0-9]+"))throw new IllegalArgumentException("Relational browser tests require task-owned disposable containers");
+            try(var profiles=new Profiles(root,vault)){profiles.put(null,CompareVendorIntegrationTest.profile(System.getenv("DBA_COMPARE_VENDOR"),"Browser native administration",System.getenv("DBA_COMPARE_DESTINATION")));}
+        }
         boolean oracleCompare="oracle-compare".equals(System.getenv("DBA_BROWSER_SUITE"));
         if(oracleCompare){
             if(!java.util.Objects.toString(System.getenv("DBA_ORACLE_OWNER"),"").matches("code-graph-oracle-[a-f0-9]+"))throw new IllegalArgumentException("Oracle browser tests require a task-owned disposable container");

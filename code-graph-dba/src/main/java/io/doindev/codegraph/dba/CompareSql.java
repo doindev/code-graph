@@ -15,34 +15,40 @@ final class CompareSql {
         final Inventory source,destination;final Target from,to;final String engine;
         final LinkedHashMap<String,Choice> selected=new LinkedHashMap<>();
         final List<String> before=new ArrayList<>(),after=new ArrayList<>(),state=new ArrayList<>(),finish=new ArrayList<>();
+        final List<String> prelude=new ArrayList<>();final Set<String> rebuilt=new HashSet<>();
         final List<Choice> data=new ArrayList<>();final List<String> warnings=new ArrayList<>();
-        final boolean destructive;final String dataMode,sequenceMode;final boolean sync;
+        final boolean destructive;final String dataMode,sequenceMode;final boolean sync,autoIncrement;final String definerPolicy;
         Plan(Inventory source,Inventory destination,Target from,Target to,JsonNode request){
             this.source=source;this.destination=destination;this.from=from;this.to=to;engine=source.engine;
-            destructive=request.path("destructiveSchema").asBoolean();dataMode=request.path("dataMode").asText("upsert");sequenceMode=request.path("sequenceMode").asText("advance");sync=request.path("syncSequences").asBoolean();
+            destructive=request.path("destructiveSchema").asBoolean();dataMode=request.path("dataMode").asText("upsert");sequenceMode=request.path("sequenceMode").asText("advance");sync=request.path("syncSequences").asBoolean();autoIncrement=request.path("syncAutoIncrement").asBoolean(false);definerPolicy=request.path("definerPolicy").asText("preserve");if(!Set.of("preserve","destination").contains(definerPolicy))throw new IllegalArgumentException("Invalid definer policy");
             if(!dataMode.equals("none")&&!DATA_MODES.contains(dataMode)||!Set.of("advance","exact").contains(sequenceMode))throw new IllegalArgumentException("Invalid comparison mode");
         }
         String schema(String sourceSchema){return !from.allSchemas()&&from.schema().equals(sourceSchema)?to.schema():sourceSchema;}
         String target(JsonNode object){return qualified(engine,schema(str(object,"schema")),str(object,"name"));}
-        String mapped(String sql){if(engine.equals("oracle"))return OracleCompareSql.remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));return remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));}
+        String mapped(String sql){if(MysqlDialect.supports(engine))return MysqlProgram.remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()),MysqlScript.Mode.parse(source.mysqlSqlMode));if(engine.equals("oracle"))return OracleCompareSql.remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));return remap(sql,from.allSchemas()?Map.of():Map.of(from.schema(),to.schema()));}
         String sourceKeyForDestination(JsonNode object){return key(from.allSchemas()?str(object,"schema"):from.schema(),str(object,"kind"),str(object,"name"));}
         String mode(Choice c){String m=c.options.path("dataMode").asText(dataMode);if(!DATA_MODES.contains(m))throw new IllegalArgumentException("Invalid data mode");return m;}
         String sequenceMode(Choice c){String m=c.options.path("sequenceMode").asText(sequenceMode);if(!Set.of("advance","exact").contains(m))throw new IllegalArgumentException("Invalid sequence mode");return m;}
         boolean sync(Choice c){return c.options.path("syncValues").asBoolean(sync);}
-        void emit(Writer writer,List<String> statements)throws Exception{for(String sql:statements){writer.write(sql);writer.write(engine.equals("oracle")&&SqlScript.oracleBlock(sql)?"\n/\n\n":sql.stripTrailing().endsWith(";")?"\n\n":";\n\n");}}
+        void emit(Writer writer,List<String> statements)throws Exception{for(String sql:statements){if(MysqlDialect.supports(engine)&&sql.stripLeading().matches("(?is)^CREATE\\s+.*\\b(PROCEDURE|FUNCTION|TRIGGER|EVENT)\\b.*")){MysqlProgram.emit(writer,sql);continue;}writer.write(sql);writer.write(engine.equals("oracle")&&SqlScript.oracleBlock(sql)?"\n/\n\n":sql.stripTrailing().endsWith(";")?"\n\n":";\n\n");}}
         void header(Writer w)throws Exception{
             w.write("-- Database comparison: "+engine+" "+comment(source.version)+" -> "+comment(destination.version)+"\n-- Generated: "+java.time.Instant.now()+"\n-- Selected objects: "+selected.size()+"\n-- Generated from captured metadata and data. Review and execute with a SQL client.\n-- Destination: "+comment(to.database())+" / "+comment(to.allSchemas()?"all user schemas":to.schema())+"\n-- Destination-only objects are preserved. No statement has been executed by the comparer.\n-- Run against the intended destination with exclusive maintenance access; catalog and data changes after capture can invalidate this script.\n");
             if(dataMode.equals("none"))w.write("-- Structure only: table data is excluded. Sequence values are synchronized only when explicitly selected.\n");
             if(Set.of("mysql","mariadb","h2","oracle").contains(engine))w.write("-- This engine commits DDL independently. A failure may leave partially applied changes.\n");
-            if(engine.equals("postgresql"))w.write("BEGIN;\nSET LOCAL check_function_bodies = false;\n");
+            if(engine.equals("postgresql")){if(!prelude.isEmpty()){w.write("-- Enum additions commit before statements that may use the new values.\nBEGIN;\n");emit(w,prelude);w.write("COMMIT;\n");}w.write("BEGIN;\nSET LOCAL check_function_bodies = false;\n");}
+            if(MysqlDialect.supports(engine))w.write("SET @codegraph_compare_sql_mode=@@SESSION.sql_mode;\nSET @codegraph_compare_charset=@@SESSION.character_set_client;\nSET @codegraph_compare_timezone=@@SESSION.time_zone;\nSET SESSION time_zone='+00:00';\nSET @codegraph_compare_results=@@SESSION.character_set_results;\nSET @codegraph_compare_collation=@@SESSION.collation_connection;\nSET SESSION sql_mode="+MysqlProgram.modeLiteral(source.mysqlSqlMode)+";\n");
             if(engine.equals("oracle")&&!data.isEmpty())w.write("-- Oracle data literals use the Gregorian calendar. Staging tables need CREATE TABLE privilege.\nALTER SESSION SET NLS_CALENDAR='GREGORIAN';\nALTER SESSION SET TIME_ZONE='+00:00';\n");
             w.write("\n");for(String warning:warnings)w.write("-- "+comment(warning)+"\n");emit(w,before);
         }
-        void footer(Writer w)throws Exception{emit(w,after);emit(w,state);emit(w,finish);if(engine.equals("postgresql"))w.write("COMMIT;\n");}
+        void footer(Writer w)throws Exception{emit(w,after);emit(w,state);emit(w,finish);if(engine.equals("postgresql"))w.write("COMMIT;\n");if(MysqlDialect.supports(engine))w.write("SET SESSION time_zone=@codegraph_compare_timezone;\nSET SESSION character_set_client=@codegraph_compare_charset;\nSET SESSION character_set_results=@codegraph_compare_results;\nSET SESSION collation_connection=@codegraph_compare_collation;\nSET SESSION sql_mode=@codegraph_compare_sql_mode;\n");}
     }
     static Plan prepare(Inventory source,Inventory destination,Target from,Target to,JsonNode request)throws Exception{
         if(!source.engine.equals(destination.engine))throw new IllegalArgumentException("Choose source and destination on the same database engine");
         if(!ENGINES.contains(source.engine))throw new IllegalArgumentException("Script generation is unavailable for this engine");
+        if(Set.of("postgresql","mysql","mariadb").contains(source.engine)){
+            var a=java.util.regex.Pattern.compile("^(\\d+)\\.(\\d+)").matcher(source.version);var b=java.util.regex.Pattern.compile("^(\\d+)\\.(\\d+)").matcher(destination.version);
+            if(a.find()&&b.find()&&(Integer.parseInt(a.group(1))>Integer.parseInt(b.group(1))||source.engine.equals("mysql")&&a.group(1).equals(b.group(1))&&Integer.parseInt(a.group(2))>Integer.parseInt(b.group(2))))throw new IllegalArgumentException("Destination version is older than the source dialect. A downgrade requires a separate compatibility migration.");
+        }
         Plan plan=new Plan(source,destination,from,to,request);
         if(!request.path("objects").isArray()||request.path("objects").isEmpty())throw new IllegalArgumentException("Select at least one object");
         Map<String,ObjectNode> ids=new HashMap<>();for(ObjectNode o:source.objects.values())ids.put(str(o,"id"),o);
@@ -56,7 +62,8 @@ final class CompareSql {
             if(plan.selected.put(k,new Choice(object,dest,option))!=null)throw new IllegalArgumentException("Duplicate selected object");
         }
         if(plan.engine.equals("oracle"))return OracleCompare.prepare(plan);
-        requireDependencies(plan);List<Choice> ordered=order(plan);
+        requireDependencies(plan);if(plan.engine.equals("postgresql"))PostgresCompare.prepareRebuilds(plan);List<Choice> ordered=order(plan);
+        if(plan.engine.equals("postgresql"))for(Choice choice:ordered)if(str(choice.source,"kind").equals("tables")){PostgresCompare.tableAuxiliary(plan,choice);PostgresCompare.storage(plan,choice);}
         for(String schema:source.schemas)if(!destination.schemas.contains(plan.schema(schema))){
             if(!from.allSchemas())throw new IllegalArgumentException("Selected destination schema no longer exists");
             plan.before.add("CREATE SCHEMA "+q(plan.engine,plan.schema(schema)));
@@ -81,6 +88,7 @@ final class CompareSql {
         for(Choice choice:ordered)if(str(choice.source,"kind").equals("tables"))table(plan,choice);
         for(Choice choice:ordered)if(Set.of("functions","procedures").contains(str(choice.source,"kind")))objectDefinition(plan,choice);
         for(Choice choice:ordered)if(str(choice.source,"kind").equals("tables"))finishTable(plan,choice);
+        for(Choice choice:ordered)if(MysqlDialect.supports(plan.engine)&&Set.of("triggers","events").contains(str(choice.source,"kind")))objectDefinition(plan,choice);
         for(Choice choice:ordered)if(Set.of("views","materialized_views","indexes").contains(str(choice.source,"kind")))objectDefinition(plan,choice);
         for(Choice choice:ordered){
             if(str(choice.source,"kind").equals("tables")&&choice.options.path("includeData").asBoolean()){
@@ -88,19 +96,28 @@ final class CompareSql {
                 plan.mode(choice);plan.data.add(choice);
             }
             if(str(choice.source,"kind").equals("sequences")&&plan.sync(choice))sequence(plan,choice);
+            if(MysqlDialect.supports(plan.engine)&&str(choice.source,"kind").equals("tables")&&plan.autoIncrement&&choice.source.path("autoIncrementSupported").asBoolean())MysqlCompare.autoIncrement(plan,choice);
+            if(plan.engine.equals("postgresql"))PostgresCompare.finish(plan,choice);if(MysqlDialect.supports(plan.engine))MysqlGrants.finish(plan,choice);
         }
         return plan;
     }
-    static boolean same(Plan plan,ObjectNode a,ObjectNode b){if(plan.engine.equals("oracle"))return b!=null&&a.path("oracleChanges").isEmpty()&&a.path("supported").asBoolean();return b!=null&&semantic(plan,a,true).equals(semantic(plan,b,false));}
+    static boolean same(Plan plan,ObjectNode a,ObjectNode b){if(plan.rebuilt.contains(key(str(a,"schema"),str(a,"kind"),str(a,"name"))))return false;if(plan.engine.equals("oracle"))return b!=null&&a.path("oracleChanges").isEmpty()&&a.path("supported").asBoolean();return b!=null&&semantic(plan,a,true).equals(semantic(plan,b,false));}
     static JsonNode semantic(Plan plan,ObjectNode object,boolean map){
-        ObjectNode out=CompareCatalog.definition(object);out.remove(List.of("reason","supported","dataSupported","dataReason","implicit","triggers","rules","policies","externalDependents"));
-        if(out.path("fields").isObject())((ObjectNode)out.path("fields")).remove(List.of("owner","comment"));if(map)mapNode(out,plan);canonicalNode(out);if(out.has("nativeDdl"))out.put("nativeDdl",normalizeMysql(str(out,"nativeDdl")));return out;
+        ObjectNode out=CompareCatalog.definition(object);out.remove(List.of("reason","supported","dataSupported","dataReason","implicit","externalDependents","uninspectedPrograms"));
+        if(out.path("fields").isObject())((ObjectNode)out.path("fields")).remove(List.of("owner","comment"));if(map)mapNode(out,plan);canonicalNode(out,plan.engine,MysqlScript.Mode.parse(map?plan.source.mysqlSqlMode:plan.destination.mysqlSqlMode));if(out.has("nativeDdl"))out.put("nativeDdl",normalizeMysql(str(out,"nativeDdl"),MysqlCompare.mode(object)));return out;
     }
     static JsonNode mappedNode(Plan plan,JsonNode node){JsonNode copy=node.deepCopy();mapNode(copy,plan);return copy;}
-    static final Set<String> SQL_FIELDS=Set.of("ddl","nativeDdl","query","default","definition","type","table","ownedBy","expression","routineIdentity","body");
-    static void canonicalNode(JsonNode node){
-        if(node.isObject()){ObjectNode o=(ObjectNode)node;List<String> names=new ArrayList<>();o.fieldNames().forEachRemaining(names::add);for(String name:names){JsonNode value=o.get(name);if(value.isTextual()&&SQL_FIELDS.contains(name))o.put(name,canonical(value.asText()));else canonicalNode(value);}}
-        else if(node.isArray())for(JsonNode child:node)canonicalNode(child);
+    static final Set<String> SQL_FIELDS=Set.of("ddl","nativeDdl","query","default","definition","type","table","ownedBy","expression","routineIdentity","body","arguments","parameters","returns","base","using","check");
+    static void canonicalNode(JsonNode node){canonicalNode(node,"postgresql",MysqlScript.Mode.parse(""));}
+    static void canonicalNode(JsonNode node,String engine,MysqlScript.Mode mode){
+        if(node.isObject()){ObjectNode o=(ObjectNode)node;if(o.path("mysqlProgram").has("sqlMode"))mode=MysqlScript.Mode.parse(o.path("mysqlProgram").path("sqlMode").asText());List<String> names=new ArrayList<>();o.fieldNames().forEachRemaining(names::add);for(String name:names){JsonNode value=o.get(name);if(value.isTextual()&&SQL_FIELDS.contains(name))o.put(name,canonical(value.asText(),engine,mode));else canonicalNode(value,engine,mode);}}
+        else if(node.isArray())for(JsonNode child:node)canonicalNode(child,engine,mode);
+    }
+    static String canonical(String sql,String engine,MysqlScript.Mode mode){
+        if(!MysqlDialect.supports(engine))return canonical(sql);
+        StringBuilder out=new StringBuilder();int at=0;
+        for(var token:MysqlTableDefinition.tokens(sql,mode)){String text=token.text();if(token.quoted()&&(text.charAt(0)=='`'||text.charAt(0)=='"'&&mode.ansiQuotes())&&text.substring(1,text.length()-1).matches("[a-z_][a-z0-9_$]*")){out.append(sql,at,token.start()).append(text,1,text.length()-1);at=token.end();}}
+        return out.append(sql.substring(at)).toString();
     }
     /** Compare equivalent quoted lowercase identifiers without rewriting SQL literals. */
     static String canonical(String sql){
@@ -113,13 +130,14 @@ final class CompareSql {
             else{out.append(c);i++;}
         }return out.toString();
     }
-    private static void mapNode(JsonNode node,Plan plan){
-        if(node.isObject()){ObjectNode object=(ObjectNode)node;List<String> names=new ArrayList<>();object.fieldNames().forEachRemaining(names::add);
+    private static void mapNode(JsonNode node,Plan plan){mapNode(node,plan,MysqlScript.Mode.parse(plan.source.mysqlSqlMode));}
+    private static void mapNode(JsonNode node,Plan plan,MysqlScript.Mode mode){
+        if(node.isObject()){ObjectNode object=(ObjectNode)node;if(object.path("mysqlProgram").has("sqlMode"))mode=MysqlScript.Mode.parse(object.path("mysqlProgram").path("sqlMode").asText());List<String> names=new ArrayList<>();object.fieldNames().forEachRemaining(names::add);
             for(String name:names){JsonNode value=object.get(name);
                 if(value.isTextual()&&name.equals("schema"))object.put(name,plan.schema(value.asText()));
-                else if(value.isTextual()&&SQL_FIELDS.contains(name))object.put(name,plan.mapped(value.asText()));
-                else mapNode(value,plan);}
-        }else if(node.isArray())for(JsonNode child:node)mapNode(child,plan);
+                else if(value.isTextual()&&SQL_FIELDS.contains(name))object.put(name,MysqlDialect.supports(plan.engine)?MysqlProgram.remap(value.asText(),plan.from.allSchemas()?Map.of():Map.of(plan.from.schema(),plan.to.schema()),mode):plan.mapped(value.asText()));
+                else mapNode(value,plan,mode);}
+        }else if(node.isArray())for(JsonNode child:node)mapNode(child,plan,mode);
     }
     static void requireDependencies(Plan plan){
         for(Choice choice:plan.selected.values()){
@@ -144,7 +162,7 @@ final class CompareSql {
         if(!visiting.add(key))throw new IllegalArgumentException("Object dependency cycle requires a dedicated adapter: "+str(choice.source,"name"));
         for(JsonNode dep:choice.source.path("dependencies")){
             Choice other=plan.selected.get(dep.asText());
-            if(str(choice.source,"kind").equals("tables")&&other!=null&&!Set.of("types","domains").contains(str(other.source,"kind")))continue;
+            if(str(choice.source,"kind").equals("tables")&&other!=null&&!Set.of("types","domains").contains(str(other.source,"kind"))&&!dep.asText().equals(key(choice.source.path("postgresPartition").path("schema").asText(),"tables",choice.source.path("postgresPartition").path("parent").asText())))continue;
             if(choice.source.path("identity").asBoolean())continue;
             visit(plan,dep.asText(),done,visiting,ordered);
         }
@@ -172,6 +190,7 @@ final class CompareSql {
 
     static void table(Plan plan,Choice choice){
         ObjectNode source=choice.source,dest=choice.destination;String target=plan.target(source);
+        if(plan.engine.equals("postgresql")&&PostgresCompare.partition(plan,choice))return;
         long primary=java.util.stream.StreamSupport.stream(source.path("constraints").spliterator(),false).filter(n->str(n,"kind").equals("p")).count();if(primary>1)throw new IllegalArgumentException("Select removal of the old primary key before adding its replacement: "+str(source,"name"));
         Set<String> available=byName(source.path("columns")).keySet();for(JsonNode index:source.path("indexes"))for(JsonNode col:index.path("columns"))if(!col.asText().isEmpty()&&!available.contains(col.asText()))throw new IllegalArgumentException("Select the index change for removed column "+col.asText());
         for(JsonNode fk:source.path("foreignKeys"))for(JsonNode col:fk.path("columns"))if(!available.contains(col.asText()))throw new IllegalArgumentException("Select the foreign-key change for removed column "+col.asText());
@@ -181,18 +200,18 @@ final class CompareSql {
         if(dest==null){
             if(source.has("nativeDdl")){plan.before.add(mysqlCreate(plan,source));return;}
             List<String> cols=new ArrayList<>();source.path("columns").forEach(c->cols.add(column(plan,c,false)));
-            plan.before.add("CREATE TABLE "+target+" (\n  "+String.join(",\n  ",cols)+"\n)");return;
+            plan.before.add("CREATE "+(source.path("postgresStorage").path("persistence").asText().equals("u")?"UNLOGGED ":"")+"TABLE "+target+" (\n  "+String.join(",\n  ",cols)+"\n)"+(plan.engine.equals("postgresql")?PostgresCompare.createStorage(source):""));return;
         }
         if(same(plan,source,dest))return;
         if(source.has("nativeDdl")){
-            if(!normalizeMysql(plan.mapped(str(source,"nativeDdl"))).equals(normalizeMysql(str(dest,"nativeDdl"))))throw new IllegalArgumentException(str(source,"name")+": existing MySQL/MariaDB table definition changes are not supported by this adapter");
+            MysqlCompare.alter(plan,choice);
             return;
         }
         Map<String,JsonNode> before=byName(dest.path("columns")),after=byName(source.path("columns"));
         boolean shapeChanged=!columnShape(plan,source,true).equals(columnShape(plan,dest,false));
         if(shapeChanged){
             for(ObjectNode dependent:plan.destination.objects.values())for(JsonNode dependency:dependent.path("dependencies"))
-                if(dependency.asText().equals(key(str(dest,"schema"),"tables",str(dest,"name")))&&!dependent.path("implicit").asBoolean()&&!str(dependent,"kind").equals("indexes"))
+                if(dependency.asText().equals(key(str(dest,"schema"),"tables",str(dest,"name")))&&!dependent.path("implicit").asBoolean()&&!str(dependent,"kind").equals("indexes")&&!plan.rebuilt.contains(plan.sourceKeyForDestination(dependent)))
                     throw new IllegalArgumentException(str(source,"name")+": dependent "+str(dependent,"name")+" prevents a safe column change; align the dependency first");
             if(!dest.path("triggers").isEmpty())throw new IllegalArgumentException(str(source,"name")+": table triggers prevent safe column changes");
         }
@@ -206,7 +225,7 @@ final class CompareSql {
             JsonNode old=before.get(entry.getKey()),col=entry.getValue();String name=q(plan.engine,entry.getKey());
             if(old==null){if(!col.path("nullable").asBoolean()&&str(col,"identity").isEmpty())throw new IllegalArgumentException("Required column "+entry.getKey()+" needs a backfill before comparison");
                 plan.before.add("ALTER TABLE "+target+" ADD COLUMN "+column(plan,col,false));continue;}
-            if(!str(old,"identity").equals(str(col,"identity"))||!mappedNode(plan,col.path("identityOptions")).equals(old.path("identityOptions")))throw new IllegalArgumentException("Changing identity definitions on existing columns is unavailable: "+entry.getKey());
+            if(!str(old,"identity").equals(str(col,"identity"))||!mappedNode(plan,col.path("identityOptions")).equals(old.path("identityOptions"))){if(!plan.engine.equals("postgresql"))throw new IllegalArgumentException("Changing identity definitions is unavailable for this engine");PostgresCompare.identity(plan,target,old,col);}
             if(!plan.mapped(str(col,"type")).equalsIgnoreCase(str(old,"type"))){requireDestructive(plan,"Change column type "+entry.getKey());if(!widening(str(old,"type"),str(col,"type")))throw new IllegalArgumentException("Column type conversion needs a dedicated backfill adapter: "+entry.getKey());
                 plan.before.add("ALTER TABLE "+target+" ALTER COLUMN "+name+(plan.engine.equals("postgresql")?" TYPE ":" SET DATA TYPE ")+plan.mapped(str(col,"type")));}
             if(old.path("nullable").asBoolean()!=col.path("nullable").asBoolean()){
@@ -239,8 +258,7 @@ final class CompareSql {
                 else{if(index.path("expression").asBoolean()||index.has("predicate"))throw new IllegalArgumentException("Expression/filtered index is unavailable: "+str(index,"name"));
                     plan.before.add("CREATE "+(index.path("unique").asBoolean()?"UNIQUE ":"")+"INDEX "+qualified(plan.engine,plan.schema(str(source,"schema")),str(index,"name"))+" ON "+target+" ("+columns(plan.engine,index.path("columns"))+")");}
             }
-            if(dest==null)for(JsonNode trigger:source.path("triggers"))plan.after.add(plan.mapped(str(trigger,"definition")));
-            else if(!source.path("triggers").equals(dest.path("triggers")))throw new IllegalArgumentException("Trigger changes require a dedicated comparison adapter: "+str(source,"name"));
+            if(!plan.engine.equals("postgresql")){if(dest==null)for(JsonNode trigger:source.path("triggers"))plan.after.add(plan.mapped(str(trigger,"definition")));else if(!source.path("triggers").equals(dest.path("triggers")))throw new IllegalArgumentException("Trigger changes require a dedicated comparison adapter: "+str(source,"name"));}
         }
         if(changed)for(JsonNode fk:source.path("foreignKeys"))plan.after.add(foreignKey(plan,source,fk,true));
     }
@@ -255,6 +273,8 @@ final class CompareSql {
     static String rule(int rule){return switch(rule){case 0->"CASCADE";case 1->"RESTRICT";case 2->"SET NULL";case 3->"NO ACTION";case 4->"SET DEFAULT";default->throw new IllegalArgumentException("Unknown foreign-key action");};}
     static void objectDefinition(Plan plan,Choice choice){
         ObjectNode source=choice.source,dest=choice.destination;String kind=str(source,"kind"),target=plan.target(source);if(same(plan,source,dest))return;
+        if(plan.rebuilt.contains(key(str(source,"schema"),kind,str(source,"name"))))dest=null;
+        if(MysqlDialect.supports(plan.engine)&&Set.of("functions","procedures","triggers","events","views").contains(kind)){List<String> commands=MysqlProgram.definition(plan,choice);if(Set.of("functions","procedures").contains(kind))plan.before.addAll(commands);else plan.after.addAll(commands);return;}
         switch(kind){
             case "views","materialized_views"->{
                 if(dest!=null&&!mappedNode(plan,source.path("columnSignature")).equals(dest.path("columnSignature")))throw new IllegalArgumentException("Changing view columns requires a dependency-preserving rebuild adapter: "+str(source,"name"));
@@ -265,6 +285,7 @@ final class CompareSql {
                 String ddl="CREATE "+(kind.equals("views")&&dest!=null?"OR REPLACE ":"")+mysql+(kind.equals("views")?"VIEW ":"MATERIALIZED VIEW ")+target;
                 List<String> names=new ArrayList<>();for(JsonNode col:source.path("columnSignature"))names.add(q(plan.engine,str(col,"name")));if(!names.isEmpty())ddl+=" ("+String.join(", ",names)+")";
                 String options=str(source.path("fields"),"options");if(!options.isBlank())ddl+=" WITH ("+options.replace("\n",", ")+")";
+                if(kind.equals("materialized_views")&&!str(source.path("fields"),"tablespace").isBlank())ddl+=" TABLESPACE "+q(plan.engine,str(source.path("fields"),"tablespace"));
                 ddl+=" AS\n"+plan.mapped(str(source.path("fields"),"query"));
                 if(Set.of("mysql","mariadb").contains(plan.engine)){String check=str(source.path("fields"),"checkOption");if(Set.of("LOCAL","CASCADED").contains(check))ddl+=" WITH "+check+" CHECK OPTION";else if(!check.equals("NONE"))throw new IllegalArgumentException("Unsupported view check option");}
                 if(kind.equals("materialized_views"))ddl+=source.path("fields").path("populate").asBoolean()?"\nWITH DATA":"\nWITH NO DATA";plan.after.add(ddl);
@@ -279,10 +300,10 @@ final class CompareSql {
             case "indexes"->{
                 boolean managed=false;for(Choice table:plan.selected.values())if(str(table.source,"kind").equals("tables")&&!same(plan,table.source,table.destination))
                     for(JsonNode index:table.source.path("indexes"))if(str(index,"name").equals(str(source,"name"))&&str(table.source,"schema").equals(str(source,"schema")))managed=true;
-                if(managed)return;if(dest!=null)plan.before.add("DROP INDEX "+target);plan.after.add(plan.mapped(str(source,"ddl")));
+                if(managed)return;for(JsonNode dependency:source.path("dependencies"))if(plan.rebuilt.contains(dependency.asText()))dest=null;if(dest!=null)plan.before.add("DROP INDEX "+target);plan.after.add(plan.mapped(str(source,"ddl")));
             }
             case "types","domains"->{
-                if(dest!=null)throw new IllegalArgumentException("Changing an existing type/domain is unavailable: "+str(source,"name"));plan.before.add(plan.mapped(str(source,"ddl")));
+                if(plan.engine.equals("postgresql"))PostgresCompare.type(plan,choice);else{if(dest!=null)throw new IllegalArgumentException("Changing an existing type/domain is unavailable: "+str(source,"name"));plan.before.add(plan.mapped(str(source,"ddl")));}
             }
             case "functions","procedures"->{
                 if(!plan.engine.equals("postgresql"))throw new IllegalArgumentException("Routine script formatting is unavailable for "+plan.engine);
@@ -316,17 +337,11 @@ final class CompareSql {
     static BigInteger advance(BigInteger source,BigInteger destination,BigInteger step){if(step.signum()==0)throw new IllegalArgumentException("Sequence increment is zero");BigInteger delta=destination.subtract(source).multiply(BigInteger.valueOf(step.signum()));if(delta.signum()<=0)return source;BigInteger n=delta.add(step.abs()).subtract(BigInteger.ONE).divide(step.abs());return source.add(n.multiply(step));}
     static BigInteger integer(String value){try{return new BigInteger(value);}catch(NumberFormatException failure){throw new IllegalArgumentException("Sequence metadata is incomplete");}}
     static void requireDestructive(Plan plan,String operation){if(!plan.destructive)throw new IllegalArgumentException(operation+" requires enabling destructive schema changes");}
-    static String normalizeMysql(String ddl){
-        ddl=ddl.replaceAll("(?i) AUTO_INCREMENT=\\d+","").strip();int open=ddl.indexOf('('),close=ddl.lastIndexOf(')');
-        if(open<0||close<open)return ddl;
-        List<String> entries=split(ddl.substring(open+1,close));entries.removeIf(s->s.stripLeading().matches("(?is)(CONSTRAINT\\s+.+?\\s+)?FOREIGN\\s+KEY\\b.*"));
-        return ddl.substring(0,open+1)+String.join(",",entries.stream().map(String::strip).toList())+ddl.substring(close);
+    static String normalizeMysql(String ddl){return normalizeMysql(ddl,false);}
+    static String normalizeMysql(String ddl,boolean noBackslashEscapes){
+        var table=MysqlTableDefinition.parse(ddl,noBackslashEscapes);return "CREATE TABLE ("+String.join(",",table.clauses().stream().filter(clause->!MysqlCompare.foreign(clause)).map(String::strip).toList())+") "+MysqlCompare.options(table.options(),noBackslashEscapes);
     }
-    static String mysqlCreate(Plan plan,JsonNode table){
-        String ddl=normalizeMysql(str(table,"nativeDdl"));int open=ddl.indexOf('('),close=ddl.lastIndexOf(')');if(open<0||close<open)throw new IllegalArgumentException("Unrecognized native table definition");
-        List<String> entries=split(ddl.substring(open+1,close));entries.removeIf(s->s.stripLeading().matches("(?is)(CONSTRAINT\\s+.+?\\s+)?FOREIGN\\s+KEY\\b.*"));
-        return "CREATE TABLE "+plan.target(table)+" (\n"+plan.mapped(String.join(",\n",entries))+"\n)"+ddl.substring(close+1);
-    }
+    static String mysqlCreate(Plan plan,JsonNode table){return MysqlCompare.create(plan,table);}
     static List<String> split(String sql){
         List<String> parts=new ArrayList<>();int start=0,depth=0;char quote=0;
         for(int i=0;i<sql.length();i++){char c=sql.charAt(i);if(quote!=0){if(c=='\\'&&quote=='\''&&i+1<sql.length()){i++;continue;}if(c==quote){if(i+1<sql.length()&&sql.charAt(i+1)==quote)i++;else quote=0;}continue;}if(c=='\''||c=='"'||c==96){quote=c;continue;}if(c=='(')depth++;if(c==')')depth--;if(c==','&&depth==0){parts.add(sql.substring(start,i));start=i+1;}}

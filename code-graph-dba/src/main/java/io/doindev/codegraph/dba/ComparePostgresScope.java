@@ -53,19 +53,20 @@ final class ComparePostgresScope {
         try {
             ArrayNode rows=query(job,connection,"""
                 WITH dependencies AS (
-                  SELECT CASE WHEN d.classid IN ('pg_rewrite'::regclass,'pg_attrdef'::regclass,'pg_constraint'::regclass,'pg_trigger'::regclass)
+                  SELECT CASE WHEN d.classid='pg_constraint'::regclass AND k.contypid<>0 THEN 'pg_type'::regclass WHEN d.classid IN ('pg_rewrite'::regclass,'pg_attrdef'::regclass,'pg_constraint'::regclass,'pg_trigger'::regclass,'pg_policy'::regclass)
                               THEN 'pg_class'::regclass ELSE d.classid END AS owner_class,
-                         COALESCE(r.ev_class,a.adrelid,NULLIF(k.conrelid,0),g.tgrelid,d.objid) AS owner_oid,d.refclassid,d.refobjid,d.deptype
+                         COALESCE(r.ev_class,a.adrelid,NULLIF(k.conrelid,0),NULLIF(k.contypid,0),g.tgrelid,y.polrelid,d.objid) AS owner_oid,d.refclassid,d.refobjid,d.deptype
                   FROM pg_depend d
                   LEFT JOIN pg_rewrite r ON d.classid='pg_rewrite'::regclass AND r.oid=d.objid
                   LEFT JOIN pg_attrdef a ON d.classid='pg_attrdef'::regclass AND a.oid=d.objid
                   LEFT JOIN pg_constraint k ON d.classid='pg_constraint'::regclass AND k.oid=d.objid
                   LEFT JOIN pg_trigger g ON d.classid='pg_trigger'::regclass AND g.oid=d.objid
+                  LEFT JOIN pg_policy y ON d.classid='pg_policy'::regclass AND y.oid=d.objid
                   WHERE d.deptype IN ('n','a') AND d.refclassid IN ('pg_class'::regclass,'pg_proc'::regclass,'pg_type'::regclass)
                     AND ((d.classid='pg_class'::regclass AND d.objid=ANY(?))
                       OR (d.classid='pg_proc'::regclass AND d.objid=ANY(?))
                       OR (d.classid='pg_type'::regclass AND d.objid=ANY(?))
-                      OR r.ev_class=ANY(?) OR a.adrelid=ANY(?) OR k.conrelid=ANY(?) OR g.tgrelid=ANY(?)
+                      OR r.ev_class=ANY(?) OR a.adrelid=ANY(?) OR k.conrelid=ANY(?) OR g.tgrelid=ANY(?) OR y.polrelid=ANY(?) OR k.contypid=ANY(?)
                       OR (d.refclassid='pg_class'::regclass AND d.refobjid=ANY(?))
                       OR (d.refclassid='pg_proc'::regclass AND d.refobjid=ANY(?))
                       OR (d.refclassid='pg_type'::regclass AND d.refobjid=ANY(?)))
@@ -80,7 +81,7 @@ final class ComparePostgresScope {
                 LEFT JOIN pg_namespace pn ON pn.oid=p.pronamespace
                 LEFT JOIN pg_type t ON d.refclassid='pg_type'::regclass AND t.oid=d.refobjid
                 LEFT JOIN pg_namespace tn ON tn.oid=t.typnamespace
-                """,classes,routines,types,classes,classes,classes,classes,classes,routines,types);
+                """,classes,routines,types,classes,classes,classes,classes,classes,types,classes,routines,types);
             for(JsonNode row:rows){
                 String owner=identities.get(str(row,"owner_class")+":"+str(row,"owner_oid"));
                 String reference=identities.get(str(row,"catalog")+":"+str(row,"oid"));
@@ -93,9 +94,13 @@ final class ComparePostgresScope {
                     scope.scopeEdges.computeIfAbsent(owner,k->new TreeSet<>()).add(reference);
                     // Ownership and FK edges expand evidence; FK staging and sequence ownership
                     // are already ordered separately by the generator and must not create false cycles.
-                    if(str(row,"dependency_type").equals("n")&&!(str(catalog.get(owner).object(),"kind").equals("tables")&&str(catalog.get(reference).object(),"kind").equals("tables")))
+                    if((str(row,"dependency_type").equals("n")||str(catalog.get(owner).object(),"kind").equals("indexes"))&&!(str(catalog.get(owner).object(),"kind").equals("tables")&&str(catalog.get(reference).object(),"kind").equals("tables")))
                         scope.edges.computeIfAbsent(owner,k->new TreeSet<>()).add(reference);
                 }
+            }
+            for(JsonNode row:query(job,connection,"SELECT i.inhrelid::text AS child,i.inhparent::text AS parent FROM pg_inherits i JOIN pg_class c ON c.oid=i.inhrelid WHERE c.relispartition AND (i.inhrelid=ANY(?) OR i.inhparent=ANY(?))",classes,classes)){
+                String child=identities.get("pg_class:"+str(row,"child")),parent=identities.get("pg_class:"+str(row,"parent"));
+                if(child!=null&&parent!=null)scope.edges.computeIfAbsent(child,k->new TreeSet<>()).add(parent);else if(child!=null)scope.outside.put(child,"partition parent");else if(parent!=null)scope.outside.put(parent,"partition child");
             }
         }finally{classes.free();routines.free();types.free();}
         return scope;

@@ -12,11 +12,11 @@ final class CompareDiff {
             n.put("action",before==null?"create":after==null?"remove":"alter");if(before!=null)n.set("before",before);if(after!=null)n.set("after",after);return n;}
     }
     static final class ObjectDiff {
-        final String id,key,status;final ObjectNode source,destination;final List<Change> changes;
+        boolean dependencyOnly;final String id,key,status;final ObjectNode source,destination;final List<Change> changes;
         ObjectDiff(String id,String key,String status,ObjectNode source,ObjectNode destination,List<Change> changes){this.id=id;this.key=key;this.status=status;this.source=source;this.destination=destination;this.changes=List.copyOf(changes);}
         ObjectNode json(boolean details){
             JsonNode o=source==null?destination:source;ObjectNode n=Profiles.JSON.createObjectNode().put("id",id).put("name",str(o,"name")).put("schema",str(o,"schema")).put("kind",str(o,"kind")).put("status",status).put("supported",source!=null&&source.path("supported").asBoolean()).put("reason",str(o,"reason")).put("dataSupported",source!=null&&source.path("dataSupported").asBoolean()).put("stateReason",str(o,"stateReason"));
-            n.set("stateModes",o.path("stateModes"));n.set("keys",o.path("keys"));ArrayNode list=n.putArray("changes");changes.forEach(c->list.add(c.json()));
+            n.put("dependencyOnly",dependencyOnly);n.put("autoIncrementSupported",o.path("autoIncrementSupported").asBoolean());n.set("stateModes",o.path("stateModes"));n.set("keys",o.path("keys"));ArrayNode list=n.putArray("changes");changes.forEach(c->list.add(c.json()));
             if(details){if(source!=null)n.set("source",source);if(destination!=null)n.set("destination",destination);}return n;
         }
     }
@@ -34,8 +34,9 @@ final class CompareDiff {
                 else if(str(a,"kind").equals("tables")){
                     compareColumns(changes,a,b);
                     for(String section:List.of("constraints","foreignKeys","indexes"))compareNamed(changes,a,section,a.path(section),b.path(section));
-                    if(a.has("nativeDdl")&&!CompareSql.normalizeMysql(mapping.mapped(str(a,"nativeDdl"))).equals(CompareSql.normalizeMysql(str(b,"nativeDdl"))))add(changes,a,"nativeDdl",str(a,"name"),"",b.path("nativeDdl"),a.path("nativeDdl"),true);
+                    if(a.has("nativeDdl")&&!CompareSql.normalizeMysql(mapping.mapped(str(a,"nativeDdl")),MysqlCompare.mode(a)).equals(CompareSql.normalizeMysql(str(b,"nativeDdl"),MysqlCompare.mode(b))))add(changes,a,"nativeDdl",str(a,"name"),"",b.path("nativeDdl"),a.path("nativeDdl"),true);
                     if(!clean(a.path("triggers"),true).equals(clean(b.path("triggers"),false)))add(changes,a,"triggers",str(a,"name"),"",b.path("triggers"),a.path("triggers"),false);
+                    for(String section:List.of("rules","policies","postgresAttributes","postgresGrants","postgresColumnGrants","postgresColumnComments","mysqlGrants","postgresPartition","postgresStorage","storageOptions"))if(!clean(a.path(section),true).equals(clean(b.path(section),false)))add(changes,a,section,str(a,"name"),"",b.path(section),a.path(section),!b.path(section).isMissingNode());
                 }else if(!CompareSql.same(mapping,a,b))add(changes,a,"object",str(a,"name"),"",b,a,false);
             }
             String status=!a.path("supported").asBoolean()?"unsupported":b==null?"source_only":changes.isEmpty()?"identical":"different";
@@ -46,13 +47,13 @@ final class CompareDiff {
         }
     }
     private JsonNode clean(JsonNode n,boolean sourceSide){
-        JsonNode copy=n.deepCopy();cleanNode(copy,sourceSide);CompareSql.canonicalNode(copy);return copy;
+        JsonNode copy=n.deepCopy();cleanNode(copy,sourceSide);CompareSql.canonicalNode(copy,source.engine,MysqlScript.Mode.parse(sourceSide?source.mysqlSqlMode:destination.mysqlSqlMode));return copy;
     }
     private void cleanNode(JsonNode node,boolean sourceSide){
         if(node.isObject()){ObjectNode obj=(ObjectNode)node;obj.remove(List.of("id","oid","identityBase"));List<String> names=new ArrayList<>();obj.fieldNames().forEachRemaining(names::add);
             for(String name:names){JsonNode value=obj.get(name);
                 if(sourceSide&&value.isTextual()&&name.equals("schema"))obj.put(name,mapping.schema(value.asText()));
-                else if(sourceSide&&value.isTextual())obj.put(name,mapping.mapped(value.asText()));
+                else if(sourceSide&&value.isTextual()&&CompareSql.SQL_FIELDS.contains(name))obj.put(name,mapping.mapped(value.asText()));
                 else cleanNode(value,sourceSide);}}
         else if(node.isArray())for(JsonNode child:node)cleanNode(child,sourceSide);
     }
@@ -65,7 +66,7 @@ final class CompareDiff {
                 JsonNode x=old.get(field),y=next.get(field);if(x==null&&y==null)continue;
                 JsonNode xc=x==null?NullNode.instance:clean(x,false),yc=y==null?NullNode.instance:clean(y,true);
                 if(yc.isTextual())yc=Profiles.JSON.getNodeFactory().textNode(mapping.mapped(yc.asText()));
-                if(CompareSql.SQL_FIELDS.contains(field)){if(xc.isTextual())xc=Profiles.JSON.getNodeFactory().textNode(CompareSql.canonical(xc.asText()));if(yc.isTextual())yc=Profiles.JSON.getNodeFactory().textNode(CompareSql.canonical(yc.asText()));}
+                if(CompareSql.SQL_FIELDS.contains(field)){if(xc.isTextual())xc=Profiles.JSON.getNodeFactory().textNode(CompareSql.canonical(xc.asText(),source.engine,MysqlScript.Mode.parse(destination.mysqlSqlMode)));if(yc.isTextual())yc=Profiles.JSON.getNodeFactory().textNode(CompareSql.canonical(yc.asText(),source.engine,MysqlScript.Mode.parse(source.mysqlSqlMode)));}
                 if(!xc.equals(yc))add(changes,a,"columns",name,field,x,y,Set.of("type","identity","generated").contains(field)||field.equals("nullable")&&!next.path("nullable").asBoolean());
             }
         }
@@ -89,7 +90,7 @@ final class CompareDiff {
     }
     CompareSql.Plan plan(JsonNode request)throws Exception{
         if(!revision.equals(str(request,"revision")))throw new IllegalArgumentException("Comparison revision changed");
-        Inventory projected=new Inventory(source.engine,source.database,source.version);projected.schemas.addAll(source.schemas);projected.objects.putAll(source.objects);
+        Inventory projected=new Inventory(source.engine,source.database,source.version);projected.mysqlSqlMode=source.mysqlSqlMode;projected.mysqlPrincipal=source.mysqlPrincipal;projected.mysqlDatabaseCollation=source.mysqlDatabaseCollation;projected.schemas.addAll(source.schemas);projected.objects.putAll(source.objects);
         ObjectNode translated=request.deepCopy();ArrayNode selected=translated.putArray("objects");Set<String> seen=new HashSet<>();
         for(JsonNode selection:request.path("objects")){
             String id=str(selection,"id");ObjectDiff object=objects.get(id);if(object==null||object.source==null||!seen.add(id))throw new IllegalArgumentException("Invalid object selection");
@@ -104,7 +105,8 @@ final class CompareDiff {
         if(source.engine.equals("oracle")){ObjectNode projected=object.source.deepCopy();ArrayNode changes=projected.putArray("oracleSelectedChanges");for(Change change:object.changes)if(chosen.contains(change.id))changes.add(change.after.deepCopy());if(object.destination==null&&!object.source.path("implicit").asBoolean()&&changes.isEmpty())throw new IllegalArgumentException("Select creation of "+str(object.source,"name"));return projected;}
         if(object.destination==null){if(object.changes.isEmpty()||!chosen.contains(object.changes.getFirst().id))throw new IllegalArgumentException("Select creation of "+str(object.source,"name"));return object.source;}
         if(!str(object.source,"kind").equals("tables")){ObjectNode result=object.changes.isEmpty()||chosen.contains(object.changes.getFirst().id)?object.source:reverse(object.destination);result.put("id",object.id);return result;}
-        ObjectNode result=reverse(object.destination);result.put("id",object.id);result.set("dependencies",object.source.path("dependencies"));result.set("selection",object.source.path("selection"));
+        if(object.source.has("nativeDdl")&&!chosen.isEmpty()){var structural=object.changes.stream().filter(change->Set.of("columns","constraints","foreignKeys","indexes","nativeDdl").contains(change.section)).toList();if(structural.stream().anyMatch(change->chosen.contains(change.id))&&!structural.stream().allMatch(change->chosen.contains(change.id)))throw new IllegalArgumentException("Select all native table definition changes together; partial native ALTER selection is not enabled");}
+        ObjectNode result=reverse(object.destination);result.put("id",object.id);result.put("dataSupported",object.source.path("dataSupported").asBoolean()&&object.destination.path("dataSupported").asBoolean());result.set("dependencies",object.source.path("dependencies"));result.set("selection",object.source.path("selection"));
         for(Change change:object.changes)if(chosen.contains(change.id)){
             if(Set.of("columns","constraints","foreignKeys","indexes").contains(change.section)){
                 ArrayNode array=(ArrayNode)result.path(change.section);int index=-1;for(int i=0;i<array.size();i++)if(str(array.get(i),"name").equals(change.name)){index=i;break;}
@@ -112,11 +114,11 @@ final class CompareDiff {
                 else{if(index<0)throw new IllegalArgumentException("Column change requires creating "+change.name);ObjectNode column=(ObjectNode)array.get(index);if(change.after==null)column.remove(change.attribute);else column.set(change.attribute,change.after.deepCopy());}
             }else if(change.after!=null)result.set(change.section,change.after.deepCopy());
         }
-        result.set("keys",object.source.path("keys"));return result;
+        result.set("keys",object.source.path("keys"));if(object.source.path("autoIncrementSupported").asBoolean()){result.put("autoIncrementSupported",true);result.set("state",object.source.path("state"));}return result;
     }
     private ObjectNode reverse(ObjectNode destinationObject){ObjectNode result=destinationObject.deepCopy();if(!from.allSchemas())reverseNode(result);return result;}
     private void reverseNode(JsonNode node){
-        if(node.isObject()){ObjectNode obj=(ObjectNode)node;List<String> fields=new ArrayList<>();obj.fieldNames().forEachRemaining(fields::add);for(String field:fields){JsonNode value=obj.get(field);if(value.isTextual()&&field.equals("schema")&&value.asText().equals(to.schema()))obj.put(field,from.schema());else if(value.isTextual()&&Set.of("ddl","nativeDdl","query","default","definition","type","table","ownedBy").contains(field))obj.put(field,CompareSql.remap(value.asText(),Map.of(to.schema(),from.schema())));else reverseNode(value);}}
+        if(node.isObject()){ObjectNode obj=(ObjectNode)node;List<String> fields=new ArrayList<>();obj.fieldNames().forEachRemaining(fields::add);for(String field:fields){JsonNode value=obj.get(field);if(value.isTextual()&&field.equals("schema")&&value.asText().equals(to.schema()))obj.put(field,from.schema());else if(value.isTextual()&&CompareSql.SQL_FIELDS.contains(field))obj.put(field,MysqlDialect.supports(source.engine)?MysqlProgram.remap(value.asText(),Map.of(to.schema(),from.schema()),MysqlScript.Mode.parse(source.mysqlSqlMode)):CompareSql.remap(value.asText(),Map.of(to.schema(),from.schema())));else reverseNode(value);}}
         else if(node.isArray())for(JsonNode child:node)reverseNode(child);
     }
 }

@@ -30,6 +30,7 @@ public final class DbaRuntime implements AutoCloseable {
     private final ApprovalQueue approvals;
     private final MigrationPlans migrations;
     private final OracleAdministration oracleAdministration;
+    private final RelationalAdministration relationalAdministration;
     private final AgentRequests agentRequests;
     private final ApprovalBroker broker;
     private final ApprovalReviewServer reviewServer;
@@ -55,6 +56,7 @@ public final class DbaRuntime implements AutoCloseable {
         grids=new GridResults(jobs,connections,()->this.config,this::ownerAlive);jobs.grids=grids;
         compare=new DatabaseCompare(profiles,connections,jobs,config.directory(),this::ownerAlive);
         oracleAdministration=new OracleAdministration(connections,jobs,config.directory());
+        relationalAdministration=new RelationalAdministration(connections,jobs);
         gridSettings=new GridSettings(profiles.directory());
         approvalSettings=new ApprovalSettings(profiles.directory());
         compareSettings=new CompareSettings(profiles.directory());jobs.comparisonMetadataBytes(compareSettings.bytes());
@@ -357,6 +359,10 @@ public final class DbaRuntime implements AutoCloseable {
             if(path.equals("/api/dba/object-properties/apply")&&method.equals("POST")){json(x,202,jobs.applyObjectProperties(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/rman/script")&&method.equals("POST")){json(x,202,oracleAdministration.rmanScript(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/datapump/status")&&method.equals("POST")){json(x,202,oracleAdministration.dataPumpStatus(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/relational/backup/script")&&method.equals("POST")){json(x,202,relationalAdministration.backup(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/relational/admin/read")&&method.equals("POST")){json(x,202,relationalAdministration.read(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/relational/admin/prepare")&&method.equals("POST")){json(x,202,relationalAdministration.prepare(session.id(),body(x)));return;}
+            if(path.equals("/api/dba/relational/admin/apply")&&method.equals("POST")){json(x,202,relationalAdministration.apply(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/read")&&method.equals("POST")){json(x,202,oracleAdministration.read(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/prepare")&&method.equals("POST")){json(x,202,oracleAdministration.prepare(session.id(),body(x)));return;}
             if(path.equals("/api/dba/oracle/admin/apply")&&method.equals("POST")){json(x,202,oracleAdministration.apply(session.id(),body(x)));return;}
@@ -728,7 +734,7 @@ public final class DbaRuntime implements AutoCloseable {
     }
     static void asset(HttpExchange x,String path)throws IOException {
         if(Set.of("/dba/grid-preferences.js","/dba/grid-settings-dialog.js","/dba/grid-settings-schema.json","/dba/grid-values.js","/dba/editor-client.js","/dba/grid-cell-editor.js","/dba/grid-state.js","/dba/grid-window.js","/dba/grid-interactions.js","/dba/grid-data.css","/dba/grid-operations.js","/dba/grid-search.js","/dba/grid-search-worker.js",
-                "/dba/compare.js","/dba/compare.css","/dba/oracle-admin.js","/dba/oracle-admin.css","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
+                "/dba/compare.js","/dba/compare.css","/dba/oracle-admin.js","/dba/oracle-admin.css","/dba/relational-admin.js","/dba/mongo-pipeline-state.js","/dba/mongo-pipeline-editor.js","/dba/driver-download-settings.js").contains(path)){
             String name=path.substring("/dba/".length());try(InputStream input=DbaRuntime.class.getResourceAsStream("/codegraph/dba/"+name)){
                 if(input==null){json(x,404,Map.of("error","Asset not found"));return;}byte[] bytes=input.readAllBytes();x.getResponseHeaders().set("Content-Type",name.endsWith(".json")?"application/json; charset=utf-8":name.endsWith(".css")?"text/css; charset=utf-8":"application/javascript; charset=utf-8");x.sendResponseHeaders(200,bytes.length);x.getResponseBody().write(bytes);return;
             }

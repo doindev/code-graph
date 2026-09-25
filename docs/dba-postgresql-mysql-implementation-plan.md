@@ -166,9 +166,9 @@ part of stale-state verification. Table-owned implicit definitions avoid duplica
 The optional persisted metadata allowance defaults to 16 MiB and supports 1-256 MiB with
 memory admission; editor and independent native safety limits are retained.
 
-This delivery does not mark the rest of this roadmap complete. Native MySQL designers and
+At this first delivery, the rest of the roadmap was not yet complete. Native MySQL designers and
 stored-program parsing, additional PostgreSQL/MySQL change families, the broader value-fidelity
-audit, and administration/backup work remain as described in steps 2-5. Existing unsupported
+audit, and administration/backup work remained as described in steps 2-5. Existing unsupported
 operations remain explicitly blocked.
 
 
@@ -194,3 +194,87 @@ Validation for this delivery:
 | `postgres:16` | `sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b` |
 | `mysql:8.4` | `sha256:85b9bf2e29cf836ecb8c2a15a935d4ba0c606631dff1dd79531a11983c638f2a` |
 | `mariadb:11.4` | `sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b` |
+
+
+## Delivery notes: native workflows and administration (2026-09-25)
+
+Steps 2-5 now have native implementation across SQL/editing, comparison, value codecs,
+reviewed administration and manual logical backup/restore artifacts. The supported adapters
+and explicit migration boundaries are documented in [PostgreSQL/MySQL workflows](dba-relational.md).
+This closes the useful-workflow roadmap; it does not claim every vendor object or every
+server release is supported. Specialized operations remain blocked with actionable reasons.
+
+- MySQL/MariaDB: SHOW CREATE based table creation and incremental editing; mode-aware
+  DELIMITER parsing shared by queries, native editors and migrations; typed routine
+  parameters/multiple results; native ALTER and stored-program comparison; user/host and
+  column grants; independent AUTO_INCREMENT advancement using the current SHOW CREATE
+  counter rather than potentially cached information_schema statistics.
+- PostgreSQL: dependency-ordered view/materialized-view and routine rebuilds, native indexes,
+  comments, owners and object/column grants; enum additions and domain changes; identity,
+  storage, policies/rules/triggers and bounded new declarative partition-family creation.
+- Data: exact decimals/unsigned integers, temporal precision, UTC MySQL timestamp capture,
+  multibit/binary/JSON/Unicode and verified PostgreSQL built-in arrays, enums and domains.
+  Existing grid concurrency, exports, scoped agent reads and migration rehearsals remain
+  covered; unsafe editing codecs are still explicitly read-only.
+- Administration: engine-specific catalogs, privilege-aware typed actions, expiring reviewed
+  plans bound to observed target and object state, password disposal, asynchronous outcomes,
+  and manual Bash artifacts with runtime tool/path checks. Native backup tools are not
+  launched by the application. Physical backup/restore certification is outside this work.
+- Safety: scoped capture/revalidation and independent comparison limits are preserved.
+  Unsupported dynamic dependencies, downgrade targets, delegated grant chains and unknown
+  incoming stored programs block affected changes. Application work remains bounded on
+  JDK 25 virtual threads. Compare still never executes generated SQL.
+
+### Feature/version evidence
+
+Independent source/destination instances used the image digests recorded above. These are
+feature checks on the listed versions, not certification of every supported major release.
+
+| Native feature | PostgreSQL 16.14 / JDBC 42.7.13 | MySQL 8.4.11 / JDBC 9.7.0 | MariaDB 11.4.13 / JDBC 3.5.7 |
+| --- | --- | --- | --- |
+| Capture, compare, execute generated SQL, repeat | Passed, including 151-table scope, 300-column table and large type catalogs | Passed, including 300-column table | Passed, separately |
+| Native transitions | View/MV/routine rebuilds, enums/domains, identity/storage, partition creation, indexes, comments, trigger/rule state, policies and grants | ALTER, native designers, stored programs, SQL modes, event time zones, column grants, AUTO_INCREMENT | Same native families verified with MariaDB syntax |
+| Exact data modes | All four modes; decimal, timestamps, bytea, JSONB, Unicode, arrays, enum/domain | All four modes; decimal, unsigned, BIT, temporal precision, binary/JSON/Unicode | All four modes, separately |
+| Grid/export, scoped agent reads, migration/rehearsal | Passed | Passed | Passed |
+| Administration | Reviewed create/lock/analyze; stale review rejected; limited user denied privileged mutation | Same checks, missing native catalog privilege reported | Same checks, separately |
+| Administration browser | Review/apply/invalidation, secret disposal, copy/save, cancellation, desktop/narrow layouts | Passed | Passed |
+
+Root/superuser fixture connections exercised supported administration and native generation.
+Separate restricted reader accounts verified privilege failures. This does not certify all
+inherited-role combinations, optional extensions, physical backups, or production restore
+procedures. Backup/restore validation covers generated manual artifacts and browser disposal;
+the application did not execute backup tools. Oracle 19c administration certification remains
+pending a suitable standard instance.
+
+
+Release validation also exercised AUTO_INCREMENT changes between comparison and generation:
+counter state refreshes without invalidating reviewed structural definitions. Existing data
+fingerprints still reject changed selected rows. Legacy zero/invalid MySQL calendar dates are
+explicit conversion blockers.
+
+Docker cleanup verification found all 55 distinct pre-existing image IDs present, no remaining
+comparison-labelled containers, and no retained newly pulled MariaDB image. Existing resources
+were not started, stopped or removed by these runs.
+
+### Release check totals
+
+- Final JDK 25 offline reactor: 625 DBA tests, zero failures/errors, 106 environment-dependent
+  skips; 28 core tests, zero failures/errors, one skip.
+- Live vendor regression selector: 18 cases per run, zero failures/errors. PostgreSQL ran
+  13 applicable cases (five MySQL-specific skips); MySQL and MariaDB each ran 15 applicable
+  cases (three PostgreSQL-specific skips). The final PostgreSQL run includes disabled trigger
+  and rewrite-rule preservation; the MySQL/MariaDB value fixture includes different session
+  time zones. All generated SQL was applied only to owned disposable destinations.
+- Focused AUTO_INCREMENT refresh/native-regression runs: 12 checks passed on MySQL and 12
+  on MariaDB, including changes to source counter state after comparison and before generation.
+- Administration browser checks passed separately on PostgreSQL, MySQL and MariaDB. They
+  verify real reviewed mutations, stale form invalidation, password disposal, complete
+  copy/download, viewport geometry and cancellation/release. Narrow-layout output was inspected.
+
+Shared browser suites also passed: Compare, Table Properties, Visual Query Builder,
+Object Editors and the core workspace/grid smoke suite. Core validation corrected a startup
+focus race after workspace restoration and updated deterministic drag/server-output assertions.
+No page errors remained. Changed JavaScript syntax and staged whitespace checks passed.
+
+Local test evidence is retained under `target/roadmap-*.log` and the isolated validation build;
+build outputs, profiles, screenshots and logs are excluded from the commit.

@@ -1,0 +1,32 @@
+package io.doindev.codegraph.dba;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.net.URI;
+import java.sql.Connection;
+import java.util.*;
+
+/** Manual native-tool artifacts. This service never launches a process or reads backup paths. */
+final class RelationalBackupScripts {
+    static String shell(String text){if(text==null||text.indexOf(0)>=0||text.indexOf('\n')>=0||text.indexOf('\r')>=0)throw new IllegalArgumentException("Script values cannot contain control characters");return "'"+text.replace("'","'\"'\"'")+"'";}
+    static ObjectNode generate(QueryJobs.Job job,Connection c,JsonNode input)throws Exception{
+        ObjectNode target=RelationalAdministration.target(job,c);String engine=target.path("engine").asText(),mode=input.path("mode").asText();if(!Set.of("backup","restore").contains(mode))throw new IllegalArgumentException("Choose backup or restore");int major=target.path("major").asInt(),toolMajor=input.path("toolMajor").asInt();if(!input.path("toolMajor").isIntegralNumber()||toolMajor!=major)throw new IllegalArgumentException("Confirm a native client from the same major server release ("+major+") before generating this artifact");
+        String file=input.path("file").asText(),tool=input.path("tool").asText();if(file.isBlank()||file.length()>1024||!file.startsWith("/")||file.endsWith("/")||tool.isBlank()||tool.length()>1024||!tool.startsWith("/"))throw new IllegalArgumentException("Supply absolute POSIX paths for the native tool and backup file");
+        URI endpoint;try{endpoint=URI.create(c.getMetaData().getURL().substring(5));}catch(Exception failure){throw new IllegalArgumentException("Native scripts require a single-host JDBC URL");}if(endpoint.getHost()==null||endpoint.getRawUserInfo()!=null)throw new IllegalArgumentException("Native scripts require a single explicit host without URL credentials");String host=endpoint.getHost(),port=Integer.toString(endpoint.getPort()<0?engine.equals("postgresql")?5432:3306:endpoint.getPort()),database=target.path("database").asText(),user=c.getMetaData().getUserName();if(engine.equals("postgresql")&&(database.contains("=")||database.startsWith("postgresql://")||database.startsWith("postgres://")))throw new IllegalArgumentException("Native backup artifacts cannot safely pass a database name interpreted as a libpq connection string");
+        String tls=input.path("tls").asText("verify");if(!Set.of("verify","require","disable").contains(tls))throw new IllegalArgumentException("Unknown native-tool TLS mode");String ca=input.path("ca").asText();if(!ca.isEmpty()&&(!ca.startsWith("/")||ca.length()>1024))throw new IllegalArgumentException("CA certificate path must be absolute on the execution host");
+        StringBuilder script=new StringBuilder("#!/usr/bin/env bash\nset -euo pipefail\n# MANUAL logical "+mode+"; generated for "+engine+" "+major+". No command has been executed.\n# Confirm the tool path/version, endpoint identity, file permissions and free space on the execution host.\n# Use a fresh destination for restore. Stop application writes/schema changes for a consistent migration.\n# The tool prompts for a password; this artifact contains no credentials.\n");
+        String args=" --host="+shell(host)+" --port="+shell(port)+" --username="+shell(user);String command;
+        if(engine.equals("postgresql")){script.append("export PGSSLMODE=").append(shell(tls.equals("verify")?"verify-full":tls.equals("require")?"require":"disable")).append('\n');if(!ca.isEmpty())script.append("export PGSSLROOTCERT=").append(shell(ca)).append('\n');args+=" --dbname="+shell(database)+" --password";command=shell(tool)+args+(mode.equals("backup")?" --format=custom --file="+shell(file):" --exit-on-error --single-transaction "+shell(file));}
+        else{args=" --host="+shell(host)+" --port="+shell(port)+" --user="+shell(user)+" --password";if(engine.equals("mysql"))args+=" --ssl-mode="+(tls.equals("verify")?"VERIFY_IDENTITY":tls.equals("require")?"REQUIRED":"DISABLED");else args+=tls.equals("disable")?" --skip-ssl":tls.equals("verify")?" --ssl --ssl-verify-server-cert":" --ssl";if(!ca.isEmpty())args+=" --ssl-ca="+shell(ca);
+            if(mode.equals("backup")){script.append("# --single-transaction covers transactional tables only. Nontransactional tables need a separate locking window.\n# Accounts/global grants, physical files and replication provisioning are outside this logical dump.\n");command=shell(tool)+args+" --single-transaction --routines --triggers --events --hex-blob"+(engine.equals("mysql")?" --set-gtid-purged=OFF --no-tablespaces":"")+" --result-file="+shell(file)+" -- "+shell(database);}else command=shell(tool)+args+" --binary-mode --database="+shell(database)+" < "+shell(file);
+        }
+        String expected=engine.equals("postgresql")?(mode.equals("backup")?"pg_dump":"pg_restore"):engine.equals("mysql")?(mode.equals("backup")?"mysqldump":"mysql"):(mode.equals("backup")?"mariadb-dump":"mariadb");
+        if(!tool.substring(tool.lastIndexOf('/')+1).equals(expected))throw new IllegalArgumentException("Use the "+expected+" binary for this engine and operation");
+        script.append("test -x ").append(shell(tool)).append(" || { echo 'Native tool is not executable' >&2; exit 1; }\n");
+        script.append("tool_version=$(").append(shell(tool)).append(" --version)\ncase \"$tool_version\" in\n  *").append(shell(engine.equals("postgresql")?"PostgreSQL) "+major+".":engine.equals("mysql")?"Ver "+major+".":"Distrib "+major+".")).append("*) ;;\n  *) echo 'Native client version does not match the reviewed server major release' >&2; exit 1 ;;\nesac\n");
+        if(mode.equals("backup"))script.append("test ! -e ").append(shell(file)).append(" || { echo 'Backup path already exists; choose another file' >&2; exit 1; }\n");
+        else script.append("test -r ").append(shell(file)).append(" || { echo 'Backup file is not readable' >&2; exit 1; }\n");
+        script.append(command).append('\n');return target.put("script",script.toString()).put("fileName",engine+"-"+mode+".sh").put("manual",true).put("executed",false).put("toolVersionVerified",false).put("notice","The server target was observed. Tool version/path and backup-file contents are user-confirmed inputs, not inspected by the application. Run this Bash script manually after review; it is not a monitored backup job.");
+    }
+    private RelationalBackupScripts(){}
+}

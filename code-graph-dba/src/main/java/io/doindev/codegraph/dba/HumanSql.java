@@ -29,11 +29,13 @@ final class HumanSql {
     }
 
     static ObjectNode execute(QueryJobs.Job job,Connection connection,String source,JsonNode values,int decisionTimeout,Function<Exception,String> safeError)throws Exception {
-        boolean oracle=OracleDialect.isOracle(connection);if(!oracle)checkParameters(values);
-        List<SqlScript.Unit> units=SqlScript.extract(source,ExplainPlans.engine(connection.getMetaData()));int expected=units.stream().mapToInt(SqlScript.Unit::parameters).sum();
+        boolean oracle=OracleDialect.isOracle(connection);
+        String engine=ExplainPlans.engine(connection.getMetaData());boolean mysql=MysqlDialect.supports(engine);if(!oracle){if(mysql||engine.equals("postgresql"))NativeParameters.check(values,engine);else checkParameters(values);}
+        List<SqlScript.Unit> units=mysql?MysqlScript.extract(source,16384,MysqlScript.Mode.parse(MysqlDialect.mode(job,connection))):SqlScript.extract(source,engine);int expected=units.stream().mapToInt(SqlScript.Unit::parameters).sum();
         if(expected!=values.size())throw new IllegalArgumentException("Script contains "+expected+" prepared parameter marker"+(expected==1?"":"s")+" but "+values.size()+" value"+(values.size()==1?" was":"s were")+" supplied; nothing was executed");
         Totals totals=new Totals(job);ArrayNode statements=totals.out.putArray("statements");int bindingOffset=0;for(var unit:units){statements.addObject().put("index",unit.index()).put("sql",unit.sql()).put("parameterOffset",bindingOffset).put("parameterCount",unit.parameters());bindingOffset+=unit.parameters();}
         boolean autoCommit=connection.getAutoCommit(),savepoints=!autoCommit&&connection.getMetaData().supportsSavepoints();int parameterOffset=0;Set<ErrorKey> ignored=new HashSet<>();
+        if(mysql)totals.out.put("transactionNotice","MySQL DDL commits implicitly. Stored programs may commit; completed statements can remain applied after later failures.").put("changesMayAlreadyBeCommitted",true);
         if(oracle)totals.out.put("transactionNotice","Oracle DDL commits implicitly. PL/SQL can commit or execute DDL; rollback may not undo those changes.");
         for(SqlScript.Unit unit:units){
             if(job.cancelled)throw cancelled(totals,"Script cancelled before statement "+unit.index());
@@ -68,7 +70,7 @@ final class HumanSql {
         try(Statement statement=callable?c.prepareCall(unit.sql()):unit.parameters()==0?c.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY):c.prepareStatement(unit.sql(),ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
             job.statement=statement;statement.setQueryTimeout(job.remainingSeconds());statement.setFetchSize(64);statement.setMaxRows(totals.remainingRows+1);
             if(statement instanceof PreparedStatement prepared)for(int i=0;i<unit.parameters();i++){
-                JsonNode value=values.get(offset+i);if(value.isObject())OracleSql.bind(prepared,i+1,value);else bind(prepared,i+1,value);
+                JsonNode value=values.get(offset+i);if(value.isObject()){if(OracleDialect.isOracle(c))OracleSql.bind(prepared,i+1,value);else NativeParameters.bind(prepared,i+1,value);}else bind(prepared,i+1,value);
             }
             boolean resultSet=statement instanceof PreparedStatement prepared?prepared.execute():statement.execute(unit.sql());
             while(true){
@@ -93,8 +95,8 @@ final class HumanSql {
                     int size=entry.path("rowCount").asInt();totals.remainingRows-=size;totals.totalRows+=size;totals.truncated|=entry.path("truncated").asBoolean();if(totals.first==null)totals.first=entry;
                     totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(entry).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("Oracle cursor exceeds byte allowance");totals.results.add(entry);
                 }else{
-                    ObjectNode value=OracleSql.scalar(call,i+1,parameter).put("parameterIndex",offset+i+1).put("statementIndex",unit.index());
-                    totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(value).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("Oracle output parameters exceed byte allowance");totals.out.withArray("outputParameters").add(value);
+                    ObjectNode value=(OracleDialect.isOracle(c)?OracleSql.scalar(call,i+1,parameter):NativeParameters.output(call,i+1,parameter)).put("parameterIndex",offset+i+1).put("statementIndex",unit.index());
+                    totals.remainingBytes-=Profiles.JSON.writeValueAsBytes(value).length;if(totals.remainingBytes<0)throw new IllegalArgumentException("Output parameters exceed byte allowance");totals.out.withArray("outputParameters").add(value);
                 }
             }
         }finally{job.statement=null;}

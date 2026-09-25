@@ -1,0 +1,78 @@
+package io.doindev.codegraph.dba;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.*;
+import java.sql.*;
+import java.util.*;
+import static io.doindev.codegraph.dba.TableDesigner.*;
+
+/** Reviewed incremental changes preserve SHOW CREATE attributes outside the edited field. */
+final class MysqlDesigner {
+    static String target(JsonNode table){return MysqlDialect.quote(str(table,"schema"))+"."+MysqlDialect.quote(str(table,"name"));}
+    static String type(String value){String v=value.strip();if(!v.matches("(?i)(?:tinyint|smallint|mediumint|int|integer|bigint|decimal|numeric|float|double|real|bit|boolean|date|datetime|timestamp|time|year|char|varchar|binary|varbinary|tinytext|text|mediumtext|longtext|tinyblob|blob|mediumblob|longblob|json)(?:\\(\\d{1,5}(?:\\s*,\\s*\\d{1,3})?\\))?(?: unsigned)?"))throw new IllegalArgumentException("Use a supported MySQL built-in type, optional precision and UNSIGNED; edit ENUM/SET definitions through reviewed native SQL");return v;}
+    static void capabilities(ObjectNode out){out.putArray("editableCategories").add("Constraints").add("Foreign Keys").add("Indexes");out.putArray("unavailableColumnSettings").add("generated");out.put("reason","Native MySQL edits preserve unexposed column and table attributes. DDL commits implicitly and can lock/rebuild tables. Partition definitions and generated expressions require native SQL review.");}
+    static String literal(String value,boolean noBackslash){if(value.length()>8192||value.indexOf(0)>=0)throw new IllegalArgumentException("Text exceeds the designer allowance");return "'"+(noBackslash?value:value.replace("\\","\\\\")).replace("'","''")+"'";}
+    static ObjectNode load(QueryJobs.Job job,Connection connection,ObjectNode out)throws Exception{
+        String schema=str(out,"schema"),name=str(out,"name"),mode=MysqlDialect.mode(job,connection);boolean noBackslash=MysqlScript.Mode.parse(mode).noBackslashEscapes();
+        var ddlRows=query(job,connection,"SHOW CREATE TABLE "+target(out));if(ddlRows.size()!=1||!ddlRows.get(0).has("create table"))throw new IllegalArgumentException("Native table definition unavailable; check SHOW CREATE privileges");
+        String ddl=ddlRows.get(0).path("create table").asText();var definition=MysqlTableDefinition.parse(ddl,noBackslash);var nativeColumns=MysqlTableDefinition.columns(definition);
+        out.put("nativeDdl",ddl).put("mysqlSqlMode",mode).put("editable",true);capabilities(out);
+        var table=query(job,connection,"SELECT ENGINE,TABLE_COLLATION,TABLE_COMMENT,CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?",schema,name);
+        if(table.size()!=1)throw new IllegalArgumentException("Selected table is unavailable");out.set("nativeTable",table.get(0));out.putObject("fields").put("schema",schema).put("name",name).put("owner","").put("tablespace","").put("comment",table.get(0).path("table_comment").asText());
+        var keys=query(job,connection,"SELECT COLUMN_NAME,ORDINAL_POSITION FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND CONSTRAINT_NAME='PRIMARY' ORDER BY ORDINAL_POSITION",schema,name);out.put("primaryKeyName",keys.isEmpty()?"":"PRIMARY");
+        var columns=query(job,connection,"SELECT ORDINAL_POSITION AS id,COLUMN_NAME AS name,COLUMN_TYPE AS type,IS_NULLABLE,EXTRA,GENERATION_EXPRESSION,COLUMN_COMMENT AS comment,CHARACTER_SET_NAME,COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? ORDER BY ORDINAL_POSITION",schema,name);
+        if(columns.size()>MAX_COLUMNS)throw new IllegalArgumentException("Table exceeds 256-column designer allowance");
+        for(JsonNode row:columns){var col=(ObjectNode)row;String nativeColumn=nativeColumns.get(str(col,"name"));if(nativeColumn==null)throw new IllegalArgumentException("Native column inventory changed; reload the table");String defaultClause=MysqlTableDefinition.attribute(nativeColumn,"DEFAULT",noBackslash);col.put("nativeDefinition",nativeColumn).put("default",defaultClause.isEmpty()?"":defaultClause.substring(7).strip()).put("nullable",str(col,"is_nullable").equals("YES")).put("identity",str(col,"extra").toLowerCase(Locale.ROOT).contains("auto_increment")?"d":"").put("generated",str(col,"generation_expression")).put("pk",0);for(JsonNode key:keys)if(str(key,"column_name").equals(str(col,"name")))col.put("pk",key.path("ordinal_position").asInt());}
+        out.set("columns",columns);out.set("constraints",query(job,connection,"SELECT CONSTRAINT_NAME AS id,CONSTRAINT_NAME AS name,CONSTRAINT_TYPE AS kind FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? ORDER BY CONSTRAINT_NAME",schema,name));
+        out.set("indexes",query(job,connection,"SELECT INDEX_NAME AS id,INDEX_NAME AS name,INDEX_TYPE,NON_UNIQUE,GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS definition FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? GROUP BY INDEX_NAME,INDEX_TYPE,NON_UNIQUE ORDER BY INDEX_NAME",schema,name));
+        for(JsonNode idx:out.path("indexes")){boolean constrained=false;for(JsonNode constraint:out.path("constraints"))if(str(idx,"name").equals(str(constraint,"name")))constrained=true;((ObjectNode)idx).put("constrained",constrained);}
+        var fingerprint=out.deepCopy();fingerprint.remove(List.of("selection","categories","reason","sql"));out.put("fingerprint",hash(fingerprint));if(Profiles.JSON.writeValueAsBytes(out).length>1<<20)throw new IllegalArgumentException("Native MySQL table exceeds designer metadata allowance");return out;
+    }
+    private static String expression(String value,boolean noBackslash)throws Exception{if(value.isBlank())return "";var units=MysqlScript.extract("SELECT "+value,8192,MysqlScript.Mode.parse(noBackslash?"NO_BACKSLASH_ESCAPES":""));if(units.size()!=1||!units.getFirst().sql().equals("SELECT "+value)||units.getFirst().parameters()!=0)throw new IllegalArgumentException("Expected one literal/default expression without statements or parameters");TableDesigner.expression(value);return value;}
+    static ObjectNode prepare(ObjectNode current,JsonNode request)throws Exception{
+        JsonNode draft=request.path("draft"),fields=draft.path("fields");boolean noBackslash=MysqlScript.Mode.parse(str(current,"mysqlSqlMode")).noBackslashEscapes();String target=target(current);
+        for(String field:List.of("schema","owner","tablespace"))if(!str(fields,field).equals(str(current.path("fields"),field)))throw new IllegalArgumentException(field+" changes require native MySQL SQL review");MysqlDialect.quote(str(fields,"name"));
+        var original=new LinkedHashMap<String,JsonNode>();current.path("columns").forEach(col->original.put(str(col,"id"),col));var desired=new LinkedHashMap<String,JsonNode>();Set<String> names=new HashSet<>();Set<Integer> ranks=new HashSet<>();
+        if(draft.path("columns").size()>MAX_COLUMNS)throw new IllegalArgumentException("At most 256 columns");
+        for(JsonNode col:draft.path("columns")){String id=str(col,"id");if(desired.put(id,col)!=null||!original.containsKey(id)&&!id.startsWith("new:"))throw new IllegalArgumentException("Invalid stable column identity");if(col.path("deleted").asBoolean())continue;MysqlDialect.quote(str(col,"name"));if(!names.add(str(col,"name").toLowerCase(Locale.ROOT)))throw new IllegalArgumentException("Duplicate column name");int rank=col.path("pk").asInt();if(!col.path("pk").isIntegralNumber()||rank<0||rank>32||rank>0&&!ranks.add(rank))throw new IllegalArgumentException("Primary-key positions must be distinct integers 1..32");if(rank>0&&col.path("nullable").asBoolean())throw new IllegalArgumentException("Primary-key columns must be NOT NULL");}
+        if(names.isEmpty()||!desired.keySet().containsAll(original.keySet()))throw new IllegalArgumentException("Keep a column and explicitly mark removed columns");
+        ArrayNode commands=Profiles.JSON.createArrayNode();List<JsonNode> oldPk=pk(current.path("columns")),newPk=pk(draft.path("columns"));boolean pkChanged=!oldPk.stream().map(c->str(c,"id")).toList().equals(newPk.stream().map(c->str(c,"id")).toList());
+        if(pkChanged&&!oldPk.isEmpty())add(commands,"ALTER TABLE "+target+" DROP PRIMARY KEY",true);
+        for(JsonNode col:desired.values()){
+            JsonNode old=original.get(str(col,"id"));if(col.path("deleted").asBoolean()){if(old!=null)add(commands,"ALTER TABLE "+target+" DROP COLUMN "+MysqlDialect.quote(str(old,"name")),true);continue;}
+            String name=MysqlDialect.quote(str(col,"name"));
+            if(old==null){if(!str(col,"generated").isEmpty())throw new IllegalArgumentException("Add generated columns using native SQL review");String def=expression(str(col,"default"),noBackslash),identity=str(col,"identity");if(!identity.isEmpty()&&(!identity.equals("d")||!def.isEmpty()||col.path("nullable").asBoolean()||col.path("pk").asInt()==0))throw new IllegalArgumentException("AUTO_INCREMENT requires By default, a primary key, NOT NULL and no default");String definition=name+" "+type(str(col,"type"))+(col.path("nullable").asBoolean()?" NULL":" NOT NULL")+(def.isBlank()?"":" DEFAULT "+def)+(identity.isEmpty()?"":" AUTO_INCREMENT")+(str(col,"comment").isEmpty()?"":" COMMENT "+literal(str(col,"comment"),noBackslash));add(commands,"ALTER TABLE "+target+" ADD COLUMN "+definition,true);continue;}
+            if(!str(col,"identity").equals(str(old,"identity"))||!str(col,"generated").equals(str(old,"generated")))throw new IllegalArgumentException("Existing AUTO_INCREMENT/generated attributes require native SQL review");
+            String definition=str(old,"nativeDefinition");boolean changed=false;
+            for(String field:List.of("type","nullable","default","comment"))if(!col.path(field).equals(old.path(field))){if(!str(old,"generated").isEmpty()&&!field.equals("comment"))throw new IllegalArgumentException("Generated-column changes require native SQL review");String key,value;switch(field){case "type"->{key="type";value=type(str(col,field));}case "nullable"->{key="NULL";value=col.path(field).asBoolean()?"NULL":"NOT NULL";}case "default"->{if(!str(old,"identity").isEmpty())throw new IllegalArgumentException("AUTO_INCREMENT defaults are database managed");key="DEFAULT";String expr=expression(str(col,field),noBackslash);value=expr.isEmpty()?"":"DEFAULT "+expr;}default->{key="COMMENT";value="COMMENT "+literal(str(col,field),noBackslash);}}definition=MysqlTableDefinition.replace(definition,key,value,noBackslash);changed=true;}
+            if(changed)add(commands,"ALTER TABLE "+target+" MODIFY COLUMN "+definition,true);
+            if(!str(old,"name").equals(str(col,"name")))add(commands,"ALTER TABLE "+target+" RENAME COLUMN "+MysqlDialect.quote(str(old,"name"))+" TO "+name,true);
+        }
+        if(pkChanged&&!newPk.isEmpty())add(commands,"ALTER TABLE "+target+" ADD PRIMARY KEY ("+String.join(", ",newPk.stream().map(col->MysqlDialect.quote(str(col,"name"))).toList())+")",true);
+        for(JsonNode change:draft.path("objects"))objectChange(current,change,commands,names,noBackslash);
+        if(!str(fields,"comment").equals(str(current.path("fields"),"comment")))add(commands,"ALTER TABLE "+target+" COMMENT = "+literal(str(fields,"comment"),noBackslash),false);
+        if(!str(fields,"name").equals(str(current,"name")))add(commands,"RENAME TABLE "+target+" TO "+MysqlDialect.quote(str(current,"schema"))+"."+MysqlDialect.quote(str(fields,"name")),true);
+        if(commands.isEmpty())throw new IllegalArgumentException("There are no changes to save");
+        if(!current.path("creation").asBoolean()){
+            String prefix="ALTER TABLE "+target+" ";List<String> clauses=new ArrayList<>();ArrayNode rest=Profiles.JSON.createArrayNode();for(JsonNode command:commands){String sql=str(command,"sql");if(sql.startsWith(prefix))clauses.add(sql.substring(prefix.length()));else rest.add(command);}if(!clauses.isEmpty()){commands.removeAll();add(commands,prefix+String.join(",\n  ",clauses),true);commands.addAll(rest);}
+        }
+        ObjectNode plan=Profiles.JSON.createObjectNode().put("atomic",false).put("risky",true).put("expiresAt",System.currentTimeMillis()+300000).put("partialCommitWarning","MySQL DDL commits implicitly. Earlier steps remain applied after failure. ALTER may rebuild or lock the table; no online algorithm is promised.");plan.set("commands",commands);plan.set("snapshot",current);plan.set("draft",draft.deepCopy());return plan;
+    }
+    private static List<JsonNode> pk(JsonNode columns){List<JsonNode> result=new ArrayList<>();columns.forEach(c->{if(!c.path("deleted").asBoolean()&&c.path("pk").asInt()>0)result.add(c);});result.sort(Comparator.comparingInt(c->c.path("pk").asInt()));return result;}
+    private static String columns(JsonNode list,Set<String> names){if(!list.isArray()||list.isEmpty()||list.size()>32)throw new IllegalArgumentException("Select 1..32 columns");List<String> result=new ArrayList<>();for(JsonNode n:list){if(names!=null&&!names.contains(n.asText().toLowerCase(Locale.ROOT)))throw new IllegalArgumentException("Unknown draft column");result.add(MysqlDialect.quote(n.asText()));}return String.join(", ",result);}
+    private static void objectChange(ObjectNode current,JsonNode change,ArrayNode commands,Set<String> names,boolean noBackslash)throws Exception{
+        String category=str(change,"category"),action=str(change,"action"),target=target(current),name=str(change,"name");
+        if(Set.of("Constraints","Foreign Keys").contains(category)){
+            if(action.equals("delete")){JsonNode old=find(current.path("constraints"),str(change,"id"));String drop=switch(str(old,"kind")){case "FOREIGN KEY"->"FOREIGN KEY";case "CHECK"->str(current,"engine").equals("mariadb")?"CONSTRAINT":"CHECK";case "UNIQUE"->"INDEX";default->throw new IllegalArgumentException("Edit primary key through Columns");};add(commands,"ALTER TABLE "+target+" DROP "+drop+" "+MysqlDialect.quote(str(old,"name")),true);return;}
+            if(action.equals("add")){String definition=switch(str(change,"kind")){case "CHECK"->"CHECK ("+expression(str(change,"expression"),noBackslash)+")";case "UNIQUE"->"UNIQUE ("+columns(change.path("columns"),names)+")";case "FOREIGN KEY"->{if(change.path("columns").size()!=change.path("references").size())throw new IllegalArgumentException("Foreign-key column counts differ");yield "FOREIGN KEY ("+columns(change.path("columns"),names)+") REFERENCES "+MysqlDialect.quote(str(change,"schema"))+"."+MysqlDialect.quote(str(change,"table"))+" ("+columns(change.path("references"),null)+")";}default->throw new IllegalArgumentException("Unsupported constraint");};add(commands,"ALTER TABLE "+target+" ADD CONSTRAINT "+MysqlDialect.quote(name)+" "+definition,true);return;}
+        }
+        if(category.equals("Indexes")){
+            if(action.equals("add")){add(commands,"CREATE "+(change.path("unique").asBoolean()?"UNIQUE ":"")+"INDEX "+MysqlDialect.quote(name)+" ON "+target+" ("+columns(change.path("columns"),names)+")",true);return;}
+            JsonNode old=find(current.path("indexes"),str(change,"id"));if(old.path("constrained").asBoolean())throw new IllegalArgumentException("Constraint-owned indexes are edited through constraints");
+            if(action.equals("delete")){add(commands,"DROP INDEX "+MysqlDialect.quote(str(old,"name"))+" ON "+target,true);return;}
+            if(action.equals("rename")){add(commands,"ALTER TABLE "+target+" RENAME INDEX "+MysqlDialect.quote(str(old,"name"))+" TO "+MysqlDialect.quote(name),false);return;}
+        }
+        throw new IllegalArgumentException("This MySQL category/action requires native SQL review");
+    }
+    private MysqlDesigner(){}
+}

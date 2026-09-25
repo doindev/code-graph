@@ -9,26 +9,29 @@ import java.util.*;
 final class TableCreation {
     static ObjectNode initialize(Connection c,JsonNode target,boolean generic)throws Exception {
         String engine=ObjectCreation.engine(c),schema=target.path("schema").asText();
-        if(generic||!Set.of("postgresql","h2","sqlserver","oracle").contains(engine))throw new IllegalArgumentException("Table creation is not supported by this designer adapter");
+        if(generic||!Set.of("postgresql","h2","sqlserver","oracle","mysql","mariadb").contains(engine))throw new IllegalArgumentException("Table creation is not supported by this designer adapter");
         if(engine.equals("sqlserver")&&c.getMetaData().getDatabaseMajorVersion()<16)throw new IllegalArgumentException("SQL Server designer requires verified SQL Server 2022 or later metadata");
         boolean oracle=engine.equals("oracle");if(oracle&&c.getMetaData().getDatabaseMajorVersion()<19)throw new IllegalArgumentException("Oracle designer requires Oracle 19c or newer");
         OracleDialect.Target oracleTarget=oracle?OracleDialect.target(c,30):null;if(oracle&&!oracleTarget.matches(target.path("database").asText()))throw new IllegalArgumentException("Oracle service/PDB differs from the selected target");
         TableDesigner.q(schema);boolean found=false;
-        try(var rs=c.getMetaData().getSchemas()){while(rs.next())if(schema.equals(rs.getString("TABLE_SCHEM")))found=true;}
+        boolean mysql=MysqlDialect.supports(engine);
+        try(var rs=mysql?c.getMetaData().getCatalogs():c.getMetaData().getSchemas()){while(rs.next())if(schema.equals(rs.getString(mysql?"TABLE_CAT":"TABLE_SCHEM")))found=true;}
         if(!found)throw new IllegalArgumentException("Selected schema is unavailable; refresh the tree");
         ObjectNode out=Profiles.JSON.createObjectNode().put("creation",true).put("editable",true).put("engine",engine).put("database",oracle?oracleTarget.database():c.getCatalog()).put("schema",schema).put("name","").put("reason","New table — Save validates and opens SQL review. Apply creates the table.");
         out.putObject("fields").put("name","").put("schema",schema).put("owner","").put("comment","").put("tablespace","");
         for(String key:List.of("columns","constraints","indexes","triggers","policies","rules"))out.putArray(key);
         ArrayNode categories=out.putArray("categories");TableMetadata.categories(engine,c.getMetaData().getDatabaseMajorVersion()).forEach(categories::add);categories.add("Statistics").add("Permissions").add("DDL").add("Virtual");
         out.set("creationTarget",MetadataTree.request(target));if(engine.equals("sqlserver"))SqlServerDesigner.capabilities(out);
+        if(mysql){MysqlDesigner.capabilities(out);try(var st=c.createStatement()){st.setQueryTimeout(30);try(var rows=st.executeQuery("SELECT @@SESSION.sql_mode")){if(!rows.next())throw new SQLException("SQL mode unavailable");out.put("mysqlSqlMode",rows.getString(1));}}}
         if(oracle){out.set("oracleTarget",oracleTarget.json());out.withObject("fields").put("owner",schema);OracleDesigner.capabilities(out);}
         ObjectNode identity=Profiles.JSON.createObjectNode().put("url",c.getMetaData().getURL()).put("user",c.getMetaData().getUserName()).put("database",c.getCatalog()).put("engine",engine).put("schema",schema);
-        if(oracle)identity.set("oracleTarget",oracleTarget.json());out.put("fingerprint",TableDesigner.hash(identity));return out;
+        if(mysql)identity.put("mysqlSqlMode",out.path("mysqlSqlMode").asText());if(oracle)identity.set("oracleTarget",oracleTarget.json());out.put("fingerprint",TableDesigner.hash(identity));return out;
     }
     static void absent(Connection c,String schema,String name)throws Exception {
         String esc=c.getMetaData().getSearchStringEscape();
         String sp=schema.replace(esc,esc+esc).replace("_",esc+"_").replace("%",esc+"%"),np=name.replace(esc,esc+esc).replace("_",esc+"_").replace("%",esc+"%");
-        try(var rs=c.getMetaData().getTables(OracleDialect.isOracle(c)?null:c.getCatalog(),sp,np,null)){if(rs.next())throw new IllegalArgumentException("An object with this name already exists. No existing object was changed.");}
+        boolean mysql=MysqlDialect.supports(ObjectCreation.engine(c));
+        try(var rs=c.getMetaData().getTables(mysql?schema:OracleDialect.isOracle(c)?null:c.getCatalog(),mysql?null:sp,np,null)){if(rs.next())throw new IllegalArgumentException("An object with this name already exists. No existing object was changed.");}
     }
     static ObjectNode prepare(Connection c,ObjectNode baseline,JsonNode request)throws Exception {
         if(!baseline.path("fingerprint").equals(request.path("fingerprint")))throw new IllegalArgumentException("Creation target changed. Close this draft and start New again.");
@@ -52,6 +55,7 @@ final class TableCreation {
         ObjectNode plan=TableDesigner.prepare(current,ordered);ArrayNode rest=Profiles.JSON.createArrayNode();List<String> definitions=new ArrayList<>();String prefix="ALTER TABLE "+TableDesigner.target(current)+(Set.of("sqlserver","oracle").contains(current.path("engine").asText())?" ADD ":" ADD COLUMN ");
         for(JsonNode command:plan.path("commands")){String sql=command.path("sql").asText();if(sql.startsWith(prefix)&&!sql.startsWith(prefix+"PRIMARY KEY")&&!sql.startsWith(prefix+"CONSTRAINT")&&!sql.startsWith(prefix+"DEFAULT"))definitions.add(sql.substring(prefix.length()));else rest.add(command);}
         if(definitions.isEmpty())throw new IllegalArgumentException("Add at least one named column with a supported datatype");
+        if(MysqlDialect.supports(current.path("engine").asText())){String pk="ALTER TABLE "+TableDesigner.target(current)+" ADD PRIMARY KEY ";ArrayNode other=Profiles.JSON.createArrayNode();for(JsonNode command:rest){String sql=command.path("sql").asText();if(sql.startsWith(pk))definitions.add("PRIMARY KEY "+sql.substring(pk.length()));else other.add(command);}rest=other;}
         ArrayNode commands=plan.putArray("commands");TableDesigner.add(commands,"CREATE TABLE "+TableDesigner.target(current)+" (\n  "+String.join(",\n  ",definitions)+"\n)",false);
         String ownerPrefix="ALTER TABLE "+TableDesigner.target(current)+" OWNER TO ";
         for(JsonNode command:rest)if(!command.path("sql").asText().startsWith(ownerPrefix))commands.add(command);

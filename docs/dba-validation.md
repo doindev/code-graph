@@ -194,3 +194,18 @@ The expanded builder browser suite passed for canvas compilation without data ex
 Other Explain engines have command/cleanup or representative-format contracts, not live certification. OpenSearch uses its driver's native authenticated HTTP transport; endpoint/body/error/bounded-response contracts passed. Db2 for i, Informix, MongoDB SQL and Neo4j native plan collection remain implementation gaps with explicit capability messages. Exasol is limited to estimated virtual-schema pushdowns. See [the per-template matrix](dba-explain-support.md).
 
 Artifacts: `code-graph-dba/target/query-builder.png`, `query-builder-narrow.png`, `query-builder-data.png`, `query-builder-plan.png`, `visual-browser-final.log`, `visual-grid-final.log`, `visual-postgres-final.log`, and `visual-database-matrix.log`.
+
+
+## PostgreSQL/MySQL native roadmap - 2026-09-25
+
+The [native workflow guide](dba-relational.md) documents the delivered PostgreSQL,
+MySQL and MariaDB adapters, reviewed Administration workspaces, manual logical backup
+artifacts, and explicit unsupported migration boundaries. The [roadmap delivery record](dba-postgresql-mysql-implementation-plan.md#featureversion-evidence)
+contains the feature/version/privilege matrix, image digests and release results.
+
+Reproduce live checks with `code-graph-dba/test-compare-vendors.ps1 -BuildRoot <isolated-build>
+-Vendors postgresql -Browser`, then separate MySQL and MariaDB runs. Each run creates
+independent labelled source/destination containers, executes generated comparison SQL only
+inside those fixtures, and removes its containers/volumes plus newly pulled unused images.
+Existing Docker resources are preserved. The browser option requires the local Playwright
+runtime and checks the native Administration flow against the disposable destination.

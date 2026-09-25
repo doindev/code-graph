@@ -51,13 +51,14 @@ offers Save, Discard and Cancel. Browser refresh does not restore designer draft
 | PostgreSQL Policies | Add/update USING expression; delete. This does not enable RLS automatically |
 | PostgreSQL Rules | Add an INSERT/UPDATE/DELETE DO INSTEAD NOTHING rule; delete |
 | PostgreSQL Permissions / Statistics | Grant/revoke listed table privileges to existing roles; explicitly request ANALYZE |
+| MySQL 8 / MariaDB native tables | SHOW CREATE based creation and reviewed column/default/comment/key/index/check/FK changes; preserves unexposed native attributes. See [native workflows and restrictions](dba-relational.md). |
 | Other JDBC engines | Available metadata is read-only; unsupported driver calls report an error |
 | References / Dependencies / Partitions | Read-only metadata |
 | DDL | Copyable definition summary, explicitly **not** a complete restore script |
 | Virtual | Placeholder; no database or local virtual metadata changes |
 
 This is not yet the complete all-vendor designer described in the implementation plan.
-Unimplemented areas include vendor editing adapters beyond PostgreSQL/H2 and the SQL Server subset below, native partition
+Unimplemented areas include vendor editing adapters beyond PostgreSQL/H2, MySQL/MariaDB and the SQL Server subset below, native partition
 editing, advanced trigger/rule/policy/index configuration, full constraint replacement editors,
 existing identity/generated-column alteration, full-fidelity DDL export, and automatic
 remaining-draft rebasing after partial failures. Controls must not imply those features work.

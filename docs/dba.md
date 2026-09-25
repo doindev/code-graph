@@ -388,3 +388,9 @@ bounds, cross-database behavior and validation limits.
 See [project/database bindings, activity-driven catalog scans, stored versions and approved live SQL](project-database-context.md). All connection templates participate through native metadata adapters or an explicitly partial JDBC fallback. The Project databases settings page manages bindings and agent grants; the Approvals toolbar button reviews each new live request.
 
 Configurable multi-connection read scopes are available through [MCP read permissions](mcp-read-permissions.md), including scoped metadata and standalone permission settings.
+
+## Native PostgreSQL and MySQL workflows
+
+See [PostgreSQL, MySQL and MariaDB DBA workflows](dba-relational.md) for native table editing,
+stored-program scripts, comparison transitions, value codecs, Administration and manual
+logical backup/restore artifacts, including their tested capability boundaries.
