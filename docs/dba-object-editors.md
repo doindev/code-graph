@@ -9,7 +9,7 @@ targets. Double-click or Enter opens the object without expanding its branch.
 
 Each dedicated object tab contains **Properties** and an inner vertical category control.
 General, Definition, type-specific categories, dynamically discovered Advanced properties,
-driver Datatypes and **DDL** share one draft. The same tab creates, inspects and edits the
+relevant driver Datatypes and **DDL** share one draft. The same tab creates, inspects and edits the
 object; a successful creation resolves its real catalog identity. Existing tabs are reused.
 Views and materialized views retain Data and Diagram. Tables keep their established
 Table Properties editor.
@@ -36,6 +36,14 @@ vendor-specific object types, parameter/signature changes and advanced clauses.
 This is **not** an assertion that every vendor property has a generated form writer.
 Metadata failures are reported as capability notes, not silently presented as an empty
 successful catalog. Missing/incomplete native DDL is explicitly identified.
+
+Optional editor hints are loaded only for editable fields that need them. For example,
+New Schema loads owner suggestions, but no driver datatype, language, tablespace, index
+method, or unrelated schema catalogs. Each suggestion catalog is bounded to 200 rows and
+64 KiB, and also fits within the remaining editor snapshot budget. If it exceeds those
+bounds, the editor stays usable with a capability note and manual value entry. Required
+object definitions retain their existing safety limits and are never silently truncated.
+This applies to creation and existing-object editors across supported database engines.
 
 **Use native SQL for this save** selects the DDL draft instead of generating SQL from the
 form. It requires review and explicit acknowledgement and may affect objects beyond the
@@ -163,3 +171,31 @@ expressions, included columns, access methods and predicates remain editable in 
 existing fields. Choosing a new relation replaces the helper's column selection; the
 editor draft is updated only when **Use selection** is accepted. Save still reviews the
 complete SQL before Apply.
+
+### Oversized catalog regression (2026-09-25)
+
+`ObjectEditorMetadataTest` verifies irrelevant datatype catalogs are never fetched,
+optional hint limits do not block editors, required definitions remain bounded, and
+cancellation closes the result sets. `ObjectEditorMetadataVendorTest` reproduces the
+former 1 MiB failure with 650 PostgreSQL enum datatypes, opens 19 creation categories,
+and validates reviewed schema creation plus schema/sequence reopening. It passed on the
+existing `postgres:16` image at digest
+`sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b`.
+Object designer and object creation browser suites also passed. The harness removed its
+owned containers and retained pre-existing Docker resources.
+
+The shared policy covers every JDBC adapter; there are no remaining eager driver-datatype
+catalog reads elsewhere in DBA. Driver-contract regressions additionally cover Oracle,
+SQL Server, DB2, Snowflake, HSQLDB, SQLite, DuckDB and generic JDBC creation editors,
+including non-fatal oversized hints when an adapter exposes editable datatype fields.
+These tests simulate driver metadata and do not certify live server behavior for those
+engines. MySQL/MariaDB have separate live regressions for nine creation categories and
+reopening native view definitions, with an assertion that driver datatype catalogs are
+never requested for these editors.
+
+The live MySQL/MariaDB checks passed using `mysql:8.4` at digest
+`sha256:85b9bf2e29cf836ecb8c2a15a935d4ba0c606631dff1dd79531a11983c638f2a`
+and `mariadb:11.4` at digest
+`sha256:70cc072b29b4a89ae07abb2d4da2c64678a7f2dfe092751bb51c87d67dc1338b`.
+The harness retained the existing MySQL image and removed the newly pulled, unused
+MariaDB image after deleting its task-owned containers.

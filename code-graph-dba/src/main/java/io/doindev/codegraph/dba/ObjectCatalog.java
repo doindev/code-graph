@@ -8,31 +8,41 @@ import static io.doindev.codegraph.dba.ObjectDesigner.*;
 
 /** Bounded native definition and property discovery. Catalog columns remain visible by name. */
 final class ObjectCatalog {
+    /** Optional editor hints have a smaller budget than required definition evidence. */
+    static final int HINT_ROWS=200,HINT_BYTES=64<<10;
+    static final class MetadataLimitException extends IllegalArgumentException {
+        MetadataLimitException(String message){super(message);}
+        MetadataLimitException(String message,Throwable cause){super(message,cause);}
+    }
     static ArrayNode query(QueryJobs.Job job,Connection c,String sql,Object... args)throws Exception{
+        return query(job,c,1000,1<<20,sql,args);
+    }
+    private static ArrayNode query(QueryJobs.Job job,Connection c,int maximumRows,int maximumBytes,String sql,Object... args)throws Exception{
         try(var st=c.prepareStatement(sql)){
-            job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.setMaxRows(1001);
+            job.statement=st;st.setQueryTimeout(job.remainingSeconds());st.setMaxRows(maximumRows+1);
             for(int i=0;i<args.length;i++)st.setObject(i+1,args[i]);
-            try(var rs=st.executeQuery()){return rows(job,rs);}
+            try(var rs=st.executeQuery()){return rows(job,rs,maximumRows,maximumBytes);}
         }finally{job.statement=null;}
     }
-    static ArrayNode rows(QueryJobs.Job job,ResultSet rs)throws Exception{
+    static ArrayNode rows(QueryJobs.Job job,ResultSet rs)throws Exception{return rows(job,rs,1000,1<<20);}
+    private static ArrayNode rows(QueryJobs.Job job,ResultSet rs,int maximumRows,int maximumBytes)throws Exception{
         ArrayNode out=Profiles.JSON.createArrayNode();var m=rs.getMetaData();long bytes=0;
-        if(m.getColumnCount()>256)throw new IllegalArgumentException("Metadata exceeds 256 properties per row");
+        if(m.getColumnCount()>256)throw new MetadataLimitException("Metadata exceeds 256 properties per row");
         while(rs.next()){
             if(job.cancelled)throw new java.util.concurrent.CancellationException();
-            if(out.size()>=1000)throw new IllegalArgumentException("This property category exceeds 1,000 entries");
+            if(out.size()>=maximumRows)throw new MetadataLimitException("This property category exceeds "+(maximumRows==1000?"1,000":maximumRows)+" entries");
             ObjectNode row=out.addObject();
             for(int i=1;i<=m.getColumnCount();i++){
                 String v;
                 if(Set.of(Types.CHAR,Types.VARCHAR,Types.LONGVARCHAR,Types.NCHAR,Types.NVARCHAR,Types.LONGNVARCHAR,Types.CLOB,Types.NCLOB).contains(m.getColumnType(i))){
                     try(var reader=rs.getCharacterStream(i)){
                         if(reader==null)v=null;else{StringBuilder text=new StringBuilder();char[] chunk=new char[4096];int count;
-                            while((count=reader.read(chunk))!=-1){if(job.cancelled)throw new java.util.concurrent.CancellationException();if(text.length()+count>65536)throw new IllegalArgumentException("A definition exceeds the 64 KiB editor limit");text.append(chunk,0,count);}v=text.toString();}
+                            while((count=reader.read(chunk))!=-1){if(job.cancelled)throw new java.util.concurrent.CancellationException();if(text.length()+count>65536)throw new MetadataLimitException("A definition exceeds the 64 KiB editor limit");text.append(chunk,0,count);}v=text.toString();}
                     }
                 }else v=rs.getString(i);
-                if(v!=null&&v.length()>65536)throw new IllegalArgumentException("A definition exceeds the 64 KiB editor limit");
+                if(v!=null&&v.length()>65536)throw new MetadataLimitException("A definition exceeds the 64 KiB editor limit");
                 bytes+=2L*(m.getColumnLabel(i).length()+(v==null?4:v.length()))+32;
-                if(bytes>1<<20)throw new IllegalArgumentException("This metadata category exceeds the 1 MiB editor limit");
+                if(bytes>maximumBytes)throw new MetadataLimitException("This metadata category exceeds the "+(maximumBytes==(1<<20)?"1 MiB":(maximumBytes>>10)+" KiB")+" editor limit");
                 if(v==null)row.putNull(m.getColumnLabel(i).toLowerCase(Locale.ROOT));else row.put(m.getColumnLabel(i).toLowerCase(Locale.ROOT),v);
             }
         }
@@ -46,20 +56,15 @@ final class ObjectCatalog {
         }catch(SQLException|UnsupportedOperationException e){
             if(save!=null)c.rollback(save);
             warning(out,label+": "+e.getMessage());
+        }catch(MetadataLimitException e){throw new MetadataLimitException(label+": "+e.getMessage(),e);
         }catch(IllegalArgumentException e){if(e instanceof CompareCatalog.MetadataLimitException)throw e;throw new IllegalArgumentException(label+": "+e.getMessage(),e);
         }finally{if(save!=null)try{c.releaseSavepoint(save);}catch(SQLException ignored){}}
     }
     static void populate(QueryJobs.Job job,Connection c,ObjectNode out,JsonNode node)throws Exception{
         String engine=str(out,"engine"),k=str(out,"kind");
         ObjectNode f=(ObjectNode)out.path("fields");
-        ObjectNode choices=out.putObject("choices");
-        optional(c,out,"Driver datatype metadata",()->{try(var rs=c.getMetaData().getTypeInfo()){detail(out,"Datatypes",rows(job,rs));}});
+        out.putObject("choices");
         if(engine.equals("postgresql")){
-            optional(c,out,"Available schemas",()->choices.set("schema",query(job,c,"SELECT nspname AS name FROM pg_namespace WHERE has_schema_privilege(oid,'USAGE') ORDER BY nspname")));
-            optional(c,out,"Available roles",()->choices.set("owner",query(job,c,"SELECT rolname AS name FROM pg_roles ORDER BY rolname")));
-            optional(c,out,"Available languages",()->choices.set("language",query(job,c,"SELECT lanname AS name FROM pg_language ORDER BY lanname")));
-            optional(c,out,"Available tablespaces",()->choices.set("tablespace",query(job,c,"SELECT spcname AS name FROM pg_tablespace ORDER BY spcname")));
-            optional(c,out,"Available index methods",()->choices.set("method",query(job,c,"SELECT amname AS name FROM pg_am WHERE amtype='i' ORDER BY amname")));
             if(node==null){f.put("owner",query(job,c,"SELECT current_user AS name").path(0).path("name").asText());return;}
             postgres(job,c,out,node);return;
         }
@@ -73,6 +78,35 @@ final class ObjectCatalog {
         }
         if(!engine.equals("oracle")&&Set.of("functions","procedures").contains(k)){
             optional(c,out,"Parameters",()->{var m=c.getMetaData();try(var rs=k.equals("functions")?m.getFunctionColumns(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")),null):m.getProcedureColumns(c.getCatalog(),pattern(m,str(f,"schema")),pattern(m,str(f,"name")),null)){detail(out,"Parameters",rows(job,rs));}});
+        }
+    }
+    /** Read only hints used by editable controls, after native fields and form capabilities are known. */
+    static void editorHints(QueryJobs.Job job,Connection c,ObjectNode out)throws Exception{
+        var editable=new HashSet<String>();for(JsonNode control:out.path("controls"))if(control.path("editable").asBoolean())editable.add(str(control,"id"));
+        if(!Collections.disjoint(editable,Set.of("type","parameters","returns")))hint(c,out,"Driver datatype metadata",()->{
+            try(var rs=c.getMetaData().getTypeInfo()){detail(out,"Datatypes",rows(job,rs,HINT_ROWS,HINT_BYTES));}
+        });
+        if(!str(out,"engine").equals("postgresql"))return;
+        Map<String,String> catalogs=new LinkedHashMap<>();
+        catalogs.put("schema","SELECT nspname AS name FROM pg_namespace WHERE has_schema_privilege(oid,'USAGE') ORDER BY nspname");
+        catalogs.put("owner","SELECT rolname AS name FROM pg_roles ORDER BY rolname");
+        catalogs.put("language","SELECT lanname AS name FROM pg_language ORDER BY lanname");
+        catalogs.put("tablespace","SELECT spcname AS name FROM pg_tablespace ORDER BY spcname");
+        catalogs.put("method","SELECT amname AS name FROM pg_am WHERE amtype='i' ORDER BY amname");
+        for(var entry:catalogs.entrySet())if(editable.contains(entry.getKey()))hint(c,out,"Available "+entry.getKey()+" values",()->{
+            ArrayNode values=query(job,c,HINT_ROWS,HINT_BYTES,entry.getValue());
+            ((ObjectNode)out.path("choices")).set(entry.getKey(),values);
+            for(JsonNode control:out.path("controls"))if(str(control,"id").equals(entry.getKey()))((ObjectNode)control).set("choices",values);
+        });
+    }
+    private static void hint(Connection c,ObjectNode out,String label,Read read)throws Exception{
+        // Never relax the required-definition reader: only optional suggestions may be omitted.
+        ObjectNode before=out.deepCopy();
+        try{
+            optional(c,out,label,read);
+            if(Profiles.JSON.writeValueAsBytes(out).length>(1<<20)-4096)throw new MetadataLimitException(label+": suggestions exceed the remaining editor budget");
+        }catch(MetadataLimitException e){
+            out.removeAll();out.setAll(before);warning(out,e.getMessage()+". Optional suggestions omitted; enter values manually.");
         }
     }
     @FunctionalInterface interface Query {ArrayNode read(String sql,Object... args)throws Exception;}

@@ -63,6 +63,7 @@ final class ObjectDesigner {
         if(MysqlDialect.supports(engine))out.put("mysqlSqlMode",MysqlDialect.mode(job,c));
         ObjectForms.configure(c,out);
         MaterializedViewSchedules.populate(job,c,out);
+        ObjectCatalog.editorHints(job,c,out);
         category(out,"DDL");
         ArrayNode ordered=Profiles.JSON.createArrayNode();for(String name:List.of("General","Definition","Columns","Parameters","Return Type"))if(out.path("categories").toString().contains("\""+name+"\""))ordered.add(name);
         java.util.stream.StreamSupport.stream(out.path("categories").spliterator(),false).map(JsonNode::asText).filter(n->!List.of("General","Definition","Columns","Parameters","Return Type","Advanced","Datatypes","DDL").contains(n)).sorted().forEach(ordered::add);
