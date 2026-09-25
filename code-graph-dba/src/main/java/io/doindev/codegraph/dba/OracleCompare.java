@@ -38,7 +38,7 @@ final class OracleCompare {
                 if(!str(row,"status").equals("VALID"))object.put("invalid",true);
                 if(!str(row,"edition_name").isBlank())object.put("edition",str(row,"edition_name"));
             }
-            for(String[] category:List.of(new String[]{"queues","SYS.ALL_QUEUES","name","owner"},new String[]{"database_links","SYS.ALL_DB_LINKS","db_link","owner"},new String[]{"jobs","SYS.ALL_JOBS","TO_CHAR(job)","schema_user"})){
+            for(String[] category:List.of(new String[]{"queues","SYS.ALL_QUEUES","name","owner"},new String[]{"database_links","SYS.ALL_DB_LINKS","db_link","owner"},new String[]{"jobs",catalogReader?"SYS.DBA_JOBS":"SYS.USER_JOBS","TO_CHAR(job)","schema_user"})){
                 if(!selectedKinds.isEmpty()&&!selectedKinds.contains(category[0]))continue;
                 for(JsonNode row:query(job,c,"SELECT "+category[2]+" AS name FROM "+category[1]+" WHERE "+category[3]+"=?",owner)){
                     String name=str(row,"name");

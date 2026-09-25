@@ -46,23 +46,23 @@ final class VendorMetadata {
     private static void oracle(QueryJobs.Job job,Connection c,JsonNode r,ObjectNode out,int timeout)throws Exception{
         String k=r.path("kind").asText(),s=r.path("schema").asText(""),db=r.path("database").asText("");String sql;
         if(k.equals("databases")){var target=OracleDialect.target(job,c,timeout);node((ArrayNode)out.path("nodes"),"database",target.database(),true,target.database(),"");return;}
-        if(k.equals("schemas")){query(job,c,out,"SELECT username AS node_id,username AS node_name FROM all_users ORDER BY username",List.of(),"schema",true,db,"",timeout);return;}
+        if(k.equals("schemas")){query(job,c,out,"SELECT username AS node_id,username AS node_name FROM SYS.all_users ORDER BY username",List.of(),"schema",true,db,"",timeout);return;}
         sql=switch(k){
-            case "queues" -> "SELECT name AS node_id,name AS node_name FROM all_queues WHERE owner=? ORDER BY name";
-            case "synonyms" -> "SELECT synonym_name AS node_id,synonym_name AS node_name FROM all_synonyms WHERE owner=? ORDER BY synonym_name";
-            case "schema_triggers" -> "SELECT trigger_name AS node_id,trigger_name AS node_name FROM all_triggers WHERE owner=? AND base_object_type IN ('SCHEMA','DATABASE') ORDER BY trigger_name";
-            case "table_triggers" -> "SELECT trigger_name AS node_id,trigger_name AS node_name FROM all_triggers WHERE owner=? AND base_object_type IN ('TABLE','VIEW') ORDER BY trigger_name";
-            case "database_links" -> "SELECT db_link AS node_id,db_link AS node_name FROM all_db_links WHERE owner=? ORDER BY db_link";
-            case "jobs" -> "SELECT TO_CHAR(job),TO_CHAR(job) FROM all_jobs WHERE schema_user=? ORDER BY job";
-            case "scheduler_jobs" -> "SELECT job_name AS node_id,job_name AS node_name FROM all_scheduler_jobs WHERE owner=? ORDER BY job_name";
-            case "scheduler_programs" -> "SELECT program_name AS node_id,program_name AS node_name FROM all_scheduler_programs WHERE owner=? ORDER BY program_name";
-            case "scheduler_schedules" -> "SELECT schedule_name AS node_id,schedule_name AS node_name FROM all_scheduler_schedules WHERE owner=? ORDER BY schedule_name";
-            case "scheduler_chains" -> "SELECT chain_name AS node_id,chain_name AS node_name FROM all_scheduler_chains WHERE owner=? ORDER BY chain_name";
+            case "queues" -> "SELECT name AS node_id,name AS node_name FROM SYS.all_queues WHERE owner=? ORDER BY name";
+            case "synonyms" -> "SELECT synonym_name AS node_id,synonym_name AS node_name FROM SYS.all_synonyms WHERE owner=? ORDER BY synonym_name";
+            case "schema_triggers" -> "SELECT trigger_name AS node_id,trigger_name AS node_name FROM SYS.all_triggers WHERE owner=? AND base_object_type IN ('SCHEMA','DATABASE') ORDER BY trigger_name";
+            case "table_triggers" -> "SELECT trigger_name AS node_id,trigger_name AS node_name FROM SYS.all_triggers WHERE owner=? AND base_object_type IN ('TABLE','VIEW') ORDER BY trigger_name";
+            case "database_links" -> "SELECT db_link AS node_id,db_link AS node_name FROM SYS.all_db_links WHERE owner=? ORDER BY db_link";
+            case "jobs" -> "SELECT TO_CHAR(job),TO_CHAR(job) FROM "+(s.equals(OracleDialect.target(job,c,timeout).user())?"SYS.USER_JOBS":"SYS.DBA_JOBS")+" WHERE schema_user=? ORDER BY job";
+            case "scheduler_jobs" -> "SELECT job_name AS node_id,job_name AS node_name FROM SYS.all_scheduler_jobs WHERE owner=? ORDER BY job_name";
+            case "scheduler_programs" -> "SELECT program_name AS node_id,program_name AS node_name FROM SYS.all_scheduler_programs WHERE owner=? ORDER BY program_name";
+            case "scheduler_schedules" -> "SELECT schedule_name AS node_id,schedule_name AS node_name FROM SYS.all_scheduler_schedules WHERE owner=? ORDER BY schedule_name";
+            case "scheduler_chains" -> "SELECT chain_name AS node_id,chain_name AS node_name FROM SYS.all_scheduler_chains WHERE owner=? ORDER BY chain_name";
             default -> null;
         };
         if(sql!=null){query(job,c,out,sql,List.of(s),"object",false,db,s,timeout);return;}
         String types=switch(k){case "tables"->"'TABLE'";case "views"->"'VIEW'";case "materialized_views"->"'MATERIALIZED VIEW'";case "indexes"->"'INDEX'";case "sequences"->"'SEQUENCE'";case "types"->"'TYPE'";case "packages"->"'PACKAGE'";case "procedures"->"'PROCEDURE'";case "functions"->"'FUNCTION'";case "java"->"'JAVA SOURCE','JAVA CLASS','JAVA RESOURCE'";default->throw new IllegalArgumentException("Unsupported Oracle catalog branch");};
-        query(job,c,out,"SELECT TO_CHAR(object_id),object_name FROM all_objects WHERE owner=? AND object_type IN ("+types+") AND subobject_name IS NULL ORDER BY object_name,object_id",List.of(s),relation(k)?"relation":"object",relation(k),db,s,timeout);
+        query(job,c,out,"SELECT TO_CHAR(object_id),object_name FROM SYS.all_objects WHERE owner=? AND object_type IN ("+types+") AND subobject_name IS NULL ORDER BY object_name,object_id",List.of(s),relation(k)?"relation":"object",relation(k),db,s,timeout);
     }
     /** Only application constants are used to compose catalog SQL. */
     static String catalogSql(String e,String k){

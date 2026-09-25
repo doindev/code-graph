@@ -19,6 +19,30 @@ leave it unset for an ordinary connection. The application never elevates a conn
 SYSDBA and ordinary least-privileged connections were tested on Oracle Free. Wallet, external
 TNS resolution and every administrative role still require environment-specific validation.
 
+## Catalogs and scans
+
+All 17 Oracle schema categories are browsable. Native scans capture package/type bodies,
+compilation diagnostics, object and column grants, scheduler arguments, chain steps and rules,
+and their program/schedule/rule-set dependencies. Fixed catalog queries use SYS-owned views;
+legacy jobs use USER_JOBS for the authenticated owner and DBA_JOBS for other owners.
+Scanning another owner requires SELECT_CATALOG_ROLE (or SYS); insufficient access is reported.
+
+Scans retain the five-minute overall deadline and now use the configured DBA statement timeout,
+including the network bound, instead of always imposing 30 seconds. Snapshot jobs additionally
+respect their remaining job budget. Native materialized-view metadata took about 31 seconds on
+the test instance; the complete live scan passed with a 120-second statement setting.
+Current/last run details, phase/counts, cancellation and cleanup remain available in scan status.
+
+Native chain DDL refers to a separate rule set without including its rules, so the editor and
+scan label it incomplete and expose its associated steps/rules for review. ANYDATA scheduler
+arguments are identified explicitly and require native typed reconstruction. Database-link
+credentials are not exported, and compiled Java assets still require external files.
+
+The live Oracle Free fixture verifies all categories, 43 captured objects, scheduler details,
+column grants, native materialized-view definitions, and ordinary-user owner restrictions.
+Deterministic tests verify caller-supplied statement budgets, cancellation cleanup and scan
+terminal state. This does not certify every catalog variant or standard Oracle 19c.
+
 ## SQL and PL/SQL
 
 The Script editor accepts ordinary SQL separated by semicolons and PL/SQL units terminated by

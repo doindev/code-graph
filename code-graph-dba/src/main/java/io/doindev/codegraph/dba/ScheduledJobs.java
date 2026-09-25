@@ -15,8 +15,8 @@ final class ScheduledJobs {
         register("apoc_periodic","neo4j","APOC Background Jobs","root","/*+ NEO4J FORCE_CYPHER */ SHOW PROCEDURES YIELD name WHERE name = 'apoc.periodic.list' RETURN name");
         register("pg_cron","postgresql","pg_cron","database","");
         register("events","mysql","Event Scheduler","database","SELECT @@GLOBAL.event_scheduler AS scheduler_state");
-        register("oracle_scheduler","oracle","Oracle Scheduler","schema","SELECT job_name FROM all_scheduler_jobs WHERE 1=0");
-        register("oracle_legacy","oracle","Legacy DBMS_JOB","schema","SELECT job FROM all_jobs WHERE 1=0");
+        register("oracle_scheduler","oracle","Oracle Scheduler","schema","SELECT job_name FROM SYS.ALL_SCHEDULER_JOBS WHERE 1=0");
+        register("oracle_legacy","oracle","Legacy DBMS_JOB","schema","SELECT job FROM SYS.USER_JOBS WHERE 1=0");
         register("sql_agent","sqlserver","SQL Server Agent","root","SELECT name FROM msdb.dbo.sysjobs WHERE 1=0");
         register("elastic_jobs","sqlserver","Azure Elastic Jobs","root","SELECT job_name FROM jobs.jobs WHERE 1=0");
         register("tasks","snowflake","Snowflake Tasks","schema","");
@@ -141,8 +141,8 @@ final class ScheduledJobs {
         case "apoc_periodic"->new Sql("/*+ NEO4J FORCE_CYPHER */ CALL apoc.periodic.list() YIELD name RETURN name AS id, name ORDER BY name");
         case "pg_cron"->new Sql("SELECT jobid::text AS id,COALESCE(to_jsonb(j)->>'jobname','Job '||jobid::text) AS name FROM cron.job j ORDER BY lower(COALESCE(to_jsonb(j)->>'jobname','')),jobid");
         case "events"->new Sql("SELECT EVENT_NAME AS id,EVENT_NAME AS name FROM information_schema.events WHERE EVENT_SCHEMA=? ORDER BY EVENT_NAME",s.isBlank()?str(t,"database"):s);
-        case "oracle_scheduler"->new Sql("SELECT JOB_NAME AS id,JOB_NAME AS name FROM ALL_SCHEDULER_JOBS WHERE OWNER=? ORDER BY JOB_NAME",s);
-        case "oracle_legacy"->new Sql("SELECT TO_CHAR(JOB) AS id,TO_CHAR(JOB) AS name FROM ALL_JOBS WHERE SCHEMA_USER=? ORDER BY JOB",s);
+        case "oracle_scheduler"->new Sql("SELECT JOB_NAME AS id,JOB_NAME AS name FROM SYS.ALL_SCHEDULER_JOBS WHERE OWNER=? ORDER BY JOB_NAME",s);
+        case "oracle_legacy"->new Sql("SELECT TO_CHAR(JOB) AS id,TO_CHAR(JOB) AS name FROM SYS.USER_JOBS WHERE SCHEMA_USER=? ORDER BY JOB",s);
         case "sql_agent"->new Sql("SELECT CONVERT(varchar(36),job_id) AS id,name FROM msdb.dbo.sysjobs ORDER BY name,job_id");
         case "elastic_jobs"->new Sql("SELECT job_name AS id,job_name AS name FROM jobs.jobs ORDER BY job_name");
         case "tasks"->new Sql("SHOW TASKS IN SCHEMA "+qualified("snowflake",str(t,"database"),s));
@@ -162,8 +162,8 @@ final class ScheduledJobs {
         case "apoc_periodic"->new Sql("/*+ NEO4J FORCE_CYPHER */ CALL apoc.periodic.list() YIELD name,delay,rate,done,cancelled WHERE name=$1 RETURN name,delay,rate,done,cancelled",id);
         case "pg_cron"->new Sql("SELECT * FROM cron.job WHERE jobid=?::bigint",id);
         case "events"->new Sql("SELECT * FROM information_schema.events WHERE EVENT_SCHEMA=? AND EVENT_NAME=?",s.isBlank()?str(t,"database"):s,id);
-        case "oracle_scheduler"->new Sql("SELECT * FROM ALL_SCHEDULER_JOBS WHERE OWNER=? AND JOB_NAME=?",s,id);
-        case "oracle_legacy"->new Sql("SELECT * FROM ALL_JOBS WHERE SCHEMA_USER=? AND JOB=?",s,id);
+        case "oracle_scheduler"->new Sql("SELECT * FROM SYS.ALL_SCHEDULER_JOBS WHERE OWNER=? AND JOB_NAME=?",s,id);
+        case "oracle_legacy"->new Sql("SELECT * FROM SYS.USER_JOBS WHERE SCHEMA_USER=? AND JOB=?",s,id);
         case "sql_agent"->new Sql("SELECT * FROM msdb.dbo.sysjobs WHERE job_id=CONVERT(uniqueidentifier,?)",id);
         case "elastic_jobs"->new Sql("SELECT * FROM jobs.jobs WHERE job_name=?",id);
         case "tasks"->new Sql("SHOW TASKS IN SCHEMA "+qualified("snowflake",str(t,"database"),s));

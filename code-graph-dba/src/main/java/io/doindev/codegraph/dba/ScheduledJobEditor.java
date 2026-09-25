@@ -139,7 +139,7 @@ final class ScheduledJobEditor {
     static void recent(QueryJobs.Job job,Connection c,ObjectNode out,Provider p,JsonNode target,String id)throws Exception{
         Sql sql=switch(p.id()){
             case "pg_cron"->new Sql("SELECT * FROM cron.job_run_details WHERE jobid=?::bigint ORDER BY runid DESC",id);
-            case "oracle_scheduler"->new Sql("SELECT * FROM ALL_SCHEDULER_JOB_RUN_DETAILS WHERE OWNER=? AND JOB_NAME=? ORDER BY LOG_ID DESC",str(target,"schema"),id);
+            case "oracle_scheduler"->new Sql("SELECT * FROM SYS.ALL_SCHEDULER_JOB_RUN_DETAILS WHERE OWNER=? AND JOB_NAME=? ORDER BY LOG_ID DESC",str(target,"schema"),id);
             case "sql_agent"->new Sql("SELECT * FROM msdb.dbo.sysjobhistory WHERE job_id=CONVERT(uniqueidentifier,?) ORDER BY instance_id DESC",id);
             case "elastic_jobs"->new Sql("SELECT * FROM jobs.job_executions WHERE job_name=? AND step_id IS NULL ORDER BY start_time DESC",id);
             case "db2_ats"->new Sql("SELECT * FROM SYSTOOLS.ADMIN_TASK_STATUS WHERE NAME=? ORDER BY BEGIN_TIME DESC",id);
@@ -189,13 +189,13 @@ final class ScheduledJobEditor {
             }
             case "oracle_scheduler"->{
                 String jobName=lit.apply(target);boolean attributes=changed(old,f,"schedule","command","description");
-                if(create){String type=required(f,"jobType");if(!Set.of("PLSQL_BLOCK","STORED_PROCEDURE").contains(type))throw new IllegalArgumentException("Unsupported Oracle job type");commands.add("BEGIN DBMS_SCHEDULER.CREATE_JOB(job_name => "+jobName+", job_type => "+lit.apply(type)+", job_action => "+lit.apply(required(f,"command"))+", repeat_interval => "+lit.apply(required(f,"schedule"))+", enabled => FALSE, auto_drop => FALSE, comments => "+lit.apply(str(f,"description"))+"); END;");}
+                if(create){String type=required(f,"jobType");if(!Set.of("PLSQL_BLOCK","STORED_PROCEDURE").contains(type))throw new IllegalArgumentException("Unsupported Oracle job type");commands.add("BEGIN SYS.DBMS_SCHEDULER.CREATE_JOB(job_name => "+jobName+", job_type => "+lit.apply(type)+", job_action => "+lit.apply(required(f,"command"))+", repeat_interval => "+lit.apply(required(f,"schedule"))+", enabled => FALSE, auto_drop => FALSE, comments => "+lit.apply(str(f,"description"))+"); END;");}
                 else{
-                    if(attributes&&old.path("enabled").asBoolean())commands.add("BEGIN DBMS_SCHEDULER.DISABLE("+jobName+"); END;");
-                    for(String key:List.of("schedule","command","description"))if(changed(old,f,key))commands.add("BEGIN DBMS_SCHEDULER.SET_ATTRIBUTE("+jobName+", "+lit.apply(switch(key){case "schedule"->"repeat_interval";case "command"->"job_action";default->"comments";})+", "+lit.apply(str(f,key))+"); END;");
+                    if(attributes&&old.path("enabled").asBoolean())commands.add("BEGIN SYS.DBMS_SCHEDULER.DISABLE("+jobName+"); END;");
+                    for(String key:List.of("schedule","command","description"))if(changed(old,f,key))commands.add("BEGIN SYS.DBMS_SCHEDULER.SET_ATTRIBUTE("+jobName+", "+lit.apply(switch(key){case "schedule"->"repeat_interval";case "command"->"job_action";default->"comments";})+", "+lit.apply(str(f,key))+"); END;");
                 }
-                if(enabled&&(create||attributes||changed(old,f,"enabled")))commands.add("BEGIN DBMS_SCHEDULER.ENABLE("+jobName+"); END;");
-                else if(!enabled&&!create&&old.path("enabled").asBoolean()&&!attributes)commands.add("BEGIN DBMS_SCHEDULER.DISABLE("+jobName+"); END;");
+                if(enabled&&(create||attributes||changed(old,f,"enabled")))commands.add("BEGIN SYS.DBMS_SCHEDULER.ENABLE("+jobName+"); END;");
+                else if(!enabled&&!create&&old.path("enabled").asBoolean()&&!attributes)commands.add("BEGIN SYS.DBMS_SCHEDULER.DISABLE("+jobName+"); END;");
             }
             case "sql_agent"->{
                 String job=create?"@job_name="+lit.apply(name):"@job_id="+lit.apply(id);
@@ -226,9 +226,9 @@ final class ScheduledJobEditor {
                 else{if(changed(old,f,"schedule"))commands.add("ALTER SCHEDULED QUERY "+job+" CRON "+lit.apply(required(f,"schedule")));if(changed(old,f,"command"))commands.add("ALTER SCHEDULED QUERY "+job+" AS "+required(f,"command"));if(changed(old,f,"enabled"))commands.add("ALTER SCHEDULED QUERY "+job+(enabled?" ENABLED":" DISABLED"));}
             }
             case "oracle_legacy"->{
-                if(changed(old,f,"command"))commands.add("BEGIN DBMS_JOB.WHAT("+number(id)+", "+lit.apply(required(f,"command"))+"); END;");
-                if(changed(old,f,"schedule"))commands.add("BEGIN DBMS_JOB.INTERVAL("+number(id)+", "+lit.apply(str(f,"schedule"))+"); END;");
-                if(changed(old,f,"enabled"))commands.add("DECLARE v_next DATE; BEGIN SELECT next_date INTO v_next FROM all_jobs WHERE job="+number(id)+"; DBMS_JOB.BROKEN("+number(id)+", "+(!enabled?"TRUE":"FALSE")+", v_next); END;");
+                if(changed(old,f,"command"))commands.add("BEGIN SYS.DBMS_JOB.WHAT("+number(id)+", "+lit.apply(required(f,"command"))+"); END;");
+                if(changed(old,f,"schedule"))commands.add("BEGIN SYS.DBMS_JOB.INTERVAL("+number(id)+", "+lit.apply(str(f,"schedule"))+"); END;");
+                if(changed(old,f,"enabled"))commands.add("DECLARE v_next DATE; BEGIN SELECT next_date INTO v_next FROM SYS.USER_JOBS WHERE job="+number(id)+"; SYS.DBMS_JOB.BROKEN("+number(id)+", "+(!enabled?"TRUE":"FALSE")+", v_next); END;");
             }
             case "altibase_jobs"->{if(changed(old,f,"enabled"))commands.add("ALTER JOB "+ObjectForms.q(e,name)+" SET "+(enabled?"ENABLE":"DISABLE"));}
             case "informix_tasks"->{
@@ -259,8 +259,8 @@ final class ScheduledJobEditor {
             case "apoc_periodic"->"/*+ NEO4J FORCE_CYPHER */ CALL apoc.periodic.cancel("+literal(e,name)+")";
             case "pg_cron"->"SELECT cron.unschedule("+number(id)+")";
             case "events"->"DROP EVENT "+target;
-            case "oracle_scheduler"->"BEGIN DBMS_SCHEDULER.DROP_JOB("+literal(e,target)+", force => FALSE); END;";
-            case "oracle_legacy"->"BEGIN DBMS_JOB.REMOVE("+number(id)+"); END;";
+            case "oracle_scheduler"->"BEGIN SYS.DBMS_SCHEDULER.DROP_JOB("+literal(e,target)+", force => FALSE); END;";
+            case "oracle_legacy"->"BEGIN SYS.DBMS_JOB.REMOVE("+number(id)+"); END;";
             case "sql_agent"->"EXEC msdb.dbo.sp_delete_job @job_id="+literal(e,id)+", @delete_unused_schedule=0";
             case "elastic_jobs"->"EXEC jobs.sp_delete_job @job_name="+literal(e,name);
             case "tasks"->"DROP TASK "+ObjectForms.q(e,str(snapshot,"database"))+"."+target;

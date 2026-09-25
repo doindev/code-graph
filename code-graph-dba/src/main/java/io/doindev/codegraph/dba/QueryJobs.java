@@ -116,6 +116,7 @@ final class QueryJobs implements AutoCloseable {
     private final ThreadPoolExecutor workers;
     private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("dba-deadlines").factory());
     private volatile DbaConfig config;
+    int statementTimeoutSeconds(){return config.timeoutSeconds();}
     GridResults grids;
     QueryJobs(Connections connections,DbaConfig config,Predicate<String> alive){this.connections=connections;this.config=config;this.alive=alive;
         workers=new ThreadPoolExecutor(config.concurrency(),config.concurrency(),30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(16),Thread.ofVirtual().name("dba-query-",0).factory(),new ThreadPoolExecutor.AbortPolicy());

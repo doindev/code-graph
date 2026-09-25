@@ -20,7 +20,7 @@ final class SchemaSnapshots {
             if(!key.startsWith("o/"))return;
             bytes[0]+=value.length;if(bytes[0]>maxBytes)throw new CatalogScanner.CaptureLimit("Snapshot exceeds retained byte allowance");
             try{objects.add(Profiles.JSON.readTree(value));}catch(Exception invalid){throw new IllegalStateException("Invalid internal schema record");}
-        },()->job.cancelled,limits,statement->job.statement=statement);
+        },()->job.cancelled,limits,statement->job.statement=statement,job::remainingSeconds);
         try{out.set("coverage",scanner.scan());}catch(CatalogScanner.CaptureLimit limit){stopped[0]=true;out.putObject("coverage").put("inventoryComplete",false).put("reason",limit.getMessage());}
         out.put("truncated",stopped[0]).put("bytes",bytes[0]);
         // Accessible JDBC inventories do not prove absence of inaccessible/vendor-specific objects.

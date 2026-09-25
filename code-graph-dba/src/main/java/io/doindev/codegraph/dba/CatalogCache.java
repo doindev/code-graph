@@ -197,13 +197,14 @@ final class CatalogCache implements AutoCloseable {
                     progress(scope,"connecting",0,0,0);
                     try(Connections.Target target=connections.target(scope.target.connection,scope.target.database)){
                     Connection connection=target.connection();scope.connection=connection;
-                    try{connection.setNetworkTimeout(command->Thread.startVirtualThread(command),30_000);}catch(SQLException|UnsupportedOperationException ignored){/* Deadline also requests abort. */}
+                    int statementSeconds=budget==null?30:budget.statementTimeoutSeconds();
+                    try{connection.setNetworkTimeout(command->Thread.startVirtualThread(command),statementSeconds*1000);}catch(SQLException|UnsupportedOperationException ignored){/* Deadline also requests abort. */}
                     try{connection.setReadOnly(true);}catch(SQLException unsupported){/* fixed catalog reads only */}
                     boolean transactional=connection.getMetaData().supportsTransactions();if(transactional)connection.setAutoCommit(false);
                     try{staged.replace(writer->{
                         try{
                             scope.scanner=new CatalogScanner(connection,profile,scope.target.selector(),writer,()->stopped(scope),
-                                    new CatalogScanner.Limits(CatalogScanner.MAX_OBJECTS,maximum,10_000,CatalogScanner.MAX_DDL),_ -> {});
+                                    new CatalogScanner.Limits(CatalogScanner.MAX_OBJECTS,maximum,10_000,CatalogScanner.MAX_DDL),_ -> {},()->statementSeconds);
                             scope.scanner.onProgress((phase,objects,dependencies,bytes)->progress(scope,phase,objects,dependencies,bytes));
                             scanned[0]=scope.scanner.scan();
                         }catch(Exception error){throw new CompletionException(error);}

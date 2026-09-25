@@ -50,4 +50,32 @@ class CatalogScanStatusTest {
         cache.request(target,10_000);assertTrue(second.await(5,TimeUnit.SECONDS));cache.timeout(scope,original);
         assertFalse(cache.status(target).path("currentRun").path("timeoutRequested").asBoolean(),"An old deadline cannot cancel a later attempt");releaseSecond.countDown();assertEquals("succeeded",done(target).path("lastRun").path("state").asText());
     }
+    @Test void scannerUsesCallerStatementBudgetAndClosesOnCancellation()throws Exception{
+        var observed=new java.util.ArrayList<Integer>();var statements=new java.util.ArrayList<java.sql.PreparedStatement>();
+        var cancelled=new java.util.concurrent.atomic.AtomicBoolean();var seconds=new AtomicInteger(77);
+        try(var real=fixture.connections.open(fixture.connection);var setup=real.createStatement()){
+            setup.execute("CREATE VIEW SCAN_BUDGET_VIEW AS SELECT 1 AS VALUE_COLUMN");
+            java.sql.Connection wrapped=(java.sql.Connection)java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{java.sql.Connection.class},(proxy,method,args)->{
+                try{
+                    Object value=method.invoke(real,args);
+                    if(method.getName().equals("prepareStatement")){
+                        var statement=(java.sql.PreparedStatement)value;statements.add(statement);
+                        return java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{java.sql.PreparedStatement.class},(p,m,a)->{
+                            if(m.getName().equals("setQueryTimeout")){observed.add((int)a[0]);seconds.set(3);}
+                            try{return m.invoke(statement,a);}catch(java.lang.reflect.InvocationTargetException failure){throw failure.getCause();}
+                        });
+                    }
+                    return value;
+                }catch(java.lang.reflect.InvocationTargetException failure){throw failure.getCause();}
+            });
+            var profile=fixture.profiles.get(fixture.connection);var scope=Profiles.JSON.createObjectNode().put("schema","PUBLIC");
+            new CatalogScanner(wrapped,profile,scope,(key,value)->{},cancelled::get,CatalogScanner.Limits.DEFAULT,_->{},seconds::get).scan();
+            assertEquals(77,observed.getFirst());assertTrue(observed.contains(3),observed.toString());
+            for(var statement:statements)assertTrue(statement.isClosed());
+            var scanner=new CatalogScanner(wrapped,profile,scope,(key,value)->{},cancelled::get,CatalogScanner.Limits.DEFAULT,statement->{if(statement!=null)cancelled.set(true);},seconds::get);
+            assertTrue(assertThrows(CancellationException.class,scanner::scan).getMessage().contains("cancelled during"));
+            for(var statement:statements)assertTrue(statement.isClosed(),"Cancellation must close the active statement");
+        }
+    }
+
 }

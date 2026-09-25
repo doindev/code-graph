@@ -19,8 +19,10 @@ final class CatalogScanner {
     private final DocumentStore.Writer writer;
     private final BooleanSupplier cancelled;
     private final long deadline;
+    private final java.util.function.IntSupplier statementTimeout;
     private final Set<String> seen=new HashSet<>();
     private final ArrayNode warnings=Profiles.JSON.createArrayNode();
+    private String oracleUser="";
     private String engine;private final Set<String> schemas=new TreeSet<>();
     private long bytes;private int objects,edges;
     private boolean inventoryComplete=true;
@@ -42,7 +44,10 @@ final class CatalogScanner {
         this(c,p,b,w,cancel,Limits.DEFAULT,_ ->{});
     }
     CatalogScanner(Connection c,JsonNode p,JsonNode b,DocumentStore.Writer w,BooleanSupplier cancel,Limits limits,java.util.function.Consumer<Statement> execution){
-        connection=c;profile=p;binding=b;writer=w;cancelled=cancel;this.limits=limits;this.execution=execution;deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MINUTES.toNanos(5);engine=engine(p);
+        this(c,p,b,w,cancel,limits,execution,()->30);
+    }
+    CatalogScanner(Connection c,JsonNode p,JsonNode b,DocumentStore.Writer w,BooleanSupplier cancel,Limits limits,java.util.function.Consumer<Statement> execution,java.util.function.IntSupplier statementTimeout){
+        connection=c;profile=p;binding=b;writer=w;cancelled=cancel;this.limits=limits;this.execution=execution;this.statementTimeout=statementTimeout;deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MINUTES.toNanos(5);engine=engine(p);
     }
     static String engine(JsonNode p){return switch(p.path("templateId").asText("custom")){
         case "azure-sql"->"sqlserver";case "cosmos-cassandra"->"cassandra";default->p.path("templateId").asText("custom");};}
@@ -60,14 +65,15 @@ final class CatalogScanner {
         if(engine.equals("mysql")||engine.equals("mariadb"))optional("SQL mode",()->query("SELECT @@sql_mode",rs->version.put("compatibility",rs.getString(1))));
         String jdbcCatalog=catalog;
         if(engine.equals("oracle")){
-            OracleDialect.Target actual=OracleDialect.target(connection,30);if(!actual.matches(catalog))throw new SQLException("Oracle scan connection targets a different service/PDB");
-            result.set("resolvedTarget",actual.json());jdbcCatalog="";
+            OracleDialect.Target actual=OracleDialect.target(connection,remainingSeconds());if(!actual.matches(catalog))throw new SQLException("Oracle scan connection targets a different service/PDB");
+            result.set("resolvedTarget",actual.json());jdbcCatalog="";oracleUser=actual.user();
+            if(!actual.user().equals("SYS")&&(schema.isBlank()||!schema.equals(actual.user()))&&nativeRows("SELECT role FROM SYS.SESSION_ROLES WHERE role='SELECT_CATALOG_ROLE'").isEmpty())throw new SQLException("Complete Oracle scanning of other owners requires SELECT_CATALOG_ROLE; choose the authenticated owner's schema or grant catalog access");
         }
         boolean roster=false;phase("relations");
         try(ResultSet tables=metadata.getTables(jdbcCatalog.isBlank()?null:jdbcCatalog,pattern(metadata,schema),"%",null)){
             roster=true;while(tables.next()){
                 check();String s=text(tables,"TABLE_SCHEM"),db=text(tables,"TABLE_CAT"),name=text(tables,"TABLE_NAME"),kind=text(tables,"TABLE_TYPE");
-                if(!inScope(db,s)||systemSchema(s)||kind.toUpperCase(Locale.ROOT).startsWith("SYSTEM"))continue;
+                if(!inScope(db,s)||systemSchema(s)&&!(engine.equals("oracle")&&s.equals(schema))||kind.toUpperCase(Locale.ROOT).startsWith("SYSTEM"))continue;
                 if(s.isEmpty()&&!schema.isEmpty()&&(db.equals(schema)||engine.equals("sqlite")))s=schema;schemas.add(s);
                 ObjectNode object=object(s,name,kind.equalsIgnoreCase("BASE TABLE")?"table":kind.toLowerCase(Locale.ROOT).replace(' ','_'),"");
                 object.put("catalog",db);object.put("remarks",text(tables,"REMARKS"));
@@ -154,31 +160,46 @@ final class CatalogScanner {
     }
     private void oracleInventory(String scope)throws Exception{
         String filter=scope.isBlank()?" AND oracle_maintained='N'":" AND owner=?";Object[] args=scope.isBlank()?new Object[]{}:new Object[]{scope};
-        optional("Oracle native objects",()->query("SELECT owner,object_name,LOWER(REPLACE(object_type,' ','_')),TO_CHAR(object_id),status,edition_name FROM all_objects WHERE subobject_name IS NULL AND object_type IN ('PROCEDURE','FUNCTION','PACKAGE','PACKAGE BODY','TRIGGER','TYPE','TYPE BODY','SEQUENCE','INDEX','MATERIALIZED VIEW','SYNONYM','JAVA SOURCE','JAVA CLASS','JAVA RESOURCE')"+filter+" ORDER BY owner,object_type,object_name",r->{
+        optional("Oracle native objects",()->query("SELECT owner,object_name,LOWER(REPLACE(object_type,' ','_')),TO_CHAR(object_id),status,edition_name FROM SYS.all_objects WHERE subobject_name IS NULL AND object_type IN ('PROCEDURE','FUNCTION','PACKAGE','PACKAGE BODY','TRIGGER','TYPE','TYPE BODY','SEQUENCE','INDEX','MATERIALIZED VIEW','SYNONYM','JAVA SOURCE','JAVA CLASS','JAVA RESOURCE')"+filter+" ORDER BY owner,object_type,object_name",r->{
             String owner=r.getString(1),name=r.getString(2),kind=r.getString(3);if(systemSchema(owner)&&scope.isBlank())return;
             ObjectNode object=object(owner,name,kind,"").put("catalogIdentity",r.getString(4)).put("status",r.getString(5)).put("edition",Objects.toString(r.getString(6),""));
             nativeDefinition(object);
             if(Set.of("package","package_body","type","type_body","function","procedure","trigger","java_source").contains(kind)){
-                optional("Compilation errors for "+owner+"."+name,()->object.set("compilationErrors",nativeRows("SELECT type,line,position,attribute,message_number,text FROM all_errors WHERE owner=? AND name=? ORDER BY type,sequence",owner,name)));
+                optional("Compilation errors for "+owner+"."+name,()->object.set("compilationErrors",nativeRows("SELECT type,line,position,attribute,message_number,text FROM SYS.all_errors WHERE owner=? AND name=? ORDER BY type,sequence",owner,name)));
             }
             if(kind.startsWith("java_")&&!kind.equals("java_source"))object.put("externalAssetRequired",true);
             emit(object);
         },args));
-        String ownerFilter=scope.isBlank()?" WHERE owner IN (SELECT username FROM all_users WHERE oracle_maintained='N')":" WHERE owner=?";
-        optional("Oracle dependencies",()->query("SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name,dependency_type FROM all_dependencies"+(scope.isBlank()?ownerFilter:" WHERE owner=? OR referenced_owner=?")+" ORDER BY owner,name,type,referenced_owner,referenced_name",r->{
+        String ownerFilter=scope.isBlank()?" WHERE owner IN (SELECT username FROM SYS.all_users WHERE oracle_maintained='N')":" WHERE owner=?";
+        optional("Oracle dependencies",()->query("SELECT owner,name,type,referenced_owner,referenced_name,referenced_type,referenced_link_name,dependency_type FROM SYS.all_dependencies"+(scope.isBlank()?ownerFilter:" WHERE owner=? OR referenced_owner=?")+" ORDER BY owner,name,type,referenced_owner,referenced_name",r->{
             ObjectNode edge=Profiles.JSON.createObjectNode().put("schema",r.getString(1)).put("name",r.getString(2)).put("objectType",r.getString(3)).put("targetSchema",r.getString(4)).put("target",r.getString(5)).put("targetType",r.getString(6)).put("databaseLink",Objects.toString(r.getString(7),"")).put("kind","depends_on").put("dependencyType",r.getString(8)).put("confidence",1.0).put("source","oracle_catalog");
             store("e/"+String.format(Locale.ROOT,"%08d",edges++),edge);
         },scope.isBlank()?new Object[]{}:new Object[]{scope,scope}));
-        for(String[] category:List.of(new String[]{"queue","all_queues","name"},new String[]{"database_link","all_db_links","db_link"},new String[]{"scheduler_job","all_scheduler_jobs","job_name"},new String[]{"scheduler_program","all_scheduler_programs","program_name"},new String[]{"scheduler_schedule","all_scheduler_schedules","schedule_name"},new String[]{"scheduler_chain","all_scheduler_chains","chain_name"})){
+        for(String[] category:List.of(new String[]{"queue","SYS.all_queues","name"},new String[]{"database_link","SYS.all_db_links","db_link"},new String[]{"scheduler_job","SYS.all_scheduler_jobs","job_name"},new String[]{"scheduler_program","SYS.all_scheduler_programs","program_name"},new String[]{"scheduler_schedule","SYS.all_scheduler_schedules","schedule_name"},new String[]{"scheduler_chain","SYS.all_scheduler_chains","chain_name"})){
             optional("Oracle "+category[0],()->query("SELECT * FROM "+category[1]+ownerFilter+" ORDER BY owner,"+category[2],r->{
                 String owner=r.getString("OWNER"),name=r.getString(category[2]);ObjectNode object=object(owner,name,category[0],"");
                 ObjectNode properties=object.putObject("nativeProperties");var metadata=r.getMetaData();
                 for(int i=1;i<=metadata.getColumnCount();i++){String key=metadata.getColumnLabel(i).toLowerCase(Locale.ROOT);String value=Set.of(Types.CHAR,Types.VARCHAR,Types.LONGVARCHAR,Types.NCHAR,Types.NVARCHAR,Types.LONGNVARCHAR,Types.CLOB,Types.NCLOB).contains(metadata.getColumnType(i))?definition(r,i):Objects.toString(r.getString(i),"");properties.put(key,value);}
-                if(category[0].equals("database_link"))object.put("externalCredentialsRequired",true);else nativeDefinition(object);emit(object);
+                if(category[0].equals("database_link"))object.put("externalCredentialsRequired",true);else nativeDefinition(object);
+                for(var detail:OracleMetadata.schedulerDetails(category[0]))optional("Oracle "+detail.label()+" for "+owner+"."+name,()->object.set(detail.key(),nativeRows(detail.sql(),owner,name)));
+                if(category[0].equals("scheduler_chain"))object.put("definitionCoverage","native_fragment").put("definitionNote",OracleMetadata.CHAIN_DEFINITION_NOTE);
+                for(JsonNode argument:object.path("schedulerArguments"))if(argument.path("anydata_value_present").asText().equals("YES"))object.put("definitionCoverage","native_fragment").put("externalArgumentValueRequired",true);
+                if(category[0].equals("scheduler_job")){oracleReference(owner,name,properties,"program_owner","program_name","scheduler_program");oracleReference(owner,name,properties,"schedule_owner","schedule_name","scheduler_schedule");}
+                if(category[0].equals("scheduler_chain")){
+                    oracleReference(owner,name,properties,"rule_set_owner","rule_set_name","scheduler_rule_set");
+                    for(JsonNode step:object.path("chainSteps")){oracleReference(owner,name,step,"program_owner","program_name","scheduler_step");oracleReference(owner,name,step,"event_schedule_owner","event_schedule_name","scheduler_event_schedule");oracleReference(owner,name,step,"event_queue_owner","event_queue_name","scheduler_event_queue");}
+                }
+                emit(object);
             },args));
         }
-        optional("Oracle legacy jobs",()->query("SELECT job,log_user,priv_user,schema_user,broken,failures,last_date,next_date,interval,what,instance FROM all_jobs"+(scope.isBlank()?" WHERE schema_user IN (SELECT username FROM all_users WHERE oracle_maintained='N')":" WHERE schema_user=?")+" ORDER BY schema_user,job",r->{ObjectNode object=object(r.getString("SCHEMA_USER"),r.getString("JOB"),"job","");object.put("definitionSource","oracle_catalog").put("ddl",definition(r,10)).put("definitionCoverage","job_action_only").put("executionUser",r.getString("PRIV_USER")).put("interval",r.getString("INTERVAL"));emit(object);},args));
-        optional("Oracle grants",()->query("SELECT table_schema,table_name,grantee,privilege,grantable FROM all_tab_privs"+(scope.isBlank()?" WHERE table_schema IN (SELECT username FROM all_users WHERE oracle_maintained='N')":" WHERE table_schema=?")+" ORDER BY table_schema,table_name,grantee,privilege",r->{ObjectNode object=object(r.getString(1),r.getString(2),"grant",r.getString(3)+":"+r.getString(4));object.put("grantee",r.getString(3)).put("privilege",r.getString(4)).put("grantable",r.getString(5)).put("definitionSource","oracle_catalog").put("definitionCoverage","grant_attributes");emit(object);},args));
+        optional("Oracle legacy jobs",()->query("SELECT job,log_user,priv_user,schema_user,broken,failures,last_date,next_date,interval,what,instance FROM "+(scope.equals(oracleUser)?"SYS.USER_JOBS":"SYS.DBA_JOBS")+(scope.isBlank()?" WHERE schema_user IN (SELECT username FROM SYS.all_users WHERE oracle_maintained='N')":" WHERE schema_user=?")+" ORDER BY schema_user,job",r->{ObjectNode object=object(r.getString("SCHEMA_USER"),r.getString("JOB"),"job","");object.put("definitionSource","oracle_catalog").put("ddl",definition(r,10)).put("definitionCoverage","job_action_only").put("executionUser",r.getString("PRIV_USER")).put("interval",r.getString("INTERVAL"));emit(object);},args));
+        for(boolean columns:List.of(false,true))optional(columns?"Oracle column grants":"Oracle object grants",()->query("SELECT table_schema,table_name,grantor,grantee,privilege,grantable,common,inherited,"+(columns?"column_name,'NO' AS hierarchy":"'' AS column_name,hierarchy")+" FROM SYS."+(columns?"ALL_COL_PRIVS":"ALL_TAB_PRIVS")+(scope.isBlank()?" WHERE table_schema IN (SELECT username FROM SYS.ALL_USERS WHERE oracle_maintained='N')":" WHERE table_schema=?")+" ORDER BY table_schema,table_name,grantor,grantee,privilege,column_name",r->{
+            String column=Objects.toString(r.getString("COLUMN_NAME"),"");ObjectNode object=object(r.getString("TABLE_SCHEMA"),r.getString("TABLE_NAME"),columns?"column_grant":"grant",r.getString("GRANTOR")+":"+r.getString("GRANTEE")+":"+r.getString("PRIVILEGE")+":"+column);
+            object.put("grantor",r.getString("GRANTOR")).put("grantee",r.getString("GRANTEE")).put("privilege",r.getString("PRIVILEGE")).put("grantable",r.getString("GRANTABLE")).put("column",column).put("hierarchy",r.getString("HIERARCHY")).put("common",r.getString("COMMON")).put("inherited",r.getString("INHERITED")).put("definitionSource","oracle_catalog").put("definitionCoverage","grant_attributes");emit(object);
+        },args));
+    }
+    private void oracleReference(String owner,String name,JsonNode row,String ownerKey,String nameKey,String kind){
+        String targetOwner=row.path(ownerKey).asText(),target=row.path(nameKey).asText();if(!targetOwner.isBlank()&&!target.isBlank())dependency(owner,name,targetOwner,target,kind);
     }
     private void inventory(String label,String sql,String scope)throws Exception{
         String column=sql.substring(7,sql.indexOf(','));String scopedSql=sql+(sql.contains(" WHERE ")?" AND ":" WHERE ")+"LOWER("+column+") NOT IN ('information_schema','sys','system','mysql','performance_schema','syscat','sysibm','sysstat')"+(engine.equals("postgresql")?" AND "+column+" !~ '^pg_'":"")+(scope.isBlank()?"":" AND "+column+"=?");
@@ -207,14 +228,14 @@ final class CatalogScanner {
                 optional(category+" in "+schema,()->query(sql,r->{ObjectNode object=object(schema,r.getString(2),singular,"");object.put("catalogIdentity",r.getString(1));nativeDefinition(object);emit(object);},schema));
             }
         }
-        optional("User-defined types",()->{try(ResultSet r=metadata.getUDTs(engine.equals("oracle")?null:empty(binding.path("database").asText()),pattern(metadata,requested),"%",null)){while(r.next()){check();String schema=text(r,"TYPE_SCHEM");if(systemSchema(schema)||!inScope(text(r,"TYPE_CAT"),schema))continue;ObjectNode object=object(schema,text(r,"TYPE_NAME"),"type","");object.put("remarks",text(r,"REMARKS")).put("jdbcType",r.getInt("DATA_TYPE"));emit(object);}}});
+        if(!engine.equals("oracle"))optional("User-defined types",()->{try(ResultSet r=metadata.getUDTs(engine.equals("oracle")?null:empty(binding.path("database").asText()),pattern(metadata,requested),"%",null)){while(r.next()){check();String schema=text(r,"TYPE_SCHEM");if(systemSchema(schema)||!inScope(text(r,"TYPE_CAT"),schema))continue;ObjectNode object=object(schema,text(r,"TYPE_NAME"),"type","");object.put("remarks",text(r,"REMARKS")).put("jdbcType",r.getInt("DATA_TYPE"));emit(object);}}});
     }
     private void dependency(String schema,String name,String targetSchema,String target,String kind){ObjectNode e=Profiles.JSON.createObjectNode().put("schema",schema).put("name",name).put("targetSchema",targetSchema).put("target",target).put("kind",kind).put("confidence",1.0).put("source","catalog");store("e/"+String.format(Locale.ROOT,"%08d",edges++),e);}
     private void emit(ObjectNode object){
         if(!seen.add(object.path("id").asText()))return;if(++objects>limits.objects())throw new CaptureLimit("Catalog object limit reached; narrow the schema scope");
         String ddl=object.path("ddl").asText();if(ddl.length()>limits.ddlCharacters())throw new CaptureLimit("Definition exceeds capture limit; narrow the scope");
         object.put("objectHash",hash(stable(object))).put("definitionHash",hash(ddl)).put("observedAt",System.currentTimeMillis());String id=object.path("id").asText();
-        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks","nativeColumns","nativeKeys","nativeIndexes","constraints","fieldObservations"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);report();
+        store("o/"+id,object);ObjectNode summary=object.deepCopy();summary.remove(List.of("ddl","columns","indexes","foreignKeys","privileges","primaryKeys","remarks","nativeColumns","nativeKeys","nativeIndexes","constraints","fieldObservations","schedulerArguments","chainSteps","chainRules"));summary.put("ddlCharacters",ddl.length());store("i/"+id,summary);report();
     }
     private void store(String key,JsonNode value){check();byte[] data=value.toString().getBytes(StandardCharsets.UTF_8);bytes+=data.length+key.length()*2L+128;if(bytes>limits.bytes())throw new CaptureLimit("Catalog byte limit reached; narrow its scope");writer.put(key,data);}
     private boolean inScope(String catalog,String schema){String db=binding.path("database").asText(),s=binding.path("schema").asText();return (db.isBlank()||catalog.isBlank()||db.equals(catalog))&&(s.isBlank()||s.equals(schema)||schema.isBlank()&&(s.equals(catalog)||engine.equals("sqlite")&&s.equals("main")));}
@@ -224,11 +245,12 @@ final class CatalogScanner {
     private String qualified(String schema,String name){return schema.isBlank()?q(name):q(schema)+"."+q(name);}
     private static String empty(String s){return s==null||s.isBlank()?null:s;}
     private static String text(ResultSet r,String column){try{return Objects.toString(r.getString(column),"");}catch(SQLException e){return "";}}
-    private void check(){if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted()||System.nanoTime()>deadline)throw new CancellationException("Catalog scan cancelled or exceeded five minutes");}
+    private void check(){if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted())throw new CancellationException("Catalog scan cancelled during "+phase);if(System.nanoTime()>=deadline)throw new CancellationException("Catalog scan exceeded its five-minute deadline during "+phase);}
+    private int remainingSeconds(){check();return Math.max(1,Math.min(statementTimeout.getAsInt(),(int)Math.ceil((deadline-System.nanoTime())/1_000_000_000.0)));}
     private void bounded(ArrayNode rows){if(rows.size()>=limits.rows()||limits!=Limits.DEFAULT&&capturedRows++>=limits.rows())throw new CaptureLimit("Metadata row limit reached; narrow its scope");}
     interface Rows{void accept(ResultSet r)throws Exception;}
     interface Checked{void run()throws Exception;}
-    private void query(String sql,Rows consume,Object...args)throws Exception{check();Statement prior=statement;try(PreparedStatement s=connection.prepareStatement(sql)){statement=s;execution.accept(s);try{s.setQueryTimeout(30);}catch(SQLFeatureNotSupportedException ignored){}try{s.setFetchSize(128);}catch(SQLFeatureNotSupportedException ignored){}for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(ResultSet r=s.executeQuery()){while(r.next()){check();consume.accept(r);}}}finally{statement=prior;execution.accept(prior);}}
+    private void query(String sql,Rows consume,Object...args)throws Exception{check();Statement prior=statement;try(PreparedStatement s=connection.prepareStatement(sql)){statement=s;execution.accept(s);try{s.setQueryTimeout(remainingSeconds());}catch(SQLFeatureNotSupportedException ignored){}try{s.setFetchSize(128);}catch(SQLFeatureNotSupportedException ignored){}for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(ResultSet r=s.executeQuery()){while(r.next()){check();consume.accept(r);}}}finally{statement=prior;execution.accept(prior);}}
     // MySQL-family drivers may reject SAVEPOINT on read-only connections; their catalog read errors do not abort the transaction.
     private void optional(String label,Checked work)throws Exception{Savepoint point=null;try{if(!Set.of("mysql","mariadb").contains(engine)&&!connection.getAutoCommit()&&connection.getMetaData().supportsSavepoints())point=connection.setSavepoint();work.run();}catch(SQLException|UnsupportedOperationException failure){if(point!=null)connection.rollback(point);inventoryComplete=false;warn(label+" is unavailable with this provider or database account"+(failure instanceof SQLException sql?" (SQLSTATE "+Objects.toString(sql.getSQLState(),"unknown")+", vendor code "+sql.getErrorCode()+")":""));}finally{if(point!=null)try{connection.releaseSavepoint(point);}catch(SQLException ignored){}}}
     private void warn(String warning){if(warnings.size()<100)warnings.add(warning);}

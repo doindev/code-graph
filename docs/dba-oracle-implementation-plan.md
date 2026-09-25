@@ -114,7 +114,12 @@ and deferred enablement. Dependency objects remain selectable in the review scre
 Twenty focused Java checks and the Oracle comparison browser flow pass. The final ten-check
 run also verifies package procedures, inline/disabled jobs, scheduler-only target evidence,
 per-object catalog names, stale scheduler state and destination-only dependent blockers.
-Catalog completion, identities and broader object variants remain
+All 17 catalog categories and a complete 43-object native scan now pass live Oracle validation,
+including scheduler arguments, chain steps/rules, column grants and owner privilege restrictions.
+Scans honor the configured statement timeout while retaining the overall deadline. Chain DDL
+and ANYDATA limitations are explicitly labeled. Three scan lifecycle/budget checks and the
+20 existing scheduler/standalone-catalog checks also pass.
+Identity sequence synchronization and broader object variants remain
 in progress; this is not completed Oracle support.
 
 See [Oracle support details](dba-oracle.md) for the currently validated scope.
