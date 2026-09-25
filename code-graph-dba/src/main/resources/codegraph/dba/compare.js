@@ -38,7 +38,7 @@ export class DatabaseCompare {
     ['Databases','Objects & options','Review differences','Generated script'].forEach((name,index)=>{const b=button((index+1)+'. '+name,this.act(async()=>{if(index>this.step)return;if(index<2&&this.id){await this.api('/compare/'+this.id,'DELETE');this.id=null;this.objects=[];this.selection.clear();}this.step=index;this.render();}));b.disabled=this.busy||index>this.step;b.setAttribute('aria-current',index===this.step?'step':'false');steps.append(b);});
     this.progressNode=el('p',this.busy?'Working…':'','compare-progress');this.progressNode.setAttribute('role','status');this.progressNode.setAttribute('aria-live','polite');
     const error=el('p',this.error??'','compare-error');error.setAttribute('role','alert');error.hidden=!this.error;
-    this.body=el('div',undefined,'compare-body');this.footer=el('footer',undefined,'compare-footer');this.root.append(head,steps,this.progressNode,error,this.body,this.footer);
+    this.body=el('div',undefined,'compare-body');const footer=el('footer',undefined,'compare-footer');this.footer=el('div',undefined,'compare-footer-actions');footer.append(this.progressNode,this.footer);this.root.append(head,steps,error,this.body,footer);
     if(this.step===0)this.targetsScreen();else if(this.step===1)this.optionsScreen();else if(this.step===2)this.resultsScreen();else this.scriptScreen();
     if(this.busy)for(const control of this.body.querySelectorAll('input,select,button'))control.disabled=true;
     this.footer.append(button('Cancel',this.act(async()=>{await this.dispose();this.close();})));
